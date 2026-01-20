@@ -3,6 +3,21 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  --gold-50: #fef7e6;
+  --gold-100: #fce9b8;
+  --gold-200: #f8d98a;
+  --gold-300: #f3c75c;
+  --gold-400: #eab32e;
+  --gold-500: #c99315;
+  --gold-600: #8b6610;
+
+  --orange-50: #ffdbae;
+  --orange-100: #ffc687;
+  --orange-200: #ffb15a;
+  --orange-300: #ff9c28;
+  --orange-400: #ff8900;
+  --orange-500: #ff7700;
 }
 
 @theme inline {
