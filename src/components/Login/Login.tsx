@@ -66,9 +66,11 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="space-y-8 rounded-2xl bg-white p-8 shadow-2xl sm:p-10">
           {/* 헤더 */}
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900">Lolaum</h2>
-          </div>
+          <img
+            src="/images/common/LolaumLogo.png"
+            alt="Lolaum Logo"
+            className="mx-auto h-12 w-50"
+          />
 
           {/* 에러 메시지 */}
           {error && (
@@ -196,7 +198,7 @@ export default function Login() {
               </div>
               <a
                 href="#"
-                className="text-sm font-medium text-[var(--orange-300)] hover:text-[var(--orange-400)]"
+                className="text-sm font-medium text-[var(--gold-400)] hover:text-[var(--gold-500)]"
               >
                 비밀번호 찾기
               </a>
@@ -205,7 +207,7 @@ export default function Login() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full !bg-[var(--orange-200)] hover:!bg-[var(--orange-300)]"
+              className="w-full !bg-[var(--gold-400)] hover:!bg-[var(--gold-500)]"
               size="lg"
             >
               로그인
@@ -239,25 +241,12 @@ export default function Login() {
               계정이 없으신가요?{" "}
               <a
                 href="#"
-                className="font-semibold text-[var(--orange-300)] hover:text-[var(--orange-400)]"
+                className="font-semibold text-[var(--gold-400)] hover:text-[var(--gold-500)]"
               >
                 회원가입
               </a>
             </p>
           </div>
-        </div>
-
-        {/* 약관 동의 */}
-        <div className="mt-6 text-center text-xs text-gray-500">
-          로그인함으로써{" "}
-          <a href="#" className="text-indigo-600 hover:underline">
-            서비스 약관
-          </a>{" "}
-          및{" "}
-          <a href="#" className="text-indigo-600 hover:underline">
-            개인정보 처리방침
-          </a>
-          에 동의합니다
         </div>
       </div>
     </div>
