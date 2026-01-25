@@ -1,11 +1,44 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import HomCalendar from "./HomCalendar";
 import TaskTabs from "./Todo/TaskTabs";
 
 export default function HomeContainer() {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [mounted, setMounted] = useState(false);
+  const [today, setToday] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const now = new Date();
+    setToday(now);
+    setSelectedDate(now);
+    setMounted(true);
+  }, []);
+
+  // 마운트 전에는 로딩 상태 표시
+  if (!mounted || !today || !selectedDate) {
+    return (
+      <div className="min-h-screen w-full px-4 py-6 sm:px-6 md:px-8 lg:px-12">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex flex-col gap-6 md:flex-row md:gap-8">
+            <div className="w-full md:w-1/2 lg:w-5/12">
+              <div className="rounded-lg border p-4 animate-pulse">
+                <div className="h-6 bg-gray-200 rounded mb-4 w-32"></div>
+                <div className="h-48 bg-gray-100 rounded"></div>
+              </div>
+            </div>
+            <div className="w-full md:w-1/2 lg:w-7/12">
+              <div className="rounded-lg border p-4 animate-pulse">
+                <div className="h-6 bg-gray-200 rounded mb-4 w-24"></div>
+                <div className="h-64 bg-gray-100 rounded"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full px-4 py-6 sm:px-6 md:px-8 lg:px-12">
@@ -15,6 +48,7 @@ export default function HomeContainer() {
           {/* 캘린더 섹션 */}
           <div className="w-full md:w-1/2 lg:w-5/12">
             <HomCalendar
+              today={today}
               selectedDate={selectedDate}
               onSelectDate={setSelectedDate}
             />
