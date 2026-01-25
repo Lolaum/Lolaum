@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import GoogleIcon from "@/components/icons/GoogleIcon";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -18,45 +16,13 @@ export default function Login() {
     setError("");
 
     try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        setError("이메일 또는 비밀번호가 올바르지 않습니다.");
-      } else {
-        window.location.href = "/";
-      }
+      // TODO: 로그인 로직 구현
+      console.log("로그인 시도:", { email, password });
+      window.location.href = "/home";
     } catch (error) {
       setError("로그인 중 오류가 발생했습니다. 다시 시도해주세요.");
       console.error("로그인 실패:", error);
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    setIsLoading(true);
-    setError("");
-    try {
-      await signIn("google", { callbackUrl: "/" });
-    } catch (error) {
-      setError("Google 로그인에 실패했습니다.");
-      console.error("Google 로그인 실패:", error);
-      setIsLoading(false);
-    }
-  };
-
-  const handleGitHubLogin = async () => {
-    setIsLoading(true);
-    setError("");
-    try {
-      await signIn("github", { callbackUrl: "/" });
-    } catch (error) {
-      setError("GitHub 로그인에 실패했습니다.");
-      console.error("GitHub 로그인 실패:", error);
       setIsLoading(false);
     }
   };
@@ -213,27 +179,6 @@ export default function Login() {
               로그인
             </Button>
           </form>
-
-          {/* 구분선 */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm"></div>
-          </div>
-
-          {/* 소셜 로그인 */}
-          <div className="space-y-3">
-            <button
-              onClick={handleGoogleLogin}
-              type="button"
-              disabled={isLoading}
-              className="group relative flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <GoogleIcon />
-              Google로 계속하기
-            </button>
-          </div>
 
           {/* 회원가입 링크 */}
           <div className="text-center">
