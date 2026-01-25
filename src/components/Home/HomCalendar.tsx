@@ -39,15 +39,16 @@ function getMonthDates(date: Date) {
 }
 
 interface HomCalendarProps {
+  today: Date;
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
 }
 
 export default function HomCalendar({
+  today,
   selectedDate,
   onSelectDate,
 }: HomCalendarProps) {
-  const today = new Date();
   const weekDates = getWeekDates(today);
   const monthDates = getMonthDates(today);
 
