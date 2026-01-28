@@ -32,74 +32,62 @@ export default function RoutineList({
     );
   };
 
+  // 진행도 색상 배열 (순서대로 반복)
+  const progressColors = [
+    "bg-blue-400",
+    "bg-green-400",
+    "bg-purple-500",
+    "bg-orange-400",
+    "bg-pink-400",
+    "bg-yellow-400",
+  ];
+
+  // 예시: routine_mock에 count, totalCount 필드가 있다고 가정
+  // 실제 데이터에 맞게 수정 필요
+  // routine.count: 현재 달성 횟수, routine.totalCount: 목표 횟수
+
   return (
-    <div>
-      {/* 태그 필터 */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setSelectedTag(null)}
-          className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-            selectedTag === null
-              ? "bg-gray-900 text-white"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
-        >
-          전체
-        </button>
-        {tags.map((tag) => (
-          <button
-            key={tag}
-            type="button"
-            onClick={() => setSelectedTag(tag)}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              selectedTag === tag
-                ? "bg-gray-900 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
-          >
-            {tag}
-          </button>
-        ))}
-        <span className="ml-auto text-sm text-gray-500">
-          {filteredRoutines.filter((r) => r.completed).length}/
-          {filteredRoutines.length}
-          완료
+    <div className="bg-white rounded-xl shadow p-6">
+      {/* 진행중 루틴 헤더 */}
+      <div className="mb-6">
+        <span className="text-base font-semibold text-gray-500">
+          진행 중인 루틴
+        </span>
+        <span className="ml-2 text-base text-gray-400">
+          ({filteredRoutines.length})
         </span>
       </div>
 
       {/* 루틴 리스트 */}
-      <ul className="space-y-2">
-        {filteredRoutines.map((routine) => (
-          <li
-            key={routine.id}
-            className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-gray-50"
-            onClick={() => onTaskClick(routine.title)}
-          >
-            {/* 체크박스 */}
-            <input
-              type="checkbox"
-              checked={routine.completed}
-              onChange={() => handleToggle(routine.id)}
-              onClick={(e) => e.stopPropagation()}
-              className="h-4 w-4 rounded border-gray-300"
-            />
-
-            {/* 루틴 제목 */}
-            <span
-              className={`flex-1 text-sm ${
-                routine.completed
-                  ? "text-gray-400 line-through"
-                  : "text-gray-900"
-              }`}
+      <ul className="space-y-4">
+        {filteredRoutines.map((routine, idx) => {
+          // 임시 진행도: id를 기반으로 예시값 생성 (실제 데이터에 맞게 수정 필요)
+          const total = 5;
+          const count = routine.id % (total + 1);
+          const percent = Math.min(100, Math.round((count / total) * 100));
+          const color = progressColors[idx % progressColors.length];
+          return (
+            <li
+              key={routine.id}
+              className="bg-gray-50 rounded-xl px-6 py-4 flex flex-col gap-2"
             >
-              {routine.title}
-            </span>
-
-            {/* 시간 */}
-            <span className="text-xs text-gray-400">{routine.time}</span>
-          </li>
-        ))}
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-lg font-semibold text-gray-900">
+                  {routine.title}
+                </span>
+                <span className="text-base font-semibold text-gray-400">
+                  {count}/{total}
+                </span>
+              </div>
+              <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${color}`}
+                  style={{ width: `${percent}%` }}
+                />
+              </div>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
