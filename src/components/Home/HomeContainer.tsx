@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import HomCalendar from "./HomCalendar";
+import HomCalendar from "./HomeCalendar";
 import TaskTabs from "./Todo/TaskTabs";
 
 export default function HomeContainer() {

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import routine_mock from "@/mock/routinemock";
+import GenerateRoutine from "./GenerateRoutine";
 
 interface RoutineListProps {
   selectedDate: Date;
@@ -13,6 +14,7 @@ export default function RoutineList({
 }: RoutineListProps) {
   const [routines, setRoutines] = useState(routine_mock);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [showGenerateRoutine, setShowGenerateRoutine] = useState(false);
 
   // 고유한 태그 목록 추출
   const tags = [...new Set(routines.map((r) => r.tag))];
@@ -27,8 +29,8 @@ export default function RoutineList({
       prev.map((routine) =>
         routine.id === id
           ? { ...routine, completed: !routine.completed }
-          : routine,
-      ),
+          : routine
+      )
     );
   };
 
@@ -89,6 +91,16 @@ export default function RoutineList({
           );
         })}
       </ul>
+      {/* 루틴 생성 폼 */}
+      {showGenerateRoutine && (
+        <GenerateRoutine onClose={() => setShowGenerateRoutine(false)} />
+      )}
+      <button
+        onClick={() => setShowGenerateRoutine(true)}
+        className="w-90 mt-6 rounded-lg bg-yellow-500 px-6 py-3 text-base font-bold text-white shadow hover:bg-yellow-500 transition-colors"
+      >
+        루틴 생성하기
+      </button>
     </div>
   );
 }

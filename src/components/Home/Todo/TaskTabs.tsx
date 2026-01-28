@@ -7,7 +7,7 @@ import Timer from "../Timer/Timer";
 import {
   formatDateDisplay,
   getWeekRangeText,
-} from "@/components/modules/Common/dateModules";
+} from "@/modules/Common/dateModules";
 
 type TabType = "routine" | "todo";
 
@@ -56,7 +56,7 @@ export default function TaskTabs({ selectedDate }: TaskTabsProps) {
               onClick={() => setActiveTab("routine")}
               className={`px-5 py-1.5 rounded-lg text-base font-semibold transition-colors duration-150 ${
                 activeTab === "routine"
-                  ? "bg-white text-yellow-900 shadow border border-gray-200"
+                  ? "bg-white text-yellow-500 shadow border border-gray-200"
                   : "text-gray-400"
               }`}
               style={{ minWidth: 70 }}
@@ -66,9 +66,9 @@ export default function TaskTabs({ selectedDate }: TaskTabsProps) {
             <button
               type="button"
               onClick={() => setActiveTab("todo")}
-              className={`px-5 py-1.5 rounded-full text-base font-semibold transition-colors duration-150 ${
+              className={`px-5 py-1.5 rounded-lg text-base font-semibold transition-colors duration-150 ${
                 activeTab === "todo"
-                  ? "bg-yellow-400 text-white shadow border border-yellow-300"
+                  ? "bg-white text-yellow-500 shadow  border border-gray-200"
                   : "text-gray-400"
               }`}
               style={{ minWidth: 70 }}

@@ -1,10 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import mock_todo from "@/mock/todomock";
-import {
-  formatDateDisplay,
-  formatDateKey,
-} from "@/components/modules/Common/dateModules";
+import { formatDateDisplay, formatDateKey } from "@/modules/Common/dateModules";
 
 interface TodoListProps {
   selectedDate: Date;
@@ -25,8 +22,8 @@ export default function TodoList({ selectedDate, onTaskClick }: TodoListProps) {
   const handleToggle = (id: number) => {
     setTodos((prev) =>
       prev.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo,
-      ),
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      )
     );
   };
 
