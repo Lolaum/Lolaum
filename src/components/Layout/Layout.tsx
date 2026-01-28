@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import MenuIcon from "../icons/MenuIcon";
-import MoonIcon from "../icons/MoonIcon";
 import HomeIcon from "../icons/HomeIcon";
 import RitualIcon from "../icons/RitualIcon";
 import VerifyIcon from "../icons/VerifyIcon";
@@ -105,14 +104,6 @@ export default function Layout({ children }: LayoutProps) {
               className="mx-auto h-8 w-30"
             />
           </Link>
-
-          {/* 다크모드 토글 */}
-          <button
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label="다크모드 전환"
-          >
-            <MoonIcon size={20} className="text-gray-600" />
-          </button>
         </header>
       )}
 
