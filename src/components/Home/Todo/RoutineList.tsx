@@ -2,10 +2,11 @@
 import React, { useState } from "react";
 import routine_mock from "@/mock/routinemock";
 import GenerateRoutine from "./GenerateRoutine";
+import { PROGRESS_COLORS } from "@/constants/constant";
 
 interface RoutineListProps {
   selectedDate: Date;
-  onTaskClick: (title: string) => void;
+  onTaskClick: (title: string, color: string) => void;
 }
 
 export default function RoutineList({
@@ -29,20 +30,10 @@ export default function RoutineList({
       prev.map((routine) =>
         routine.id === id
           ? { ...routine, completed: !routine.completed }
-          : routine
-      )
+          : routine,
+      ),
     );
   };
-
-  // 진행도 색상 배열 (순서대로 반복)
-  const progressColors = [
-    "bg-blue-400",
-    "bg-green-400",
-    "bg-purple-500",
-    "bg-orange-400",
-    "bg-pink-400",
-    "bg-yellow-400",
-  ];
 
   // 예시: routine_mock에 count, totalCount 필드가 있다고 가정
   // 실제 데이터에 맞게 수정 필요
@@ -67,11 +58,12 @@ export default function RoutineList({
           const total = 5;
           const count = routine.id % (total + 1);
           const percent = Math.min(100, Math.round((count / total) * 100));
-          const color = progressColors[idx % progressColors.length];
+          const colorInfo = PROGRESS_COLORS[idx % PROGRESS_COLORS.length];
           return (
             <li
               key={routine.id}
-              className="bg-gray-50 rounded-xl px-6 py-4 flex flex-col gap-2"
+              onClick={() => onTaskClick(routine.title, colorInfo.hex)}
+              className="bg-gray-50 rounded-xl px-6 py-4 flex flex-col gap-2 cursor-pointer hover:bg-gray-100 transition-colors"
             >
               <div className="flex items-center justify-between mb-1">
                 <span className="text-lg font-semibold text-gray-900">
@@ -83,7 +75,7 @@ export default function RoutineList({
               </div>
               <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-300 ${color}`}
+                  className={`h-full rounded-full transition-all duration-300 ${colorInfo.class}`}
                   style={{ width: `${percent}%` }}
                 />
               </div>

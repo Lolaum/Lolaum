@@ -18,10 +18,13 @@ interface TaskTabsProps {
 export default function TaskTabs({ selectedDate }: TaskTabsProps) {
   // 루틴이 먼저 보이도록 기본값을 routine으로
   const [activeTab, setActiveTab] = useState<TabType>("routine");
-  const [selectedTask, setSelectedTask] = useState<string | null>(null);
+  const [selectedTask, setSelectedTask] = useState<{
+    title: string;
+    color: string;
+  } | null>(null);
 
-  const handleTaskClick = (title: string) => {
-    setSelectedTask(title);
+  const handleTaskClick = (title: string, color: string) => {
+    setSelectedTask({ title, color });
   };
 
   const handleCloseTimer = () => {
@@ -30,7 +33,13 @@ export default function TaskTabs({ selectedDate }: TaskTabsProps) {
 
   // 타이머가 선택되면 타이머만 표시
   if (selectedTask) {
-    return <Timer taskTitle={selectedTask} onClose={handleCloseTimer} />;
+    return (
+      <Timer
+        taskTitle={selectedTask.title}
+        color={selectedTask.color}
+        onClose={handleCloseTimer}
+      />
+    );
   }
 
   // 토글 스위치 스타일

@@ -24,6 +24,23 @@ export default function HomCalendar({
 
   const monthDates = getMonthDates(currentMonth);
 
+  // 주간 날짜 계산 (선택된 날짜 기준)
+  const getWeekDates = (date: Date) => {
+    const week: Date[] = [];
+    const day = date.getDay(); // 0(일) ~ 6(토)
+    const startOfWeek = new Date(date);
+    startOfWeek.setDate(date.getDate() - day);
+
+    for (let i = 0; i < 7; i++) {
+      const weekDate = new Date(startOfWeek);
+      weekDate.setDate(startOfWeek.getDate() + i);
+      week.push(weekDate);
+    }
+    return week;
+  };
+
+  const weekDates = getWeekDates(selectedDate);
+
   const isToday = (date: Date | null) => {
     if (!date) return false;
     return date.toDateString() === today.toDateString();
@@ -110,14 +127,42 @@ export default function HomCalendar({
         </div>
       </div>
 
-      {/* 월간 캘린더 */}
-      <div>
+      {/* 주간 캘린더 (xs only) */}
+      <div className="block sm:hidden">
         <div className="grid grid-cols-7 gap-2 mb-2">
           {DAYS.map((day) => (
-            <div
-              key={day}
-              className="py-2 text-center text-sm font-semibold text-blue-500"
+            <div key={day} className="py-2 text-center text-sm font-semibold">
+              {day}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-2">
+          {weekDates.map((date, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => onSelectDate(date)}
+              className={`flex h-12 items-center justify-center rounded-full text-base font-semibold transition-colors ${
+                isSelected(date)
+                  ? "bg-yellow-400 text-gray-900"
+                  : isToday(date)
+                    ? "bg-gray-100 text-gray-900"
+                    : isCurrentMonth(date)
+                      ? "text-gray-900 hover:bg-gray-50"
+                      : "text-gray-300 hover:bg-gray-50"
+              }`}
             >
+              {date.getDate()}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 월간 캘린더 (sm and above) */}
+      <div className="hidden sm:block">
+        <div className="grid grid-cols-7 gap-2 mb-2">
+          {DAYS.map((day) => (
+            <div key={day} className="py-2 text-center text-sm font-semibold">
               {day}
             </div>
           ))}
@@ -143,7 +188,7 @@ export default function HomCalendar({
               >
                 {date.getDate()}
               </button>
-            )
+            ),
           )}
         </div>
       </div>

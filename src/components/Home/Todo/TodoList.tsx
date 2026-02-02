@@ -5,7 +5,7 @@ import { formatDateDisplay, formatDateKey } from "@/modules/Common/dateModules";
 
 interface TodoListProps {
   selectedDate: Date;
-  onTaskClick: (title: string) => void;
+  onTaskClick: (title: string, color: string) => void;
 }
 
 export default function TodoList({ selectedDate, onTaskClick }: TodoListProps) {

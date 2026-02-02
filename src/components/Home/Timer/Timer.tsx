@@ -4,11 +4,18 @@ import React, { useState, useEffect, useCallback } from "react";
 
 interface TimerProps {
   taskTitle: string;
+  color: string; // hex 값 (예: "#60A5FA")
   onClose: () => void;
 }
 
 // 원형 프로그레스 컴포넌트
-function CircularProgress({ seconds }: { seconds: number }) {
+function CircularProgress({
+  seconds,
+  color,
+}: {
+  seconds: number;
+  color: string;
+}) {
   const totalTicks = 60; // 60개의 눈금
   const activeTicks = seconds % 60; // 현재 초에 해당하는 활성 눈금
 
@@ -36,7 +43,7 @@ function CircularProgress({ seconds }: { seconds: number }) {
               y1={y1}
               x2={x2}
               y2={y2}
-              stroke={isActive ? "#3B82F6" : "#E5E7EB"}
+              stroke={isActive ? color : "#E5E7EB"}
               strokeWidth={2}
               strokeLinecap="round"
             />
@@ -47,7 +54,7 @@ function CircularProgress({ seconds }: { seconds: number }) {
   );
 }
 
-export default function Timer({ taskTitle, onClose }: TimerProps) {
+export default function Timer({ taskTitle, color, onClose }: TimerProps) {
   const [seconds, setSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
 
@@ -83,6 +90,11 @@ export default function Timer({ taskTitle, onClose }: TimerProps) {
     setSeconds(0);
   };
 
+  const handleNext = () => {
+    // TODO: 다음 루틴으로 이동하는 로직
+    console.log("다음으로 이동");
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex min-h-screen flex-col items-center justify-center bg-white px-4">
       {/* 뒤로가기 버튼 */}
@@ -109,11 +121,13 @@ export default function Timer({ taskTitle, onClose }: TimerProps) {
 
       <div className="w-full max-w-sm text-center">
         {/* 태스크 제목 */}
-        <h1 className="mb-8 text-lg font-medium text-blue-500">{taskTitle}</h1>
+        <h1 className="mb-8 text-lg font-medium" style={{ color: color }}>
+          {taskTitle}
+        </h1>
 
         {/* 원형 프로그레스 + 타이머 */}
         <div className="relative mb-12 flex items-center justify-center">
-          <CircularProgress seconds={seconds} />
+          <CircularProgress seconds={seconds} color={color} />
           {/* 중앙 타이머 표시 */}
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="font-mono text-5xl font-bold text-gray-900">
@@ -123,25 +137,52 @@ export default function Timer({ taskTitle, onClose }: TimerProps) {
         </div>
 
         {/* 컨트롤 버튼 */}
-        <div className="flex justify-center">
-          <button
-            type="button"
-            onClick={handleStartPause}
-            className="rounded-full border border-blue-400 px-12 py-3 text-sm font-medium text-blue-500 transition-colors hover:bg-blue-50"
-          >
-            {isRunning ? "일시 중지" : "시작"}
-          </button>
-        </div>
-
-        {/* 초기화 버튼 */}
-        {seconds > 0 && (
-          <button
-            type="button"
-            onClick={handleReset}
-            className="mt-4 text-sm text-gray-400 hover:text-gray-600"
-          >
-            초기화
-          </button>
+        {seconds === 0 && !isRunning ? (
+          // 시작 전 상태
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={handleStartPause}
+              className="rounded-full px-12 py-3 text-base font-bold text-white transition-colors hover:bg-orange-600"
+              style={{
+                backgroundColor: color,
+                opacity: isRunning ? 1 : 0.9,
+              }}
+            >
+              시작
+            </button>
+          </div>
+        ) : (
+          // 진행 중 또는 일시중지 상태
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleStartPause}
+                className="rounded-full px-12 py-3 text-base font-bold text-white transition-colors"
+                style={{
+                  backgroundColor: color,
+                  opacity: isRunning ? 1 : 0.9,
+                }}
+              >
+                {isRunning ? "일시중지" : "계속하기"}
+              </button>
+              <button
+                type="button"
+                onClick={handleReset}
+                className="rounded-full bg-gray-200 px-8 py-3 text-base font-bold text-gray-600 transition-colors hover:bg-gray-300"
+              >
+                초기화
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={handleNext}
+              className="text-base font-medium text-gray-500 hover:text-gray-700 underline mt-5"
+            >
+              다음으로
+            </button>
+          </div>
         )}
       </div>
     </div>
