@@ -98,7 +98,7 @@ export default function TodoList({ selectedDate, onTaskClick }: TodoListProps) {
               .map((todo) => (
                 <div
                   key={todo.id}
-                  className="flex items-center gap-4 rounded-2xl bg-[#FCFCFC] px-8 py-5"
+                  className="flex items-center gap-4 rounded-2xl bg-[#FCFCFC] px-4 py-3"
                 >
                   <input
                     type="checkbox"
@@ -133,9 +133,13 @@ export default function TodoList({ selectedDate, onTaskClick }: TodoListProps) {
               key={todo.id}
               className="flex items-center gap-4 rounded-2xl bg-[#FCFCFC] px-4 py-3"
             >
-              <div className="flex items-center justify-center w-5 h-5 rounded bg-yellow-400">
+              <button
+                onClick={() => handleToggle(todo.id)}
+                className="flex items-center justify-center w-5 h-5 rounded bg-yellow-400 hover:bg-yellow-500 transition-colors"
+                aria-label="완료 취소"
+              >
                 <Check className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
-              </div>
+              </button>
               <span className="flex-1 text-base text-gray-400 font-semibold line-through">
                 {todo.title}
               </span>
