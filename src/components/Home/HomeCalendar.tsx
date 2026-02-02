@@ -76,10 +76,72 @@ export default function HomCalendar({
     }
   };
 
+  // 주간 네비게이션 (xs 전용)
+  const handlePrevWeek = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() - 7);
+    onSelectDate(newDate);
+  };
+
+  const handleNextWeek = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + 7);
+    onSelectDate(newDate);
+  };
+
   return (
     <div className="rounded-2xl bg-white shadow-md p-6">
-      {/* 헤더: 현재 월 표시와 네비게이션 */}
-      <div className="flex items-center justify-between mb-6">
+      {/* 헤더 (xs): 주간 네비게이션 */}
+      <div className="flex sm:hidden items-center justify-between mb-6">
+        <h2 className="text-xl font-bold text-gray-900">
+          {selectedDate.getFullYear()}년 {selectedDate.getMonth() + 1}월
+        </h2>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handlePrevWeek}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="이전 주"
+          >
+            <svg
+              className="w-5 h-5 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={handleNextWeek}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="다음 주"
+          >
+            <svg
+              className="w-5 h-5 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* 헤더 (sm 이상): 월간 네비게이션 */}
+      <div className="hidden sm:flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-gray-900">
           {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
         </h2>
@@ -142,14 +204,12 @@ export default function HomCalendar({
               key={index}
               type="button"
               onClick={() => onSelectDate(date)}
-              className={`flex h-12 items-center justify-center rounded-full text-base font-semibold transition-colors ${
+              className={`aspect-square p-2 rounded-lg transition-all relative focus:outline-none focus:ring-2 focus:ring-yellow-400/30 ${
                 isSelected(date)
-                  ? "bg-yellow-400 text-gray-900"
+                  ? "bg-yellow-400/15 text-yellow-500 font-semibold"
                   : isToday(date)
                     ? "bg-gray-100 text-gray-900"
-                    : isCurrentMonth(date)
-                      ? "text-gray-900 hover:bg-gray-50"
-                      : "text-gray-300 hover:bg-gray-50"
+                    : "text-gray-900 hover:bg-gray-50"
               }`}
             >
               {date.getDate()}
