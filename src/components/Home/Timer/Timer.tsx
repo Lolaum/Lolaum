@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { ChevronsRight } from "lucide-react";
 
 interface TimerProps {
   taskTitle: string;
@@ -178,9 +179,10 @@ export default function Timer({ taskTitle, color, onClose }: TimerProps) {
             <button
               type="button"
               onClick={handleNext}
-              className="text-base font-medium text-gray-500 hover:text-gray-700 underline mt-5"
+              className="flex items-center gap-1 text-base font-medium text-gray-500 hover:text-gray-700 underline mt-5"
             >
               다음으로
+              <ChevronsRight className="w-6 h-6" />
             </button>
           </div>
         )}
