@@ -10,7 +10,9 @@ export default function HomeContainer() {
   const [mounted, setMounted] = useState(false);
   const [today, setToday] = useState<Date | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedMemberId, setSelectedMemberId] = useState<string | undefined>();
+  const [selectedMemberId, setSelectedMemberId] = useState<
+    string | undefined
+  >();
 
   useEffect(() => {
     const now = new Date();
@@ -57,11 +59,13 @@ export default function HomeContainer() {
               }
             />
             <Profile />
-            <HomCalendar
-              today={today}
-              selectedDate={selectedDate}
-              onSelectDate={setSelectedDate}
-            />
+            <div className="sticky top-0 z-10 static">
+              <HomCalendar
+                today={today}
+                selectedDate={selectedDate}
+                onSelectDate={setSelectedDate}
+              />
+            </div>
           </div>
 
           {/* 태스크 탭 섹션 (루틴/투두) */}

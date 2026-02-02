@@ -2,31 +2,45 @@
 export const routine_mock = [
   {
     id: 1,
-    title: "아침 운동 30분",
+    title: "운동리추얼",
     completed: false,
-    time: "07:00",
     tag: "운동",
   },
   {
     id: 3,
-    title: "영어 단어 10개 암기",
+    title: "영어리추얼",
     completed: true,
-    time: "09:00",
     tag: "영어",
   },
   {
     id: 4,
-    title: "독서 30분",
+    title: "독서리추얼",
     completed: false,
-    time: "21:00",
     tag: "독서",
   },
   {
     id: 5,
-    title: "일기 쓰기",
+    title: "모닝리추얼",
     completed: false,
-    time: "06:30",
     tag: "모닝",
+  },
+  {
+    id: 6,
+    title: "언어리추얼",
+    completed: true,
+    tag: "언어",
+  },
+  {
+    id: 7,
+    title: "영어원서리추얼",
+    completed: false,
+    tag: "원서",
+  },
+  {
+    id: 8,
+    title: "자산관리리추얼",
+    completed: false,
+    tag: "자산관리",
   },
 ];
 

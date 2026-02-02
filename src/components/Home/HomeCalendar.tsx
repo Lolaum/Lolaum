@@ -128,7 +128,7 @@ export default function HomCalendar({
       </div>
 
       {/* 주간 캘린더 (xs only) */}
-      <div className="block sm:hidden">
+      <div className="block sm:hidden sticky top-0 bg-white z-10 pb-4 -mx-6 px-6">
         <div className="grid grid-cols-7 gap-2 mb-2">
           {DAYS.map((day) => (
             <div key={day} className="py-2 text-center text-sm font-semibold">

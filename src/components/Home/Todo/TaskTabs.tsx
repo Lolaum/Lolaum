@@ -89,7 +89,7 @@ export default function TaskTabs({ selectedDate }: TaskTabsProps) {
       </div>
 
       {/* 콘텐츠 */}
-      <div>
+      <div className="overflow-y-auto max-h-[calc(100vh-300px)]">
         {activeTab === "routine" ? (
           <RoutineList
             selectedDate={selectedDate}
