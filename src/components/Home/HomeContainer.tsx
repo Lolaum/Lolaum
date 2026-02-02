@@ -1,13 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import HomCalendar from "./HomCalendar";
+import HomCalendar from "./HomeCalendar";
 import TaskTabs from "./Todo/TaskTabs";
+import MemberProfile from "./Profile/MemberProfile";
+import Profile from "./Profile/Profile";
 
 export default function HomeContainer() {
   const [mounted, setMounted] = useState(false);
   const [today, setToday] = useState<Date | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedMemberId, setSelectedMemberId] = useState<
+    string | undefined
+  >();
 
   useEffect(() => {
     const now = new Date();
@@ -47,11 +52,20 @@ export default function HomeContainer() {
         <div className="flex flex-col gap-6 md:flex-row md:gap-8">
           {/* 캘린더 섹션 */}
           <div className="w-full md:w-1/2 lg:w-5/12">
-            <HomCalendar
-              today={today}
-              selectedDate={selectedDate}
-              onSelectDate={setSelectedDate}
+            <MemberProfile
+              selectedMemberId={selectedMemberId}
+              onSelectMember={(id) =>
+                setSelectedMemberId((prev) => (prev === id ? undefined : id))
+              }
             />
+            <Profile />
+            <div className="sticky top-0 z-10 static">
+              <HomCalendar
+                today={today}
+                selectedDate={selectedDate}
+                onSelectDate={setSelectedDate}
+              />
+            </div>
           </div>
 
           {/* 태스크 탭 섹션 (루틴/투두) */}

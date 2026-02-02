@@ -4,6 +4,10 @@ import React, { useState } from "react";
 import TodoList from "./TodoList";
 import RoutineList from "./RoutineList";
 import Timer from "../Timer/Timer";
+import {
+  formatDateDisplay,
+  getWeekRangeText,
+} from "@/modules/Common/dateModules";
 
 type TabType = "routine" | "todo";
 
@@ -12,11 +16,15 @@ interface TaskTabsProps {
 }
 
 export default function TaskTabs({ selectedDate }: TaskTabsProps) {
-  const [activeTab, setActiveTab] = useState<TabType>("todo");
-  const [selectedTask, setSelectedTask] = useState<string | null>(null);
+  // 루틴이 먼저 보이도록 기본값을 routine으로
+  const [activeTab, setActiveTab] = useState<TabType>("routine");
+  const [selectedTask, setSelectedTask] = useState<{
+    title: string;
+    color: string;
+  } | null>(null);
 
-  const handleTaskClick = (title: string) => {
-    setSelectedTask(title);
+  const handleTaskClick = (title: string, color: string) => {
+    setSelectedTask({ title, color });
   };
 
   const handleCloseTimer = () => {
@@ -25,39 +33,63 @@ export default function TaskTabs({ selectedDate }: TaskTabsProps) {
 
   // 타이머가 선택되면 타이머만 표시
   if (selectedTask) {
-    return <Timer taskTitle={selectedTask} onClose={handleCloseTimer} />;
+    return (
+      <Timer
+        taskTitle={selectedTask.title}
+        color={selectedTask.color}
+        onClose={handleCloseTimer}
+      />
+    );
   }
 
+  // 토글 스위치 스타일
   return (
-    <div className="rounded-lg border">
-      {/* 탭 헤더 */}
-      <div className="flex border-b">
-        <button
-          type="button"
-          onClick={() => setActiveTab("routine")}
-          className={`flex-1 py-3 text-sm font-medium transition-colors ${
-            activeTab === "routine"
-              ? "border-b-2 border-gray-900 text-gray-900"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          루틴
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("todo")}
-          className={`flex-1 py-3 text-sm font-medium transition-colors ${
-            activeTab === "todo"
-              ? "border-b-2 border-gray-900 text-gray-900"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          할 일
-        </button>
+    <div className="rounded-2xl bg-white shadow-md p-6">
+      <div className="flex items-center justify-between mb-6">
+        {/* 주간 날짜 정보 */}
+        <div className="flex flex-col">
+          <div className="mb-2 text-xl text-gray-900 font-bold">
+            {getWeekRangeText(selectedDate)}
+          </div>
+          {/* 오늘 날짜 */}
+          <div className="mb-2 text-base text-gray-400 font-semibold">
+            {formatDateDisplay(selectedDate)}
+          </div>
+        </div>
+
+        {/* 토글 스위치 */}
+        <div className="flex items-center justify-end mb-6">
+          <div className="flex items-center bg-gray-100 rounded-lg px-1 py-1 w-fit">
+            <button
+              type="button"
+              onClick={() => setActiveTab("routine")}
+              className={`px-5 py-1.5 rounded-lg text-base font-semibold transition-colors duration-150 ${
+                activeTab === "routine"
+                  ? "bg-white text-yellow-500 shadow border border-gray-200"
+                  : "text-gray-400"
+              }`}
+              style={{ minWidth: 70 }}
+            >
+              루틴
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("todo")}
+              className={`px-5 py-1.5 rounded-lg text-base font-semibold transition-colors duration-150 ${
+                activeTab === "todo"
+                  ? "bg-white text-yellow-500 shadow  border border-gray-200"
+                  : "text-gray-400"
+              }`}
+              style={{ minWidth: 70 }}
+            >
+              투두
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* 탭 콘텐츠 */}
-      <div className="p-4">
+      {/* 콘텐츠 */}
+      <div className="overflow-y-auto max-h-[calc(100vh-300px)]">
         {activeTab === "routine" ? (
           <RoutineList
             selectedDate={selectedDate}

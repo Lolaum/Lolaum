@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import MenuIcon from "../icons/MenuIcon";
-import MoonIcon from "../icons/MoonIcon";
 import HomeIcon from "../icons/HomeIcon";
 import RitualIcon from "../icons/RitualIcon";
 import VerifyIcon from "../icons/VerifyIcon";
@@ -40,10 +39,23 @@ export default function Layout({ children }: LayoutProps) {
   const pathname = usePathname();
   const isDesktopQuery = useMediaQuery("(min-width: 768px)");
   const [mounted, setMounted] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // 드로어 열릴 때 body 스크롤 방지
+  useEffect(() => {
+    if (isDrawerOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isDrawerOpen]);
 
   // 마운트 전에는 기본 모바일 레이아웃을 보여줌 (hydration 일치)
   const isDesktop = mounted ? isDesktopQuery : false;
@@ -77,6 +89,7 @@ export default function Layout({ children }: LayoutProps) {
               <button
                 className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                 aria-label="메뉴 열기"
+                onClick={() => setIsDrawerOpen(true)}
               >
                 <MenuIcon size={24} className="text-gray-700" />
               </button>
@@ -105,14 +118,6 @@ export default function Layout({ children }: LayoutProps) {
               className="mx-auto h-8 w-30"
             />
           </Link>
-
-          {/* 다크모드 토글 */}
-          <button
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label="다크모드 전환"
-          >
-            <MoonIcon size={20} className="text-gray-600" />
-          </button>
         </header>
       )}
 
@@ -147,6 +152,90 @@ export default function Layout({ children }: LayoutProps) {
             })}
           </div>
         </nav>
+      )}
+
+      {/* 데스크톱/태블릿 드로어 메뉴 */}
+      {isDesktop && (
+        <>
+          {/* 오버레이 */}
+          <div
+            className={`fixed inset-0 bg-black/50 z-[60] transition-opacity duration-300 ${
+              isDrawerOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+            }`}
+            onClick={() => setIsDrawerOpen(false)}
+          />
+
+          {/* 드로어 */}
+          <div
+            className={`fixed top-0 left-0 h-full w-64 bg-white z-[70] shadow-xl transform transition-transform duration-300 ease-in-out ${
+              isDrawerOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
+          >
+            {/* 드로어 헤더 */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+              <Link
+                href="/home"
+                className="flex items-center gap-3"
+                onClick={() => setIsDrawerOpen(false)}
+              >
+                <img
+                  src="/images/common/LolaumLogo.png"
+                  alt="Lolaum Logo"
+                  className="h-8 w-30"
+                />
+              </Link>
+              <button
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                aria-label="메뉴 닫기"
+                onClick={() => setIsDrawerOpen(false)}
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-gray-700"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            {/* 드로어 메뉴 아이템 */}
+            <nav className="p-4">
+              <ul className="space-y-2">
+                {navItems.map((item) => {
+                  const isActive =
+                    pathname === item.href ||
+                    pathname?.startsWith(`${item.href}/`);
+                  const Icon = item.icon;
+
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        onClick={() => setIsDrawerOpen(false)}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                          isActive
+                            ? "bg-[var(--gold-400)]/10 text-[var(--gold-400)]"
+                            : "text-gray-600 hover:bg-gray-100"
+                        }`}
+                      >
+                        <Icon size={24} active={isActive} />
+                        <span className="font-medium">{item.label}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
+          </div>
+        </>
       )}
     </div>
   );
