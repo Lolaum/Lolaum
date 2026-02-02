@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import routine_mock from "@/mock/routinemock";
 import GenerateRoutine from "./GenerateRoutine";
 import { PROGRESS_COLORS } from "@/constants/constant";
+import { Plus, X } from "lucide-react";
 
 interface RoutineListProps {
   selectedDate: Date;
@@ -42,14 +43,27 @@ export default function RoutineList({
   return (
     <div className="bg-white rounded-xl shadow p-6">
       {/* 진행중 루틴 헤더 */}
-      <div className="mb-6">
-        <span className="text-base font-semibold text-gray-500">
-          진행 중인 루틴
-        </span>
-        <span className="ml-2 text-base text-gray-400">
-          ({filteredRoutines.length})
-        </span>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <span className="text-base font-semibold text-gray-500">
+            진행 중인 루틴
+          </span>
+          <span className="ml-2 text-base text-gray-400">
+            ({filteredRoutines.length})
+          </span>
+        </div>
+        <button
+          onClick={() => setShowGenerateRoutine(!showGenerateRoutine)}
+          className="w-8 h-8 rounded-full bg-yellow-400 text-white font-bold text-xl hover:bg-yellow-600 transition-colors flex items-center justify-center shadow"
+        >
+          {showGenerateRoutine ? <X /> : <Plus />}
+        </button>
       </div>
+
+      {/* 루틴 생성 폼 */}
+      {showGenerateRoutine && (
+        <GenerateRoutine onClose={() => setShowGenerateRoutine(false)} />
+      )}
 
       {/* 루틴 리스트 */}
       <ul className="space-y-4">
@@ -83,16 +97,6 @@ export default function RoutineList({
           );
         })}
       </ul>
-      {/* 루틴 생성 폼 */}
-      {showGenerateRoutine && (
-        <GenerateRoutine onClose={() => setShowGenerateRoutine(false)} />
-      )}
-      <button
-        onClick={() => setShowGenerateRoutine(true)}
-        className="w-90 mt-6 rounded-lg bg-yellow-500 px-6 py-3 text-base font-bold text-white shadow hover:bg-yellow-500 transition-colors"
-      >
-        루틴 생성하기
-      </button>
     </div>
   );
 }
