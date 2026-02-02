@@ -173,18 +173,22 @@ export default function HomCalendar({
               <div key={index} className="h-12" />
             ) : (
               <button
-                key={index}
-                type="button"
+                key={date.toISOString()}
                 onClick={() => onSelectDate(date)}
-                className={`flex h-12 items-center justify-center rounded-full text-base font-semibold transition-colors ${
-                  isSelected(date)
-                    ? "bg-yellow-400 text-gray-900"
-                    : isToday(date)
-                      ? "bg-gray-100 text-gray-900"
-                      : isCurrentMonth(date)
-                        ? "text-gray-900 hover:bg-gray-50"
-                        : "text-gray-300 hover:bg-gray-50"
-                }`}
+                className={`
+                  aspect-square p-2 rounded-lg transition-all relative focus:outline-none focus:ring-2 focus:ring-yellow-400/30
+                  ${!isCurrentMonth(date) ? "text-gray-300" : "text-gray-700"}
+                  ${
+                    isSelected(date)
+                      ? "bg-yellow-400/15 text-yellow-500 font-semibold"
+                      : "hover:bg-gray-100/80"
+                  }
+                  ${
+                    isToday(date) && !isSelected(date)
+                      ? "bg-gray-100/80 font-medium"
+                      : ""
+                  }
+                `}
               >
                 {date.getDate()}
               </button>
