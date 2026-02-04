@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import TodoList from "./TodoList";
 import RoutineList from "./RoutineList";
 import Timer from "../Timer/Timer";
+import ReadingContainer from "@/components/Routines/Reading/ReadingContainer";
 import {
   formatDateDisplay,
   getWeekRangeText,
@@ -22,6 +23,7 @@ export default function TaskTabs({ selectedDate }: TaskTabsProps) {
     title: string;
     color: string;
   } | null>(null);
+  const [showReading, setShowReading] = useState(false);
 
   const handleTaskClick = (title: string, color: string) => {
     setSelectedTask({ title, color });
@@ -31,14 +33,62 @@ export default function TaskTabs({ selectedDate }: TaskTabsProps) {
     setSelectedTask(null);
   };
 
+  const handleNext = () => {
+    // 독서리추얼인 경우 ReadingContainer 표시
+    if (selectedTask?.title === "독서리추얼") {
+      setShowReading(true);
+    }
+  };
+
+  const handleCloseReading = () => {
+    setShowReading(false);
+    // selectedTask는 유지하여 타이머로 돌아가도록 함
+  };
+
   // 타이머가 선택되면 타이머만 표시
   if (selectedTask) {
     return (
-      <Timer
-        taskTitle={selectedTask.title}
-        color={selectedTask.color}
-        onClose={handleCloseTimer}
-      />
+      <>
+        {/* 타이머는 항상 렌더링하되, ReadingContainer가 표시될 때는 숨김 */}
+        <div style={{ display: showReading ? "none" : "block" }}>
+          <Timer
+            taskTitle={selectedTask.title}
+            color={selectedTask.color}
+            onClose={handleCloseTimer}
+            onNext={handleNext}
+          />
+        </div>
+
+        {/* ReadingContainer 표시 */}
+        {showReading && (
+          <div className="fixed inset-0 z-50 flex min-h-screen flex-col bg-white">
+            {/* 뒤로가기 버튼 */}
+            <button
+              type="button"
+              onClick={handleCloseReading}
+              className="absolute left-4 top-4 flex items-center gap-2 text-gray-600 hover:text-gray-900 z-10"
+            >
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+              <span className="text-sm">돌아가기</span>
+            </button>
+            <div className="pt-16 px-4">
+              <ReadingContainer />
+            </div>
+          </div>
+        )}
+      </>
     );
   }
 

@@ -7,6 +7,7 @@ interface TimerProps {
   taskTitle: string;
   color: string; // hex 값 (예: "#60A5FA")
   onClose: () => void;
+  onNext?: () => void;
 }
 
 // 원형 프로그레스 컴포넌트
@@ -55,7 +56,7 @@ function CircularProgress({
   );
 }
 
-export default function Timer({ taskTitle, color, onClose }: TimerProps) {
+export default function Timer({ taskTitle, color, onClose, onNext }: TimerProps) {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedBeforePause, setElapsedBeforePause] = useState(0);
   const [seconds, setSeconds] = useState(0);
@@ -124,8 +125,15 @@ export default function Timer({ taskTitle, color, onClose }: TimerProps) {
   };
 
   const handleNext = () => {
-    // TODO: 다음 루틴으로 이동하는 로직
-    console.log("다음으로 이동");
+    // 타이머 일시정지
+    if (isRunning) {
+      setElapsedBeforePause(calculateElapsed());
+      setStartTime(null);
+      setIsRunning(false);
+    }
+    if (onNext) {
+      onNext();
+    }
   };
 
   return (
