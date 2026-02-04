@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import TodoList from "./TodoList";
 import RoutineList from "./RoutineList";
-import Timer from "../Timer/Timer";
 import {
   formatDateDisplay,
   getWeekRangeText,
@@ -13,34 +12,16 @@ type TabType = "routine" | "todo";
 
 interface TaskTabsProps {
   selectedDate: Date;
+  onTaskClick?: (title: string, color: string) => void;
 }
 
-export default function TaskTabs({ selectedDate }: TaskTabsProps) {
+export default function TaskTabs({ selectedDate, onTaskClick }: TaskTabsProps) {
   // 루틴이 먼저 보이도록 기본값을 routine으로
   const [activeTab, setActiveTab] = useState<TabType>("routine");
-  const [selectedTask, setSelectedTask] = useState<{
-    title: string;
-    color: string;
-  } | null>(null);
 
   const handleTaskClick = (title: string, color: string) => {
-    setSelectedTask({ title, color });
+    onTaskClick?.(title, color);
   };
-
-  const handleCloseTimer = () => {
-    setSelectedTask(null);
-  };
-
-  // 타이머가 선택되면 타이머만 표시
-  if (selectedTask) {
-    return (
-      <Timer
-        taskTitle={selectedTask.title}
-        color={selectedTask.color}
-        onClose={handleCloseTimer}
-      />
-    );
-  }
 
   // 토글 스위치 스타일
   return (

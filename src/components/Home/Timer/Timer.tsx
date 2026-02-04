@@ -7,6 +7,7 @@ interface TimerProps {
   taskTitle: string;
   color: string; // hex 값 (예: "#60A5FA")
   onClose: () => void;
+  onNext?: () => void;
 }
 
 // 원형 프로그레스 컴포넌트
@@ -55,23 +56,50 @@ function CircularProgress({
   );
 }
 
-export default function Timer({ taskTitle, color, onClose }: TimerProps) {
+export default function Timer({
+  taskTitle,
+  color,
+  onClose,
+  onNext,
+}: TimerProps) {
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [elapsedBeforePause, setElapsedBeforePause] = useState(0);
   const [seconds, setSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-
-    if (isRunning) {
-      interval = setInterval(() => {
-        setSeconds((prev) => prev + 1);
-      }, 1000);
+  // 경과 시간 계산 함수
+  const calculateElapsed = useCallback(() => {
+    if (!isRunning || startTime === null) {
+      return elapsedBeforePause;
     }
+    return elapsedBeforePause + Math.floor((Date.now() - startTime) / 1000);
+  }, [isRunning, startTime, elapsedBeforePause]);
+
+  // 타이머 업데이트 (1초마다 + visibility change 시)
+  useEffect(() => {
+    if (!isRunning) return;
+
+    const updateSeconds = () => {
+      setSeconds(calculateElapsed());
+    };
+
+    // 1초마다 업데이트
+    const interval = setInterval(updateSeconds, 1000);
+
+    // 탭이 다시 활성화될 때 즉시 업데이트
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        updateSeconds();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      if (interval) clearInterval(interval);
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [isRunning]);
+  }, [isRunning, calculateElapsed]);
 
   const formatTime = useCallback((totalSeconds: number) => {
     const minutes = Math.floor(totalSeconds / 60);
@@ -83,26 +111,43 @@ export default function Timer({ taskTitle, color, onClose }: TimerProps) {
   }, []);
 
   const handleStartPause = () => {
+    if (isRunning) {
+      // 일시정지: 현재까지 경과 시간 저장
+      setElapsedBeforePause(calculateElapsed());
+      setStartTime(null);
+    } else {
+      // 시작/재개: 현재 시간을 시작점으로
+      setStartTime(Date.now());
+    }
     setIsRunning((prev) => !prev);
   };
 
   const handleReset = () => {
     setIsRunning(false);
+    setStartTime(null);
+    setElapsedBeforePause(0);
     setSeconds(0);
   };
 
   const handleNext = () => {
-    // TODO: 다음 루틴으로 이동하는 로직
-    console.log("다음으로 이동");
+    // 타이머 일시정지
+    if (isRunning) {
+      setElapsedBeforePause(calculateElapsed());
+      setStartTime(null);
+      setIsRunning(false);
+    }
+    if (onNext) {
+      onNext();
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex min-h-screen flex-col items-center justify-center bg-white px-4">
+    <div className="flex flex-col bg-white">
       {/* 뒤로가기 버튼 */}
       <button
         type="button"
         onClick={onClose}
-        className="absolute left-4 top-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
+        className="self-start flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
       >
         <svg
           className="h-5 w-5"
@@ -120,7 +165,7 @@ export default function Timer({ taskTitle, color, onClose }: TimerProps) {
         <span className="text-sm">돌아가기</span>
       </button>
 
-      <div className="w-full max-w-sm text-center">
+      <div className="w-full max-w-sm text-center mx-auto">
         {/* 태스크 제목 */}
         <h1 className="mb-8 text-lg font-medium" style={{ color: color }}>
           {taskTitle}
