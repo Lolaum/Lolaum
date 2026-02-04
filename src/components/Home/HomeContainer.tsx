@@ -5,6 +5,8 @@ import HomCalendar from "./HomeCalendar";
 import TaskTabs from "./Todo/TaskTabs";
 import MemberProfile from "./Profile/MemberProfile";
 import Profile from "./Profile/Profile";
+import Timer from "./Timer/Timer";
+import ReadingContainer from "@/components/Routines/Reading/ReadingContainer";
 
 export default function HomeContainer() {
   const [mounted, setMounted] = useState(false);
@@ -13,6 +15,11 @@ export default function HomeContainer() {
   const [selectedMemberId, setSelectedMemberId] = useState<
     string | undefined
   >();
+  const [selectedTask, setSelectedTask] = useState<{
+    title: string;
+    color: string;
+  } | null>(null);
+  const [showReading, setShowReading] = useState(false);
 
   useEffect(() => {
     const now = new Date();
@@ -20,6 +27,25 @@ export default function HomeContainer() {
     setSelectedDate(now);
     setMounted(true);
   }, []);
+
+  const handleTaskClick = (title: string, color: string) => {
+    setSelectedTask({ title, color });
+  };
+
+  const handleCloseTimer = () => {
+    setSelectedTask(null);
+    setShowReading(false);
+  };
+
+  const handleNext = () => {
+    if (selectedTask?.title === "독서리추얼") {
+      setShowReading(true);
+    }
+  };
+
+  const handleCloseReading = () => {
+    setShowReading(false);
+  };
 
   // 마운트 전에는 로딩 상태 표시
   if (!mounted || !today || !selectedDate) {
@@ -40,6 +66,49 @@ export default function HomeContainer() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Timer 또는 ReadingContainer가 활성화되면 해당 화면만 표시
+  if (selectedTask) {
+    return (
+      <div className="min-h-screen w-full px-4 py-6 sm:px-6 md:px-8 lg:px-12">
+        <div className="mx-auto max-w-7xl">
+          {showReading ? (
+            <div>
+              {/* 뒤로가기 버튼 */}
+              <button
+                type="button"
+                onClick={handleCloseReading}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+              >
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+                <span className="text-sm">타이머로 돌아가기</span>
+              </button>
+              <ReadingContainer />
+            </div>
+          ) : (
+            <Timer
+              taskTitle={selectedTask.title}
+              color={selectedTask.color}
+              onClose={handleCloseTimer}
+              onNext={handleNext}
+            />
+          )}
         </div>
       </div>
     );
@@ -70,7 +139,10 @@ export default function HomeContainer() {
 
           {/* 태스크 탭 섹션 (루틴/투두) */}
           <div className="w-full md:w-1/2 lg:w-7/12">
-            <TaskTabs selectedDate={selectedDate} />
+            <TaskTabs
+              selectedDate={selectedDate}
+              onTaskClick={handleTaskClick}
+            />
           </div>
         </div>
       </div>

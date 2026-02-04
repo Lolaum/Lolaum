@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { List, Plus, LayoutGrid } from "lucide-react";
+import { List, Plus, LayoutGrid, Calendar as CalendarIcon } from "lucide-react";
 import AddNewBook from "./AddNewBook";
 
 interface Book {
@@ -45,6 +45,30 @@ export default function BookManage() {
       totalPages: 420,
       coverImage: "/images/book3.jpg", // 실제 이미지 경로로 교체 필요
     },
+    {
+      id: 4,
+      title: "아침의 힘",
+      author: "제프 센더스",
+      currentPage: 126,
+      totalPages: 280,
+      coverImage: "/images/book1.jpg", // 실제 이미지 경로로 교체 필요
+    },
+    {
+      id: 5,
+      title: "습관의 디테일",
+      author: "제임스 클리어",
+      currentPage: 252,
+      totalPages: 350,
+      coverImage: "/images/book2.jpg", // 실제 이미지 경로로 교체 필요
+    },
+    {
+      id: 6,
+      title: "데일 카네기 인간관계론",
+      author: "데일 카네기",
+      currentPage: 118,
+      totalPages: 420,
+      coverImage: "/images/book3.jpg", // 실제 이미지 경로로 교체 필요
+    },
   ];
 
   const calculateProgress = (current: number, total: number) => {
@@ -58,7 +82,7 @@ export default function BookManage() {
   // 새 책 추가하기 화면
   if (showAddBook) {
     return (
-      <div className="w-full min-h-screen flex items-center justify-center">
+      <div className="w-full py-8">
         <AddNewBook onCancel={() => setShowAddBook(false)} />
       </div>
     );
@@ -240,6 +264,15 @@ export default function BookManage() {
           })}
         </div>
       )}
+
+      {/* 독서 달력 보기 */}
+      <div className="flex w-full bg-gradient-to-r from-[#fef7e6] to-[#fef4dc] rounded-xl p-6 mt-6 items-center cursor-pointer hover:bg-gray-200 transition-colors">
+        <CalendarIcon className="w-12 h-12 text-[var(--gold-300)] bg-[#fdefc8] rounded-xl p-2" />
+        <div className="ml-4 flex flex-col justify-center gap-1">
+          <span>독서 달력 보기</span>
+          <span>매일의 독서 기록을 확인하세요</span>
+        </div>
+      </div>
     </div>
   );
 }

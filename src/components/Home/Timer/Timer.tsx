@@ -56,7 +56,12 @@ function CircularProgress({
   );
 }
 
-export default function Timer({ taskTitle, color, onClose, onNext }: TimerProps) {
+export default function Timer({
+  taskTitle,
+  color,
+  onClose,
+  onNext,
+}: TimerProps) {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedBeforePause, setElapsedBeforePause] = useState(0);
   const [seconds, setSeconds] = useState(0);
@@ -137,12 +142,12 @@ export default function Timer({ taskTitle, color, onClose, onNext }: TimerProps)
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex min-h-screen flex-col items-center justify-center bg-white px-4">
+    <div className="flex flex-col bg-white">
       {/* 뒤로가기 버튼 */}
       <button
         type="button"
         onClick={onClose}
-        className="absolute left-4 top-4 flex items-center gap-2 text-gray-600 hover:text-gray-900"
+        className="self-start flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
       >
         <svg
           className="h-5 w-5"
@@ -160,7 +165,7 @@ export default function Timer({ taskTitle, color, onClose, onNext }: TimerProps)
         <span className="text-sm">돌아가기</span>
       </button>
 
-      <div className="w-full max-w-sm text-center">
+      <div className="w-full max-w-sm text-center mx-auto">
         {/* 태스크 제목 */}
         <h1 className="mb-8 text-lg font-medium" style={{ color: color }}>
           {taskTitle}
