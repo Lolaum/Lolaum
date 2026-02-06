@@ -78,28 +78,7 @@ export default function HomeContainer() {
         <div className="mx-auto max-w-7xl">
           {showReading ? (
             <div>
-              {/* 뒤로가기 버튼 */}
-              <button
-                type="button"
-                onClick={handleCloseReading}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-              >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-                <span className="text-sm">타이머로 돌아가기</span>
-              </button>
-              <ReadingContainer />
+              <ReadingContainer onBackToTimer={handleCloseReading} />
             </div>
           ) : (
             <Timer

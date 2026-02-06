@@ -15,7 +15,11 @@ interface Book {
 
 type ViewMode = "grid" | "list";
 
-export default function BookManage() {
+interface BookManageProps {
+  onBackToTimer?: () => void;
+}
+
+export default function BookManage({ onBackToTimer }: BookManageProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [showAddBook, setShowAddBook] = useState(false);
 
@@ -82,7 +86,7 @@ export default function BookManage() {
   // 새 책 추가하기 화면
   if (showAddBook) {
     return (
-      <div className="w-full py-8">
+      <div className="w-full">
         <AddNewBook onCancel={() => setShowAddBook(false)} />
       </div>
     );
@@ -90,6 +94,27 @@ export default function BookManage() {
 
   return (
     <div className="w-full max-w-4xl mx-auto">
+      {/* 뒤로가기 버튼 */}
+      <button
+        type="button"
+        onClick={onBackToTimer}
+        className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+      >
+        <svg
+          className="h-5 w-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 19l-7-7 7-7"
+          />
+        </svg>
+        <span className="text-sm">타이머로 돌아가기</span>
+      </button>
       {/* 헤더 */}
       <div className="mb-4 flex items-center justify-between">
         <div>
