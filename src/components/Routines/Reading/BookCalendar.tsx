@@ -141,7 +141,10 @@ export default function BookCalendar({ onBack }: BookCalendarProps) {
           const readingRecord = day ? getReadingRecord(day) : null;
 
           return (
-            <div key={index} className="flex flex-col items-center py-2 min-h-[100px]">
+            <div
+              key={index}
+              className="flex flex-col items-center py-2 min-h-[100px]"
+            >
               {day && (
                 <>
                   {/* 날짜 숫자 */}
