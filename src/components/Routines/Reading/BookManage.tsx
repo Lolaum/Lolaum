@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { List, Plus, LayoutGrid, Calendar as CalendarIcon } from "lucide-react";
 import AddNewBook from "./AddNewBook";
+import BookCalendar from "./BookCalendar";
 
 interface Book {
   id: number;
@@ -22,6 +23,7 @@ interface BookManageProps {
 export default function BookManage({ onBackToTimer }: BookManageProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [showAddBook, setShowAddBook] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   // 임시 책 데이터
   const books: Book[] = [
@@ -88,6 +90,15 @@ export default function BookManage({ onBackToTimer }: BookManageProps) {
     return (
       <div className="w-full">
         <AddNewBook onCancel={() => setShowAddBook(false)} />
+      </div>
+    );
+  }
+
+  // 독서 달력 화면
+  if (showCalendar) {
+    return (
+      <div className="w-full">
+        <BookCalendar onBack={() => setShowCalendar(false)} />
       </div>
     );
   }
@@ -291,13 +302,17 @@ export default function BookManage({ onBackToTimer }: BookManageProps) {
       )}
 
       {/* 독서 달력 보기 */}
-      <div className="flex w-full bg-gradient-to-r from-[#fef7e6] to-[#fef4dc] rounded-xl p-6 mt-6 items-center cursor-pointer hover:bg-gray-200 transition-colors">
+      <button
+        type="button"
+        onClick={() => setShowCalendar(true)}
+        className="flex w-full bg-gradient-to-r from-[#fef7e6] to-[#fef4dc] rounded-xl p-6 mt-6 items-center cursor-pointer hover:opacity-80 transition-opacity text-left"
+      >
         <CalendarIcon className="w-12 h-12 text-[var(--gold-300)] bg-[#fdefc8] rounded-xl p-2" />
         <div className="ml-4 flex flex-col justify-center gap-1">
           <span>독서 달력 보기</span>
           <span>매일의 독서 기록을 확인하세요</span>
         </div>
-      </div>
+      </button>
     </div>
   );
 }
