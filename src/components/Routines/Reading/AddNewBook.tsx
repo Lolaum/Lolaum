@@ -2,19 +2,7 @@
 
 import React, { useState } from "react";
 import { Upload, X, FileText, Percent } from "lucide-react";
-
-interface AddNewBookProps {
-  onCancel: () => void;
-  onSubmit?: (bookData: BookFormData) => void;
-}
-
-interface BookFormData {
-  title: string;
-  author: string;
-  trackingType: "page" | "percent";
-  totalPages: number;
-  coverImage?: File;
-}
+import { AddNewBookProps, BookFormData } from "@/types/routines/reading";
 
 export default function AddNewBook({ onCancel, onSubmit }: AddNewBookProps) {
   const [title, setTitle] = useState("");

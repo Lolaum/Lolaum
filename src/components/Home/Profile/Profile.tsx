@@ -1,11 +1,6 @@
 "use client";
 
-interface ProfileProps {
-  name?: string;
-  description?: string;
-  completedCount?: number;
-  totalCount?: number;
-}
+import { ProfileProps } from "@/types/home/profile";
 
 export default function Profile({
   name = "사용자 이름",

@@ -4,11 +4,7 @@ import routine_mock from "@/mock/routinemock";
 import GenerateRoutine from "./GenerateRoutine";
 import { PROGRESS_COLORS } from "@/constants/constant";
 import { Plus, X } from "lucide-react";
-
-interface RoutineListProps {
-  selectedDate: Date;
-  onTaskClick: (title: string, color: string) => void;
-}
+import { RoutineListProps } from "@/types/home/todo";
 
 export default function RoutineList({
   selectedDate,

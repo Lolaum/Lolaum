@@ -4,21 +4,7 @@ import { useState } from "react";
 import { List, Plus, LayoutGrid, Calendar as CalendarIcon } from "lucide-react";
 import AddNewBook from "./AddNewBook";
 import BookCalendar from "./BookCalendar";
-
-interface Book {
-  id: number;
-  title: string;
-  author: string;
-  currentPage: number;
-  totalPages: number;
-  coverImage: string;
-}
-
-type ViewMode = "grid" | "list";
-
-interface BookManageProps {
-  onBackToTimer?: () => void;
-}
+import { Book, ViewMode, BookManageProps } from "@/types/routines/reading";
 
 export default function BookManage({ onBackToTimer }: BookManageProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");

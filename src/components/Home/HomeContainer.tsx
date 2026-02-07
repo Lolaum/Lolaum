@@ -7,6 +7,7 @@ import MemberProfile from "./Profile/MemberProfile";
 import Profile from "./Profile/Profile";
 import Timer from "./Timer/Timer";
 import ReadingContainer from "@/components/Routines/Reading/ReadingContainer";
+import LanguageContainer from "@/components/Routines/Language/LanguageContainer";
 
 export default function HomeContainer() {
   const [mounted, setMounted] = useState(false);
@@ -20,6 +21,7 @@ export default function HomeContainer() {
     color: string;
   } | null>(null);
   const [showReading, setShowReading] = useState(false);
+  const [showLanguage, setShowLanguage] = useState(false);
 
   useEffect(() => {
     const now = new Date();
@@ -35,16 +37,26 @@ export default function HomeContainer() {
   const handleCloseTimer = () => {
     setSelectedTask(null);
     setShowReading(false);
+    setShowLanguage(false);
   };
 
   const handleNext = () => {
     if (selectedTask?.title === "독서리추얼") {
       setShowReading(true);
+    } else if (
+      selectedTask?.title === "영어리추얼" ||
+      selectedTask?.title === "언어리추얼"
+    ) {
+      setShowLanguage(true);
     }
   };
 
   const handleCloseReading = () => {
     setShowReading(false);
+  };
+
+  const handleCloseLanguage = () => {
+    setShowLanguage(false);
   };
 
   // 마운트 전에는 로딩 상태 표시
@@ -71,7 +83,7 @@ export default function HomeContainer() {
     );
   }
 
-  // Timer 또는 ReadingContainer가 활성화되면 해당 화면만 표시
+  // Timer 또는 ReadingContainer 또는 LanguageContainer가 활성화되면 해당 화면만 표시
   if (selectedTask) {
     return (
       <div className="min-h-screen w-full px-4 py-6 sm:px-6 md:px-8 lg:px-12">
@@ -79,6 +91,10 @@ export default function HomeContainer() {
           {showReading ? (
             <div>
               <ReadingContainer onBackToTimer={handleCloseReading} />
+            </div>
+          ) : showLanguage ? (
+            <div>
+              <LanguageContainer onBackToTimer={handleCloseLanguage} />
             </div>
           ) : (
             <Timer

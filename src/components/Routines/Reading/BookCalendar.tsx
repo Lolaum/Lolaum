@@ -2,16 +2,7 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-
-interface ReadingRecord {
-  date: string; // YYYY-MM-DD
-  bookCover: string;
-  bookTitle: string;
-}
-
-interface BookCalendarProps {
-  onBack?: () => void;
-}
+import { ReadingRecord, BookCalendarProps } from "@/types/routines/reading";
 
 export default function BookCalendar({ onBack }: BookCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());

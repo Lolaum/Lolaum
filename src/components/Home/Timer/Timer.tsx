@@ -2,13 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { ChevronsRight } from "lucide-react";
-
-interface TimerProps {
-  taskTitle: string;
-  color: string; // hex 값 (예: "#60A5FA")
-  onClose: () => void;
-  onNext?: () => void;
-}
+import { TimerProps } from "@/types/home/timer";
 
 // 원형 프로그레스 컴포넌트
 function CircularProgress({
