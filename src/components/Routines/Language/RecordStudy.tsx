@@ -57,7 +57,7 @@ export default function RecordStudy({ languageRecords }: RecordStudyProps) {
 
         return acc;
       },
-      {} as Record<string, GroupedRecord>
+      {} as Record<string, GroupedRecord>,
     );
 
     return Object.values(grouped);
@@ -65,9 +65,7 @@ export default function RecordStudy({ languageRecords }: RecordStudyProps) {
 
   const toggleExpand = (date: string) => {
     setExpandedDates((prev) =>
-      prev.includes(date)
-        ? prev.filter((d) => d !== date)
-        : [...prev, date]
+      prev.includes(date) ? prev.filter((d) => d !== date) : [...prev, date],
     );
   };
 
@@ -117,17 +115,14 @@ export default function RecordStudy({ languageRecords }: RecordStudyProps) {
               {/* 확장된 내용 */}
               {isExpanded && (
                 <div className="px-4 pb-4 pt-2 border-t border-gray-100">
-                  {/* 그 날 입력한 단어들 */}
+                  {/* 그 날 입력한 표현 */}
                   <div className="mb-4">
                     <h4 className="text-sm font-semibold text-gray-700 mb-3">
-                      공부한 단어
+                      공부한 표현
                     </h4>
                     <div className="space-y-3">
                       {group.words.map((wordItem, index) => (
-                        <div
-                          key={index}
-                          className="bg-gray-50 rounded-xl p-3"
-                        >
+                        <div key={index} className="bg-gray-50 rounded-xl p-3">
                           <div className="font-semibold text-gray-900 mb-1">
                             {wordItem.word}
                           </div>

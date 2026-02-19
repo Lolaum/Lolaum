@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Grid3x3 } from "lucide-react";
 import RecordStudy from "./RecordStudy";
 import AddNewLanguage from "./AddNewLanguage";
+import StudyPhrase from "./StudyPhrase";
 import {
   LanguageRecord,
   LanguageContainerProps,
@@ -13,6 +14,7 @@ export default function LanguageContainer({
   onBackToTimer,
 }: LanguageContainerProps) {
   const [showAddRecord, setShowAddRecord] = useState(false);
+  const [showStudyPhrase, setShowStudyPhrase] = useState(false);
 
   // 임시 학습 기록 데이터
   const languageRecords: LanguageRecord[] = [
@@ -170,6 +172,7 @@ export default function LanguageContainer({
           {/* 단어 카드로 복습하기 */}
           <button
             type="button"
+            onClick={() => setShowStudyPhrase(true)}
             className="w-full flex items-center justify-between bg-gradient-to-r from-[#fef7e6] to-[#fef4dc] rounded-2xl p-6 hover:opacity-80 transition-opacity"
           >
             <div className="flex items-center gap-4">
@@ -205,5 +208,15 @@ export default function LanguageContainer({
     );
   };
 
-  return <div className="w-full max-w-4xl mx-auto">{renderContent()}</div>;
+  return (
+    <>
+      <div className="w-full max-w-4xl mx-auto">{renderContent()}</div>
+      {showStudyPhrase && (
+        <StudyPhrase
+          languageRecords={languageRecords}
+          onClose={() => setShowStudyPhrase(false)}
+        />
+      )}
+    </>
+  );
 }
