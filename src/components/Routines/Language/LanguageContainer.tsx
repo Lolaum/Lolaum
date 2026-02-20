@@ -12,12 +12,13 @@ import {
 
 export default function LanguageContainer({
   onBackToTimer,
+  languageType = "영어",
 }: LanguageContainerProps) {
   const [showAddRecord, setShowAddRecord] = useState(false);
   const [showStudyPhrase, setShowStudyPhrase] = useState(false);
 
-  // 임시 학습 기록 데이터
-  const languageRecords: LanguageRecord[] = [
+  // 영어 학습 기록 데이터
+  const englishRecords: LanguageRecord[] = [
     {
       id: 1,
       date: "1월 21일",
@@ -67,8 +68,7 @@ export default function LanguageContainer({
         {
           word: "resilience",
           meaning: "회복력, 탄력성",
-          example:
-            "The team showed great resilience in difficult times.",
+          example: "The team showed great resilience in difficult times.",
         },
         {
           word: "coherent",
@@ -79,6 +79,73 @@ export default function LanguageContainer({
       expressionCount: 2,
     },
   ];
+
+  // 언어 학습 기록 데이터 (예: 일본어, 중국어 등)
+  const otherLanguageRecords: LanguageRecord[] = [
+    {
+      id: 1,
+      date: "1월 22일",
+      achievement: "30문, 3개 표현",
+      expressions: [
+        {
+          word: "頑張る (がんばる)",
+          meaning: "노력하다, 힘내다",
+          example: "試験に向けて頑張ります。(시험을 위해 노력합니다.)",
+        },
+        {
+          word: "楽しい (たのしい)",
+          meaning: "즐겁다, 재미있다",
+          example: "日本語の勉強は楽しいです。(일본어 공부는 즐겁습니다.)",
+        },
+        {
+          word: "素晴らしい (すばらしい)",
+          meaning: "훌륭하다, 멋지다",
+          example: "素晴らしい景色ですね。(멋진 경치네요.)",
+        },
+      ],
+      expressionCount: 3,
+    },
+    {
+      id: 2,
+      date: "1월 20일",
+      achievement: "25문, 2개 표현",
+      expressions: [
+        {
+          word: "美味しい (おいしい)",
+          meaning: "맛있다",
+          example: "このラーメンは美味しいです。(이 라면은 맛있습니다.)",
+        },
+        {
+          word: "難しい (むずかしい)",
+          meaning: "어렵다",
+          example: "漢字は難しいです。(한자는 어렵습니다.)",
+        },
+      ],
+      expressionCount: 2,
+    },
+    {
+      id: 3,
+      date: "1월 17일",
+      achievement: "20문, 2개 표현",
+      expressions: [
+        {
+          word: "大切 (たいせつ)",
+          meaning: "소중하다, 중요하다",
+          example: "家族は大切です。(가족은 소중합니다.)",
+        },
+        {
+          word: "便利 (べんり)",
+          meaning: "편리하다",
+          example: "このアプリは便利です。(이 앱은 편리합니다.)",
+        },
+      ],
+      expressionCount: 2,
+    },
+  ];
+
+  // languageType에 따라 데이터 선택
+  const languageRecords =
+    languageType === "영어" ? englishRecords : otherLanguageRecords;
 
   // 이번 달 학습한 날 계산
   const studiedDays = 0;
@@ -117,7 +184,9 @@ export default function LanguageContainer({
         {/* 헤더 */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-xl font-bold text-gray-900">언어 학습</h1>
+            <h1 className="text-xl font-bold text-gray-900">
+              {languageType === "영어" ? "영어 학습" : "언어 학습"}
+            </h1>
             <button
               type="button"
               onClick={() => setShowAddRecord(true)}

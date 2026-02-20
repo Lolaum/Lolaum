@@ -11,6 +11,7 @@ export interface LanguageRecord {
 
 export interface LanguageContainerProps {
   onBackToTimer?: () => void;
+  languageType?: "영어" | "언어";
 }
 
 export interface LanguageFormData {

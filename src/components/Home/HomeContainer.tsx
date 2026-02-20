@@ -94,7 +94,12 @@ export default function HomeContainer() {
             </div>
           ) : showLanguage ? (
             <div>
-              <LanguageContainer onBackToTimer={handleCloseLanguage} />
+              <LanguageContainer
+                onBackToTimer={handleCloseLanguage}
+                languageType={
+                  selectedTask.title === "영어리추얼" ? "영어" : "언어"
+                }
+              />
             </div>
           ) : (
             <Timer
