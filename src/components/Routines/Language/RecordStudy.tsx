@@ -2,25 +2,18 @@
 
 import { useState, useMemo } from "react";
 import { ChevronDown } from "lucide-react";
+import { LanguageRecord } from "@/types/routines/language";
 
-interface Word {
+interface Expression {
   word: string;
-  meanings: string[];
-}
-
-interface LanguageRecord {
-  id: number;
-  date: string;
-  word: string;
-  meanings: string[];
-  examples?: string[];
-  expressionCount: number;
+  meaning: string;
+  example: string;
 }
 
 interface GroupedRecord {
   date: string;
-  words: Word[];
-  examples: string[];
+  achievement: string;
+  expressions: Expression[];
   totalExpressions: number;
 }
 
@@ -38,21 +31,13 @@ export default function RecordStudy({ languageRecords }: RecordStudyProps) {
         if (!acc[record.date]) {
           acc[record.date] = {
             date: record.date,
-            words: [],
-            examples: [],
+            achievement: record.achievement,
+            expressions: [],
             totalExpressions: 0,
           };
         }
 
-        acc[record.date].words.push({
-          word: record.word,
-          meanings: record.meanings,
-        });
-
-        if (record.examples) {
-          acc[record.date].examples.push(...record.examples);
-        }
-
+        acc[record.date].expressions.push(...record.expressions);
         acc[record.date].totalExpressions += record.expressionCount;
 
         return acc;
@@ -97,7 +82,7 @@ export default function RecordStudy({ languageRecords }: RecordStudyProps) {
                     {group.date}
                   </h3>
                   <p className="text-sm text-gray-600">
-                    {group.words.map((w) => w.word).join(", ")}
+                    {group.expressions.map((e) => e.word).join(", ")}
                   </p>
                 </div>
                 <div className="flex items-center gap-3 ml-4">
@@ -115,53 +100,41 @@ export default function RecordStudy({ languageRecords }: RecordStudyProps) {
               {/* 확장된 내용 */}
               {isExpanded && (
                 <div className="px-4 pb-4 pt-2 border-t border-gray-100">
+                  {/* 오늘의 작은 성취 */}
+                  {group.achievement && (
+                    <div className="mb-4">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                        오늘의 작은 성취
+                      </h4>
+                      <p className="text-sm text-gray-600 bg-gray-50 rounded-xl p-3">
+                        {group.achievement}
+                      </p>
+                    </div>
+                  )}
+
                   {/* 그 날 입력한 표현 */}
                   <div className="mb-4">
                     <h4 className="text-sm font-semibold text-gray-700 mb-3">
                       공부한 표현
                     </h4>
                     <div className="space-y-3">
-                      {group.words.map((wordItem, index) => (
+                      {group.expressions.map((expr, index) => (
                         <div key={index} className="bg-gray-50 rounded-xl p-3">
                           <div className="font-semibold text-gray-900 mb-1">
-                            {wordItem.word}
+                            {expr.word}
                           </div>
-                          <ul className="space-y-1">
-                            {wordItem.meanings.map((meaning, mIndex) => (
-                              <li
-                                key={mIndex}
-                                className="text-sm text-gray-600 flex items-start gap-2"
-                              >
-                                <span className="text-orange-500 mt-0.5">
-                                  •
-                                </span>
-                                <span>{meaning}</span>
-                              </li>
-                            ))}
-                          </ul>
+                          <div className="text-sm text-gray-600 mb-2">
+                            {expr.meaning}
+                          </div>
+                          {expr.example && (
+                            <div className="text-sm text-gray-500 pl-3 border-l-2 border-orange-200">
+                              {expr.example}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
                   </div>
-
-                  {/* 예문 */}
-                  {group.examples.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                        예문
-                      </h4>
-                      <ul className="space-y-2">
-                        {group.examples.map((example, index) => (
-                          <li
-                            key={index}
-                            className="text-sm text-gray-600 pl-4 border-l-2 border-orange-200"
-                          >
-                            {example}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
                 </div>
               )}
             </div>

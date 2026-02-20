@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Upload } from "lucide-react";
 import {
   AddNewLanguageProps,
   LanguageFormData,
@@ -12,47 +12,64 @@ export default function AddNewLanguage({
   onCancel,
   onSubmit,
 }: AddNewLanguageProps) {
-  const [word, setWord] = useState("");
-  const [meanings, setMeanings] = useState<Expression[]>([{ id: 1, text: "" }]);
-  const [examples, setExamples] = useState<Expression[]>([{ id: 1, text: "" }]);
+  const [images, setImages] = useState<string[]>([]);
+  const [achievement, setAchievement] = useState("");
+  const [expressions, setExpressions] = useState<Expression[]>([
+    { id: 1, word: "", meaning: "", example: "" },
+  ]);
 
-  const addMeaning = () => {
-    const newId = Math.max(...meanings.map((m) => m.id), 0) + 1;
-    setMeanings([...meanings, { id: newId, text: "" }]);
+  const addExpression = () => {
+    const newId = Math.max(...expressions.map((e) => e.id), 0) + 1;
+    setExpressions([
+      ...expressions,
+      { id: newId, word: "", meaning: "", example: "" },
+    ]);
   };
 
-  const removeMeaning = (id: number) => {
-    if (meanings.length > 1) {
-      setMeanings(meanings.filter((m) => m.id !== id));
+  const removeExpression = (id: number) => {
+    if (expressions.length > 1) {
+      setExpressions(expressions.filter((e) => e.id !== id));
     }
   };
 
-  const updateMeaning = (id: number, text: string) => {
-    setMeanings(meanings.map((m) => (m.id === id ? { ...m, text } : m)));
+  const updateExpression = (
+    id: number,
+    field: "word" | "meaning" | "example",
+    value: string
+  ) => {
+    setExpressions(
+      expressions.map((e) => (e.id === id ? { ...e, [field]: value } : e))
+    );
   };
 
-  const addExample = () => {
-    const newId = Math.max(...examples.map((e) => e.id), 0) + 1;
-    setExamples([...examples, { id: newId, text: "" }]);
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const newImages = Array.from(files).slice(0, 2 - images.length);
+    const imageUrls = newImages.map((file) => URL.createObjectURL(file));
+    setImages([...images, ...imageUrls].slice(0, 2));
   };
 
-  const removeExample = (id: number) => {
-    if (examples.length > 1) {
-      setExamples(examples.filter((e) => e.id !== id));
-    }
-  };
-
-  const updateExample = (id: number, text: string) => {
-    setExamples(examples.map((e) => (e.id === id ? { ...e, text } : e)));
+  const removeImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index));
   };
 
   const handleSubmit = () => {
-    if (!word.trim()) return;
+    const validExpressions = expressions.filter(
+      (e) => e.word.trim() || e.meaning.trim() || e.example.trim()
+    );
+
+    if (validExpressions.length === 0) return;
 
     const recordData: LanguageFormData = {
-      word: word.trim(),
-      meanings: meanings.map((m) => m.text.trim()).filter((t) => t),
-      examples: examples.map((e) => e.text.trim()).filter((t) => t),
+      images,
+      achievement: achievement.trim(),
+      expressions: validExpressions.map((e) => ({
+        word: e.word.trim(),
+        meaning: e.meaning.trim(),
+        example: e.example.trim(),
+      })),
     };
 
     onSubmit?.(recordData);
@@ -86,95 +103,130 @@ export default function AddNewLanguage({
       {/* 메인 카드 */}
       <div className="max-w-2xl bg-white rounded-2xl border border-gray-200 p-8 mx-auto">
         {/* 헤더 */}
-        <h2 className="text-xl font-bold text-gray-900 mb-6">학습 기록</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-6">언어 학습 기록</h2>
 
-        {/* 단어/표현 */}
+        {/* 인증 사진 */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            단어 또는 표현 <span className="text-orange-500">*</span>
+            인증 사진 (최대 2장)
+          </label>
+          <div className="space-y-3">
+            {/* 이미지 업로드 영역 */}
+            {images.length < 2 && (
+              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-orange-400 transition-colors bg-gray-50">
+                <div className="flex flex-col items-center justify-center">
+                  <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-500">
+                    이미지 업로드 또는 드래그
+                  </p>
+                </div>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                />
+              </label>
+            )}
+
+            {/* 업로드된 이미지 미리보기 */}
+            {images.length > 0 && (
+              <div className="grid grid-cols-2 gap-3">
+                {images.map((image, index) => (
+                  <div key={index} className="relative">
+                    <img
+                      src={image}
+                      alt={`업로드 이미지 ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-xl"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-black bg-opacity-50 rounded-full text-white hover:bg-opacity-70"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 오늘의 작은 성취 */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            오늘의 작은 성취
           </label>
           <input
             type="text"
-            value={word}
-            onChange={(e) => setWord(e.target.value)}
-            placeholder="예: profound"
+            value={achievement}
+            onChange={(e) => setAchievement(e.target.value)}
+            placeholder="예: 20문, 5개 표현"
             className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400"
           />
         </div>
 
-        {/* 의미 */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <label className="block text-sm font-medium text-gray-700">
-              의미
-            </label>
-            <button
-              type="button"
-              onClick={addMeaning}
-              className="flex items-center gap-1 text-sm text-orange-500 hover:text-orange-600"
-            >
-              <Plus className="w-4 h-4" />
-              추가
-            </button>
-          </div>
-          <div className="space-y-3">
-            {meanings.map((meaning, index) => (
-              <div key={meaning.id} className="flex gap-2">
-                <input
-                  type="text"
-                  value={meaning.text}
-                  onChange={(e) => updateMeaning(meaning.id, e.target.value)}
-                  placeholder={`의미 ${index + 1}`}
-                  className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400"
-                />
-                {meanings.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeMeaning(meaning.id)}
-                    className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 예문 */}
+        {/* 오늘의 표현 */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
             <label className="block text-sm font-medium text-gray-700">
-              예문
+              오늘의 표현
             </label>
             <button
               type="button"
-              onClick={addExample}
-              className="flex items-center gap-1 text-sm text-orange-500 hover:text-orange-600"
+              onClick={addExpression}
+              className="flex items-center gap-1 text-sm text-orange-500 hover:text-orange-600 hover:bg-orange-50 active:bg-orange-100 active:scale-95 px-3 py-1.5 rounded-lg transition-all duration-200"
             >
               <Plus className="w-4 h-4" />
               추가
             </button>
           </div>
-          <div className="space-y-3">
-            {examples.map((example, index) => (
-              <div key={example.id} className="flex gap-2">
+          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
+            {expressions.map((expr, index) => (
+              <div
+                key={expr.id}
+                className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3"
+              >
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={expr.word}
+                    onChange={(e) =>
+                      updateExpression(expr.id, "word", e.target.value)
+                    }
+                    placeholder="표현 또는 단어"
+                    className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+                  />
+                  {expressions.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeExpression(expr.id)}
+                      className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-200"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
                 <input
                   type="text"
-                  value={example.text}
-                  onChange={(e) => updateExample(example.id, e.target.value)}
-                  placeholder={`예문 ${index + 1}`}
-                  className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+                  value={expr.meaning}
+                  onChange={(e) =>
+                    updateExpression(expr.id, "meaning", e.target.value)
+                  }
+                  placeholder="의미"
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400"
                 />
-                {examples.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeExample(example.id)}
-                    className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                )}
+                <textarea
+                  value={expr.example}
+                  onChange={(e) =>
+                    updateExpression(expr.id, "example", e.target.value)
+                  }
+                  placeholder="배운 표현을 활용한 예문을 작성해보세요"
+                  rows={3}
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400 resize-none"
+                />
               </div>
             ))}
           </div>
@@ -185,7 +237,9 @@ export default function AddNewLanguage({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={!word.trim()}
+            disabled={expressions.every(
+              (e) => !e.word.trim() && !e.meaning.trim() && !e.example.trim()
+            )}
             className="flex-1 py-4 px-4 rounded-xl bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             기록 추가하기

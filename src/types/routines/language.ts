@@ -3,9 +3,9 @@
 export interface LanguageRecord {
   id: number;
   date: string;
-  word: string;
-  meanings: string[];
-  examples?: string[];
+  images?: string[];
+  achievement: string;
+  expressions: { word: string; meaning: string; example: string }[];
   expressionCount: number;
 }
 
@@ -14,9 +14,9 @@ export interface LanguageContainerProps {
 }
 
 export interface LanguageFormData {
-  word: string;
-  meanings: string[];
-  examples: string[];
+  images: string[];
+  achievement: string;
+  expressions: { word: string; meaning: string; example: string }[];
 }
 
 export interface AddNewLanguageProps {
@@ -26,5 +26,7 @@ export interface AddNewLanguageProps {
 
 export interface Expression {
   id: number;
-  text: string;
+  word: string;
+  meaning: string;
+  example: string;
 }

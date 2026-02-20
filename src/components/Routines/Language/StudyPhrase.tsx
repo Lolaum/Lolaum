@@ -1,30 +1,43 @@
 "use client";
 
-import { useState } from "react";
-
-interface LanguageRecord {
-  id: number;
-  date: string;
-  word: string;
-  meanings: string[];
-  examples?: string[];
-  expressionCount: number;
-}
+import { useState, useMemo } from "react";
+import { LanguageRecord } from "@/types/routines/language";
 
 interface StudyPhraseProps {
   languageRecords: LanguageRecord[];
   onClose: () => void;
 }
 
+interface FlashCard {
+  word: string;
+  meaning: string;
+  example: string;
+}
+
 export default function StudyPhrase({
   languageRecords,
   onClose,
 }: StudyPhraseProps) {
+  // 모든 레코드의 expressions를 펼쳐서 하나의 카드 배열로 만듦
+  const allCards = useMemo(() => {
+    const cards: FlashCard[] = [];
+    languageRecords.forEach((record) => {
+      record.expressions.forEach((expr) => {
+        cards.push({
+          word: expr.word,
+          meaning: expr.meaning,
+          example: expr.example,
+        });
+      });
+    });
+    return cards;
+  }, [languageRecords]);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
 
-  const currentCard = languageRecords[currentIndex];
-  const totalCards = languageRecords.length;
+  const currentCard = allCards[currentIndex];
+  const totalCards = allCards.length;
 
   const handleNext = () => {
     if (currentIndex < totalCards - 1) {
@@ -87,14 +100,21 @@ export default function StudyPhrase({
               </button>
             </div>
           ) : (
-            // 뒷면: 의미
+            // 뒷면: 의미와 예문
             <div className="text-center w-full">
               <div className="mb-3">
                 <div className="text-3xl font-bold text-[var(--gold-400)] mb-4">
-                  {currentCard.meanings.join(", ")}
+                  {currentCard.meaning}
                 </div>
               </div>
-              <div className="text-gray-500 text-lg">{currentCard.word}</div>
+              <div className="text-gray-500 text-lg mb-4">
+                {currentCard.word}
+              </div>
+              {currentCard.example && (
+                <div className="text-sm text-gray-600 italic mt-4 pt-4 border-t border-gray-200">
+                  {currentCard.example}
+                </div>
+              )}
             </div>
           )}
         </div>

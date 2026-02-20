@@ -21,69 +21,62 @@ export default function LanguageContainer({
     {
       id: 1,
       date: "1월 21일",
-      word: "profound",
-      meanings: ["깊은", "심오한"],
-      examples: [
-        "The book had a profound impact on my life.",
-        "She gave a profound answer to a difficult question.",
+      achievement: "10문, 2개 표현",
+      expressions: [
+        {
+          word: "profound",
+          meaning: "깊은, 심오한",
+          example: "The book had a profound impact on my life.",
+        },
+        {
+          word: "elaborate",
+          meaning: "정교한, 상세한",
+          example: "Could you elaborate on that point?",
+        },
       ],
       expressionCount: 2,
     },
     {
       id: 2,
-      date: "1월 21일",
-      word: "elaborate",
-      meanings: ["정교한", "상세한", "자세히 설명하다"],
-      examples: [
-        "Could you elaborate on that point?",
-        "The plan was elaborate and well thought out.",
+      date: "1월 18일",
+      achievement: "15문, 3개 표현",
+      expressions: [
+        {
+          word: "pragmatic",
+          meaning: "실용적인, 현실적인",
+          example: "We need to take a more pragmatic approach.",
+        },
+        {
+          word: "intrinsic",
+          meaning: "본질적인, 고유의",
+          example: "The painting has intrinsic value.",
+        },
+        {
+          word: "versatile",
+          meaning: "다재다능한, 다용도의",
+          example: "She is a versatile actress.",
+        },
       ],
       expressionCount: 3,
     },
     {
       id: 3,
-      date: "1월 18일",
-      word: "pragmatic",
-      meanings: ["실용적인", "현실적인"],
-      examples: [
-        "We need to take a more pragmatic approach.",
-        "She's very pragmatic about her career.",
-        "The solution was pragmatic rather than idealistic.",
-      ],
-      expressionCount: 3,
-    },
-    {
-      id: 4,
       date: "1월 14일",
-      word: "intrinsic",
-      meanings: ["본질적인", "고유의"],
-      examples: [
-        "The painting has intrinsic value.",
-        "Her intrinsic motivation drives her success.",
-        "These rights are intrinsic to all human beings.",
+      achievement: "20문, 2개 표현",
+      expressions: [
+        {
+          word: "resilience",
+          meaning: "회복력, 탄력성",
+          example:
+            "The team showed great resilience in difficult times.",
+        },
+        {
+          word: "coherent",
+          meaning: "일관된, 논리적인",
+          example: "She presented a coherent argument.",
+        },
       ],
-      expressionCount: 3,
-    },
-    {
-      id: 5,
-      date: "1월 14일",
-      word: "versatile",
-      meanings: ["다재다능한", "다용도의"],
-      examples: ["She is a versatile actress.", "This tool is very versatile."],
       expressionCount: 2,
-    },
-    {
-      id: 6,
-      date: "1월 11일",
-      word: "resilience",
-      meanings: ["회복력", "탄력성"],
-      examples: [
-        "The team showed great resilience in difficult times.",
-        "Building resilience is important for mental health.",
-        "Her resilience helped her overcome many obstacles.",
-        "The city's resilience after the disaster was remarkable.",
-      ],
-      expressionCount: 4,
     },
   ];
 
