@@ -8,6 +8,7 @@ import Profile from "./Profile/Profile";
 import Timer from "./Timer/Timer";
 import ReadingContainer from "@/components/Routines/Reading/ReadingContainer";
 import LanguageContainer from "@/components/Routines/Language/LanguageContainer";
+import ExerciseContainer from "@/components/Routines/Exercise/ExerciseContainer";
 
 export default function HomeContainer() {
   const [mounted, setMounted] = useState(false);
@@ -22,6 +23,7 @@ export default function HomeContainer() {
   } | null>(null);
   const [showReading, setShowReading] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
+  const [showExercise, setShowExercise] = useState(false);
 
   useEffect(() => {
     const now = new Date();
@@ -38,6 +40,7 @@ export default function HomeContainer() {
     setSelectedTask(null);
     setShowReading(false);
     setShowLanguage(false);
+    setShowExercise(false);
   };
 
   const handleNext = () => {
@@ -48,6 +51,8 @@ export default function HomeContainer() {
       selectedTask?.title === "언어리추얼"
     ) {
       setShowLanguage(true);
+    } else if (selectedTask?.title === "운동리추얼") {
+      setShowExercise(true);
     }
   };
 
@@ -57,6 +62,10 @@ export default function HomeContainer() {
 
   const handleCloseLanguage = () => {
     setShowLanguage(false);
+  };
+
+  const handleCloseExercise = () => {
+    setShowExercise(false);
   };
 
   // 마운트 전에는 로딩 상태 표시
@@ -83,7 +92,7 @@ export default function HomeContainer() {
     );
   }
 
-  // Timer 또는 ReadingContainer 또는 LanguageContainer가 활성화되면 해당 화면만 표시
+  // Timer 또는 ReadingContainer 또는 LanguageContainer 또는 ExerciseContainer가 활성화되면 해당 화면만 표시
   if (selectedTask) {
     return (
       <div className="min-h-screen w-full px-4 py-6 sm:px-6 md:px-8 lg:px-12">
@@ -100,6 +109,10 @@ export default function HomeContainer() {
                   selectedTask.title === "영어리추얼" ? "영어" : "언어"
                 }
               />
+            </div>
+          ) : showExercise ? (
+            <div>
+              <ExerciseContainer onBackToTimer={handleCloseExercise} />
             </div>
           ) : (
             <Timer
