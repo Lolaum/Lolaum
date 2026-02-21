@@ -73,7 +73,7 @@ export default function Layout({ children }: LayoutProps) {
             />
           </div>
         </header>
-        <main className="pt-16 pb-20 min-h-screen">{children}</main>
+        <main className="pt-12 pb-16 min-h-screen">{children}</main>
       </div>
     );
   }
@@ -122,7 +122,7 @@ export default function Layout({ children }: LayoutProps) {
       )}
 
       {/* 메인 컨텐츠 */}
-      <main className={`${isDesktop ? "pt-20" : "pt-16 pb-20"} min-h-screen`}>
+      <main className={`${isDesktop ? "pt-16" : "pt-12 pb-16"} min-h-screen`}>
         {children}
       </main>
 

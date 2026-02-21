@@ -136,9 +136,9 @@ export default function Timer({
   };
 
   return (
-    <div className="flex flex-col bg-white">
+    <div className="flex flex-col bg-white scale-[0.8] origin-top">
       {/* 뒤로가기 버튼 및 x버튼 */}
-      <div className="flex items-center justify-end gap-3 mb-4">
+      <div className="flex items-center justify-end gap-3 mb-2">
         <button
           type="button"
           onClick={onClose}
@@ -162,12 +162,12 @@ export default function Timer({
 
       <div className="w-full max-w-sm text-center mx-auto">
         {/* 태스크 제목 */}
-        <h1 className="mb-8 text-lg font-medium" style={{ color: color }}>
+        <h1 className="mb-4 text-lg font-medium" style={{ color: color }}>
           {taskTitle}
         </h1>
 
         {/* 원형 프로그레스 + 타이머 */}
-        <div className="relative mb-12 flex items-center justify-center">
+        <div className="relative mb-6 flex items-center justify-center">
           <CircularProgress seconds={seconds} color={color} />
           {/* 중앙 타이머 표시 */}
           <div className="absolute inset-0 flex items-center justify-center">

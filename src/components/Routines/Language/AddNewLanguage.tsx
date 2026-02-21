@@ -78,9 +78,9 @@ export default function AddNewLanguage({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full max-w-3xl mx-auto">
       {/* 백 네비게이션 및 x버튼 */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <button
           type="button"
           onClick={onCancel}
@@ -123,9 +123,9 @@ export default function AddNewLanguage({
       </div>
 
       {/* 메인 카드 */}
-      <div className="max-w-2xl bg-white rounded-2xl border border-gray-200 p-8 mx-auto">
+      <div className="max-w-2xl bg-white rounded-2xl border border-gray-200 p-4 mx-auto">
         {/* 헤더 */}
-        <h2 className="text-xl font-bold text-gray-900 mb-6">언어 학습 기록</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">언어 학습 기록</h2>
 
         {/* 인증 사진 */}
         <div className="mb-6">

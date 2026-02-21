@@ -23,7 +23,7 @@ export default function RecordFinance({
   return (
     <>
       {/* 자산관리 기록 섹션 */}
-      <div className="mb-4">
+      <div className="mb-2">
         <h2 className="text-base font-semibold text-gray-900">자산관리 기록</h2>
       </div>
 
@@ -82,7 +82,7 @@ export default function RecordFinance({
               {isExpanded && (
                 <div className="px-4 pb-4 pt-2 border-t border-gray-100">
                   {/* 자산관리 상세 정보 */}
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {/* 날짜별 소비 기록 */}
                     <div>
                       <h4 className="text-sm font-semibold text-gray-700 mb-3">

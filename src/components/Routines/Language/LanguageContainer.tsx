@@ -161,7 +161,7 @@ export default function LanguageContainer({
     return (
       <>
         {/* 뒤로가기 버튼 및 x버튼 */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-2">
           <button
             type="button"
             onClick={onBackToTimer}
@@ -204,8 +204,8 @@ export default function LanguageContainer({
         </div>
 
         {/* 헤더 */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold text-gray-900">
               {languageType === "영어" ? "영어 학습" : "언어 학습"}
             </h1>
@@ -232,7 +232,7 @@ export default function LanguageContainer({
           </div>
 
           {/* 이번 달 통계 */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-4">
+          <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-3">
             <div className="flex items-center gap-2 text-gray-600 mb-2">
               <svg
                 className="w-5 h-5"
@@ -294,7 +294,9 @@ export default function LanguageContainer({
 
   return (
     <>
-      <div className="w-full max-w-4xl mx-auto">{renderContent()}</div>
+      <div className="w-full max-w-3xl mx-auto scale-[0.8] origin-top">
+        {renderContent()}
+      </div>
       {showStudyPhrase && (
         <StudyPhrase
           languageRecords={languageRecords}
