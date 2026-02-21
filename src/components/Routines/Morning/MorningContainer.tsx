@@ -50,34 +50,19 @@ export default function MorningContainer({
   const renderContent = () => {
     // 새 기록 추가하기 화면
     if (showAddRecord) {
-      return <AddNewMorning onCancel={() => setShowAddRecord(false)} onBackToHome={onBackToHome} />;
+      return (
+        <AddNewMorning
+          onCancel={() => setShowAddRecord(false)}
+          onBackToHome={onBackToHome}
+        />
+      );
     }
 
     // 메인 화면
     return (
       <>
         {/* 뒤로가기 버튼 및 x버튼 */}
-        <div className="flex items-center justify-between mb-4">
-          <button
-            type="button"
-            onClick={onBackToTimer}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-          >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-            <span className="text-sm">돌아가기</span>
-          </button>
+        <div className="flex items-center justify-end mb-4">
           <button
             type="button"
             onClick={onBackToHome}
@@ -124,6 +109,24 @@ export default function MorningContainer({
               기록 추가
             </button>
           </div>
+
+          {/* 구글밋 링크 */}
+          <button
+            type="button"
+            className="w-full flex items-center gap-3 bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 border-2 border-blue-200 rounded-xl p-4 mb-4 transition-all duration-200 hover:shadow-md"
+          >
+            <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Calendar className="w-5 h-5 text-white" />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-semibold text-blue-900">
+                모닝리추얼 구글밋으로 바로가기
+              </p>
+              <p className="text-xs text-blue-700">
+                클릭하여 구글 미트에 참여하세요
+              </p>
+            </div>
+          </button>
 
           {/* 이번 달 통계 */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-4">

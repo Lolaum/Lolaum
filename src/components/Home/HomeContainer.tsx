@@ -10,6 +10,7 @@ import ReadingContainer from "@/components/Routines/Reading/ReadingContainer";
 import LanguageContainer from "@/components/Routines/Language/LanguageContainer";
 import ExerciseContainer from "@/components/Routines/Exercise/ExerciseContainer";
 import MorningContainer from "@/components/Routines/Morning/MorningContainer";
+import FinanceContainer from "@/components/Routines/Finance/FinanceContainer";
 
 export default function HomeContainer() {
   const [mounted, setMounted] = useState(false);
@@ -26,6 +27,7 @@ export default function HomeContainer() {
   const [showLanguage, setShowLanguage] = useState(false);
   const [showExercise, setShowExercise] = useState(false);
   const [showMorning, setShowMorning] = useState(false);
+  const [showFinance, setShowFinance] = useState(false);
 
   useEffect(() => {
     const now = new Date();
@@ -48,6 +50,7 @@ export default function HomeContainer() {
     setShowLanguage(false);
     setShowExercise(false);
     setShowMorning(false);
+    setShowFinance(false);
   };
 
   const handleNext = () => {
@@ -60,6 +63,8 @@ export default function HomeContainer() {
       setShowLanguage(true);
     } else if (selectedTask?.title === "운동리추얼") {
       setShowExercise(true);
+    } else if (selectedTask?.title === "자산관리리추얼") {
+      setShowFinance(true);
     }
   };
 
@@ -77,6 +82,10 @@ export default function HomeContainer() {
 
   const handleCloseMorning = () => {
     setShowMorning(false);
+  };
+
+  const handleCloseFinance = () => {
+    setShowFinance(false);
   };
 
   // 마운트 전에는 로딩 상태 표시
@@ -129,6 +138,10 @@ export default function HomeContainer() {
           ) : showMorning ? (
             <div>
               <MorningContainer onBackToTimer={handleCloseMorning} onBackToHome={handleCloseTimer} />
+            </div>
+          ) : showFinance ? (
+            <div>
+              <FinanceContainer onBackToTimer={handleCloseFinance} onBackToHome={handleCloseTimer} />
             </div>
           ) : (
             <Timer
