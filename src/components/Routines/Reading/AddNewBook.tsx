@@ -49,9 +49,9 @@ export default function AddNewBook({ onCancel, onBackToHome, onSubmit }: AddNewB
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full max-w-3xl mx-auto">
       {/* 백 네비게이션 및 x버튼 */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <button
           type="button"
           onClick={onCancel}
@@ -94,12 +94,12 @@ export default function AddNewBook({ onCancel, onBackToHome, onSubmit }: AddNewB
       </div>
 
       {/* 메인 카드 */}
-      <div className="max-w-2xl bg-white rounded-2xl border border-gray-200 p-8 mx-auto">
+      <div className="max-w-2xl bg-white rounded-2xl border border-gray-200 p-4 mx-auto">
         {/* 헤더 */}
-        <h2 className="text-xl font-bold text-gray-900 mb-6">책 추가하기</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">책 추가하기</h2>
 
         {/* 책 표지 업로드 */}
-        <div className="mb-6">
+        <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-3">
             책 표지
           </label>

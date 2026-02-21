@@ -89,12 +89,12 @@ export default function AddNewMorning({
       </div>
 
       {/* 메인 카드 */}
-      <div className="max-w-2xl bg-white rounded-2xl border border-gray-200 p-8 mx-auto">
+      <div className="max-w-2xl bg-white rounded-2xl border border-gray-200 p-4 mx-auto">
         {/* 헤더 */}
-        <h2 className="text-xl font-bold text-gray-900 mb-6">모닝 기록</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">모닝 기록</h2>
 
         {/* 인증 사진 */}
-        <div className="mb-6">
+        <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-3">
             인증 사진 (최대 1장)
           </label>

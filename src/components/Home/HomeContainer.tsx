@@ -91,7 +91,7 @@ export default function HomeContainer() {
   // 마운트 전에는 로딩 상태 표시
   if (!mounted || !today || !selectedDate) {
     return (
-      <div className="min-h-screen w-full px-4 py-6 sm:px-6 md:px-8 lg:px-12">
+      <div className="w-full px-4 py-3 sm:px-6 md:px-8 lg:px-12">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col gap-6 md:flex-row md:gap-8">
             <div className="w-full md:w-1/2 lg:w-5/12">
@@ -115,7 +115,7 @@ export default function HomeContainer() {
   // Timer 또는 각종 Container가 활성화되면 해당 화면만 표시
   if (selectedTask) {
     return (
-      <div className="min-h-screen w-full px-4 py-6 sm:px-6 md:px-8 lg:px-12">
+      <div className="w-full px-4 py-3 sm:px-6 md:px-8 lg:px-12">
         <div className="mx-auto max-w-7xl">
           {showReading ? (
             <div>
@@ -157,10 +157,10 @@ export default function HomeContainer() {
   }
 
   return (
-    <div className="min-h-screen w-full px-4 py-6 sm:px-6 md:px-8 lg:px-12">
+    <div className="w-full px-4 py-3 sm:px-6 md:px-8 lg:px-12">
       {/* 모바일: 세로 배치, md 이상: 가로 배치 */}
-      <div className="mx-auto max-w-7xl">
-        <div className="flex flex-col gap-6 md:flex-row md:gap-8">
+      <div className="mx-auto max-w-7xl scale-[0.8] origin-top">
+        <div className="flex flex-col gap-4 md:flex-row md:gap-6">
           {/* 캘린더 섹션 */}
           <div className="w-full md:w-1/2 lg:w-5/12">
             <MemberProfile
