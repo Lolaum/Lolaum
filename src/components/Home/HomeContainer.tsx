@@ -9,6 +9,7 @@ import Timer from "./Timer/Timer";
 import ReadingContainer from "@/components/Routines/Reading/ReadingContainer";
 import LanguageContainer from "@/components/Routines/Language/LanguageContainer";
 import ExerciseContainer from "@/components/Routines/Exercise/ExerciseContainer";
+import MorningContainer from "@/components/Routines/Morning/MorningContainer";
 
 export default function HomeContainer() {
   const [mounted, setMounted] = useState(false);
@@ -24,6 +25,7 @@ export default function HomeContainer() {
   const [showReading, setShowReading] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
   const [showExercise, setShowExercise] = useState(false);
+  const [showMorning, setShowMorning] = useState(false);
 
   useEffect(() => {
     const now = new Date();
@@ -34,6 +36,10 @@ export default function HomeContainer() {
 
   const handleTaskClick = (title: string, color: string) => {
     setSelectedTask({ title, color });
+    // 모닝 리추얼은 타이머 없이 바로 표시
+    if (title === "모닝리추얼") {
+      setShowMorning(true);
+    }
   };
 
   const handleCloseTimer = () => {
@@ -41,6 +47,7 @@ export default function HomeContainer() {
     setShowReading(false);
     setShowLanguage(false);
     setShowExercise(false);
+    setShowMorning(false);
   };
 
   const handleNext = () => {
@@ -68,6 +75,10 @@ export default function HomeContainer() {
     setShowExercise(false);
   };
 
+  const handleCloseMorning = () => {
+    setShowMorning(false);
+  };
+
   // 마운트 전에는 로딩 상태 표시
   if (!mounted || !today || !selectedDate) {
     return (
@@ -92,7 +103,7 @@ export default function HomeContainer() {
     );
   }
 
-  // Timer 또는 ReadingContainer 또는 LanguageContainer 또는 ExerciseContainer가 활성화되면 해당 화면만 표시
+  // Timer 또는 각종 Container가 활성화되면 해당 화면만 표시
   if (selectedTask) {
     return (
       <div className="min-h-screen w-full px-4 py-6 sm:px-6 md:px-8 lg:px-12">
@@ -113,6 +124,10 @@ export default function HomeContainer() {
           ) : showExercise ? (
             <div>
               <ExerciseContainer onBackToTimer={handleCloseExercise} />
+            </div>
+          ) : showMorning ? (
+            <div>
+              <MorningContainer onBackToTimer={handleCloseMorning} />
             </div>
           ) : (
             <Timer

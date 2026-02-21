@@ -2,88 +2,63 @@
 
 import { useState } from "react";
 import { Calendar } from "lucide-react";
-import RecordExercise from "./RecordExercise";
-import AddNewExercise from "./AddNewExercise";
-import {
-  ExerciseRecord,
-  ExerciseContainerProps,
-} from "@/types/routines/exercise";
+import RecordMorning from "./RecordMorning";
+import AddNewMorning from "./AddNewMorning";
+import { MorningRecord, MorningContainerProps } from "@/types/routines/morning";
 
-export default function ExerciseContainer({
+export default function MorningContainer({
   onBackToTimer,
-}: ExerciseContainerProps) {
+}: MorningContainerProps) {
   const [showAddRecord, setShowAddRecord] = useState(false);
 
-  // 운동 기록 데이터
-  const exerciseRecords: ExerciseRecord[] = [
+  // 모닝 리추얼 기록 데이터
+  const morningRecords: MorningRecord[] = [
     {
       id: 1,
-      date: "1월 20일",
-      exerciseName: "필라테스",
-      duration: 50,
-      images: [],
-      achievement: "코어 강화에 집중. 몸의 중심이 단단해지는 느낌.",
+      date: "1월 21일",
+      image: "",
+      condition: 85,
+      successAndReflection: "아침 일찍 일어나서 상쾌한 하루를 시작했다.",
+      gift: "좋아하는 커피 한 잔",
     },
     {
       id: 2,
-      date: "1월 17일",
-      exerciseName: "달리기",
-      duration: 25,
-      images: [],
-      achievement: "짧지만 집중도 높은 운동.",
+      date: "1월 20일",
+      image: "",
+      condition: 70,
+      successAndReflection: "어제보다 일찍 일어났다. 작은 성공!",
+      gift: "오후에 산책하기",
     },
     {
       id: 3,
-      date: "1월 15일",
-      exerciseName: "웨이트 트레이닝",
-      duration: 60,
-      images: [],
-      achievement: "스쿼트와 데드리프트 중심. 자세에 더 신경 써야겠다.",
+      date: "1월 19일",
+      image: "",
+      condition: 90,
+      successAndReflection: "명상과 스트레칭으로 몸과 마음을 깨웠다.",
+      gift: "맛있는 브런치",
     },
   ];
 
   // 이번 달 통계 계산
-  const exerciseCount = exerciseRecords.length;
-  const totalMinutes = exerciseRecords.reduce(
-    (sum, record) => sum + record.duration,
-    0,
+  const recordCount = morningRecords.length;
+  const averageCondition = Math.round(
+    morningRecords.reduce((sum, record) => sum + record.condition, 0) /
+      morningRecords.length,
   );
 
   const renderContent = () => {
     // 새 기록 추가하기 화면
     if (showAddRecord) {
-      return <AddNewExercise onCancel={() => setShowAddRecord(false)} />;
+      return <AddNewMorning onCancel={() => setShowAddRecord(false)} />;
     }
 
     // 메인 화면
     return (
       <>
-        {/* 뒤로가기 버튼 */}
-        <button
-          type="button"
-          onClick={onBackToTimer}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-        >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-          <span className="text-sm">타이머로 돌아가기</span>
-        </button>
-
         {/* 헤더 */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-xl font-bold text-gray-900">운동 관리</h1>
+            <h1 className="text-xl font-bold text-gray-900">모닝 리추얼</h1>
             <button
               type="button"
               onClick={() => setShowAddRecord(true)}
@@ -125,22 +100,22 @@ export default function ExerciseContainer({
             <div className="flex items-baseline gap-4">
               <div>
                 <div className="text-4xl font-bold text-gray-900">
-                  {exerciseCount}
+                  {recordCount}
                 </div>
-                <div className="text-sm text-gray-500">운동 횟수</div>
+                <div className="text-sm text-gray-500">기록한 날</div>
               </div>
               <div>
                 <div className="text-4xl font-bold text-gray-900">
-                  {totalMinutes}분
+                  {averageCondition}%
                 </div>
-                <div className="text-sm text-gray-500">총 운동 시간</div>
+                <div className="text-sm text-gray-500">평균 컨디션</div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 운동 기록 섹션 */}
-        <RecordExercise exerciseRecords={exerciseRecords} />
+        {/* 모닝 기록 섹션 */}
+        <RecordMorning morningRecords={morningRecords} />
       </>
     );
   };
