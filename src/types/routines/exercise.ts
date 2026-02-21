@@ -11,6 +11,7 @@ export interface ExerciseRecord {
 
 export interface ExerciseContainerProps {
   onBackToTimer?: () => void;
+  onBackToHome?: () => void;
 }
 
 export interface ExerciseFormData {
@@ -22,5 +23,6 @@ export interface ExerciseFormData {
 
 export interface AddNewExerciseProps {
   onCancel: () => void;
+  onBackToHome?: () => void;
   onSubmit?: (recordData: ExerciseFormData) => void;
 }

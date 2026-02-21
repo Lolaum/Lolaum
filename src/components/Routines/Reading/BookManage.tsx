@@ -6,7 +6,7 @@ import AddNewBook from "./AddNewBook";
 import BookCalendar from "./BookCalendar";
 import { Book, ViewMode, BookManageProps } from "@/types/routines/reading";
 
-export default function BookManage({ onBackToTimer }: BookManageProps) {
+export default function BookManage({ onBackToTimer, onBackToHome }: BookManageProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [showAddBook, setShowAddBook] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -75,7 +75,7 @@ export default function BookManage({ onBackToTimer }: BookManageProps) {
   if (showAddBook) {
     return (
       <div className="w-full">
-        <AddNewBook onCancel={() => setShowAddBook(false)} />
+        <AddNewBook onCancel={() => setShowAddBook(false)} onBackToHome={onBackToHome} />
       </div>
     );
   }
@@ -91,27 +91,48 @@ export default function BookManage({ onBackToTimer }: BookManageProps) {
 
   return (
     <div className="w-full max-w-4xl mx-auto">
-      {/* 뒤로가기 버튼 */}
-      <button
-        type="button"
-        onClick={onBackToTimer}
-        className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-      >
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      {/* 뒤로가기 버튼 및 x버튼 */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          type="button"
+          onClick={onBackToTimer}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 19l-7-7 7-7"
-          />
-        </svg>
-        <span className="text-sm">타이머로 돌아가기</span>
-      </button>
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+          <span className="text-sm">타이머로 돌아가기</span>
+        </button>
+        <button
+          type="button"
+          onClick={onBackToHome}
+          className="flex items-center justify-center w-8 h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+        >
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
       {/* 헤더 */}
       <div className="mb-4 flex items-center justify-between">
         <div>

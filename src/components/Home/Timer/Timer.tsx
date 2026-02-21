@@ -137,27 +137,28 @@ export default function Timer({
 
   return (
     <div className="flex flex-col bg-white">
-      {/* 뒤로가기 버튼 */}
-      <button
-        type="button"
-        onClick={onClose}
-        className="self-start flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-      >
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      {/* 뒤로가기 버튼 및 x버튼 */}
+      <div className="flex items-center justify-end gap-3 mb-4">
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex items-center justify-center w-8 h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 19l-7-7 7-7"
-          />
-        </svg>
-        <span className="text-sm">돌아가기</span>
-      </button>
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
 
       <div className="w-full max-w-sm text-center mx-auto">
         {/* 태스크 제목 */}

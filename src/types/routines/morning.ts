@@ -11,6 +11,7 @@ export interface MorningRecord {
 
 export interface MorningContainerProps {
   onBackToTimer?: () => void;
+  onBackToHome?: () => void;
 }
 
 export interface MorningFormData {
@@ -22,5 +23,6 @@ export interface MorningFormData {
 
 export interface AddNewMorningProps {
   onCancel: () => void;
+  onBackToHome?: () => void;
   onSubmit?: (recordData: MorningFormData) => void;
 }

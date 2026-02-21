@@ -19,15 +19,18 @@ export interface BookFormData {
 
 export interface AddNewBookProps {
   onCancel: () => void;
+  onBackToHome?: () => void;
   onSubmit?: (bookData: BookFormData) => void;
 }
 
 export interface BookManageProps {
   onBackToTimer?: () => void;
+  onBackToHome?: () => void;
 }
 
 export interface ReadingContainerProps {
   onBackToTimer?: () => void;
+  onBackToHome?: () => void;
 }
 
 export interface ReadingRecord {

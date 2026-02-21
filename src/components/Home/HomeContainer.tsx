@@ -110,12 +110,13 @@ export default function HomeContainer() {
         <div className="mx-auto max-w-7xl">
           {showReading ? (
             <div>
-              <ReadingContainer onBackToTimer={handleCloseReading} />
+              <ReadingContainer onBackToTimer={handleCloseReading} onBackToHome={handleCloseTimer} />
             </div>
           ) : showLanguage ? (
             <div>
               <LanguageContainer
                 onBackToTimer={handleCloseLanguage}
+                onBackToHome={handleCloseTimer}
                 languageType={
                   selectedTask.title === "영어리추얼" ? "영어" : "언어"
                 }
@@ -123,11 +124,11 @@ export default function HomeContainer() {
             </div>
           ) : showExercise ? (
             <div>
-              <ExerciseContainer onBackToTimer={handleCloseExercise} />
+              <ExerciseContainer onBackToTimer={handleCloseExercise} onBackToHome={handleCloseTimer} />
             </div>
           ) : showMorning ? (
             <div>
-              <MorningContainer onBackToTimer={handleCloseMorning} />
+              <MorningContainer onBackToTimer={handleCloseMorning} onBackToHome={handleCloseTimer} />
             </div>
           ) : (
             <Timer

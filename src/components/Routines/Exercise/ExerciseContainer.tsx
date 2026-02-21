@@ -11,6 +11,7 @@ import {
 
 export default function ExerciseContainer({
   onBackToTimer,
+  onBackToHome,
 }: ExerciseContainerProps) {
   const [showAddRecord, setShowAddRecord] = useState(false);
 
@@ -52,33 +53,54 @@ export default function ExerciseContainer({
   const renderContent = () => {
     // 새 기록 추가하기 화면
     if (showAddRecord) {
-      return <AddNewExercise onCancel={() => setShowAddRecord(false)} />;
+      return <AddNewExercise onCancel={() => setShowAddRecord(false)} onBackToHome={onBackToHome} />;
     }
 
     // 메인 화면
     return (
       <>
-        {/* 뒤로가기 버튼 */}
-        <button
-          type="button"
-          onClick={onBackToTimer}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-        >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        {/* 뒤로가기 버튼 및 x버튼 */}
+        <div className="flex items-center justify-between mb-4">
+          <button
+            type="button"
+            onClick={onBackToTimer}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-          <span className="text-sm">타이머로 돌아가기</span>
-        </button>
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            <span className="text-sm">타이머로 돌아가기</span>
+          </button>
+          <button
+            type="button"
+            onClick={onBackToHome}
+            className="flex items-center justify-center w-8 h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
 
         {/* 헤더 */}
         <div className="mb-6">
