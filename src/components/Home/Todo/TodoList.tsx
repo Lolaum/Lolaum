@@ -3,11 +3,7 @@ import React, { useState, useEffect } from "react";
 import mock_todo from "@/mock/todomock";
 import { formatDateDisplay, formatDateKey } from "@/modules/Common/dateModules";
 import { Check, Trash2 } from "lucide-react";
-
-interface TodoListProps {
-  selectedDate: Date;
-  onTaskClick: (title: string, color: string) => void;
-}
+import { TodoListProps } from "@/types/home/todo";
 
 export default function TodoList({ selectedDate, onTaskClick }: TodoListProps) {
   const dateKey = formatDateKey(selectedDate);

@@ -2,21 +2,9 @@
 
 import React, { useState } from "react";
 import { Upload, X, FileText, Percent } from "lucide-react";
+import { AddNewBookProps, BookFormData } from "@/types/routines/reading";
 
-interface AddNewBookProps {
-  onCancel: () => void;
-  onSubmit?: (bookData: BookFormData) => void;
-}
-
-interface BookFormData {
-  title: string;
-  author: string;
-  trackingType: "page" | "percent";
-  totalPages: number;
-  coverImage?: File;
-}
-
-export default function AddNewBook({ onCancel, onSubmit }: AddNewBookProps) {
+export default function AddNewBook({ onCancel, onBackToHome, onSubmit }: AddNewBookProps) {
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [trackingType, setTrackingType] = useState<"page" | "percent">("page");
@@ -62,27 +50,48 @@ export default function AddNewBook({ onCancel, onSubmit }: AddNewBookProps) {
 
   return (
     <div className="w-full max-w-4xl mx-auto">
-      {/* 백 네비게이션 */}
-      <button
-        type="button"
-        onClick={onCancel}
-        className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-      >
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      {/* 백 네비게이션 및 x버튼 */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 19l-7-7 7-7"
-          />
-        </svg>
-        <span className="text-sm">독서 관리로 돌아가기</span>
-      </button>
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+          <span className="text-sm">독서 관리로 돌아가기</span>
+        </button>
+        <button
+          type="button"
+          onClick={onBackToHome}
+          className="flex items-center justify-center w-8 h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+        >
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
 
       {/* 메인 카드 */}
       <div className="max-w-2xl bg-white rounded-2xl border border-gray-200 p-8 mx-auto">

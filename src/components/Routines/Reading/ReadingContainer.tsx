@@ -1,14 +1,14 @@
 import React from "react";
 import BookManage from "./BookManage";
+import { ReadingContainerProps } from "@/types/routines/reading";
 
-interface ReadingContainerProps {
-  onBackToTimer?: () => void;
-}
-
-export default function ReadingContainer({ onBackToTimer }: ReadingContainerProps) {
+export default function ReadingContainer({
+  onBackToTimer,
+  onBackToHome,
+}: ReadingContainerProps) {
   return (
     <div className="w-full h-full overflow-y-auto bg-white">
-      <BookManage onBackToTimer={onBackToTimer} />
+      <BookManage onBackToTimer={onBackToTimer} onBackToHome={onBackToHome} />
     </div>
   );
 }

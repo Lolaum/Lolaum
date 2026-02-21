@@ -7,6 +7,10 @@ import MemberProfile from "./Profile/MemberProfile";
 import Profile from "./Profile/Profile";
 import Timer from "./Timer/Timer";
 import ReadingContainer from "@/components/Routines/Reading/ReadingContainer";
+import LanguageContainer from "@/components/Routines/Language/LanguageContainer";
+import ExerciseContainer from "@/components/Routines/Exercise/ExerciseContainer";
+import MorningContainer from "@/components/Routines/Morning/MorningContainer";
+import FinanceContainer from "@/components/Routines/Finance/FinanceContainer";
 
 export default function HomeContainer() {
   const [mounted, setMounted] = useState(false);
@@ -20,6 +24,10 @@ export default function HomeContainer() {
     color: string;
   } | null>(null);
   const [showReading, setShowReading] = useState(false);
+  const [showLanguage, setShowLanguage] = useState(false);
+  const [showExercise, setShowExercise] = useState(false);
+  const [showMorning, setShowMorning] = useState(false);
+  const [showFinance, setShowFinance] = useState(false);
 
   useEffect(() => {
     const now = new Date();
@@ -30,21 +38,54 @@ export default function HomeContainer() {
 
   const handleTaskClick = (title: string, color: string) => {
     setSelectedTask({ title, color });
+    // 모닝 리추얼은 타이머 없이 바로 표시
+    if (title === "모닝리추얼") {
+      setShowMorning(true);
+    }
   };
 
   const handleCloseTimer = () => {
     setSelectedTask(null);
     setShowReading(false);
+    setShowLanguage(false);
+    setShowExercise(false);
+    setShowMorning(false);
+    setShowFinance(false);
   };
 
   const handleNext = () => {
     if (selectedTask?.title === "독서리추얼") {
       setShowReading(true);
+    } else if (
+      selectedTask?.title === "영어리추얼" ||
+      selectedTask?.title === "언어리추얼"
+    ) {
+      setShowLanguage(true);
+    } else if (selectedTask?.title === "운동리추얼") {
+      setShowExercise(true);
+    } else if (selectedTask?.title === "자산관리리추얼") {
+      setShowFinance(true);
     }
   };
 
   const handleCloseReading = () => {
     setShowReading(false);
+  };
+
+  const handleCloseLanguage = () => {
+    setShowLanguage(false);
+  };
+
+  const handleCloseExercise = () => {
+    setShowExercise(false);
+  };
+
+  const handleCloseMorning = () => {
+    setShowMorning(false);
+  };
+
+  const handleCloseFinance = () => {
+    setShowFinance(false);
   };
 
   // 마운트 전에는 로딩 상태 표시
@@ -71,14 +112,36 @@ export default function HomeContainer() {
     );
   }
 
-  // Timer 또는 ReadingContainer가 활성화되면 해당 화면만 표시
+  // Timer 또는 각종 Container가 활성화되면 해당 화면만 표시
   if (selectedTask) {
     return (
       <div className="min-h-screen w-full px-4 py-6 sm:px-6 md:px-8 lg:px-12">
         <div className="mx-auto max-w-7xl">
           {showReading ? (
             <div>
-              <ReadingContainer onBackToTimer={handleCloseReading} />
+              <ReadingContainer onBackToTimer={handleCloseReading} onBackToHome={handleCloseTimer} />
+            </div>
+          ) : showLanguage ? (
+            <div>
+              <LanguageContainer
+                onBackToTimer={handleCloseLanguage}
+                onBackToHome={handleCloseTimer}
+                languageType={
+                  selectedTask.title === "영어리추얼" ? "영어" : "언어"
+                }
+              />
+            </div>
+          ) : showExercise ? (
+            <div>
+              <ExerciseContainer onBackToTimer={handleCloseExercise} onBackToHome={handleCloseTimer} />
+            </div>
+          ) : showMorning ? (
+            <div>
+              <MorningContainer onBackToTimer={handleCloseMorning} onBackToHome={handleCloseTimer} />
+            </div>
+          ) : showFinance ? (
+            <div>
+              <FinanceContainer onBackToTimer={handleCloseFinance} onBackToHome={handleCloseTimer} />
             </div>
           ) : (
             <Timer
