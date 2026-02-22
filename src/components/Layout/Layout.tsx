@@ -29,7 +29,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { href: "/home", label: "홈", icon: HomeIcon },
   { href: "/ritual", label: "리추얼", icon: RitualIcon },
-  { href: "/verify", label: "인증", icon: VerifyIcon },
+  { href: "/feeds", label: "인증", icon: VerifyIcon },
   { href: "/team", label: "팀원", icon: TeamIcon },
   { href: "/report", label: "리포트", icon: ReportIcon },
   { href: "/mypage", label: "마이페이지", icon: ProfileIcon },
@@ -109,7 +109,7 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* 모바일 헤더 */}
       {!isDesktop && (
-        <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-white">
+        <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
           {/* 로고 */}
           <Link href="/home" className="flex items-center gap-3">
             <img
