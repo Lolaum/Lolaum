@@ -58,6 +58,7 @@ export interface DailyReadingRecord {
   progressAmount: number; // page: 읽은 페이지 수 / percent: 진행한 %
   noteType: NoteType;
   note: string;
+  thoughts?: string;      // 나만의 생각 (선택)
 }
 
 export interface BookDetailProps {

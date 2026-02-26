@@ -41,9 +41,14 @@ export interface ReadingFeedData {
   bookTitle: string;
   author: string;
   bookCover?: string;
-  pagesRead?: number;
-  totalPages?: number;
-  notes?: string;
+  trackingType?: "page" | "percent";
+  pagesRead?: number;       // page: 현재 페이지 / percent: 현재 %
+  totalPages?: number;      // page: 전체 페이지 / percent: 100
+  progressAmount?: number;  // 오늘 읽은 페이지 수 or % 진행량
+  noteType?: "sentence" | "summary";
+  note?: string;            // 오늘의 문장 or 내용 요약
+  thoughts?: string;        // 나만의 생각
+  notes?: string;           // 기존 필드 (하위 호환)
 }
 
 export type FeedRoutineData =

@@ -20,9 +20,13 @@ export const feed_mock: FeedItem[] = [
     routineData: {
       bookTitle: "원씽",
       author: "게리 켈러",
-      pagesRead: 45,
+      trackingType: "page",
+      pagesRead: 126,
       totalPages: 280,
-      notes: "집중이 가져오는 힘에 대한 내용이 인상 깊었다. 한 가지에만 집중하는 것이 얼마나 강력한지 다시 느꼈다.",
+      progressAmount: 24,
+      noteType: "sentence",
+      note: "한 가지에 집중하는 것이 얼마나 강력한지, 그것이 모든 위대한 성취의 비밀이다.",
+      thoughts: "집중이 가져오는 힘에 대한 내용이 인상 깊었다. 나도 매일 하나의 가장 중요한 일에 집중해봐야겠다.",
     },
     comments: [
       {

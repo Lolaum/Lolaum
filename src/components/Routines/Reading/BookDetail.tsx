@@ -14,6 +14,7 @@ const MOCK_RECORDS_PAGE: DailyReadingRecord[] = [
     progressAmount: 26,
     noteType: "sentence",
     note: "작은 변화가 쌓이면 놀라운 결과를 만들어낸다.",
+    thoughts: "매일 조금씩 나아가는 것이 결국 큰 차이를 만든다는 걸 다시 한번 느꼈다. 꾸준함의 힘을 믿어야겠다.",
   },
   {
     id: 2,
@@ -37,6 +38,7 @@ const MOCK_RECORDS_PERCENT: DailyReadingRecord[] = [
     progressAmount: 7,
     noteType: "sentence",
     note: "습관은 반복으로 완성된다.",
+    thoughts: "이 문장을 보면서 내가 지금 하고 있는 독서 습관도 결국 쌓인다는 생각이 들었다. 매일 읽자.",
   },
   {
     id: 2,
@@ -66,6 +68,7 @@ function AddReadingRecord({
   const [endValue, setEndValue] = useState("");
   const [noteType, setNoteType] = useState<NoteType>("sentence");
   const [note, setNote] = useState("");
+  const [thoughts, setThoughts] = useState("");
 
   const progressAmount =
     endValue && Number(endValue) > Number(startValue)
@@ -85,6 +88,7 @@ function AddReadingRecord({
       progressAmount,
       noteType,
       note: note.trim(),
+      thoughts: thoughts.trim() || undefined,
     });
   };
 
@@ -211,6 +215,20 @@ function AddReadingRecord({
                 ? "오늘 읽은 내용 중 마음에 남는 문장을 적어보세요..."
                 : "오늘 읽은 내용을 간단하게 요약해보세요..."
             }
+            rows={4}
+            className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400 resize-none"
+          />
+        </div>
+
+        {/* 나만의 생각 */}
+        <div className="mb-8">
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            나만의 생각
+          </label>
+          <textarea
+            value={thoughts}
+            onChange={(e) => setThoughts(e.target.value)}
+            placeholder="읽으면서 든 생각이나 느낀 점을 자유롭게 적어보세요..."
             rows={4}
             className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400 resize-none"
           />
@@ -412,8 +430,8 @@ export default function BookDetail({ book, onBack, onBackToHome }: BookDetailPro
                   </button>
 
                   {isExpanded && (
-                    <div className="px-4 pb-4 pt-1 border-t border-gray-100">
-                      <div className="text-xs text-gray-400 mb-2">
+                    <div className="px-4 pb-4 pt-1 border-t border-gray-100 space-y-2">
+                      <div className="text-xs text-gray-400">
                         {record.startValue}{unit} → {record.endValue}{unit}
                       </div>
                       <div
@@ -428,6 +446,12 @@ export default function BookDetail({ book, onBack, onBackToHome }: BookDetailPro
                         )}
                         {record.note}
                       </div>
+                      {record.thoughts && (
+                        <div className="bg-gray-50 rounded-xl p-3">
+                          <p className="text-xs text-gray-400 font-medium mb-1">나만의 생각</p>
+                          <p className="text-sm text-gray-700 leading-relaxed">{record.thoughts}</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
