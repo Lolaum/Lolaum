@@ -4,12 +4,14 @@ import { useState } from "react";
 import { List, Plus, LayoutGrid, Calendar as CalendarIcon } from "lucide-react";
 import AddNewBook from "./AddNewBook";
 import BookCalendar from "./BookCalendar";
+import BookDetail from "./BookDetail";
 import { Book, ViewMode, BookManageProps } from "@/types/routines/reading";
 
 export default function BookManage({ onBackToTimer, onBackToHome }: BookManageProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [showAddBook, setShowAddBook] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
 
   // 임시 책 데이터
   const books: Book[] = [
@@ -17,49 +19,55 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
       id: 1,
       title: "아침의 힘",
       author: "제프 센더스",
+      trackingType: "page",
       currentPage: 126,
       totalPages: 280,
-      coverImage: "/images/book1.jpg", // 실제 이미지 경로로 교체 필요
+      coverImage: "/images/book1.jpg",
     },
     {
       id: 2,
       title: "습관의 디테일",
       author: "제임스 클리어",
-      currentPage: 252,
-      totalPages: 350,
-      coverImage: "/images/book2.jpg", // 실제 이미지 경로로 교체 필요
+      trackingType: "percent",
+      currentPage: 45,
+      totalPages: 100,
+      coverImage: "/images/book2.jpg",
     },
     {
       id: 3,
       title: "데일 카네기 인간관계론",
       author: "데일 카네기",
+      trackingType: "page",
       currentPage: 118,
       totalPages: 420,
-      coverImage: "/images/book3.jpg", // 실제 이미지 경로로 교체 필요
+      coverImage: "/images/book3.jpg",
     },
     {
       id: 4,
       title: "아침의 힘",
       author: "제프 센더스",
+      trackingType: "page",
       currentPage: 126,
       totalPages: 280,
-      coverImage: "/images/book1.jpg", // 실제 이미지 경로로 교체 필요
+      coverImage: "/images/book1.jpg",
     },
     {
       id: 5,
       title: "습관의 디테일",
       author: "제임스 클리어",
-      currentPage: 252,
-      totalPages: 350,
-      coverImage: "/images/book2.jpg", // 실제 이미지 경로로 교체 필요
+      trackingType: "percent",
+      currentPage: 72,
+      totalPages: 100,
+      coverImage: "/images/book2.jpg",
     },
     {
       id: 6,
       title: "데일 카네기 인간관계론",
       author: "데일 카네기",
+      trackingType: "page",
       currentPage: 118,
       totalPages: 420,
-      coverImage: "/images/book3.jpg", // 실제 이미지 경로로 교체 필요
+      coverImage: "/images/book3.jpg",
     },
   ];
 
@@ -84,7 +92,29 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
   if (showCalendar) {
     return (
       <div className="w-full">
-        <BookCalendar onBack={() => setShowCalendar(false)} />
+        <BookCalendar
+          onBack={() => setShowCalendar(false)}
+          onBookSelect={(bookTitle) => {
+            const found = books.find((b) => b.title === bookTitle);
+            if (found) {
+              setShowCalendar(false);
+              setSelectedBook(found);
+            }
+          }}
+        />
+      </div>
+    );
+  }
+
+  // 책 상세 화면
+  if (selectedBook) {
+    return (
+      <div className="w-full">
+        <BookDetail
+          book={selectedBook}
+          onBack={() => setSelectedBook(null)}
+          onBackToHome={onBackToHome}
+        />
       </div>
     );
   }
@@ -198,6 +228,7 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
             return (
               <div
                 key={book.id}
+                onClick={() => setSelectedBook(book)}
                 className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer border border-gray-100 w-[320px] h-[200px] flex-shrink-0 flex p-4 gap-4"
               >
                 {/* 책 표지 */}
@@ -270,6 +301,7 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
             return (
               <div
                 key={book.id}
+                onClick={() => setSelectedBook(book)}
                 className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow cursor-pointer"
               >
                 <div className="flex gap-3">

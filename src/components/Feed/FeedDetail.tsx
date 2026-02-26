@@ -215,15 +215,16 @@ function LanguageContent({ data }: { data: LanguageFeedData }) {
 }
 
 function ReadingContent({ data }: { data: ReadingFeedData }) {
+  const isPercent = data.trackingType === "percent";
   const progress =
-    data.pagesRead && data.totalPages
+    data.pagesRead != null && data.totalPages
       ? Math.round((data.pagesRead / data.totalPages) * 100)
       : null;
 
   return (
     <div className="space-y-4">
+      {/* 책 정보 */}
       <div className="flex items-start gap-4">
-        {/* 책 커버 자리 */}
         <div className="flex-shrink-0 w-16 h-20 bg-orange-100 rounded-lg flex items-center justify-center">
           <BookText className="w-7 h-7 text-orange-300" />
         </div>
@@ -237,7 +238,9 @@ function ReadingContent({ data }: { data: ReadingFeedData }) {
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs text-gray-400">진도</span>
                 <span className="text-xs font-semibold text-orange-500">
-                  {data.pagesRead}p / {data.totalPages}p ({progress}%)
+                  {isPercent
+                    ? `${data.pagesRead}% (${progress}%)`
+                    : `${data.pagesRead}p / ${data.totalPages}p (${progress}%)`}
                 </span>
               </div>
               <div className="w-full bg-orange-100 rounded-full h-1.5">
@@ -248,9 +251,40 @@ function ReadingContent({ data }: { data: ReadingFeedData }) {
               </div>
             </div>
           )}
+          {data.progressAmount != null && (
+            <p className="text-xs text-orange-400 mt-1.5 font-medium">
+              오늘 +{data.progressAmount}{isPercent ? "%" : "p"} 읽었어요
+            </p>
+          )}
         </div>
       </div>
-      {data.notes && (
+
+      {/* 오늘의 문장 */}
+      {data.note && data.noteType === "sentence" && (
+        <div className="bg-orange-50 border-l-2 border-orange-300 rounded-xl p-4">
+          <p className="text-xs text-orange-400 font-medium mb-1">오늘의 문장</p>
+          <p className="text-sm text-gray-700 leading-relaxed italic">&ldquo;{data.note}&rdquo;</p>
+        </div>
+      )}
+
+      {/* 내용 요약 */}
+      {data.note && data.noteType === "summary" && (
+        <div className="bg-gray-50 rounded-xl p-4">
+          <p className="text-xs text-gray-400 font-medium mb-1">내용 요약</p>
+          <p className="text-sm text-gray-700 leading-relaxed">{data.note}</p>
+        </div>
+      )}
+
+      {/* 나만의 생각 */}
+      {data.thoughts && (
+        <div className="bg-gray-50 rounded-xl p-4">
+          <p className="text-xs text-gray-400 font-medium mb-1">나만의 생각</p>
+          <p className="text-sm text-gray-700 leading-relaxed">{data.thoughts}</p>
+        </div>
+      )}
+
+      {/* 기존 notes 필드 (하위 호환) */}
+      {data.notes && !data.note && (
         <div className="bg-gray-50 rounded-xl p-4">
           <p className="text-xs text-gray-400 font-medium mb-1">독서 노트</p>
           <p className="text-sm text-gray-700 leading-relaxed">{data.notes}</p>
