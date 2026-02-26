@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -170,14 +169,13 @@ export default function Login() {
               </a>
             </div>
 
-            <Button
+            <button
               type="submit"
               disabled={isLoading}
-              className="w-full !bg-[var(--gold-400)] hover:!bg-[var(--gold-500)]"
-              size="lg"
+              className="w-full rounded-lg bg-[var(--gold-400)] px-4 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-[var(--gold-500)] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              로그인
-            </Button>
+              {isLoading ? "로그인 중..." : "로그인"}
+            </button>
           </form>
 
           {/* 회원가입 링크 */}
