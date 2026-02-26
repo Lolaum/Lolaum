@@ -1,0 +1,359 @@
+"use client";
+
+import React, { useState } from "react";
+import { ArrowLeft, User } from "lucide-react";
+import {
+  BookText,
+  Dumbbell,
+  BookA,
+  Sun,
+  Languages,
+  CircleDollarSign,
+} from "lucide-react";
+import {
+  FeedItem,
+  Comment,
+  ExerciseFeedData,
+  MorningFeedData,
+  FinanceFeedData,
+  LanguageFeedData,
+  ReadingFeedData,
+  RoutineCategory,
+} from "@/types/feed";
+import CommentSection from "./CommentSection";
+
+interface FeedDetailProps {
+  item: FeedItem;
+  onBack: () => void;
+  onCommentAdd: (feedId: number, comment: Comment) => void;
+}
+
+// 카테고리별 아이콘 & 레이블
+const getCategoryMeta = (category: RoutineCategory) => {
+  switch (category) {
+    case "독서":
+      return { icon: <BookText className="w-5 h-5" />, label: "독서", color: "text-orange-500", bg: "bg-orange-50" };
+    case "운동":
+      return { icon: <Dumbbell className="w-5 h-5" />, label: "운동", color: "text-orange-500", bg: "bg-orange-50" };
+    case "영어":
+      return { icon: <BookA className="w-5 h-5" />, label: "영어", color: "text-blue-500", bg: "bg-blue-50" };
+    case "모닝":
+      return { icon: <Sun className="w-5 h-5" />, label: "모닝 루틴", color: "text-yellow-500", bg: "bg-yellow-50" };
+    case "언어":
+      return { icon: <Languages className="w-5 h-5" />, label: "언어 학습", color: "text-purple-500", bg: "bg-purple-50" };
+    case "자산관리":
+      return { icon: <CircleDollarSign className="w-5 h-5" />, label: "자산관리", color: "text-green-500", bg: "bg-green-50" };
+    default:
+      return { icon: <BookText className="w-5 h-5" />, label: category, color: "text-gray-500", bg: "bg-gray-50" };
+  }
+};
+
+const formatFullDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
+};
+
+// --- 루틴별 콘텐츠 컴포넌트 ---
+
+function ExerciseContent({ data }: { data: ExerciseFeedData }) {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-orange-50 rounded-xl p-3">
+          <p className="text-xs text-orange-400 font-medium mb-1">운동 종류</p>
+          <p className="text-sm font-semibold text-gray-800">{data.exerciseName}</p>
+        </div>
+        <div className="bg-orange-50 rounded-xl p-3">
+          <p className="text-xs text-orange-400 font-medium mb-1">운동 시간</p>
+          <p className="text-sm font-semibold text-gray-800">{data.duration}분</p>
+        </div>
+      </div>
+      {data.achievement && (
+        <div className="bg-gray-50 rounded-xl p-4">
+          <p className="text-xs text-gray-400 font-medium mb-1">오늘의 소감</p>
+          <p className="text-sm text-gray-700 leading-relaxed">{data.achievement}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MorningContent({ data }: { data: MorningFeedData }) {
+  return (
+    <div className="space-y-4">
+      {/* 컨디션 바 */}
+      <div className="bg-yellow-50 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs text-yellow-500 font-medium">오늘의 컨디션</p>
+          <p className="text-sm font-bold text-yellow-600">{data.condition}%</p>
+        </div>
+        <div className="w-full bg-yellow-200 rounded-full h-2">
+          <div
+            className="bg-yellow-400 h-2 rounded-full transition-all"
+            style={{ width: `${data.condition}%` }}
+          />
+        </div>
+      </div>
+      <div className="bg-gray-50 rounded-xl p-4">
+        <p className="text-xs text-gray-400 font-medium mb-1">오늘의 성공 & 한 줄 회고</p>
+        <p className="text-sm text-gray-700 leading-relaxed">{data.successAndReflection}</p>
+      </div>
+      <div className="bg-gray-50 rounded-xl p-4">
+        <p className="text-xs text-gray-400 font-medium mb-1">오늘 나에게 주는 선물</p>
+        <p className="text-sm text-gray-700 leading-relaxed">{data.gift}</p>
+      </div>
+    </div>
+  );
+}
+
+function FinanceContent({ data }: { data: FinanceFeedData }) {
+  const totalNecessary = data.dailyExpenses.flatMap((d) =>
+    d.expenses.filter((e) => e.type === "necessary")
+  ).reduce((sum, e) => sum + e.amount, 0);
+
+  const totalEmotional = data.dailyExpenses.flatMap((d) =>
+    d.expenses.filter((e) => e.type === "emotional")
+  ).reduce((sum, e) => sum + e.amount, 0);
+
+  return (
+    <div className="space-y-4">
+      {/* 소비 요약 */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-blue-50 rounded-xl p-3">
+          <p className="text-xs text-blue-400 font-medium mb-1">필요소비</p>
+          <p className="text-sm font-bold text-blue-600">
+            {totalNecessary.toLocaleString()}원
+          </p>
+        </div>
+        <div className="bg-red-50 rounded-xl p-3">
+          <p className="text-xs text-red-400 font-medium mb-1">감정소비</p>
+          <p className="text-sm font-bold text-red-500">
+            {totalEmotional.toLocaleString()}원
+          </p>
+        </div>
+      </div>
+
+      {/* 날짜별 소비 내역 */}
+      {data.dailyExpenses.map((daily, i) => {
+        const dateStr = new Date(daily.date).toLocaleDateString("ko-KR", {
+          month: "numeric",
+          day: "numeric",
+        });
+        return (
+          <div key={i} className="bg-gray-50 rounded-xl p-4">
+            <p className="text-xs text-gray-500 font-semibold mb-2">{dateStr}</p>
+            <div className="space-y-1.5">
+              {daily.expenses.map((expense) => (
+                <div key={expense.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                        expense.type === "necessary" ? "bg-blue-400" : "bg-red-400"
+                      }`}
+                    />
+                    <span className="text-sm text-gray-700">{expense.name}</span>
+                  </div>
+                  <span className="text-sm text-gray-600">
+                    {expense.amount.toLocaleString()}원
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* 공부 내용 & 실천 */}
+      {data.studyContent && (
+        <div className="bg-green-50 rounded-xl p-4">
+          <p className="text-xs text-green-500 font-medium mb-1">오늘의 자산관리 공부</p>
+          <p className="text-sm text-gray-700 leading-relaxed">{data.studyContent}</p>
+        </div>
+      )}
+      {data.practice && (
+        <div className="bg-gray-50 rounded-xl p-4">
+          <p className="text-xs text-gray-400 font-medium mb-1">오늘의 실천 / 다짐</p>
+          <p className="text-sm text-gray-700 leading-relaxed">{data.practice}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LanguageContent({ data }: { data: LanguageFeedData }) {
+  return (
+    <div className="space-y-4">
+      {data.achievement && (
+        <div className="bg-purple-50 rounded-xl p-3">
+          <p className="text-xs text-purple-400 font-medium mb-1">오늘의 성취</p>
+          <p className="text-sm font-semibold text-gray-800">{data.achievement}</p>
+        </div>
+      )}
+      {data.expressions.length > 0 && (
+        <div>
+          <p className="text-xs text-gray-500 font-semibold mb-2">오늘 배운 표현</p>
+          <div className="space-y-2">
+            {data.expressions.map((expr, i) => (
+              <div key={i} className="bg-gray-50 rounded-xl p-3">
+                <div className="flex items-start gap-2 mb-1">
+                  <span className="text-sm font-bold text-gray-800">{expr.word}</span>
+                  <span className="text-sm text-gray-400">—</span>
+                  <span className="text-sm text-gray-600">{expr.meaning}</span>
+                </div>
+                {expr.example && (
+                  <p className="text-xs text-gray-500 italic pl-0">
+                    &quot;{expr.example}&quot;
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReadingContent({ data }: { data: ReadingFeedData }) {
+  const progress =
+    data.pagesRead && data.totalPages
+      ? Math.round((data.pagesRead / data.totalPages) * 100)
+      : null;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start gap-4">
+        {/* 책 커버 자리 */}
+        <div className="flex-shrink-0 w-16 h-20 bg-orange-100 rounded-lg flex items-center justify-center">
+          <BookText className="w-7 h-7 text-orange-300" />
+        </div>
+        <div className="flex-1">
+          <p className="text-base font-bold text-gray-900">{data.bookTitle}</p>
+          {data.author && (
+            <p className="text-sm text-gray-500 mt-0.5">{data.author}</p>
+          )}
+          {progress !== null && (
+            <div className="mt-2">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-gray-400">진도</span>
+                <span className="text-xs font-semibold text-orange-500">
+                  {data.pagesRead}p / {data.totalPages}p ({progress}%)
+                </span>
+              </div>
+              <div className="w-full bg-orange-100 rounded-full h-1.5">
+                <div
+                  className="bg-orange-400 h-1.5 rounded-full"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      {data.notes && (
+        <div className="bg-gray-50 rounded-xl p-4">
+          <p className="text-xs text-gray-400 font-medium mb-1">독서 노트</p>
+          <p className="text-sm text-gray-700 leading-relaxed">{data.notes}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 타입 가드 함수들
+function isExerciseData(data: NonNullable<FeedItem["routineData"]>, category: RoutineCategory): data is ExerciseFeedData {
+  return category === "운동" && "exerciseName" in data;
+}
+function isMorningData(data: NonNullable<FeedItem["routineData"]>, category: RoutineCategory): data is MorningFeedData {
+  return category === "모닝" && "condition" in data;
+}
+function isFinanceData(data: NonNullable<FeedItem["routineData"]>, category: RoutineCategory): data is FinanceFeedData {
+  return category === "자산관리" && "dailyExpenses" in data;
+}
+function isLanguageData(data: NonNullable<FeedItem["routineData"]>, category: RoutineCategory): data is LanguageFeedData {
+  return (category === "영어" || category === "언어") && "expressions" in data;
+}
+function isReadingData(data: NonNullable<FeedItem["routineData"]>, category: RoutineCategory): data is ReadingFeedData {
+  return category === "독서" && "bookTitle" in data;
+}
+
+export default function FeedDetail({ item, onBack, onCommentAdd }: FeedDetailProps) {
+  const [comments, setComments] = useState<Comment[]>(item.comments ?? []);
+  const meta = getCategoryMeta(item.routineCategory);
+
+  const handleAddComment = (text: string) => {
+    const newComment: Comment = {
+      id: Date.now(),
+      userId: 0,
+      userName: "나",
+      text,
+      date: new Date().toISOString(),
+    };
+    const updated = [...comments, newComment];
+    setComments(updated);
+    onCommentAdd(item.id, newComment);
+  };
+
+  return (
+    <div className="w-full px-4 py-3 sm:px-6">
+      <div className="mx-auto max-w-7xl scale-[0.8] origin-top">
+        {/* 헤더 */}
+        <div className="flex items-center gap-3 mb-6 mt-2">
+          <button
+            onClick={onBack}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${meta.bg} ${meta.color}`}>
+            {meta.icon}
+            {meta.label}
+          </span>
+        </div>
+
+        {/* 본문 카드 */}
+        <div className="bg-white rounded-2xl shadow-md p-6">
+          {/* 유저 정보 */}
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+              <User className="w-6 h-6 text-gray-400" />
+            </div>
+            <div>
+              <p className="text-base font-bold text-gray-900">{item.userName}</p>
+              <p className="text-xs text-gray-400">{formatFullDate(item.date)}</p>
+            </div>
+          </div>
+
+          {/* 루틴 콘텐츠 */}
+          {item.routineData ? (
+            <>
+              {isExerciseData(item.routineData, item.routineCategory) && (
+                <ExerciseContent data={item.routineData} />
+              )}
+              {isMorningData(item.routineData, item.routineCategory) && (
+                <MorningContent data={item.routineData} />
+              )}
+              {isFinanceData(item.routineData, item.routineCategory) && (
+                <FinanceContent data={item.routineData} />
+              )}
+              {isLanguageData(item.routineData, item.routineCategory) && (
+                <LanguageContent data={item.routineData} />
+              )}
+              {isReadingData(item.routineData, item.routineCategory) && (
+                <ReadingContent data={item.routineData} />
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-gray-400">기록 내용이 없습니다.</p>
+          )}
+
+          {/* 구분선 */}
+          <div className="border-t border-gray-100 mt-6" />
+
+          {/* 댓글 섹션 */}
+          <CommentSection comments={comments} onAddComment={handleAddComment} />
+        </div>
+      </div>
+    </div>
+  );
+}
