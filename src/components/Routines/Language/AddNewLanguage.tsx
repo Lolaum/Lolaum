@@ -99,7 +99,7 @@ export default function AddNewLanguage({
               d="M15 19l-7-7 7-7"
             />
           </svg>
-          <span className="text-sm">언어 학습으로 돌아가기</span>
+          <span className="text-sm">제2외국어 학습으로 돌아가기</span>
         </button>
         <button
           type="button"
@@ -125,7 +125,7 @@ export default function AddNewLanguage({
       {/* 메인 카드 */}
       <div className="max-w-2xl bg-white rounded-2xl border border-gray-200 p-4 mx-auto">
         {/* 헤더 */}
-        <h2 className="text-xl font-bold text-gray-900 mb-4">언어 학습 기록</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">제2외국어 학습 기록</h2>
 
         {/* 인증 사진 */}
         <div className="mb-6">

@@ -58,7 +58,7 @@ export default function HomeContainer() {
       setShowReading(true);
     } else if (
       selectedTask?.title === "영어리추얼" ||
-      selectedTask?.title === "언어리추얼"
+      selectedTask?.title === "제2외국어리추얼"
     ) {
       setShowLanguage(true);
     } else if (selectedTask?.title === "운동리추얼") {
@@ -127,7 +127,7 @@ export default function HomeContainer() {
                 onBackToTimer={handleCloseLanguage}
                 onBackToHome={handleCloseTimer}
                 languageType={
-                  selectedTask.title === "영어리추얼" ? "영어" : "언어"
+                  selectedTask.title === "영어리추얼" ? "영어" : "제2외국어"
                 }
               />
             </div>

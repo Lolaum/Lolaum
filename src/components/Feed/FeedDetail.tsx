@@ -38,8 +38,8 @@ const getCategoryMeta = (category: RoutineCategory) => {
       return { icon: <BookA className="w-5 h-5" />, label: "영어", color: "text-blue-500", bg: "bg-blue-50" };
     case "모닝":
       return { icon: <Sun className="w-5 h-5" />, label: "모닝 루틴", color: "text-yellow-500", bg: "bg-yellow-50" };
-    case "언어":
-      return { icon: <Languages className="w-5 h-5" />, label: "언어 학습", color: "text-purple-500", bg: "bg-purple-50" };
+    case "제2외국어":
+      return { icon: <Languages className="w-5 h-5" />, label: "제2외국어 학습", color: "text-purple-500", bg: "bg-purple-50" };
     case "자산관리":
       return { icon: <CircleDollarSign className="w-5 h-5" />, label: "자산관리", color: "text-green-500", bg: "bg-green-50" };
     default:
@@ -304,7 +304,7 @@ function isFinanceData(data: NonNullable<FeedItem["routineData"]>, category: Rou
   return category === "자산관리" && "dailyExpenses" in data;
 }
 function isLanguageData(data: NonNullable<FeedItem["routineData"]>, category: RoutineCategory): data is LanguageFeedData {
-  return (category === "영어" || category === "언어") && "expressions" in data;
+  return (category === "영어" || category === "제2외국어") && "expressions" in data;
 }
 function isReadingData(data: NonNullable<FeedItem["routineData"]>, category: RoutineCategory): data is ReadingFeedData {
   return category === "독서" && "bookTitle" in data;

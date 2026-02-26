@@ -26,7 +26,7 @@ const getRoutineIcon = (category: RoutineCategory) => {
       return <BookA className="w-5 h-5 text-gray-400" />;
     case "모닝":
       return <Sun className="w-5 h-5 text-gray-400" />;
-    case "언어":
+    case "제2외국어":
       return <Languages className="w-5 h-5 text-gray-400" />;
     case "자산관리":
       return <CircleDollarSign className="w-5 h-5 text-gray-400" />;
@@ -46,8 +46,8 @@ const getRoutineText = (category: RoutineCategory) => {
       return "영어 공부";
     case "모닝":
       return "모닝 루틴";
-    case "언어":
-      return "언어 학습";
+    case "제2외국어":
+      return "제2외국어 학습";
     case "자산관리":
       return "자산 관리";
     default:
