@@ -25,6 +25,23 @@ export default function TaskTabs({ selectedDate, onTaskClick }: TaskTabsProps) {
 
   // 토글 스위치 스타일
   return (
+    <div className="flex flex-col gap-4">
+      {/* 통계 카드 */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="rounded-2xl bg-white shadow-md p-4 flex flex-col items-center justify-center gap-1">
+          <span className="text-3xl font-bold text-gray-900">3</span>
+          <span className="text-sm text-gray-500">연속 실천</span>
+        </div>
+        <div className="rounded-2xl bg-white shadow-md p-4 flex flex-col items-center justify-center gap-1">
+          <span className="text-3xl font-bold text-gray-900">7</span>
+          <span className="text-sm text-gray-500">최장 기록</span>
+        </div>
+        <div className="rounded-2xl bg-white shadow-md p-4 flex flex-col items-center justify-center gap-1">
+          <span className="text-3xl font-bold text-gray-900">24</span>
+          <span className="text-sm text-gray-500">총 완료</span>
+        </div>
+      </div>
+
     <div className="rounded-2xl bg-white shadow-md p-6">
       <div className="flex items-center justify-between mb-6">
         {/* 주간 날짜 정보 */}
@@ -79,6 +96,29 @@ export default function TaskTabs({ selectedDate, onTaskClick }: TaskTabsProps) {
         ) : (
           <TodoList selectedDate={selectedDate} onTaskClick={handleTaskClick} />
         )}
+      </div>
+    </div>
+
+      {/* 회고 버튼 카드 */}
+      <div className="grid grid-cols-3 gap-4">
+        <button
+          type="button"
+          className="rounded-2xl bg-white shadow-md p-4 flex flex-col items-center justify-center gap-1 hover:bg-yellow-50 hover:text-yellow-500 transition-colors text-gray-500"
+        >
+          <span className="text-sm font-semibold">리추얼선언</span>
+        </button>
+        <button
+          type="button"
+          className="rounded-2xl bg-white shadow-md p-4 flex flex-col items-center justify-center gap-1 hover:bg-yellow-50 hover:text-yellow-500 transition-colors text-gray-500"
+        >
+          <span className="text-sm font-semibold">중간회고</span>
+        </button>
+        <button
+          type="button"
+          className="rounded-2xl bg-white shadow-md p-4 flex flex-col items-center justify-center gap-1 hover:bg-yellow-50 hover:text-yellow-500 transition-colors text-gray-500"
+        >
+          <span className="text-sm font-semibold">최종회고</span>
+        </button>
       </div>
     </div>
   );
