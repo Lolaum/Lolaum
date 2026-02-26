@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import FeedItem from "./FeedItem";
-import { FeedItem as FeedItemType, RoutineCategory } from "@/types/feed";
+import FeedDetail from "./FeedDetail";
+import { FeedItem as FeedItemType, RoutineCategory, Comment } from "@/types/feed";
 import feed_mock from "@/mock/feedmock";
 
 type FilterCategory = "전체" | RoutineCategory;
@@ -19,7 +20,38 @@ const filterCategories: FilterCategory[] = [
 
 export default function FeedContainer() {
   const [selectedFilter, setSelectedFilter] = useState<FilterCategory>("전체");
-  const [feedData] = useState<FeedItemType[]>(feed_mock);
+  const [feedData, setFeedData] = useState<FeedItemType[]>(feed_mock);
+  const [selectedFeed, setSelectedFeed] = useState<FeedItemType | null>(null);
+
+  // 댓글 추가 핸들러
+  const handleCommentAdd = (feedId: number, comment: Comment) => {
+    setFeedData((prev) =>
+      prev.map((feed) =>
+        feed.id === feedId
+          ? { ...feed, comments: [...(feed.comments ?? []), comment] }
+          : feed
+      )
+    );
+    // 현재 열린 피드도 업데이트
+    if (selectedFeed?.id === feedId) {
+      setSelectedFeed((prev) =>
+        prev
+          ? { ...prev, comments: [...(prev.comments ?? []), comment] }
+          : prev
+      );
+    }
+  };
+
+  // 상세 뷰 표시 중일 때
+  if (selectedFeed) {
+    return (
+      <FeedDetail
+        item={selectedFeed}
+        onBack={() => setSelectedFeed(null)}
+        onCommentAdd={handleCommentAdd}
+      />
+    );
+  }
 
   // 필터링된 피드 데이터
   const filteredFeeds =
@@ -63,7 +95,11 @@ export default function FeedContainer() {
           ) : (
             <div className="divide-y divide-gray-100">
               {filteredFeeds.map((feed) => (
-                <FeedItem key={feed.id} item={feed} />
+                <FeedItem
+                  key={feed.id}
+                  item={feed}
+                  onClick={() => setSelectedFeed(feed)}
+                />
               ))}
             </div>
           )}

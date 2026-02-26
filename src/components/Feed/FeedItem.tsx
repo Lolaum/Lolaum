@@ -12,6 +12,7 @@ import {
 
 interface FeedItemProps {
   item: FeedItemType;
+  onClick?: () => void;
 }
 
 // 루틴 카테고리별 아이콘 및 텍스트 매핑
@@ -64,13 +65,16 @@ const formatDate = (dateString: string) => {
   return `${year}.${month}.${day}`;
 };
 
-export default function FeedItem({ item }: FeedItemProps) {
+export default function FeedItem({ item, onClick }: FeedItemProps) {
   const icon = getRoutineIcon(item.routineCategory);
   const routineText = getRoutineText(item.routineCategory);
   const formattedDate = formatDate(item.date);
 
   return (
-    <div className="flex items-start gap-3 py-4 border-b border-gray-100 last:border-b-0">
+    <div
+      className="flex items-start gap-3 py-4 border-b border-gray-100 last:border-b-0 cursor-pointer hover:bg-gray-50 rounded-xl px-2 -mx-2 transition-colors"
+      onClick={onClick}
+    >
       {/* 프로필 이미지 */}
       <div className="flex-shrink-0">
         <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
