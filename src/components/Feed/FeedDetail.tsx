@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, User } from "lucide-react";
 import {
   BookText,
@@ -24,8 +25,6 @@ import CommentSection from "./CommentSection";
 
 interface FeedDetailProps {
   item: FeedItem;
-  onBack: () => void;
-  onCommentAdd: (feedId: number, comment: Comment) => void;
 }
 
 // 카테고리별 아이콘 & 레이블
@@ -311,7 +310,8 @@ function isReadingData(data: NonNullable<FeedItem["routineData"]>, category: Rou
   return category === "독서" && "bookTitle" in data;
 }
 
-export default function FeedDetail({ item, onBack, onCommentAdd }: FeedDetailProps) {
+export default function FeedDetail({ item }: FeedDetailProps) {
+  const router = useRouter();
   const [comments, setComments] = useState<Comment[]>(item.comments ?? []);
   const meta = getCategoryMeta(item.routineCategory);
 
@@ -323,9 +323,7 @@ export default function FeedDetail({ item, onBack, onCommentAdd }: FeedDetailPro
       text,
       date: new Date().toISOString(),
     };
-    const updated = [...comments, newComment];
-    setComments(updated);
-    onCommentAdd(item.id, newComment);
+    setComments((prev) => [...prev, newComment]);
   };
 
   return (
@@ -334,7 +332,7 @@ export default function FeedDetail({ item, onBack, onCommentAdd }: FeedDetailPro
         {/* 헤더 */}
         <div className="flex items-center gap-3 mb-6 mt-2">
           <button
-            onClick={onBack}
+            onClick={() => router.back()}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-gray-600" />
