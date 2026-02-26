@@ -14,7 +14,7 @@ const filterCategories: FilterCategory[] = [
   "운동",
   "영어",
   "모닝",
-  "언어",
+  "제2외국어",
   "자산관리",
 ];
 
