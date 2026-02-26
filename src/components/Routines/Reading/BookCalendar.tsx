@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ReadingRecord, BookCalendarProps } from "@/types/routines/reading";
 
-export default function BookCalendar({ onBack }: BookCalendarProps) {
+export default function BookCalendar({ onBack, onBookSelect }: BookCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   // 임시 독서 기록 데이터
@@ -153,11 +153,16 @@ export default function BookCalendar({ onBack }: BookCalendarProps) {
 
                   {/* 책 표지 (독서 기록이 있는 경우) */}
                   {readingRecord && (
-                    <div className="w-10 h-14 rounded overflow-hidden shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() => onBookSelect?.(readingRecord.bookTitle)}
+                      className="w-10 h-14 rounded overflow-hidden shadow-sm hover:scale-110 hover:shadow-md transition-transform"
+                      title={readingRecord.bookTitle}
+                    >
                       <div className="w-full h-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center">
                         <span className="text-white text-[8px]">표지</span>
                       </div>
-                    </div>
+                    </button>
                   )}
                 </>
               )}
