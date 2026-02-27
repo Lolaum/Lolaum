@@ -23,7 +23,7 @@ const CATEGORY_CONFIG: Record<
   운동:      { color: "#ff8900", bgColor: "#fff4e5", icon: <Dumbbell size={13} /> },
   영어:      { color: "#0ea5e9", bgColor: "#f0f9ff", icon: <BookA size={13} /> },
   모닝:      { color: "#eab32e", bgColor: "#fefce8", icon: <Sun size={13} /> },
-  언어:      { color: "#10b981", bgColor: "#ecfdf5", icon: <Languages size={13} /> },
+  제2외국어: { color: "#10b981", bgColor: "#ecfdf5", icon: <Languages size={13} /> },
   자산관리:  { color: "#10b981", bgColor: "#ecfdf5", icon: <CircleDollarSign size={13} /> },
 };
 
@@ -53,7 +53,7 @@ function getPreviewText(item: FeedItemType): string | null {
       return d.successAndReflection || null;
     }
     case "영어":
-    case "언어": {
+    case "제2외국어": {
       const d = data as LanguageFeedData;
       return d.achievement || null;
     }
@@ -91,7 +91,7 @@ function getSubText(item: FeedItemType): string | null {
       return d.condition != null ? `컨디션 ${d.condition}점` : null;
     }
     case "영어":
-    case "언어": {
+    case "제2외국어": {
       const d = data as LanguageFeedData;
       return d.expressions?.length ? `표현 ${d.expressions.length}개 학습` : null;
     }

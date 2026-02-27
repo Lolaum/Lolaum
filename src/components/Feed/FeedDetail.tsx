@@ -299,7 +299,7 @@ function isFinanceData(data: NonNullable<FeedItem["routineData"]>, category: Rou
   return category === "자산관리" && "dailyExpenses" in data;
 }
 function isLanguageData(data: NonNullable<FeedItem["routineData"]>, category: RoutineCategory): data is LanguageFeedData {
-  return (category === "영어" || category === "언어") && "expressions" in data;
+  return (category === "영어" || category === "제2외국어") && "expressions" in data;
 }
 function isReadingData(data: NonNullable<FeedItem["routineData"]>, category: RoutineCategory): data is ReadingFeedData {
   return category === "독서" && "bookTitle" in data;

@@ -90,7 +90,7 @@ export default function HomCalendar({
   };
 
   return (
-    <div className="rounded-3xl bg-white shadow-sm border border-gray-100 p-5">
+    <div className="rounded-2xl bg-white shadow-md p-6">
       {/* 헤더 (xs): 주간 네비게이션 */}
       <div className="flex sm:hidden items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-gray-900">
@@ -191,27 +191,26 @@ export default function HomCalendar({
 
       {/* 주간 캘린더 (xs only) */}
       <div className="block sm:hidden sticky top-0 bg-white z-10 pb-4 -mx-6 px-6">
-        <div className="grid grid-cols-7 gap-1 mb-1">
+        <div className="grid grid-cols-7 gap-2 mb-2">
           {DAYS.map((day) => (
-            <div key={day} className="py-1.5 text-center text-xs font-semibold text-gray-400">
+            <div key={day} className="py-2 text-center text-sm font-semibold">
               {day}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-2">
           {weekDates.map((date, index) => (
             <button
               key={index}
               type="button"
               onClick={() => onSelectDate(date)}
-              className="aspect-square rounded-xl transition-all relative focus:outline-none text-sm font-medium"
-              style={
+              className={`aspect-square p-2 rounded-lg transition-all relative focus:outline-none focus:ring-2 focus:ring-yellow-400/30 ${
                 isSelected(date)
-                  ? { backgroundColor: "#eab32e", color: "#fff", fontWeight: 700 }
+                  ? "bg-yellow-400/15 text-yellow-500 font-semibold"
                   : isToday(date)
-                  ? { backgroundColor: "#fef3c7", color: "#92400e" }
-                  : { color: "#374151" }
-              }
+                    ? "bg-gray-100 text-gray-900"
+                    : "text-gray-900 hover:bg-gray-50"
+              }`}
             >
               {date.getDate()}
             </button>
@@ -221,31 +220,35 @@ export default function HomCalendar({
 
       {/* 월간 캘린더 (sm and above) */}
       <div className="hidden sm:block">
-        <div className="grid grid-cols-7 gap-1 mb-1">
+        <div className="grid grid-cols-7 gap-2 mb-2">
           {DAYS.map((day) => (
-            <div key={day} className="py-2 text-center text-xs font-semibold text-gray-400">
+            <div key={day} className="py-2 text-center text-sm font-semibold">
               {day}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-2">
           {monthDates.map((date, index) =>
             date === null ? (
-              <div key={index} className="h-10" />
+              <div key={index} className="h-16" />
             ) : (
               <button
                 key={date.toISOString()}
                 onClick={() => onSelectDate(date)}
-                className="aspect-square rounded-xl transition-all relative focus:outline-none text-sm"
-                style={
-                  isSelected(date)
-                    ? { backgroundColor: "#eab32e", color: "#fff", fontWeight: 700 }
-                    : isToday(date)
-                    ? { backgroundColor: "#fef3c7", color: "#92400e", fontWeight: 600 }
-                    : !isCurrentMonth(date)
-                    ? { color: "#d1d5db" }
-                    : { color: "#374151" }
-                }
+                className={`
+                  aspect-square p-2 rounded-lg transition-all relative focus:outline-none focus:ring-2 focus:ring-yellow-400/30
+                  ${!isCurrentMonth(date) ? "text-gray-300" : "text-gray-700"}
+                  ${
+                    isSelected(date)
+                      ? "bg-yellow-400/15 text-yellow-500 font-semibold"
+                      : "hover:bg-gray-100/80"
+                  }
+                  ${
+                    isToday(date) && !isSelected(date)
+                      ? "bg-gray-100/80 font-medium"
+                      : ""
+                  }
+                `}
               >
                 {date.getDate()}
               </button>
