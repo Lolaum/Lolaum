@@ -6,6 +6,7 @@ import { LanguageRecord } from "@/types/routines/language";
 interface StudyPhraseProps {
   languageRecords: LanguageRecord[];
   onClose: () => void;
+  accentColor: string;
 }
 
 interface FlashCard {
@@ -17,6 +18,7 @@ interface FlashCard {
 export default function StudyPhrase({
   languageRecords,
   onClose,
+  accentColor,
 }: StudyPhraseProps) {
   // 모든 레코드의 expressions를 펼쳐서 하나의 카드 배열로 만듦
   const allCards = useMemo(() => {
@@ -133,7 +135,8 @@ export default function StudyPhrase({
             type="button"
             onClick={handleNext}
             disabled={currentIndex === totalCards - 1}
-            className="flex-1 py-2 rounded-xl bg-[var(--gold-200)] text-white text-sm hover:bg-[var(--gold-400)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 py-2 rounded-xl text-white text-sm font-medium transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ backgroundColor: accentColor }}
           >
             다음
           </button>

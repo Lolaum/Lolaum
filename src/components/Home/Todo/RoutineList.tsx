@@ -1,26 +1,29 @@
 "use client";
+
 import React, { useState } from "react";
 import routine_mock from "@/mock/routinemock";
 import GenerateRoutine from "./GenerateRoutine";
-import { PROGRESS_COLORS } from "@/constants/constant";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Flame, ChevronRight } from "lucide-react";
 import { RoutineListProps } from "@/types/home/todo";
+
+const TAG_COLORS: Record<string, { color: string; bgColor: string }> = {
+  운동:     { color: "#ff8900", bgColor: "#fff4e5" },
+  영어:     { color: "#0ea5e9", bgColor: "#f0f9ff" },
+  독서:     { color: "#6366f1", bgColor: "#eef2ff" },
+  모닝:     { color: "#eab32e", bgColor: "#fefce8" },
+  언어:     { color: "#10b981", bgColor: "#ecfdf5" },
+  원서:     { color: "#8b5cf6", bgColor: "#f5f3ff" },
+  자산관리: { color: "#10b981", bgColor: "#ecfdf5" },
+};
+
+const DEFAULT_COLOR = { color: "#6b7280", bgColor: "#f3f4f6" };
 
 export default function RoutineList({
   selectedDate,
   onTaskClick,
 }: RoutineListProps) {
   const [routines, setRoutines] = useState(routine_mock);
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [showGenerateRoutine, setShowGenerateRoutine] = useState(false);
-
-  // 고유한 태그 목록 추출
-  const tags = [...new Set(routines.map((r) => r.tag))];
-
-  // 선택된 태그로 필터링 (없으면 전체)
-  const filteredRoutines = selectedTag
-    ? routines.filter((r) => r.tag === selectedTag)
-    : routines;
 
   const handleToggle = (id: number) => {
     setRoutines((prev) =>
@@ -32,67 +35,117 @@ export default function RoutineList({
     );
   };
 
-  // 예시: routine_mock에 count, totalCount 필드가 있다고 가정
-  // 실제 데이터에 맞게 수정 필요
-  // routine.count: 현재 달성 횟수, routine.totalCount: 목표 횟수
+  const completedCount = routines.filter((r) => r.completed).length;
 
   return (
-    <div className="bg-white rounded-xl shadow p-6">
-      {/* 진행중 루틴 헤더 */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <span className="text-base font-semibold text-gray-500">
-            진행 중인 루틴
-          </span>
-          <span className="ml-2 text-base text-gray-400">
-            ({filteredRoutines.length})
+    <div>
+      {/* 헤더 */}
+      <div className="flex items-center justify-between mb-4 px-1">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-gray-700">진행 중인 루틴</span>
+          <span className="text-xs text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">
+            {completedCount}/{routines.length}
           </span>
         </div>
         <button
           onClick={() => setShowGenerateRoutine(!showGenerateRoutine)}
-          className="w-8 h-8 rounded-full bg-yellow-400 text-white font-bold text-xl hover:bg-yellow-600 transition-colors flex items-center justify-center shadow"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 shadow-sm"
+          style={{ backgroundColor: "#eab32e" }}
         >
-          {showGenerateRoutine ? <X /> : <Plus />}
+          {showGenerateRoutine ? <X size={16} /> : <Plus size={16} />}
         </button>
       </div>
 
       {/* 루틴 생성 폼 */}
       {showGenerateRoutine && (
-        <GenerateRoutine onClose={() => setShowGenerateRoutine(false)} />
+        <div className="mb-4">
+          <GenerateRoutine onClose={() => setShowGenerateRoutine(false)} />
+        </div>
       )}
 
       {/* 루틴 리스트 */}
-      <ul className="space-y-4">
-        {filteredRoutines.map((routine, idx) => {
-          // 임시 진행도: id를 기반으로 예시값 생성 (실제 데이터에 맞게 수정 필요)
+      <div className="space-y-2.5">
+        {routines.map((routine) => {
+          const colors = TAG_COLORS[routine.tag] || DEFAULT_COLOR;
           const total = 5;
           const count = routine.id % (total + 1);
           const percent = Math.min(100, Math.round((count / total) * 100));
-          const colorInfo = PROGRESS_COLORS[idx % PROGRESS_COLORS.length];
+
           return (
-            <li
+            <div
               key={routine.id}
-              onClick={() => onTaskClick(routine.title, colorInfo.hex)}
-              className="bg-gray-50 rounded-xl px-6 py-4 flex flex-col gap-2 cursor-pointer hover:bg-gray-100 transition-colors"
+              onClick={() => onTaskClick(routine.title, colors.color)}
+              className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]"
+              style={{ borderLeft: `4px solid ${routine.completed ? "#e5e7eb" : colors.color}` }}
             >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-lg font-semibold text-gray-900">
-                  {routine.title}
-                </span>
-                <span className="text-base font-semibold text-gray-400">
-                  {count}/{total}
-                </span>
+              <div className="flex items-center gap-3">
+                {/* 완료 체크 */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggle(routine.id);
+                  }}
+                  className="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all"
+                  style={{
+                    borderColor: routine.completed ? colors.color : "#d1d5db",
+                    backgroundColor: routine.completed ? colors.color : "transparent",
+                  }}
+                >
+                  {routine.completed && (
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </button>
+
+                {/* 루틴 정보 */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span
+                      className={`text-sm font-semibold ${routine.completed ? "text-gray-400 line-through" : "text-gray-800"}`}
+                    >
+                      {routine.title}
+                    </span>
+                    <span
+                      className="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+                      style={{ backgroundColor: colors.bgColor, color: colors.color }}
+                    >
+                      {routine.tag}
+                    </span>
+                  </div>
+
+                  {/* 진행도 바 */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${percent}%`,
+                          backgroundColor: routine.completed ? "#d1d5db" : colors.color,
+                        }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-gray-400 flex-shrink-0">{count}/{total}</span>
+                  </div>
+                </div>
+
+                {/* 연속 달성 + 화살표 */}
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {count > 0 && !routine.completed && (
+                    <div className="flex items-center gap-0.5">
+                      <Flame size={11} style={{ color: colors.color }} />
+                      <span className="text-[10px] font-medium" style={{ color: colors.color }}>
+                        {count}일
+                      </span>
+                    </div>
+                  )}
+                  <ChevronRight size={14} className="text-gray-300" />
+                </div>
               </div>
-              <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-300 ${colorInfo.class}`}
-                  style={{ width: `${percent}%` }}
-                />
-              </div>
-            </li>
+            </div>
           );
         })}
-      </ul>
+      </div>
     </div>
   );
 }

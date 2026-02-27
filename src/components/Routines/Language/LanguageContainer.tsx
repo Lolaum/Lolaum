@@ -18,6 +18,10 @@ export default function LanguageContainer({
   const [showAddRecord, setShowAddRecord] = useState(false);
   const [showStudyPhrase, setShowStudyPhrase] = useState(false);
 
+  const isEnglish = languageType === "영어";
+  const accentColor = isEnglish ? "#0ea5e9" : "#10b981";
+  const accentBg = isEnglish ? "#f0f9ff" : "#ecfdf5";
+
   // 영어 학습 기록 데이터
   const englishRecords: LanguageRecord[] = [
     {
@@ -148,8 +152,12 @@ export default function LanguageContainer({
   const languageRecords =
     languageType === "영어" ? englishRecords : otherLanguageRecords;
 
-  // 이번 달 학습한 날 계산
-  const studiedDays = 0;
+  // 이번 달 학습한 날 & 총 표현 수 계산
+  const studiedDays = languageRecords.length;
+  const totalExpressions = languageRecords.reduce(
+    (sum, r) => sum + r.expressionCount,
+    0
+  );
 
   const renderContent = () => {
     // 새 기록 추가하기 화면
@@ -160,129 +168,84 @@ export default function LanguageContainer({
     // 메인 화면
     return (
       <>
-        {/* 뒤로가기 버튼 및 x버튼 */}
-        <div className="flex items-center justify-between mb-2">
+        {/* 네비게이션 */}
+        <div className="flex items-center justify-between mb-4">
           <button
             type="button"
             onClick={onBackToTimer}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
           >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            <span className="text-sm">타이머로 돌아가기</span>
+            타이머로
           </button>
           <button
             type="button"
             onClick={onBackToHome}
-            className="flex items-center justify-center w-8 h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+            className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
           >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         {/* 헤더 */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold text-gray-900">
-              {languageType === "영어" ? "영어 학습" : "제2외국어 학습"}
-            </h1>
-            <button
-              type="button"
-              onClick={() => setShowAddRecord(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-orange-500 hover:text-orange-600 transition-colors"
+        <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-4">
+          <p className="text-xs text-gray-400 font-medium mb-0.5">
+            {isEnglish ? "영어 리추얼" : "언어 리추얼"}
+          </p>
+          <h1 className="text-lg font-bold text-gray-900 mb-4">
+            {isEnglish ? "영어 학습 기록" : "언어 학습 기록"}
+          </h1>
+          <div className="flex gap-3">
+            <div className="flex-1 rounded-xl p-3 text-center" style={{ backgroundColor: accentBg }}>
+              <p className="text-2xl font-bold text-gray-900">{studiedDays}</p>
+              <p className="text-xs text-gray-400 mt-0.5">이번 달 학습일</p>
+            </div>
+            <div className="flex-1 rounded-xl p-3 text-center" style={{ backgroundColor: accentBg }}>
+              <p className="text-2xl font-bold text-gray-900">{totalExpressions}</p>
+              <p className="text-xs text-gray-400 mt-0.5">공부한 표현</p>
+            </div>
+          </div>
+        </div>
+
+        {/* 단어 카드 복습 */}
+        <button
+          type="button"
+          onClick={() => setShowStudyPhrase(true)}
+          className="w-full flex items-center justify-between bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ backgroundColor: isEnglish ? "#f0f9ff" : "#ecfdf5" }}
             >
-              <svg
+              <Grid3x3
                 className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              기록 추가
-            </button>
-          </div>
-
-          {/* 이번 달 통계 */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-3">
-            <div className="flex items-center gap-2 text-gray-600 mb-2">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
-              <span className="text-sm">이번 달</span>
+                style={{ color: isEnglish ? "#0ea5e9" : "#10b981" }}
+              />
             </div>
-            <div className="text-4xl font-bold text-gray-900 mb-1">
-              {studiedDays}
+            <div className="text-left">
+              <p className="text-sm font-semibold text-gray-900">단어 카드로 복습하기</p>
+              <p className="text-xs text-gray-400 mt-0.5">14개의 표현</p>
             </div>
-            <div className="text-sm text-gray-500">학습한 날</div>
           </div>
+          <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
 
-          {/* 단어 카드로 복습하기 */}
+        {/* 기록 추가 버튼 */}
+        <div className="mb-4">
           <button
             type="button"
-            onClick={() => setShowStudyPhrase(true)}
-            className="w-full flex items-center justify-between bg-gradient-to-r from-[#fef7e6] to-[#fef4dc] rounded-2xl p-6 hover:opacity-80 transition-opacity"
+            onClick={() => setShowAddRecord(true)}
+            className="w-full py-3 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
+            style={{ backgroundColor: accentColor }}
           >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-[#fdefc8] rounded-xl flex items-center justify-center">
-                <Grid3x3 className="w-6 h-6 text-[#d4a574]" />
-              </div>
-              <div className="text-left">
-                <div className="text-base font-semibold text-gray-900 mb-1">
-                  단어 카드로 복습하기
-                </div>
-                <div className="text-sm text-gray-600">14개의 표현</div>
-              </div>
-            </div>
-            <svg
-              className="w-5 h-5 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
+            + 오늘 학습 기록하기
           </button>
         </div>
 
@@ -294,13 +257,14 @@ export default function LanguageContainer({
 
   return (
     <>
-      <div className="w-full max-w-3xl mx-auto scale-[0.8] origin-top">
+      <div className="w-full max-w-2xl mx-auto px-4 py-4">
         {renderContent()}
       </div>
       {showStudyPhrase && (
         <StudyPhrase
           languageRecords={languageRecords}
           onClose={() => setShowStudyPhrase(false)}
+          accentColor={accentColor}
         />
       )}
     </>

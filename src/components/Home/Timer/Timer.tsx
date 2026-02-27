@@ -136,97 +136,87 @@ export default function Timer({
   };
 
   return (
-    <div className="flex flex-col bg-white scale-[0.8] origin-top">
-      {/* 뒤로가기 버튼 및 x버튼 */}
-      <div className="flex items-center justify-end gap-3 mb-2">
+    <div className="max-w-sm mx-auto px-4 py-6">
+      {/* 닫기 버튼 */}
+      <div className="flex items-center justify-end mb-4">
         <button
           type="button"
           onClick={onClose}
-          className="flex items-center justify-center w-8 h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+          className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
         >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
 
-      <div className="w-full max-w-sm text-center mx-auto">
-        {/* 태스크 제목 */}
-        <h1 className="mb-4 text-lg font-medium" style={{ color: color }}>
+      {/* 태스크 이름 뱃지 */}
+      <div className="text-center mb-8">
+        <span
+          className="inline-block px-4 py-1.5 rounded-full text-sm font-semibold text-white shadow-sm"
+          style={{ backgroundColor: color }}
+        >
           {taskTitle}
-        </h1>
+        </span>
+        <p className="text-xs text-gray-400 mt-2">
+          {isRunning ? "집중 중..." : seconds > 0 ? "일시정지됨" : "준비되면 시작하세요"}
+        </p>
+      </div>
 
-        {/* 원형 프로그레스 + 타이머 */}
-        <div className="relative mb-6 flex items-center justify-center">
-          <CircularProgress seconds={seconds} color={color} />
-          {/* 중앙 타이머 표시 */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="font-mono text-5xl font-bold text-gray-900">
-              {formatTime(seconds)}
-            </span>
-          </div>
+      {/* 원형 프로그레스 + 타이머 */}
+      <div className="relative mb-8 flex items-center justify-center">
+        <CircularProgress seconds={seconds} color={color} />
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="font-mono text-5xl font-bold text-gray-900 tabular-nums">
+            {formatTime(seconds)}
+          </span>
+          <span className="text-xs text-gray-400 mt-1">
+            {Math.floor(seconds / 60)}분 {seconds % 60}초
+          </span>
         </div>
+      </div>
 
-        {/* 컨트롤 버튼 */}
-        {seconds === 0 && !isRunning ? (
-          // 시작 전 상태
-          <div className="flex justify-center">
+      {/* 컨트롤 버튼 */}
+      {seconds === 0 && !isRunning ? (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={handleStartPause}
+            className="rounded-2xl px-14 py-4 text-base font-bold text-white shadow-md transition-all hover:shadow-lg active:scale-95"
+            style={{ backgroundColor: color }}
+          >
+            시작하기
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex gap-3">
             <button
               type="button"
               onClick={handleStartPause}
-              className="rounded-full px-12 py-3 text-base font-bold text-white transition-colors hover:bg-orange-600"
-              style={{
-                backgroundColor: color,
-                opacity: isRunning ? 1 : 0.9,
-              }}
+              className="rounded-2xl px-10 py-3.5 text-sm font-bold text-white shadow-md transition-all hover:shadow-lg active:scale-95"
+              style={{ backgroundColor: color }}
             >
-              시작
+              {isRunning ? "일시정지" : "계속하기"}
             </button>
-          </div>
-        ) : (
-          // 진행 중 또는 일시중지 상태
-          <div className="flex flex-col items-center gap-4">
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={handleStartPause}
-                className="rounded-full px-12 py-3 text-base font-bold text-white transition-colors"
-                style={{
-                  backgroundColor: color,
-                  opacity: isRunning ? 1 : 0.9,
-                }}
-              >
-                {isRunning ? "일시중지" : "계속하기"}
-              </button>
-              <button
-                type="button"
-                onClick={handleReset}
-                className="rounded-full bg-gray-200 px-8 py-3 text-base font-bold text-gray-600 transition-colors hover:bg-gray-300"
-              >
-                초기화
-              </button>
-            </div>
             <button
               type="button"
-              onClick={handleNext}
-              className="flex items-center gap-1 text-base font-medium text-gray-500 hover:text-gray-700 underline mt-5"
+              onClick={handleReset}
+              className="rounded-2xl bg-gray-100 px-6 py-3.5 text-sm font-bold text-gray-500 transition-all hover:bg-gray-200 active:scale-95"
             >
-              다음으로
-              <ChevronsRight className="w-6 h-6" />
+              초기화
             </button>
           </div>
-        )}
-      </div>
+          <button
+            type="button"
+            onClick={handleNext}
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors mt-2"
+          >
+            기록하러 가기
+            <ChevronsRight className="w-5 h-5" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -44,18 +44,12 @@ export default function TodoList({ selectedDate, onTaskClick }: TodoListProps) {
   const completedTodos = todos.filter((t) => t.completed);
 
   return (
-    <div className="bg-white rounded-xl p-6">
-      {/* divider */}
-      <div className="w-full h-px bg-gray-200 mb-6" />
-
+    <div>
       {/* 할 일 추가 */}
-      <div className="mb-6">
-        <div className="mb-1 text-sm font-semibold text-gray-500">
-          할 일 추가
-        </div>
+      <div className="mb-5">
         <div className="flex gap-2">
           <input
-            className="flex-1 rounded-lg border border-gray-200 px-4 py-3 text-base focus:border-yellow-400 focus:ring-2 focus:ring-yellow-100"
+            className="flex-1 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm placeholder-gray-300 focus:border-[var(--gold-400)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/20 transition-all"
             placeholder="새로운 할 일을 입력하세요"
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -66,90 +60,73 @@ export default function TodoList({ selectedDate, onTaskClick }: TodoListProps) {
             }}
           />
           <button
-            className="rounded-lg bg-yellow-400 px-6 py-3 text-base font-bold text-white shadow hover:bg-yellow-500 transition-colors"
+            className="rounded-2xl px-4 py-3 text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-95"
+            style={{ backgroundColor: "#eab32e" }}
             onClick={handleAdd}
           >
-            + 추가
+            추가
           </button>
         </div>
       </div>
 
-      {/* divider */}
-      <div className="w-full h-px bg-gray-300 mb-6" />
-
-      {/* 미완료 할 일 - 진행 중 */}
-      <div className="mb-2 text-sm font-bold text-gray-400">
-        진행 중{" "}
-        <span className="ml-1 font-normal">
-          ({todos.filter((t) => !t.completed).length})
-        </span>
-      </div>
-      <div className="mb-8">
-        <div className="space-y-3">
+      {/* 진행 중 */}
+      <div className="mb-1">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2.5">
+          진행 중 ({todos.filter((t) => !t.completed).length})
+        </p>
+        <div className="space-y-2">
           {todos.filter((t) => !t.completed).length === 0 ? (
-            <div className="text-sm text-gray-200">할 일이 없습니다</div>
+            <p className="text-sm text-gray-200 text-center py-4">할 일이 없습니다</p>
           ) : (
-            todos
-              .filter((t) => !t.completed)
-              .map((todo) => (
-                <div
-                  key={todo.id}
-                  className="flex items-center gap-4 rounded-2xl bg-[#FCFCFC] px-4 py-3"
-                >
-                  <input
-                    type="checkbox"
-                    checked={todo.completed}
-                    onChange={() => handleToggle(todo.id)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="h-5 w-5 rounded-xl border-2 border-gray-300 focus:ring-2 focus:ring-yellow-200 bg-white"
-                  />
-                  <span className="flex-1 text-base text-gray-900 font-semibold">
-                    {todo.title}
-                  </span>
-                </div>
-              ))
+            todos.filter((t) => !t.completed).map((todo) => (
+              <div
+                key={todo.id}
+                className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3 border border-transparent hover:border-gray-200 transition-colors"
+              >
+                <button
+                  onClick={() => handleToggle(todo.id)}
+                  className="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center flex-shrink-0 transition-all hover:border-[var(--gold-400)]"
+                />
+                <span className="flex-1 text-sm text-gray-800 font-medium">{todo.title}</span>
+              </div>
+            ))
           )}
         </div>
       </div>
 
-      {/* divider */}
-      <div className="w-full h-px bg-gray-300 mb-6" />
-
-      {/* 완료된 할 일 */}
-      <div className="mb-2 text-sm font-bold text-gray-300">
-        완료됨{" "}
-        <span className="ml-1 font-normal">({completedTodos.length})</span>
-      </div>
-      <div className="space-y-3">
-        {completedTodos.length === 0 ? (
-          <div className="text-sm text-gray-200">완료된 할 일이 없습니다</div>
-        ) : (
-          completedTodos.map((todo) => (
-            <div
-              key={todo.id}
-              className="flex items-center gap-4 rounded-2xl bg-[#FCFCFC] px-4 py-3"
-            >
-              <button
-                onClick={() => handleToggle(todo.id)}
-                className="flex items-center justify-center w-5 h-5 rounded bg-yellow-400 hover:bg-yellow-500 transition-colors"
-                aria-label="완료 취소"
+      {/* 완료됨 */}
+      {completedTodos.length > 0 && (
+        <div className="mt-4">
+          <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2.5">
+            완료됨 ({completedTodos.length})
+          </p>
+          <div className="space-y-2">
+            {completedTodos.map((todo) => (
+              <div
+                key={todo.id}
+                className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3"
               >
-                <Check className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
-              </button>
-              <span className="flex-1 text-base text-gray-400 font-semibold line-through">
-                {todo.title}
-              </span>
-              <button
-                onClick={() => handleDelete(todo.id)}
-                className="text-gray-300 hover:text-gray-500 transition-colors"
-                aria-label="삭제"
-              >
-                <Trash2 className="w-4 h-4" strokeWidth={1.5} />
-              </button>
-            </div>
-          ))
-        )}
-      </div>
+                <button
+                  onClick={() => handleToggle(todo.id)}
+                  className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
+                  style={{ backgroundColor: "#eab32e" }}
+                  aria-label="완료 취소"
+                >
+                  <Check className="w-3 h-3 text-white" strokeWidth={2.5} />
+                </button>
+                <span className="flex-1 text-sm text-gray-400 line-through">{todo.title}</span>
+                <button
+                  onClick={() => handleDelete(todo.id)}
+                  className="text-gray-300 hover:text-gray-400 transition-colors"
+                  aria-label="삭제"
+                >
+                  <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

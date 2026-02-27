@@ -16,109 +16,97 @@ interface TaskTabsProps {
 }
 
 export default function TaskTabs({ selectedDate, onTaskClick }: TaskTabsProps) {
-  // 루틴이 먼저 보이도록 기본값을 routine으로
   const [activeTab, setActiveTab] = useState<TabType>("routine");
 
   const handleTaskClick = (title: string, color: string) => {
     onTaskClick?.(title, color);
   };
 
-  // 토글 스위치 스타일
   return (
     <div className="flex flex-col gap-4">
       {/* 통계 카드 */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-2xl bg-white shadow-md p-4 flex flex-col items-center justify-center gap-1">
-          <span className="text-3xl font-bold text-gray-900">3</span>
-          <span className="text-sm text-gray-500">연속 실천</span>
-        </div>
-        <div className="rounded-2xl bg-white shadow-md p-4 flex flex-col items-center justify-center gap-1">
-          <span className="text-3xl font-bold text-gray-900">7</span>
-          <span className="text-sm text-gray-500">최장 기록</span>
-        </div>
-        <div className="rounded-2xl bg-white shadow-md p-4 flex flex-col items-center justify-center gap-1">
-          <span className="text-3xl font-bold text-gray-900">24</span>
-          <span className="text-sm text-gray-500">총 완료</span>
-        </div>
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { value: "3", label: "연속 실천" },
+          { value: "7", label: "최장 기록" },
+          { value: "24", label: "총 완료" },
+        ].map(({ value, label }) => (
+          <div
+            key={label}
+            className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 flex flex-col items-center justify-center gap-1"
+          >
+            <span className="text-2xl font-bold text-gray-900">{value}</span>
+            <span className="text-xs text-gray-400 font-medium">{label}</span>
+          </div>
+        ))}
       </div>
 
-    <div className="rounded-2xl bg-white shadow-md p-6">
-      <div className="flex items-center justify-between mb-6">
-        {/* 주간 날짜 정보 */}
-        <div className="flex flex-col">
-          <div className="mb-2 text-xl text-gray-900 font-bold">
-            {getWeekRangeText(selectedDate)}
-          </div>
-          {/* 오늘 날짜 */}
-          <div className="mb-2 text-base text-gray-400 font-semibold">
+      {/* 루틴/투두 카드 */}
+      <div className="rounded-3xl bg-white shadow-sm border border-gray-100 p-5">
+        {/* 날짜 */}
+        <div className="mb-4">
+          <p className="text-xs text-gray-400 font-medium mb-0.5">
             {formatDateDisplay(selectedDate)}
-          </div>
+          </p>
+          <h2 className="text-base font-bold text-gray-800">
+            {getWeekRangeText(selectedDate)}
+          </h2>
         </div>
 
-        {/* 토글 스위치 */}
-        <div className="flex items-center justify-end mb-6">
-          <div className="flex items-center bg-gray-100 rounded-lg px-1 py-1 w-fit">
-            <button
-              type="button"
-              onClick={() => setActiveTab("routine")}
-              className={`px-5 py-1.5 rounded-lg text-base font-semibold transition-colors duration-150 ${
-                activeTab === "routine"
-                  ? "bg-white text-yellow-500 shadow border border-gray-200"
-                  : "text-gray-400"
-              }`}
-              style={{ minWidth: 70 }}
-            >
-              루틴
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("todo")}
-              className={`px-5 py-1.5 rounded-lg text-base font-semibold transition-colors duration-150 ${
-                activeTab === "todo"
-                  ? "bg-white text-yellow-500 shadow  border border-gray-200"
-                  : "text-gray-400"
-              }`}
-              style={{ minWidth: 70 }}
-            >
-              투두
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 콘텐츠 */}
-      <div className="overflow-y-auto max-h-[calc(100vh-300px)]">
-        {activeTab === "routine" ? (
-          <RoutineList
-            selectedDate={selectedDate}
-            onTaskClick={handleTaskClick}
+        {/* 세그먼트 컨트롤 — 슬라이딩 pill */}
+        <div className="relative flex bg-gray-100 rounded-2xl p-1 mb-5">
+          {/* 슬라이딩 active 배경 */}
+          <div
+            className="absolute inset-y-1 rounded-xl"
+            style={{
+              width: "calc(50% - 4px)",
+              left: activeTab === "routine" ? 4 : "calc(50%)",
+              backgroundColor: "#eab32e",
+              boxShadow: "0 2px 8px rgba(234,179,46,0.35)",
+              transition: "left 0.22s cubic-bezier(0.4, 0, 0.2, 1)",
+            }}
           />
-        ) : (
-          <TodoList selectedDate={selectedDate} onTaskClick={handleTaskClick} />
-        )}
+          {(["routine", "todo"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className="relative z-10 flex-1 py-2.5 text-sm font-semibold flex items-center justify-center"
+              style={{
+                color: activeTab === tab ? "#fff" : "#9ca3af",
+                transition: "color 0.18s ease",
+              }}
+            >
+              {tab === "routine" ? "루틴" : "투두"}
+            </button>
+          ))}
+        </div>
+
+        {/* 콘텐츠 */}
+        <div className="overflow-y-auto max-h-[calc(100vh-400px)]">
+          {activeTab === "routine" ? (
+            <RoutineList selectedDate={selectedDate} onTaskClick={handleTaskClick} />
+          ) : (
+            <TodoList selectedDate={selectedDate} onTaskClick={handleTaskClick} />
+          )}
+        </div>
       </div>
-    </div>
 
       {/* 회고 버튼 카드 */}
-      <div className="grid grid-cols-3 gap-4">
-        <button
-          type="button"
-          className="rounded-2xl bg-white shadow-md p-4 flex flex-col items-center justify-center gap-1 hover:bg-yellow-50 hover:text-yellow-500 transition-colors text-gray-500"
-        >
-          <span className="text-sm font-semibold">리추얼선언</span>
-        </button>
-        <button
-          type="button"
-          className="rounded-2xl bg-white shadow-md p-4 flex flex-col items-center justify-center gap-1 hover:bg-yellow-50 hover:text-yellow-500 transition-colors text-gray-500"
-        >
-          <span className="text-sm font-semibold">중간회고</span>
-        </button>
-        <button
-          type="button"
-          className="rounded-2xl bg-white shadow-md p-4 flex flex-col items-center justify-center gap-1 hover:bg-yellow-50 hover:text-yellow-500 transition-colors text-gray-500"
-        >
-          <span className="text-sm font-semibold">최종회고</span>
-        </button>
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "리추얼선언" },
+          { label: "중간회고" },
+          { label: "최종회고" },
+        ].map(({ label }) => (
+          <button
+            key={label}
+            type="button"
+            className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 flex flex-col items-center justify-center gap-1 text-gray-400 font-semibold text-sm hover:bg-yellow-50 hover:text-yellow-500 hover:border-yellow-100 transition-colors"
+          >
+            {label}
+          </button>
+        ))}
       </div>
     </div>
   );
