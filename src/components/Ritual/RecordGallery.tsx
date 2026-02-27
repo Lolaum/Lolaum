@@ -274,7 +274,7 @@ function GalleryCard({ item }: { item: FeedItem }) {
       case "모닝":
         return <MorningCardContent data={item.routineData as MorningFeedData} />;
       case "영어":
-      case "언어":
+      case "제2외국어":
         return <LanguageCardContent data={item.routineData as LanguageFeedData} />;
       case "자산관리":
         return <FinanceCardContent data={item.routineData as FinanceFeedData} />;

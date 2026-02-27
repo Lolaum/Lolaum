@@ -194,10 +194,10 @@ export default function LanguageContainer({
         {/* 헤더 */}
         <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-4">
           <p className="text-xs text-gray-400 font-medium mb-0.5">
-            {isEnglish ? "영어 리추얼" : "언어 리추얼"}
+            {isEnglish ? "영어 리추얼" : "제2외국어 리추얼"}
           </p>
           <h1 className="text-lg font-bold text-gray-900 mb-4">
-            {isEnglish ? "영어 학습 기록" : "언어 학습 기록"}
+            {isEnglish ? "영어 학습 기록" : "제2외국어 학습 기록"}
           </h1>
           <div className="flex gap-3">
             <div className="flex-1 rounded-xl p-3 text-center" style={{ backgroundColor: accentBg }}>

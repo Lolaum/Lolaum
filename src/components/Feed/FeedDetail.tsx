@@ -33,7 +33,7 @@ const CATEGORY_META: Record<string, { icon: React.ReactNode; label: string; hexC
   운동:     { icon: <Dumbbell className="w-5 h-5" />,         label: "운동",      hexColor: "#ff8900", bgColor: "#fff4e5" },
   영어:     { icon: <BookA className="w-5 h-5" />,            label: "영어",      hexColor: "#0ea5e9", bgColor: "#f0f9ff" },
   모닝:     { icon: <Sun className="w-5 h-5" />,              label: "모닝 루틴",  hexColor: "#eab32e", bgColor: "#fefce8" },
-  언어:     { icon: <Languages className="w-5 h-5" />,        label: "언어 학습",  hexColor: "#10b981", bgColor: "#ecfdf5" },
+  제2외국어: { icon: <Languages className="w-5 h-5" />,        label: "제2외국어 학습",  hexColor: "#10b981", bgColor: "#ecfdf5" },
   자산관리: { icon: <CircleDollarSign className="w-5 h-5" />,  label: "자산관리",  hexColor: "#10b981", bgColor: "#ecfdf5" },
 };
 

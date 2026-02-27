@@ -11,7 +11,7 @@ const TAG_COLORS: Record<string, { color: string; bgColor: string }> = {
   영어:     { color: "#0ea5e9", bgColor: "#f0f9ff" },
   독서:     { color: "#6366f1", bgColor: "#eef2ff" },
   모닝:     { color: "#eab32e", bgColor: "#fefce8" },
-  언어:     { color: "#10b981", bgColor: "#ecfdf5" },
+  제2외국어: { color: "#10b981", bgColor: "#ecfdf5" },
   원서:     { color: "#8b5cf6", bgColor: "#f5f3ff" },
   자산관리: { color: "#10b981", bgColor: "#ecfdf5" },
 };
