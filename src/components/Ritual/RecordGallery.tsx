@@ -41,7 +41,7 @@ const CATEGORY_CONFIG: Record<
     label: "모닝",
     icon: <Sun size={14} />,
   },
-  언어: {
+  제2외국어: {
     color: "#10b981",
     bgColor: "#ecfdf5",
     label: "언어",
