@@ -44,7 +44,7 @@ const CATEGORY_CONFIG: Record<
   제2외국어: {
     color: "#10b981",
     bgColor: "#ecfdf5",
-    label: "언어",
+    label: "제2외국어",
     icon: <Languages size={14} />,
   },
   자산관리: {
