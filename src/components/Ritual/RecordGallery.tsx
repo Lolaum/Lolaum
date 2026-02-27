@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { BookText, Dumbbell, BookA, Sun, Languages, CircleDollarSign } from "lucide-react";
+import {
+  BookText,
+  Dumbbell,
+  BookA,
+  Sun,
+  Languages,
+  CircleDollarSign,
+} from "lucide-react";
 import {
   FeedItem,
   RoutineCategory,
@@ -74,14 +81,17 @@ const formatDate = (dateString: string) => {
 // ── 카드 내용 렌더러 ──
 
 function ReadingCardContent({ data }: { data: ReadingFeedData }) {
-  const progress = data.pagesRead && data.totalPages
-    ? Math.round((data.pagesRead / data.totalPages) * 100)
-    : 0;
+  const progress =
+    data.pagesRead && data.totalPages
+      ? Math.round((data.pagesRead / data.totalPages) * 100)
+      : 0;
 
   return (
     <div className="space-y-3">
       <div>
-        <p className="font-semibold text-gray-900 text-sm leading-tight">{data.bookTitle}</p>
+        <p className="font-semibold text-gray-900 text-sm leading-tight">
+          {data.bookTitle}
+        </p>
         <p className="text-xs text-gray-400 mt-0.5">{data.author}</p>
       </div>
 
@@ -89,7 +99,9 @@ function ReadingCardContent({ data }: { data: ReadingFeedData }) {
       {data.pagesRead && data.totalPages && (
         <div>
           <div className="flex justify-between text-xs text-gray-400 mb-1">
-            <span>{data.pagesRead}p / {data.totalPages}p</span>
+            <span>
+              {data.pagesRead}p / {data.totalPages}p
+            </span>
             <span className="font-medium" style={{ color: "#6366f1" }}>
               +{data.progressAmount}p
             </span>
@@ -109,7 +121,10 @@ function ReadingCardContent({ data }: { data: ReadingFeedData }) {
           className="rounded-xl p-3 relative"
           style={{ backgroundColor: "#eef2ff" }}
         >
-          <span className="absolute -top-1 left-3 text-2xl leading-none" style={{ color: "#6366f1", opacity: 0.4 }}>
+          <span
+            className="absolute -top-1 left-3 text-2xl leading-none"
+            style={{ color: "#6366f1", opacity: 0.4 }}
+          >
             ❝
           </span>
           <p className="text-xs text-gray-600 leading-relaxed pt-1 line-clamp-3">
@@ -120,7 +135,9 @@ function ReadingCardContent({ data }: { data: ReadingFeedData }) {
 
       {/* 나만의 생각 */}
       {data.thoughts && (
-        <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{data.thoughts}</p>
+        <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">
+          {data.thoughts}
+        </p>
       )}
     </div>
   );
@@ -130,10 +147,7 @@ function ExerciseCardContent({ data }: { data: ExerciseFeedData }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <span
-          className="text-sm font-bold"
-          style={{ color: "#ff8900" }}
-        >
+        <span className="text-sm font-bold" style={{ color: "#ff8900" }}>
           {data.exerciseName}
         </span>
         <span className="text-xs text-gray-400">·</span>
@@ -142,26 +156,37 @@ function ExerciseCardContent({ data }: { data: ExerciseFeedData }) {
 
       {/* 시간 시각화 */}
       <div className="flex gap-1 flex-wrap">
-        {Array.from({ length: Math.min(Math.ceil(data.duration / 10), 10) }).map((_, i) => (
+        {Array.from({
+          length: Math.min(Math.ceil(data.duration / 10), 10),
+        }).map((_, i) => (
           <div
             key={i}
             className="w-4 h-4 rounded"
-            style={{ backgroundColor: i < Math.floor(data.duration / 10) ? "#ff8900" : "#ffe0b2" }}
+            style={{
+              backgroundColor:
+                i < Math.floor(data.duration / 10) ? "#ff8900" : "#ffe0b2",
+            }}
           />
         ))}
-        <span className="text-xs text-gray-400 self-center ml-1">{data.duration}분</span>
+        <span className="text-xs text-gray-400 self-center ml-1">
+          {data.duration}분
+        </span>
       </div>
 
-      <p className="text-xs text-gray-600 leading-relaxed line-clamp-3">{data.achievement}</p>
+      <p className="text-xs text-gray-600 leading-relaxed line-clamp-3">
+        {data.achievement}
+      </p>
     </div>
   );
 }
 
 function MorningCardContent({ data }: { data: MorningFeedData }) {
   const conditionColor =
-    data.condition >= 80 ? "#10b981" :
-    data.condition >= 60 ? "#eab32e" :
-    "#f97316";
+    data.condition >= 80
+      ? "#10b981"
+      : data.condition >= 60
+        ? "#eab32e"
+        : "#f97316";
 
   return (
     <div className="space-y-3">
@@ -181,7 +206,10 @@ function MorningCardContent({ data }: { data: MorningFeedData }) {
                 key={i}
                 className="w-5 h-1.5 rounded-full mr-0.5"
                 style={{
-                  backgroundColor: i < Math.round(data.condition / 20) ? conditionColor : "#e5e7eb",
+                  backgroundColor:
+                    i < Math.round(data.condition / 20)
+                      ? conditionColor
+                      : "#e5e7eb",
                 }}
               />
             ))}
@@ -209,14 +237,22 @@ function LanguageCardContent({ data }: { data: LanguageFeedData }) {
       <p className="text-xs font-medium text-gray-700">{data.achievement}</p>
       <div className="flex flex-wrap gap-1.5">
         {data.expressions.slice(0, 3).map((expr, i) => (
-          <div key={i} className="rounded-lg px-2.5 py-1.5" style={{ backgroundColor: "#f0f9ff" }}>
-            <p className="text-xs font-semibold" style={{ color: "#0ea5e9" }}>{expr.word}</p>
+          <div
+            key={i}
+            className="rounded-lg px-2.5 py-1.5"
+            style={{ backgroundColor: "#f0f9ff" }}
+          >
+            <p className="text-xs font-semibold" style={{ color: "#0ea5e9" }}>
+              {expr.word}
+            </p>
             <p className="text-[10px] text-gray-500 mt-0.5">{expr.meaning}</p>
           </div>
         ))}
         {data.expressions.length > 3 && (
           <div className="rounded-lg px-2.5 py-1.5 bg-gray-100 flex items-center">
-            <p className="text-xs text-gray-400">+{data.expressions.length - 3}개</p>
+            <p className="text-xs text-gray-400">
+              +{data.expressions.length - 3}개
+            </p>
           </div>
         )}
       </div>
@@ -227,18 +263,35 @@ function LanguageCardContent({ data }: { data: LanguageFeedData }) {
 function FinanceCardContent({ data }: { data: FinanceFeedData }) {
   const allExpenses = data.dailyExpenses.flatMap((d) => d.expenses);
   const total = allExpenses.reduce((sum, e) => sum + e.amount, 0);
-  const necessary = allExpenses.filter((e) => e.type === "necessary").reduce((s, e) => s + e.amount, 0);
-  const emotional = allExpenses.filter((e) => e.type === "emotional").reduce((s, e) => s + e.amount, 0);
-  const emotionalPercent = total > 0 ? Math.round((emotional / total) * 100) : 0;
+  const necessary = allExpenses
+    .filter((e) => e.type === "necessary")
+    .reduce((s, e) => s + e.amount, 0);
+  const emotional = allExpenses
+    .filter((e) => e.type === "emotional")
+    .reduce((s, e) => s + e.amount, 0);
+  const emotionalPercent =
+    total > 0 ? Math.round((emotional / total) * 100) : 0;
 
   return (
     <div className="space-y-3">
       {/* 지출 요약 */}
       <div>
-        <p className="text-lg font-bold text-gray-900">{total.toLocaleString()}원</p>
+        <p className="text-lg font-bold text-gray-900">
+          {total.toLocaleString()}원
+        </p>
         <div className="flex gap-3 mt-1">
-          <span className="text-xs text-gray-400">필수 <span className="text-gray-600 font-medium">{necessary.toLocaleString()}</span></span>
-          <span className="text-xs text-gray-400">감성 <span style={{ color: "#f97316" }} className="font-medium">{emotional.toLocaleString()}</span></span>
+          <span className="text-xs text-gray-400">
+            필수{" "}
+            <span className="text-gray-600 font-medium">
+              {necessary.toLocaleString()}
+            </span>
+          </span>
+          <span className="text-xs text-gray-400">
+            감성{" "}
+            <span style={{ color: "#f97316" }} className="font-medium">
+              {emotional.toLocaleString()}
+            </span>
+          </span>
         </div>
       </div>
 
@@ -247,14 +300,21 @@ function FinanceCardContent({ data }: { data: FinanceFeedData }) {
         <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
           <div
             className="h-full rounded-full"
-            style={{ width: `${emotionalPercent}%`, backgroundColor: "#f97316" }}
+            style={{
+              width: `${emotionalPercent}%`,
+              backgroundColor: "#f97316",
+            }}
           />
         </div>
-        <p className="text-[10px] text-gray-400 mt-1">감성소비 {emotionalPercent}%</p>
+        <p className="text-[10px] text-gray-400 mt-1">
+          감성소비 {emotionalPercent}%
+        </p>
       </div>
 
       {data.studyContent && (
-        <p className="text-xs text-gray-600 leading-relaxed line-clamp-2">{data.studyContent}</p>
+        <p className="text-xs text-gray-600 leading-relaxed line-clamp-2">
+          {data.studyContent}
+        </p>
       )}
     </div>
   );
@@ -268,16 +328,26 @@ function GalleryCard({ item }: { item: FeedItem }) {
   const renderContent = () => {
     switch (item.routineCategory) {
       case "독서":
-        return <ReadingCardContent data={item.routineData as ReadingFeedData} />;
+        return (
+          <ReadingCardContent data={item.routineData as ReadingFeedData} />
+        );
       case "운동":
-        return <ExerciseCardContent data={item.routineData as ExerciseFeedData} />;
+        return (
+          <ExerciseCardContent data={item.routineData as ExerciseFeedData} />
+        );
       case "모닝":
-        return <MorningCardContent data={item.routineData as MorningFeedData} />;
+        return (
+          <MorningCardContent data={item.routineData as MorningFeedData} />
+        );
       case "영어":
-      case "언어":
-        return <LanguageCardContent data={item.routineData as LanguageFeedData} />;
+      case "제2외국어":
+        return (
+          <LanguageCardContent data={item.routineData as LanguageFeedData} />
+        );
       case "자산관리":
-        return <FinanceCardContent data={item.routineData as FinanceFeedData} />;
+        return (
+          <FinanceCardContent data={item.routineData as FinanceFeedData} />
+        );
       default:
         return null;
     }
@@ -309,7 +379,9 @@ function GalleryCard({ item }: { item: FeedItem }) {
 // ── 메인 갤러리 ──
 
 export default function RecordGallery() {
-  const [activeFilter, setActiveFilter] = useState<RoutineCategory | "전체">("전체");
+  const [activeFilter, setActiveFilter] = useState<RoutineCategory | "전체">(
+    "전체",
+  );
 
   const filtered =
     activeFilter === "전체"
@@ -348,7 +420,9 @@ export default function RecordGallery() {
 
       {/* 기록 수 */}
       <p className="text-xs text-gray-400 mb-3 px-1">
-        총 <span className="font-semibold text-gray-600">{filtered.length}</span>개의 기록
+        총{" "}
+        <span className="font-semibold text-gray-600">{filtered.length}</span>
+        개의 기록
       </p>
 
       {/* 2열 그리드 */}

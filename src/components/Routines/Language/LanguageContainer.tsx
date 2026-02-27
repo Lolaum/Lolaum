@@ -156,13 +156,18 @@ export default function LanguageContainer({
   const studiedDays = languageRecords.length;
   const totalExpressions = languageRecords.reduce(
     (sum, r) => sum + r.expressionCount,
-    0
+    0,
   );
 
   const renderContent = () => {
     // 새 기록 추가하기 화면
     if (showAddRecord) {
-      return <AddNewLanguage onCancel={() => setShowAddRecord(false)} onBackToHome={onBackToHome} />;
+      return (
+        <AddNewLanguage
+          onCancel={() => setShowAddRecord(false)}
+          onBackToHome={onBackToHome}
+        />
+      );
     }
 
     // 메인 화면
@@ -175,8 +180,18 @@ export default function LanguageContainer({
             onClick={onBackToTimer}
             className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
           >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
             타이머로
           </button>
@@ -185,8 +200,18 @@ export default function LanguageContainer({
             onClick={onBackToHome}
             className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
           >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -194,18 +219,26 @@ export default function LanguageContainer({
         {/* 헤더 */}
         <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-4">
           <p className="text-xs text-gray-400 font-medium mb-0.5">
-            {isEnglish ? "영어 리추얼" : "언어 리추얼"}
+            {isEnglish ? "영어 리추얼" : "제2외국어 리추얼"}
           </p>
           <h1 className="text-lg font-bold text-gray-900 mb-4">
-            {isEnglish ? "영어 학습 기록" : "언어 학습 기록"}
+            {isEnglish ? "영어 학습 기록" : "제2외국어 학습 기록"}
           </h1>
           <div className="flex gap-3">
-            <div className="flex-1 rounded-xl p-3 text-center" style={{ backgroundColor: accentBg }}>
+            <div
+              className="flex-1 rounded-xl p-3 text-center"
+              style={{ backgroundColor: accentBg }}
+            >
               <p className="text-2xl font-bold text-gray-900">{studiedDays}</p>
               <p className="text-xs text-gray-400 mt-0.5">이번 달 학습일</p>
             </div>
-            <div className="flex-1 rounded-xl p-3 text-center" style={{ backgroundColor: accentBg }}>
-              <p className="text-2xl font-bold text-gray-900">{totalExpressions}</p>
+            <div
+              className="flex-1 rounded-xl p-3 text-center"
+              style={{ backgroundColor: accentBg }}
+            >
+              <p className="text-2xl font-bold text-gray-900">
+                {totalExpressions}
+              </p>
               <p className="text-xs text-gray-400 mt-0.5">공부한 표현</p>
             </div>
           </div>
@@ -228,12 +261,24 @@ export default function LanguageContainer({
               />
             </div>
             <div className="text-left">
-              <p className="text-sm font-semibold text-gray-900">단어 카드로 복습하기</p>
+              <p className="text-sm font-semibold text-gray-900">
+                단어 카드로 복습하기
+              </p>
               <p className="text-xs text-gray-400 mt-0.5">14개의 표현</p>
             </div>
           </div>
-          <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          <svg
+            className="w-4 h-4 text-gray-300"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
+            />
           </svg>
         </button>
 
