@@ -18,6 +18,10 @@ export default function LanguageContainer({
   const [showAddRecord, setShowAddRecord] = useState(false);
   const [showStudyPhrase, setShowStudyPhrase] = useState(false);
 
+  const isEnglish = languageType === "영어";
+  const accentColor = isEnglish ? "#0ea5e9" : "#10b981";
+  const accentBg = isEnglish ? "#f0f9ff" : "#ecfdf5";
+
   // 영어 학습 기록 데이터
   const englishRecords: LanguageRecord[] = [
     {
@@ -148,8 +152,12 @@ export default function LanguageContainer({
   const languageRecords =
     languageType === "영어" ? englishRecords : otherLanguageRecords;
 
-  // 이번 달 학습한 날 계산
-  const studiedDays = 0;
+  // 이번 달 학습한 날 & 총 표현 수 계산
+  const studiedDays = languageRecords.length;
+  const totalExpressions = languageRecords.reduce(
+    (sum, r) => sum + r.expressionCount,
+    0
+  );
 
   const renderContent = () => {
     // 새 기록 추가하기 화면
@@ -158,11 +166,6 @@ export default function LanguageContainer({
     }
 
     // 메인 화면
-    const isEnglish = languageType === "영어";
-    const heroColor = isEnglish
-      ? "linear-gradient(135deg, #0284c7 0%, #0ea5e9 60%, #38bdf8 100%)"
-      : "linear-gradient(135deg, #059669 0%, #10b981 60%, #34d399 100%)";
-
     return (
       <>
         {/* 네비게이션 */}
@@ -188,23 +191,22 @@ export default function LanguageContainer({
           </button>
         </div>
 
-        {/* 히어로 헤더 */}
-        <div
-          className="rounded-3xl p-5 mb-5 text-white relative overflow-hidden"
-          style={{ background: heroColor }}
-        >
-          <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10" />
-          <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-white/10" />
-          <div className="relative">
-            <p className="text-white/70 text-xs font-medium mb-1">
-              {isEnglish ? "영어 리추얼" : "언어 리추얼"}
-            </p>
-            <h1 className="text-xl font-bold mb-4">
-              {isEnglish ? "📖 영어 학습 기록" : "🗣 언어 학습 기록"}
-            </h1>
-            <div className="bg-white/20 rounded-2xl p-3 text-center backdrop-blur-sm inline-block min-w-[100px]">
-              <p className="text-2xl font-bold">{studiedDays}</p>
-              <p className="text-white/75 text-xs mt-0.5">이번 달 학습일</p>
+        {/* 헤더 */}
+        <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-4">
+          <p className="text-xs text-gray-400 font-medium mb-0.5">
+            {isEnglish ? "영어 리추얼" : "언어 리추얼"}
+          </p>
+          <h1 className="text-lg font-bold text-gray-900 mb-4">
+            {isEnglish ? "영어 학습 기록" : "언어 학습 기록"}
+          </h1>
+          <div className="flex gap-3">
+            <div className="flex-1 rounded-xl p-3 text-center" style={{ backgroundColor: accentBg }}>
+              <p className="text-2xl font-bold text-gray-900">{studiedDays}</p>
+              <p className="text-xs text-gray-400 mt-0.5">이번 달 학습일</p>
+            </div>
+            <div className="flex-1 rounded-xl p-3 text-center" style={{ backgroundColor: accentBg }}>
+              <p className="text-2xl font-bold text-gray-900">{totalExpressions}</p>
+              <p className="text-xs text-gray-400 mt-0.5">공부한 표현</p>
             </div>
           </div>
         </div>
@@ -241,7 +243,7 @@ export default function LanguageContainer({
             type="button"
             onClick={() => setShowAddRecord(true)}
             className="w-full py-3 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
-            style={{ background: heroColor }}
+            style={{ backgroundColor: accentColor }}
           >
             + 오늘 학습 기록하기
           </button>
@@ -262,6 +264,7 @@ export default function LanguageContainer({
         <StudyPhrase
           languageRecords={languageRecords}
           onClose={() => setShowStudyPhrase(false)}
+          accentColor={accentColor}
         />
       )}
     </>

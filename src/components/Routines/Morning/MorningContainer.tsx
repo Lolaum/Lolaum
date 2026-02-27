@@ -74,25 +74,18 @@ export default function MorningContainer({
           </button>
         </div>
 
-        {/* 히어로 헤더 */}
-        <div
-          className="rounded-3xl p-5 mb-5 text-white relative overflow-hidden"
-          style={{ background: "linear-gradient(135deg, #c99315 0%, #eab32e 60%, #ff9c28 100%)" }}
-        >
-          <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10" />
-          <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-white/10" />
-          <div className="relative">
-            <p className="text-white/70 text-xs font-medium mb-1">모닝 리추얼</p>
-            <h1 className="text-xl font-bold mb-4">🌅 오늘 하루를 시작해요</h1>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white/20 rounded-2xl p-3 text-center backdrop-blur-sm">
-                <p className="text-2xl font-bold">{recordCount}</p>
-                <p className="text-white/75 text-xs mt-0.5">기록한 날</p>
-              </div>
-              <div className="bg-white/20 rounded-2xl p-3 text-center backdrop-blur-sm">
-                <p className="text-2xl font-bold">{averageCondition}<span className="text-sm font-medium">%</span></p>
-                <p className="text-white/75 text-xs mt-0.5">평균 컨디션</p>
-              </div>
+        {/* 헤더 */}
+        <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-4">
+          <p className="text-xs text-gray-400 font-medium mb-0.5">모닝 리추얼</p>
+          <h1 className="text-lg font-bold text-gray-900 mb-4">오늘 하루를 시작해요</h1>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-yellow-50 rounded-xl p-3 text-center">
+              <p className="text-2xl font-bold text-gray-900">{recordCount}</p>
+              <p className="text-xs text-gray-400 mt-0.5">기록한 날</p>
+            </div>
+            <div className="bg-yellow-50 rounded-xl p-3 text-center">
+              <p className="text-2xl font-bold text-gray-900">{averageCondition}<span className="text-sm font-medium">%</span></p>
+              <p className="text-xs text-gray-400 mt-0.5">평균 컨디션</p>
             </div>
           </div>
         </div>
@@ -120,7 +113,7 @@ export default function MorningContainer({
             type="button"
             onClick={() => setShowAddRecord(true)}
             className="w-full py-3 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
-            style={{ background: "linear-gradient(135deg, #c99315 0%, #eab32e 100%)" }}
+            style={{ backgroundColor: "#eab32e" }}
           >
             + 오늘 모닝 기록하기
           </button>

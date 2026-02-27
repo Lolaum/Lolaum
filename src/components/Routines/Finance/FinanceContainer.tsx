@@ -130,42 +130,37 @@ export default function FinanceContainer({
           </button>
         </div>
 
-        {/* 히어로 헤더 */}
-        <div
-          className="rounded-3xl p-5 mb-5 text-white relative overflow-hidden"
-          style={{ background: "linear-gradient(135deg, #059669 0%, #10b981 60%, #34d399 100%)" }}
-        >
-          <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10" />
-          <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-white/10" />
-          <div className="relative">
-            <p className="text-white/70 text-xs font-medium mb-1">자산관리 리추얼</p>
-            <h1 className="text-xl font-bold mb-1">💰 이번 달 소비 현황</h1>
-            <p className="text-2xl font-bold mb-4">
+        {/* 헤더 */}
+        <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-4">
+          <p className="text-xs text-gray-400 font-medium mb-0.5">자산관리 리추얼</p>
+          <div className="flex items-baseline gap-1.5 mb-4">
+            <h1 className="text-lg font-bold text-gray-900">이번 달 소비 현황</h1>
+            <span className="text-base font-bold text-gray-900 ml-auto">
               {totalMonthlyExpense.toLocaleString()}
-              <span className="text-sm font-medium ml-1 text-white/80">원</span>
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="bg-white/20 rounded-2xl p-3 text-center backdrop-blur-sm">
-                <p className="text-lg font-bold">{recordCount}</p>
-                <p className="text-white/75 text-xs mt-0.5">기록한 날</p>
-              </div>
-              <div className="bg-white/20 rounded-2xl p-3 text-center backdrop-blur-sm">
-                <p className="text-lg font-bold">{necessaryPct}%</p>
-                <p className="text-white/75 text-xs mt-0.5">필요소비</p>
-              </div>
-              <div className="bg-white/20 rounded-2xl p-3 text-center backdrop-blur-sm">
-                <p className="text-lg font-bold">{emotionalPct}%</p>
-                <p className="text-white/75 text-xs mt-0.5">감성소비</p>
-              </div>
-            </div>
-            {/* 비율 바 */}
-            {totalMonthlyExpense > 0 && (
-              <div className="h-2 bg-white/20 rounded-full overflow-hidden flex mt-3">
-                <div className="h-full bg-white/70 transition-all" style={{ width: `${necessaryPct}%` }} />
-                <div className="h-full bg-orange-300/80 transition-all" style={{ width: `${emotionalPct}%` }} />
-              </div>
-            )}
+              <span className="text-sm font-medium text-gray-400 ml-0.5">원</span>
+            </span>
           </div>
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="bg-emerald-50 rounded-xl p-3 text-center">
+              <p className="text-lg font-bold text-gray-900">{recordCount}</p>
+              <p className="text-xs text-gray-400 mt-0.5">기록한 날</p>
+            </div>
+            <div className="bg-emerald-50 rounded-xl p-3 text-center">
+              <p className="text-lg font-bold text-gray-900">{necessaryPct}%</p>
+              <p className="text-xs text-gray-400 mt-0.5">필요소비</p>
+            </div>
+            <div className="bg-emerald-50 rounded-xl p-3 text-center">
+              <p className="text-lg font-bold text-gray-900">{emotionalPct}%</p>
+              <p className="text-xs text-gray-400 mt-0.5">감성소비</p>
+            </div>
+          </div>
+          {/* 비율 바 */}
+          {totalMonthlyExpense > 0 && (
+            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden flex">
+              <div className="h-full bg-emerald-400 transition-all" style={{ width: `${necessaryPct}%` }} />
+              <div className="h-full bg-orange-300 transition-all" style={{ width: `${emotionalPct}%` }} />
+            </div>
+          )}
         </div>
 
         {/* 기록 추가 버튼 */}
@@ -174,7 +169,7 @@ export default function FinanceContainer({
             type="button"
             onClick={() => setShowAddRecord(true)}
             className="w-full py-3 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
-            style={{ background: "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}
+            style={{ backgroundColor: "#10b981" }}
           >
             + 오늘 소비 기록하기
           </button>

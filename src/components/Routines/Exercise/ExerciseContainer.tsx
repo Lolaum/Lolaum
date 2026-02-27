@@ -82,25 +82,18 @@ export default function ExerciseContainer({
           </button>
         </div>
 
-        {/* 히어로 헤더 */}
-        <div
-          className="rounded-3xl p-5 mb-5 text-white relative overflow-hidden"
-          style={{ background: "linear-gradient(135deg, #e07800 0%, #ff8900 60%, #ffa040 100%)" }}
-        >
-          <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10" />
-          <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-white/10" />
-          <div className="relative">
-            <p className="text-white/70 text-xs font-medium mb-1">운동 리추얼</p>
-            <h1 className="text-xl font-bold mb-4">운동 기록 관리</h1>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white/20 rounded-2xl p-3 text-center backdrop-blur-sm">
-                <p className="text-2xl font-bold">{exerciseCount}</p>
-                <p className="text-white/75 text-xs mt-0.5">이번 달 횟수</p>
-              </div>
-              <div className="bg-white/20 rounded-2xl p-3 text-center backdrop-blur-sm">
-                <p className="text-2xl font-bold">{totalMinutes}<span className="text-sm font-medium ml-0.5">분</span></p>
-                <p className="text-white/75 text-xs mt-0.5">총 운동 시간</p>
-              </div>
+        {/* 헤더 */}
+        <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-4">
+          <p className="text-xs text-gray-400 font-medium mb-0.5">운동 리추얼</p>
+          <h1 className="text-lg font-bold text-gray-900 mb-4">운동 기록 관리</h1>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-orange-50 rounded-xl p-3 text-center">
+              <p className="text-2xl font-bold text-gray-900">{exerciseCount}</p>
+              <p className="text-xs text-gray-400 mt-0.5">이번 달 횟수</p>
+            </div>
+            <div className="bg-orange-50 rounded-xl p-3 text-center">
+              <p className="text-2xl font-bold text-gray-900">{totalMinutes}<span className="text-sm font-medium ml-0.5">분</span></p>
+              <p className="text-xs text-gray-400 mt-0.5">총 운동 시간</p>
             </div>
           </div>
         </div>

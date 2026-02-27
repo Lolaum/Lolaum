@@ -26,45 +26,33 @@ export default function RitualContainer() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 pb-8">
-      {/* ── 히어로 섹션 ── */}
-      <div
-        className="rounded-3xl p-6 mb-6 text-white relative overflow-hidden"
-        style={{
-          background: "linear-gradient(135deg, #c99315 0%, #eab32e 50%, #ff9c28 100%)",
-        }}
-      >
-        {/* 배경 장식 원 */}
-        <div className="absolute -top-8 -right-8 w-36 h-36 rounded-full bg-white/10" />
-        <div className="absolute -bottom-6 -left-6 w-28 h-28 rounded-full bg-white/10" />
-
-        <div className="relative">
-          <p className="text-white/80 text-sm font-medium mb-1">나의 리추얼 여정</p>
-          <h1 className="text-2xl font-bold mb-5">
-            {myRitualStats.currentStreak}일째 꾸준히 <span className="text-white/90">✦</span>
-          </h1>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white/20 rounded-2xl p-3 text-center backdrop-blur-sm">
-              <div className="flex justify-center mb-1">
-                <Calendar size={16} className="text-white/80" />
-              </div>
-              <p className="text-xl font-bold">{myRitualStats.totalRecords}</p>
-              <p className="text-white/75 text-xs mt-0.5">총 기록</p>
+      {/* ── 헤더 섹션 ── */}
+      <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-6">
+        <p className="text-xs text-gray-400 font-medium mb-0.5">나의 리추얼 여정</p>
+        <h1 className="text-xl font-bold text-gray-900 mb-4">
+          {myRitualStats.currentStreak}일째 꾸준히
+        </h1>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-yellow-50 rounded-xl p-3 text-center">
+            <div className="flex justify-center mb-1">
+              <Calendar size={14} className="text-yellow-500" />
             </div>
-            <div className="bg-white/20 rounded-2xl p-3 text-center backdrop-blur-sm">
-              <div className="flex justify-center mb-1">
-                <Flame size={16} className="text-white/80" />
-              </div>
-              <p className="text-xl font-bold">{myRitualStats.currentStreak}</p>
-              <p className="text-white/75 text-xs mt-0.5">연속 달성</p>
+            <p className="text-xl font-bold text-gray-900">{myRitualStats.totalRecords}</p>
+            <p className="text-xs text-gray-400 mt-0.5">총 기록</p>
+          </div>
+          <div className="bg-yellow-50 rounded-xl p-3 text-center">
+            <div className="flex justify-center mb-1">
+              <Flame size={14} className="text-yellow-500" />
             </div>
-            <div className="bg-white/20 rounded-2xl p-3 text-center backdrop-blur-sm">
-              <div className="flex justify-center mb-1">
-                <TrendingUp size={16} className="text-white/80" />
-              </div>
-              <p className="text-xl font-bold">{myRitualStats.completionRate}%</p>
-              <p className="text-white/75 text-xs mt-0.5">완료율</p>
+            <p className="text-xl font-bold text-gray-900">{myRitualStats.currentStreak}</p>
+            <p className="text-xs text-gray-400 mt-0.5">연속 달성</p>
+          </div>
+          <div className="bg-yellow-50 rounded-xl p-3 text-center">
+            <div className="flex justify-center mb-1">
+              <TrendingUp size={14} className="text-yellow-500" />
             </div>
+            <p className="text-xl font-bold text-gray-900">{myRitualStats.completionRate}%</p>
+            <p className="text-xs text-gray-400 mt-0.5">완료율</p>
           </div>
         </div>
       </div>
