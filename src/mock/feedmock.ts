@@ -136,7 +136,7 @@ export const feed_mock: FeedItem[] = [
     userId: 4,
     userName: "최수진",
     date: getDateBefore(2880),
-    routineCategory: "언어",
+    routineCategory: "제2외국어",
     routineId: 3,
     recordId: 105,
     routineData: {
@@ -201,7 +201,7 @@ export const feed_mock: FeedItem[] = [
     userId: 3,
     userName: "박지훈",
     date: getDateBefore(5760),
-    routineCategory: "언어",
+    routineCategory: "제2외국어",
     routineId: 6,
     recordId: 107,
     routineData: {

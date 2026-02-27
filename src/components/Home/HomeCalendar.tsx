@@ -230,7 +230,7 @@ export default function HomCalendar({
         <div className="grid grid-cols-7 gap-2">
           {monthDates.map((date, index) =>
             date === null ? (
-              <div key={index} className="h-12" />
+              <div key={index} className="h-16" />
             ) : (
               <button
                 key={date.toISOString()}

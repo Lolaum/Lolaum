@@ -26,9 +26,9 @@ export const routine_mock = [
   },
   {
     id: 6,
-    title: "언어리추얼",
+    title: "제2외국어리추얼",
     completed: true,
-    tag: "언어",
+    tag: "제2외국어",
   },
   {
     id: 7,

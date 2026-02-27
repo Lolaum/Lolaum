@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import { User } from "lucide-react";
 import { FeedItem as FeedItemType, RoutineCategory } from "@/types/feed";
 import {
@@ -12,7 +13,6 @@ import {
 
 interface FeedItemProps {
   item: FeedItemType;
-  onClick?: () => void;
 }
 
 // 루틴 카테고리별 아이콘 및 텍스트 매핑
@@ -26,7 +26,7 @@ const getRoutineIcon = (category: RoutineCategory) => {
       return <BookA className="w-5 h-5 text-gray-400" />;
     case "모닝":
       return <Sun className="w-5 h-5 text-gray-400" />;
-    case "언어":
+    case "제2외국어":
       return <Languages className="w-5 h-5 text-gray-400" />;
     case "자산관리":
       return <CircleDollarSign className="w-5 h-5 text-gray-400" />;
@@ -46,8 +46,8 @@ const getRoutineText = (category: RoutineCategory) => {
       return "영어 공부";
     case "모닝":
       return "모닝 루틴";
-    case "언어":
-      return "언어 학습";
+    case "제2외국어":
+      return "제2외국어 학습";
     case "자산관리":
       return "자산 관리";
     default:
@@ -65,15 +65,15 @@ const formatDate = (dateString: string) => {
   return `${year}.${month}.${day}`;
 };
 
-export default function FeedItem({ item, onClick }: FeedItemProps) {
+export default function FeedItem({ item }: FeedItemProps) {
   const icon = getRoutineIcon(item.routineCategory);
   const routineText = getRoutineText(item.routineCategory);
   const formattedDate = formatDate(item.date);
 
   return (
-    <div
+    <Link
+      href={`/feeds/${item.id}`}
       className="flex items-start gap-3 py-4 border-b border-gray-100 last:border-b-0 cursor-pointer hover:bg-gray-50 rounded-xl px-2 -mx-2 transition-colors"
-      onClick={onClick}
     >
       {/* 프로필 이미지 */}
       <div className="flex-shrink-0">
@@ -98,6 +98,6 @@ export default function FeedItem({ item, onClick }: FeedItemProps) {
           <span className="text-sm text-gray-600">{routineText}</span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

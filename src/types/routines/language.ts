@@ -12,7 +12,7 @@ export interface LanguageRecord {
 export interface LanguageContainerProps {
   onBackToTimer?: () => void;
   onBackToHome?: () => void;
-  languageType?: "영어" | "언어";
+  languageType?: "영어" | "제2외국어";
 }
 
 export interface LanguageFormData {

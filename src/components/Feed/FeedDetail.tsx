@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, User } from "lucide-react";
 import {
   BookText,
@@ -24,8 +25,6 @@ import CommentSection from "./CommentSection";
 
 interface FeedDetailProps {
   item: FeedItem;
-  onBack: () => void;
-  onCommentAdd: (feedId: number, comment: Comment) => void;
 }
 
 // 카테고리별 아이콘 & 레이블
@@ -39,8 +38,8 @@ const getCategoryMeta = (category: RoutineCategory) => {
       return { icon: <BookA className="w-5 h-5" />, label: "영어", color: "text-blue-500", bg: "bg-blue-50" };
     case "모닝":
       return { icon: <Sun className="w-5 h-5" />, label: "모닝 루틴", color: "text-yellow-500", bg: "bg-yellow-50" };
-    case "언어":
-      return { icon: <Languages className="w-5 h-5" />, label: "언어 학습", color: "text-purple-500", bg: "bg-purple-50" };
+    case "제2외국어":
+      return { icon: <Languages className="w-5 h-5" />, label: "제2외국어 학습", color: "text-purple-500", bg: "bg-purple-50" };
     case "자산관리":
       return { icon: <CircleDollarSign className="w-5 h-5" />, label: "자산관리", color: "text-green-500", bg: "bg-green-50" };
     default:
@@ -305,13 +304,14 @@ function isFinanceData(data: NonNullable<FeedItem["routineData"]>, category: Rou
   return category === "자산관리" && "dailyExpenses" in data;
 }
 function isLanguageData(data: NonNullable<FeedItem["routineData"]>, category: RoutineCategory): data is LanguageFeedData {
-  return (category === "영어" || category === "언어") && "expressions" in data;
+  return (category === "영어" || category === "제2외국어") && "expressions" in data;
 }
 function isReadingData(data: NonNullable<FeedItem["routineData"]>, category: RoutineCategory): data is ReadingFeedData {
   return category === "독서" && "bookTitle" in data;
 }
 
-export default function FeedDetail({ item, onBack, onCommentAdd }: FeedDetailProps) {
+export default function FeedDetail({ item }: FeedDetailProps) {
+  const router = useRouter();
   const [comments, setComments] = useState<Comment[]>(item.comments ?? []);
   const meta = getCategoryMeta(item.routineCategory);
 
@@ -323,9 +323,7 @@ export default function FeedDetail({ item, onBack, onCommentAdd }: FeedDetailPro
       text,
       date: new Date().toISOString(),
     };
-    const updated = [...comments, newComment];
-    setComments(updated);
-    onCommentAdd(item.id, newComment);
+    setComments((prev) => [...prev, newComment]);
   };
 
   return (
@@ -334,7 +332,7 @@ export default function FeedDetail({ item, onBack, onCommentAdd }: FeedDetailPro
         {/* 헤더 */}
         <div className="flex items-center gap-3 mb-6 mt-2">
           <button
-            onClick={onBack}
+            onClick={() => router.back()}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-gray-600" />

@@ -207,7 +207,7 @@ export default function LanguageContainer({
         <div className="mb-4">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold text-gray-900">
-              {languageType === "영어" ? "영어 학습" : "언어 학습"}
+              {languageType === "영어" ? "영어 학습" : "제2외국어 학습"}
             </h1>
             <button
               type="button"

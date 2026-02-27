@@ -57,26 +57,8 @@ export default function Layout({ children }: LayoutProps) {
     };
   }, [isDrawerOpen]);
 
-  // 마운트 전에는 기본 모바일 레이아웃을 보여줌 (hydration 일치)
+  // 마운트 전에는 모바일 레이아웃으로 고정 (hydration 불일치 방지)
   const isDesktop = mounted ? isDesktopQuery : false;
-
-  // 마운트 전 로딩 상태 - 서버와 클라이언트 동일한 HTML
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-background">
-        <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-white">
-          <div className="flex items-center gap-3">
-            <img
-              src="/images/common/LolaumLogo.png"
-              alt="Lolaum Logo"
-              className="mx-auto h-6 w-25"
-            />
-          </div>
-        </header>
-        <main className="pt-12 pb-16 min-h-screen">{children}</main>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -122,7 +104,7 @@ export default function Layout({ children }: LayoutProps) {
       )}
 
       {/* 메인 컨텐츠 */}
-      <main className={`${isDesktop ? "pt-16" : "pt-12 pb-16"} min-h-screen`}>
+      <main className={`${isDesktop ? "pt-24" : "pt-16 pb-16"} min-h-screen`}>
         {children}
       </main>
 
