@@ -25,57 +25,38 @@ export default function TaskTabs({ selectedDate, onTaskClick }: TaskTabsProps) {
 
   // 토글 스위치 스타일
   return (
-    <div className="rounded-2xl bg-white shadow-md p-6">
-      <div className="flex items-center justify-between mb-6">
-        {/* 주간 날짜 정보 */}
-        <div className="flex flex-col">
-          <div className="mb-2 text-xl text-gray-900 font-bold">
-            {getWeekRangeText(selectedDate)}
-          </div>
-          {/* 오늘 날짜 */}
-          <div className="mb-2 text-base text-gray-400 font-semibold">
-            {formatDateDisplay(selectedDate)}
-          </div>
+    <div className="rounded-3xl bg-white shadow-sm border border-gray-100 p-5">
+      {/* 날짜 + 탭 */}
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <p className="text-xs text-gray-400 font-medium mb-0.5">{formatDateDisplay(selectedDate)}</p>
+          <h2 className="text-base font-bold text-gray-800">{getWeekRangeText(selectedDate)}</h2>
         </div>
 
-        {/* 토글 스위치 */}
-        <div className="flex items-center justify-end mb-6">
-          <div className="flex items-center bg-gray-100 rounded-lg px-1 py-1 w-fit">
+        {/* 탭 토글 */}
+        <div className="flex items-center bg-gray-100 rounded-2xl p-1">
+          {(["routine", "todo"] as const).map((tab) => (
             <button
+              key={tab}
               type="button"
-              onClick={() => setActiveTab("routine")}
-              className={`px-5 py-1.5 rounded-lg text-base font-semibold transition-colors duration-150 ${
-                activeTab === "routine"
-                  ? "bg-white text-yellow-500 shadow border border-gray-200"
-                  : "text-gray-400"
-              }`}
-              style={{ minWidth: 70 }}
+              onClick={() => setActiveTab(tab)}
+              className="px-4 py-1.5 rounded-xl text-sm font-semibold transition-all duration-200"
+              style={
+                activeTab === tab
+                  ? { backgroundColor: "#eab32e", color: "#fff", boxShadow: "0 1px 4px rgba(234,179,46,0.4)" }
+                  : { color: "#9ca3af" }
+              }
             >
-              루틴
+              {tab === "routine" ? "루틴" : "투두"}
             </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("todo")}
-              className={`px-5 py-1.5 rounded-lg text-base font-semibold transition-colors duration-150 ${
-                activeTab === "todo"
-                  ? "bg-white text-yellow-500 shadow  border border-gray-200"
-                  : "text-gray-400"
-              }`}
-              style={{ minWidth: 70 }}
-            >
-              투두
-            </button>
-          </div>
+          ))}
         </div>
       </div>
 
       {/* 콘텐츠 */}
-      <div className="overflow-y-auto max-h-[calc(100vh-300px)]">
+      <div className="overflow-y-auto max-h-[calc(100vh-280px)]">
         {activeTab === "routine" ? (
-          <RoutineList
-            selectedDate={selectedDate}
-            onTaskClick={handleTaskClick}
-          />
+          <RoutineList selectedDate={selectedDate} onTaskClick={handleTaskClick} />
         ) : (
           <TodoList selectedDate={selectedDate} onTaskClick={handleTaskClick} />
         )}

@@ -157,9 +157,9 @@ export default function HomeContainer() {
   }
 
   return (
-    <div className="w-full px-4 py-3 sm:px-6 md:px-8 lg:px-12">
+    <div className="w-full px-4 py-4 sm:px-6 md:px-8 lg:px-12">
       {/* 모바일: 세로 배치, md 이상: 가로 배치 */}
-      <div className="mx-auto max-w-7xl scale-[0.8] origin-top">
+      <div className="mx-auto max-w-5xl">
         <div className="flex flex-col gap-4 md:flex-row md:gap-6">
           {/* 캘린더 섹션 */}
           <div className="w-full md:w-1/2 lg:w-5/12">

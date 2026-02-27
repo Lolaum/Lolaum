@@ -110,137 +110,74 @@ export default function FinanceContainer({
     }
 
     // 메인 화면
+    const necessaryPct = totalMonthlyExpense > 0
+      ? Math.round((totalNecessaryExpense / totalMonthlyExpense) * 100) : 0;
+    const emotionalPct = totalMonthlyExpense > 0
+      ? Math.round((totalEmotionalExpense / totalMonthlyExpense) * 100) : 0;
+
     return (
       <>
-        {/* 뒤로가기 버튼 및 x버튼 */}
-        <div className="flex items-center justify-end mb-2">
+        {/* 네비게이션 */}
+        <div className="flex items-center justify-end mb-4">
           <button
             type="button"
             onClick={onBackToHome}
-            className="flex items-center justify-center w-8 h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+            className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
           >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        {/* 헤더 */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold text-gray-900">자산관리 리추얼</h1>
-            <button
-              type="button"
-              onClick={() => setShowAddRecord(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-orange-500 hover:text-orange-600 transition-colors"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              기록 추가
-            </button>
-          </div>
-
-          {/* 이번 달 통계 */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-3">
-            <div className="flex items-center gap-2 text-gray-600 mb-3">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
-              <span className="text-sm font-semibold">이번 달 소비 현황</span>
-            </div>
-
-            {/* 기록한 날 */}
-            <div className="mb-3">
-              <div className="text-3xl font-bold text-gray-900">
-                {recordCount}일
+        {/* 히어로 헤더 */}
+        <div
+          className="rounded-3xl p-5 mb-5 text-white relative overflow-hidden"
+          style={{ background: "linear-gradient(135deg, #059669 0%, #10b981 60%, #34d399 100%)" }}
+        >
+          <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10" />
+          <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-white/10" />
+          <div className="relative">
+            <p className="text-white/70 text-xs font-medium mb-1">자산관리 리추얼</p>
+            <h1 className="text-xl font-bold mb-1">💰 이번 달 소비 현황</h1>
+            <p className="text-2xl font-bold mb-4">
+              {totalMonthlyExpense.toLocaleString()}
+              <span className="text-sm font-medium ml-1 text-white/80">원</span>
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-white/20 rounded-2xl p-3 text-center backdrop-blur-sm">
+                <p className="text-lg font-bold">{recordCount}</p>
+                <p className="text-white/75 text-xs mt-0.5">기록한 날</p>
               </div>
-              <div className="text-sm text-gray-500">기록한 날</div>
-            </div>
-
-            {/* 누적 소비 금액 */}
-            <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-4 mb-3 border border-green-200">
-              <div className="text-sm text-green-700 mb-1">누적 소비</div>
-              <div className="text-3xl font-bold text-green-600">
-                {totalMonthlyExpense.toLocaleString()}원
+              <div className="bg-white/20 rounded-2xl p-3 text-center backdrop-blur-sm">
+                <p className="text-lg font-bold">{necessaryPct}%</p>
+                <p className="text-white/75 text-xs mt-0.5">필요소비</p>
+              </div>
+              <div className="bg-white/20 rounded-2xl p-3 text-center backdrop-blur-sm">
+                <p className="text-lg font-bold">{emotionalPct}%</p>
+                <p className="text-white/75 text-xs mt-0.5">감성소비</p>
               </div>
             </div>
-
-            {/* 필요소비 / 감정소비 분석 */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-                <div className="text-xs text-blue-700 mb-1">필요소비</div>
-                <div className="text-xl font-bold text-blue-600">
-                  {totalNecessaryExpense.toLocaleString()}원
-                </div>
-                <div className="text-xs text-blue-600 mt-1">
-                  {totalMonthlyExpense > 0
-                    ? `${Math.round((totalNecessaryExpense / totalMonthlyExpense) * 100)}%`
-                    : "0%"}
-                </div>
-              </div>
-
-              <div className="bg-red-50 rounded-xl p-4 border border-red-200">
-                <div className="text-xs text-red-700 mb-1">감정소비</div>
-                <div className="text-xl font-bold text-red-600">
-                  {totalEmotionalExpense.toLocaleString()}원
-                </div>
-                <div className="text-xs text-red-600 mt-1">
-                  {totalMonthlyExpense > 0
-                    ? `${Math.round((totalEmotionalExpense / totalMonthlyExpense) * 100)}%`
-                    : "0%"}
-                </div>
-              </div>
-            </div>
-
-            {/* 비율 시각화 */}
+            {/* 비율 바 */}
             {totalMonthlyExpense > 0 && (
-              <div className="mt-3">
-                <div className="h-3 bg-gray-200 rounded-full overflow-hidden flex">
-                  <div
-                    className="h-full bg-blue-400 transition-all duration-300"
-                    style={{
-                      width: `${(totalNecessaryExpense / totalMonthlyExpense) * 100}%`,
-                    }}
-                  />
-                  <div
-                    className="h-full bg-red-400 transition-all duration-300"
-                    style={{
-                      width: `${(totalEmotionalExpense / totalMonthlyExpense) * 100}%`,
-                    }}
-                  />
-                </div>
+              <div className="h-2 bg-white/20 rounded-full overflow-hidden flex mt-3">
+                <div className="h-full bg-white/70 transition-all" style={{ width: `${necessaryPct}%` }} />
+                <div className="h-full bg-orange-300/80 transition-all" style={{ width: `${emotionalPct}%` }} />
               </div>
             )}
           </div>
+        </div>
+
+        {/* 기록 추가 버튼 */}
+        <div className="mb-4">
+          <button
+            type="button"
+            onClick={() => setShowAddRecord(true)}
+            className="w-full py-3 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
+            style={{ background: "linear-gradient(135deg, #059669 0%, #10b981 100%)" }}
+          >
+            + 오늘 소비 기록하기
+          </button>
         </div>
 
         {/* 자산관리 기록 섹션 */}
@@ -250,7 +187,7 @@ export default function FinanceContainer({
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto scale-[0.8] origin-top">
+    <div className="w-full max-w-2xl mx-auto px-4 py-4">
       {renderContent()}
     </div>
   );

@@ -27,24 +27,19 @@ interface FeedDetailProps {
   item: FeedItem;
 }
 
+// 디자인 시스템 기반 카테고리 메타
+const CATEGORY_META: Record<string, { icon: React.ReactNode; label: string; hexColor: string; bgColor: string }> = {
+  독서:     { icon: <BookText className="w-5 h-5" />,         label: "독서",      hexColor: "#6366f1", bgColor: "#eef2ff" },
+  운동:     { icon: <Dumbbell className="w-5 h-5" />,         label: "운동",      hexColor: "#ff8900", bgColor: "#fff4e5" },
+  영어:     { icon: <BookA className="w-5 h-5" />,            label: "영어",      hexColor: "#0ea5e9", bgColor: "#f0f9ff" },
+  모닝:     { icon: <Sun className="w-5 h-5" />,              label: "모닝 루틴",  hexColor: "#eab32e", bgColor: "#fefce8" },
+  언어:     { icon: <Languages className="w-5 h-5" />,        label: "언어 학습",  hexColor: "#10b981", bgColor: "#ecfdf5" },
+  자산관리: { icon: <CircleDollarSign className="w-5 h-5" />,  label: "자산관리",  hexColor: "#10b981", bgColor: "#ecfdf5" },
+};
+
 // 카테고리별 아이콘 & 레이블
 const getCategoryMeta = (category: RoutineCategory) => {
-  switch (category) {
-    case "독서":
-      return { icon: <BookText className="w-5 h-5" />, label: "독서", color: "text-orange-500", bg: "bg-orange-50" };
-    case "운동":
-      return { icon: <Dumbbell className="w-5 h-5" />, label: "운동", color: "text-orange-500", bg: "bg-orange-50" };
-    case "영어":
-      return { icon: <BookA className="w-5 h-5" />, label: "영어", color: "text-blue-500", bg: "bg-blue-50" };
-    case "모닝":
-      return { icon: <Sun className="w-5 h-5" />, label: "모닝 루틴", color: "text-yellow-500", bg: "bg-yellow-50" };
-    case "언어":
-      return { icon: <Languages className="w-5 h-5" />, label: "언어 학습", color: "text-purple-500", bg: "bg-purple-50" };
-    case "자산관리":
-      return { icon: <CircleDollarSign className="w-5 h-5" />, label: "자산관리", color: "text-green-500", bg: "bg-green-50" };
-    default:
-      return { icon: <BookText className="w-5 h-5" />, label: category, color: "text-gray-500", bg: "bg-gray-50" };
-  }
+  return CATEGORY_META[category] ?? { icon: <BookText className="w-5 h-5" />, label: category, hexColor: "#6b7280", bgColor: "#f3f4f6" };
 };
 
 const formatFullDate = (dateString: string) => {
@@ -327,8 +322,8 @@ export default function FeedDetail({ item }: FeedDetailProps) {
   };
 
   return (
-    <div className="w-full px-4 py-3 sm:px-6">
-      <div className="mx-auto max-w-7xl scale-[0.8] origin-top">
+    <div className="max-w-2xl mx-auto px-4 py-6 pb-8">
+      <div>
         {/* 헤더 */}
         <div className="flex items-center gap-3 mb-6 mt-2">
           <button
@@ -337,7 +332,10 @@ export default function FeedDetail({ item }: FeedDetailProps) {
           >
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${meta.bg} ${meta.color}`}>
+          <span
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold"
+            style={{ backgroundColor: meta.bgColor, color: meta.hexColor }}
+          >
             {meta.icon}
             {meta.label}
           </span>

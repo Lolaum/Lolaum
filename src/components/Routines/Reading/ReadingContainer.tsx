@@ -7,7 +7,7 @@ export default function ReadingContainer({
   onBackToHome,
 }: ReadingContainerProps) {
   return (
-    <div className="w-full h-full overflow-y-auto bg-white scale-[0.8] origin-top">
+    <div className="w-full max-w-2xl mx-auto px-4 py-4">
       <BookManage onBackToTimer={onBackToTimer} onBackToHome={onBackToHome} />
     </div>
   );
