@@ -1,7 +1,6 @@
 "use client";
 
-import React from "react";
-import { BookText, Dumbbell, BookA, Sun, CircleDollarSign, Flame } from "lucide-react";
+import { Dumbbell, BookA, Sun, CircleDollarSign, Flame } from "lucide-react";
 import {
   readingInsightData,
   financeInsightData,
@@ -14,18 +13,8 @@ import {
 // 독서 인사이트
 // ─────────────────────────────
 function ReadingInsight() {
-  const { heatmap, currentBooks, totalPages, totalSentences, completedBooks } =
+  const { currentBooks, totalPages, totalSentences, completedBooks } =
     readingInsightData;
-
-  // 히트맵: 마지막 63일 (9주)
-  const last63 = heatmap.slice(-63);
-
-  const getHeatColor = (pages: number) => {
-    if (pages === 0) return "#e5e7eb";
-    if (pages <= 20) return "#c4b5fd";
-    if (pages <= 35) return "#8b5cf6";
-    return "#6d28d9";
-  };
 
   return (
     <div className="space-y-4">
@@ -43,45 +32,6 @@ function ReadingInsight() {
             <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
           </div>
         ))}
-      </div>
-
-      {/* 독서 히트맵 */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-        <div className="flex items-center gap-2 mb-3">
-          <BookText size={15} style={{ color: "#6366f1" }} />
-          <h3 className="text-sm font-semibold text-gray-700">독서 달력</h3>
-          <span className="text-xs text-gray-400 ml-auto">최근 63일</span>
-        </div>
-
-        {/* 요일 라벨 */}
-        <div className="grid grid-cols-7 gap-1 mb-1">
-          {["월", "화", "수", "목", "금", "토", "일"].map((d) => (
-            <div key={d} className="text-center text-[10px] text-gray-300 font-medium">
-              {d}
-            </div>
-          ))}
-        </div>
-
-        {/* 히트맵 그리드 */}
-        <div className="grid grid-cols-7 gap-1">
-          {last63.map((day, i) => (
-            <div
-              key={i}
-              className="aspect-square rounded-sm"
-              style={{ backgroundColor: getHeatColor(day.pages) }}
-              title={`${day.date}: ${day.pages}p`}
-            />
-          ))}
-        </div>
-
-        {/* 범례 */}
-        <div className="flex items-center gap-1.5 mt-3 justify-end">
-          <span className="text-[10px] text-gray-400">적게</span>
-          {["#e5e7eb", "#c4b5fd", "#8b5cf6", "#6d28d9"].map((c) => (
-            <div key={c} className="w-3 h-3 rounded-sm" style={{ backgroundColor: c }} />
-          ))}
-          <span className="text-[10px] text-gray-400">많이</span>
-        </div>
       </div>
 
       {/* 현재 읽는 책 */}
@@ -219,8 +169,6 @@ function MorningInsight() {
     avgCondition >= 80 ? "#10b981" :
     avgCondition >= 60 ? "#eab32e" :
     "#f97316";
-
-  const maxTrend = Math.max(...conditionTrend);
 
   return (
     <div className="space-y-4">

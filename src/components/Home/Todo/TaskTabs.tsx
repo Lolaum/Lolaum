@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
+import { Flame, TrendingUp, CheckCircle2, Flag, ClipboardCheck, Trophy } from "lucide-react";
 import TodoList from "./TodoList";
 import RoutineList from "./RoutineList";
 import {
@@ -27,17 +28,60 @@ export default function TaskTabs({ selectedDate, onTaskClick }: TaskTabsProps) {
       {/* 통계 카드 */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { value: "3", label: "연속 실천" },
-          { value: "7", label: "최장 기록" },
-          { value: "24", label: "총 완료" },
-        ].map(({ value, label }) => (
+          {
+            value: "3",
+            label: "연속 실천",
+            icon: Flame,
+            color: "#ff8900"
+          },
+          {
+            value: "7",
+            label: "최장 기록",
+            icon: TrendingUp,
+            color: "#6366f1"
+          },
+          {
+            value: "24",
+            label: "총 완료",
+            icon: CheckCircle2,
+            color: "#10b981"
+          },
+        ].map(({ value, label, icon: Icon, color }) => (
           <div
             key={label}
             className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 flex flex-col items-center justify-center gap-1"
           >
+            <Icon className="w-4 h-4 mb-1" style={{ color }} strokeWidth={2} />
             <span className="text-2xl font-bold text-gray-900">{value}</span>
             <span className="text-xs text-gray-400 font-medium">{label}</span>
           </div>
+        ))}
+      </div>
+
+      {/* 회고 버튼 카드 */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          {
+            label: "리추얼선언",
+            icon: Flag
+          },
+          {
+            label: "중간회고",
+            icon: ClipboardCheck
+          },
+          {
+            label: "최종회고",
+            icon: Trophy
+          },
+        ].map(({ label, icon: Icon }) => (
+          <button
+            key={label}
+            type="button"
+            className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 flex flex-col items-center justify-center gap-1.5 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors"
+          >
+            <Icon className="w-4 h-4 text-gray-400" strokeWidth={2} />
+            <span>{label}</span>
+          </button>
         ))}
       </div>
 
@@ -85,28 +129,17 @@ export default function TaskTabs({ selectedDate, onTaskClick }: TaskTabsProps) {
         {/* 콘텐츠 */}
         <div className="overflow-y-auto max-h-[calc(100vh-400px)]">
           {activeTab === "routine" ? (
-            <RoutineList selectedDate={selectedDate} onTaskClick={handleTaskClick} />
+            <RoutineList
+              selectedDate={selectedDate}
+              onTaskClick={handleTaskClick}
+            />
           ) : (
-            <TodoList selectedDate={selectedDate} onTaskClick={handleTaskClick} />
+            <TodoList
+              selectedDate={selectedDate}
+              onTaskClick={handleTaskClick}
+            />
           )}
         </div>
-      </div>
-
-      {/* 회고 버튼 카드 */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: "리추얼선언" },
-          { label: "중간회고" },
-          { label: "최종회고" },
-        ].map(({ label }) => (
-          <button
-            key={label}
-            type="button"
-            className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 flex flex-col items-center justify-center gap-1 text-gray-400 font-semibold text-sm hover:bg-yellow-50 hover:text-yellow-500 hover:border-yellow-100 transition-colors"
-          >
-            {label}
-          </button>
-        ))}
       </div>
     </div>
   );
