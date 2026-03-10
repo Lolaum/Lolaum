@@ -95,7 +95,6 @@ function ReadingCardContent({ data }: { data: ReadingFeedData }) {
         <p className="text-xs text-gray-400 mt-0.5">{data.author}</p>
       </div>
 
-      {/* 진행도 바 */}
       {data.pagesRead && data.totalPages && (
         <div>
           <div className="flex justify-between text-xs text-gray-400 mb-1">
@@ -115,7 +114,6 @@ function ReadingCardContent({ data }: { data: ReadingFeedData }) {
         </div>
       )}
 
-      {/* 오늘의 문장 */}
       {data.note && (
         <div
           className="rounded-xl p-3 relative"
@@ -133,7 +131,6 @@ function ReadingCardContent({ data }: { data: ReadingFeedData }) {
         </div>
       )}
 
-      {/* 나만의 생각 */}
       {data.thoughts && (
         <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">
           {data.thoughts}
@@ -154,7 +151,6 @@ function ExerciseCardContent({ data }: { data: ExerciseFeedData }) {
         <span className="text-xs text-gray-500">{data.duration}분</span>
       </div>
 
-      {/* 시간 시각화 */}
       <div className="flex gap-1 flex-wrap">
         {Array.from({
           length: Math.min(Math.ceil(data.duration / 10), 10),
@@ -190,7 +186,6 @@ function MorningCardContent({ data }: { data: MorningFeedData }) {
 
   return (
     <div className="space-y-3">
-      {/* 컨디션 점수 */}
       <div className="flex items-center gap-3">
         <div
           className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
@@ -274,7 +269,6 @@ function FinanceCardContent({ data }: { data: FinanceFeedData }) {
 
   return (
     <div className="space-y-3">
-      {/* 지출 요약 */}
       <div>
         <p className="text-lg font-bold text-gray-900">
           {total.toLocaleString()}원
@@ -295,7 +289,6 @@ function FinanceCardContent({ data }: { data: FinanceFeedData }) {
         </div>
       </div>
 
-      {/* 감성소비 비율 바 */}
       <div>
         <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
           <div
@@ -320,7 +313,7 @@ function FinanceCardContent({ data }: { data: FinanceFeedData }) {
   );
 }
 
-// ── 갤러리 카드 ──
+// ── 아카이빙 카드 ──
 
 function GalleryCard({ item }: { item: FeedItem }) {
   const config = CATEGORY_CONFIG[item.routineCategory];
@@ -376,7 +369,7 @@ function GalleryCard({ item }: { item: FeedItem }) {
   );
 }
 
-// ── 메인 갤러리 ──
+// ── 메인 아카이빙 ──
 
 export default function RecordGallery() {
   const [activeFilter, setActiveFilter] = useState<RoutineCategory | "전체">(
