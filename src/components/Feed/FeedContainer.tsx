@@ -18,7 +18,7 @@ const filterCategories: FilterCategory[] = [
   "자산관리",
 ];
 
-const ITEMS_PER_PAGE = 7;
+const ITEMS_PER_PAGE = 8;
 
 export default function FeedContainer() {
   const router = useRouter();
@@ -62,7 +62,7 @@ export default function FeedContainer() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 pb-8">
+    <div className="max-w-3xl mx-auto px-4 py-6 pb-8">
       {/* 헤더 */}
       <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-6">
         <p className="text-xs text-gray-400 font-medium mb-0.5">
@@ -89,7 +89,7 @@ export default function FeedContainer() {
       </div>
 
       {/* 피드 목록 */}
-      <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
         {filteredFeeds.length === 0 ? (
           <div className="text-center py-16 text-gray-400 bg-white rounded-2xl shadow-sm border border-gray-100">
             <p className="text-4xl mb-3">📋</p>
