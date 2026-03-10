@@ -203,13 +203,13 @@ export const secondLanguageInsightData = {
 // 나의 기록 아카이빙 (내가 작성한 모든 글)
 export const myGalleryRecords: FeedItem[] = [
   {
-    id: 201,
+    id: 1,
     userId: 1,
     userName: "나",
     date: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
     routineCategory: "독서",
     routineId: 4,
-    recordId: 201,
+    recordId: 1,
     routineData: {
       bookTitle: "원씽",
       author: "게리 켈러",
@@ -225,13 +225,13 @@ export const myGalleryRecords: FeedItem[] = [
     comments: [],
   },
   {
-    id: 202,
+    id: 4,
     userId: 1,
     userName: "나",
     date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     routineCategory: "운동",
     routineId: 1,
-    recordId: 202,
+    recordId: 4,
     routineData: {
       images: [],
       exerciseName: "달리기",
@@ -242,13 +242,13 @@ export const myGalleryRecords: FeedItem[] = [
     comments: [],
   },
   {
-    id: 203,
+    id: 6,
     userId: 1,
     userName: "나",
     date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
     routineCategory: "모닝",
     routineId: 5,
-    recordId: 203,
+    recordId: 6,
     routineData: {
       condition: 82,
       successAndReflection:
@@ -258,13 +258,13 @@ export const myGalleryRecords: FeedItem[] = [
     comments: [],
   },
   {
-    id: 204,
+    id: 9,
     userId: 1,
     userName: "나",
     date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
     routineCategory: "영어",
     routineId: 3,
-    recordId: 204,
+    recordId: 9,
     routineData: {
       images: [],
       achievement: "비즈니스 영어 20문장, 5개 표현 학습",
@@ -289,13 +289,13 @@ export const myGalleryRecords: FeedItem[] = [
     comments: [],
   },
   {
-    id: 205,
+    id: 10,
     userId: 1,
     userName: "나",
     date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
     routineCategory: "독서",
     routineId: 4,
-    recordId: 205,
+    recordId: 10,
     routineData: {
       bookTitle: "아토믹 해빗",
       author: "제임스 클리어",
@@ -311,13 +311,13 @@ export const myGalleryRecords: FeedItem[] = [
     comments: [],
   },
   {
-    id: 206,
+    id: 8,
     userId: 1,
     userName: "나",
     date: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
     routineCategory: "자산관리",
     routineId: 8,
-    recordId: 206,
+    recordId: 8,
     routineData: {
       dailyExpenses: [
         {
@@ -339,13 +339,13 @@ export const myGalleryRecords: FeedItem[] = [
     comments: [],
   },
   {
-    id: 207,
+    id: 2,
     userId: 1,
     userName: "나",
     date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
     routineCategory: "운동",
     routineId: 1,
-    recordId: 207,
+    recordId: 2,
     routineData: {
       images: [],
       exerciseName: "필라테스",
@@ -356,13 +356,13 @@ export const myGalleryRecords: FeedItem[] = [
     comments: [],
   },
   {
-    id: 208,
+    id: 11,
     userId: 1,
     userName: "나",
     date: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString(),
     routineCategory: "모닝",
     routineId: 5,
-    recordId: 208,
+    recordId: 11,
     routineData: {
       condition: 65,
       successAndReflection:
@@ -372,13 +372,13 @@ export const myGalleryRecords: FeedItem[] = [
     comments: [],
   },
   {
-    id: 209,
+    id: 12,
     userId: 1,
     userName: "나",
     date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
     routineCategory: "영어",
     routineId: 3,
-    recordId: 209,
+    recordId: 12,
     routineData: {
       images: [],
       achievement: "비즈니스 영어 표현 8개 학습, 쉐도잉 15분",
@@ -398,13 +398,13 @@ export const myGalleryRecords: FeedItem[] = [
     comments: [],
   },
   {
-    id: 210,
+    id: 13,
     userId: 1,
     userName: "나",
     date: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
     routineCategory: "독서",
     routineId: 4,
-    recordId: 210,
+    recordId: 13,
     routineData: {
       bookTitle: "원씽",
       author: "게리 켈러",
@@ -420,13 +420,13 @@ export const myGalleryRecords: FeedItem[] = [
     comments: [],
   },
   {
-    id: 211,
+    id: 14,
     userId: 1,
     userName: "나",
     date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
     routineCategory: "운동",
     routineId: 1,
-    recordId: 211,
+    recordId: 14,
     routineData: {
       images: [],
       exerciseName: "요가",
@@ -437,13 +437,13 @@ export const myGalleryRecords: FeedItem[] = [
     comments: [],
   },
   {
-    id: 212,
+    id: 15,
     userId: 1,
     userName: "나",
     date: new Date(Date.now() - 16 * 24 * 60 * 60 * 1000).toISOString(),
     routineCategory: "모닝",
     routineId: 5,
-    recordId: 212,
+    recordId: 15,
     routineData: {
       condition: 90,
       successAndReflection:

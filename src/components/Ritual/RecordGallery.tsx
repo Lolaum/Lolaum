@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   BookText,
   Dumbbell,
@@ -347,8 +348,9 @@ function GalleryCard({ item }: { item: FeedItem }) {
   };
 
   return (
-    <div
-      className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+    <Link
+      href={`/feeds/${item.id}`}
+      className="block bg-white rounded-2xl p-4 shadow-sm border border-gray-100 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
       style={{ borderTop: `3px solid ${config.color}` }}
     >
       {/* 카드 헤더 */}
@@ -365,7 +367,7 @@ function GalleryCard({ item }: { item: FeedItem }) {
 
       {/* 카드 내용 */}
       {item.routineData && renderContent()}
-    </div>
+    </Link>
   );
 }
 
