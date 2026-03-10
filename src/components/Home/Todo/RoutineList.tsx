@@ -7,12 +7,12 @@ import { Plus, X, Flame, ChevronRight } from "lucide-react";
 import { RoutineListProps } from "@/types/home/todo";
 
 const TAG_COLORS: Record<string, { color: string; bgColor: string }> = {
-  운동:     { color: "#ff8900", bgColor: "#fff4e5" },
-  영어:     { color: "#0ea5e9", bgColor: "#f0f9ff" },
-  독서:     { color: "#6366f1", bgColor: "#eef2ff" },
-  모닝:     { color: "#eab32e", bgColor: "#fefce8" },
+  운동: { color: "#ff8900", bgColor: "#fff4e5" },
+  영어: { color: "#0ea5e9", bgColor: "#f0f9ff" },
+  독서: { color: "#6366f1", bgColor: "#eef2ff" },
+  모닝: { color: "#eab32e", bgColor: "#fefce8" },
   제2외국어: { color: "#10b981", bgColor: "#ecfdf5" },
-  원서:     { color: "#8b5cf6", bgColor: "#f5f3ff" },
+  원서: { color: "#8b5cf6", bgColor: "#f5f3ff" },
   자산관리: { color: "#10b981", bgColor: "#ecfdf5" },
 };
 
@@ -42,7 +42,9 @@ export default function RoutineList({
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-4 px-1">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-gray-700">진행 중인 루틴</span>
+          <span className="text-sm font-semibold text-gray-700">
+            진행 중인 루틴
+          </span>
           <span className="text-xs text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">
             {completedCount}/{routines.length}
           </span>
@@ -76,7 +78,9 @@ export default function RoutineList({
               key={routine.id}
               onClick={() => onTaskClick(routine.title, colors.color)}
               className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]"
-              style={{ borderLeft: `4px solid ${routine.completed ? "#e5e7eb" : colors.color}` }}
+              style={{
+                borderLeft: `4px solid ${routine.completed ? "#e5e7eb" : colors.color}`,
+              }}
             >
               <div className="flex items-center gap-3">
                 {/* 완료 체크 */}
@@ -88,12 +92,20 @@ export default function RoutineList({
                   className="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all"
                   style={{
                     borderColor: routine.completed ? colors.color : "#d1d5db",
-                    backgroundColor: routine.completed ? colors.color : "transparent",
+                    backgroundColor: routine.completed
+                      ? colors.color
+                      : "transparent",
                   }}
                 >
                   {routine.completed && (
                     <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                      <path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      <path
+                        d="M2 5l2.5 2.5L8 3"
+                        stroke="white"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   )}
                 </button>
@@ -108,7 +120,10 @@ export default function RoutineList({
                     </span>
                     <span
                       className="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
-                      style={{ backgroundColor: colors.bgColor, color: colors.color }}
+                      style={{
+                        backgroundColor: colors.bgColor,
+                        color: colors.color,
+                      }}
                     >
                       {routine.tag}
                     </span>
@@ -121,11 +136,15 @@ export default function RoutineList({
                         className="h-full rounded-full transition-all duration-500"
                         style={{
                           width: `${percent}%`,
-                          backgroundColor: routine.completed ? "#d1d5db" : colors.color,
+                          backgroundColor: routine.completed
+                            ? "#d1d5db"
+                            : colors.color,
                         }}
                       />
                     </div>
-                    <span className="text-[10px] text-gray-400 flex-shrink-0">{count}/{total}</span>
+                    <span className="text-[10px] text-gray-400 flex-shrink-0">
+                      {count}/{total}
+                    </span>
                   </div>
                 </div>
 
@@ -134,7 +153,10 @@ export default function RoutineList({
                   {count > 0 && !routine.completed && (
                     <div className="flex items-center gap-0.5">
                       <Flame size={11} style={{ color: colors.color }} />
-                      <span className="text-[10px] font-medium" style={{ color: colors.color }}>
+                      <span
+                        className="text-[10px] font-medium"
+                        style={{ color: colors.color }}
+                      >
                         {count}일
                       </span>
                     </div>

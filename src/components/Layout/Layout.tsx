@@ -31,7 +31,6 @@ const navItems: NavItem[] = [
   { href: "/ritual", label: "리추얼", icon: RitualIcon },
   { href: "/feeds", label: "인증", icon: VerifyIcon },
   { href: "/team", label: "팀원", icon: TeamIcon },
-  { href: "/report", label: "리포트", icon: ReportIcon },
   { href: "/mypage", label: "마이페이지", icon: ProfileIcon },
 ];
 

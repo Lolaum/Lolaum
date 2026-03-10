@@ -23,7 +23,7 @@ const CATEGORY_CONFIG: Record<
   운동:      { color: "#ff8900", bgColor: "#fff4e5", icon: <Dumbbell size={13} /> },
   영어:      { color: "#0ea5e9", bgColor: "#f0f9ff", icon: <BookA size={13} /> },
   모닝:      { color: "#eab32e", bgColor: "#fefce8", icon: <Sun size={13} /> },
-  제2외국어: { color: "#10b981", bgColor: "#ecfdf5", icon: <Languages size={13} /> },
+  제2외국어: { color: "#8b5cf6", bgColor: "#f5f3ff", icon: <Languages size={13} /> },
   자산관리:  { color: "#10b981", bgColor: "#ecfdf5", icon: <CircleDollarSign size={13} /> },
 };
 

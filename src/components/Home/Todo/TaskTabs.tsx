@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Flame, TrendingUp, CheckCircle2, Flag, ClipboardCheck, Trophy } from "lucide-react";
+import {
+  Flame,
+  TrendingUp,
+  CheckCircle2,
+  Flag,
+  ClipboardCheck,
+  Trophy,
+} from "lucide-react";
 import TodoList from "./TodoList";
 import RoutineList from "./RoutineList";
 import {
@@ -32,19 +39,19 @@ export default function TaskTabs({ selectedDate, onTaskClick }: TaskTabsProps) {
             value: "3",
             label: "연속 실천",
             icon: Flame,
-            color: "#ff8900"
+            color: "#ff8900",
           },
           {
             value: "7",
             label: "최장 기록",
             icon: TrendingUp,
-            color: "#6366f1"
+            color: "#6366f1",
           },
           {
             value: "24",
             label: "총 완료",
             icon: CheckCircle2,
-            color: "#10b981"
+            color: "#10b981",
           },
         ].map(({ value, label, icon: Icon, color }) => (
           <div
@@ -63,15 +70,15 @@ export default function TaskTabs({ selectedDate, onTaskClick }: TaskTabsProps) {
         {[
           {
             label: "리추얼선언",
-            icon: Flag
+            icon: Flag,
           },
           {
             label: "중간회고",
-            icon: ClipboardCheck
+            icon: ClipboardCheck,
           },
           {
             label: "최종회고",
-            icon: Trophy
+            icon: Trophy,
           },
         ].map(({ label, icon: Icon }) => (
           <button
@@ -87,18 +94,19 @@ export default function TaskTabs({ selectedDate, onTaskClick }: TaskTabsProps) {
 
       {/* 루틴/투두 카드 */}
       <div className="rounded-3xl bg-white shadow-sm border border-gray-100 p-5">
-        {/* 날짜 */}
-        <div className="mb-4">
-          <p className="text-xs text-gray-400 font-medium mb-0.5">
-            {formatDateDisplay(selectedDate)}
-          </p>
-          <h2 className="text-base font-bold text-gray-800">
-            {getWeekRangeText(selectedDate)}
-          </h2>
-        </div>
+        {/* 날짜 + 세그먼트 컨트롤 */}
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <p className="text-xs text-gray-400 font-medium mb-0.5">
+              {formatDateDisplay(selectedDate)}
+            </p>
+            <h2 className="text-base font-bold text-gray-800">
+              {getWeekRangeText(selectedDate)}
+            </h2>
+          </div>
 
-        {/* 세그먼트 컨트롤 — 슬라이딩 pill */}
-        <div className="relative flex bg-gray-100 rounded-2xl p-1 mb-5">
+          {/* 세그먼트 컨트롤 — 슬라이딩 pill */}
+          <div className="relative flex bg-gray-100 rounded-2xl p-1 w-36">
           {/* 슬라이딩 active 배경 */}
           <div
             className="absolute inset-y-1 rounded-xl"
@@ -124,6 +132,7 @@ export default function TaskTabs({ selectedDate, onTaskClick }: TaskTabsProps) {
               {tab === "routine" ? "루틴" : "투두"}
             </button>
           ))}
+          </div>
         </div>
 
         {/* 콘텐츠 */}
