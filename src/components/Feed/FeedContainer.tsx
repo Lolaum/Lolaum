@@ -24,7 +24,8 @@ export default function FeedContainer() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const selectedFilter = (searchParams.get("filter") ?? "전체") as FilterCategory;
+  const selectedFilter = (searchParams.get("filter") ??
+    "전체") as FilterCategory;
   const currentPage = Number(searchParams.get("page") ?? "1");
 
   const feedData: FeedItemType[] = feed_mock;
@@ -35,10 +36,13 @@ export default function FeedContainer() {
       ? feedData
       : feedData.filter((feed) => feed.routineCategory === selectedFilter);
 
-  const totalPages = Math.max(1, Math.ceil(filteredFeeds.length / ITEMS_PER_PAGE));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredFeeds.length / ITEMS_PER_PAGE),
+  );
   const pagedFeeds = filteredFeeds.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    currentPage * ITEMS_PER_PAGE,
   );
 
   const updateParams = (filter: FilterCategory, page: number) => {
@@ -60,15 +64,11 @@ export default function FeedContainer() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 pb-8">
       {/* 헤더 */}
-      <div
-        className="rounded-3xl p-5 mb-5 text-white relative overflow-hidden"
-        style={{ background: "linear-gradient(135deg, #c99315 0%, #eab32e 50%, #ff9c28 100%)" }}
-      >
-        <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10" />
-        <div className="relative">
-          <p className="text-white/70 text-xs font-medium mb-1">팀원들의 기록</p>
-          <h1 className="text-xl font-bold">인증 피드</h1>
-        </div>
+      <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-6">
+        <p className="text-xs text-gray-400 font-medium mb-0.5">
+          팀원들의 기록
+        </p>
+        <h1 className="text-xl font-bold text-gray-900">인증 피드</h1>
       </div>
 
       {/* 필터 칩 */}
@@ -96,9 +96,7 @@ export default function FeedContainer() {
             <p className="text-sm">아직 피드가 없습니다.</p>
           </div>
         ) : (
-          pagedFeeds.map((feed) => (
-            <FeedItem key={feed.id} item={feed} />
-          ))
+          pagedFeeds.map((feed) => <FeedItem key={feed.id} item={feed} />)
         )}
       </div>
 
@@ -128,7 +126,9 @@ export default function FeedContainer() {
           ))}
 
           <button
-            onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+            onClick={() =>
+              handlePageChange(Math.min(totalPages, currentPage + 1))
+            }
             disabled={currentPage === totalPages}
             className="px-3 py-2 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
