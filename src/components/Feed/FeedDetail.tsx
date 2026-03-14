@@ -121,17 +121,15 @@ function ExerciseContent({ data }: { data: ExerciseFeedData }) {
 function MorningContent({ data }: { data: MorningFeedData }) {
   return (
     <div className="space-y-4">
-      {/* 컨디션 바 */}
-      <div className="bg-yellow-50 rounded-xl p-4">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs text-yellow-500 font-medium">오늘의 컨디션</p>
-          <p className="text-sm font-bold text-yellow-600">{data.condition}%</p>
+      {/* 수면 시간 & 컨디션 */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-yellow-50 rounded-xl p-4">
+          <p className="text-xs text-yellow-500 font-medium mb-1">수면 시간</p>
+          <p className="text-2xl font-bold text-gray-800">{data.sleepHours}<span className="text-sm font-medium text-gray-500">h</span></p>
         </div>
-        <div className="w-full bg-yellow-200 rounded-full h-2">
-          <div
-            className="bg-yellow-400 h-2 rounded-full transition-all"
-            style={{ width: `${data.condition}%` }}
-          />
+        <div className="bg-yellow-50 rounded-xl p-4">
+          <p className="text-xs text-yellow-500 font-medium mb-1">컨디션</p>
+          <p className="text-2xl font-bold text-gray-800">{data.condition}</p>
         </div>
       </div>
       <div className="bg-gray-50 rounded-xl p-4">

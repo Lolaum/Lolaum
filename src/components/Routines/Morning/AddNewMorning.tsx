@@ -5,6 +5,7 @@ import { Upload, X } from "lucide-react";
 import {
   AddNewMorningProps,
   MorningFormData,
+  ConditionLevel,
 } from "@/types/routines/morning";
 
 export default function AddNewMorning({
@@ -13,7 +14,8 @@ export default function AddNewMorning({
   onSubmit,
 }: AddNewMorningProps) {
   const [image, setImage] = useState("");
-  const [condition, setCondition] = useState("");
+  const [sleepHours, setSleepHours] = useState("");
+  const [condition, setCondition] = useState<ConditionLevel | "">("");
   const [successAndReflection, setSuccessAndReflection] = useState("");
   const [gift, setGift] = useState("");
 
@@ -30,11 +32,12 @@ export default function AddNewMorning({
   };
 
   const handleSubmit = () => {
-    if (!condition || !successAndReflection.trim() || !gift.trim()) return;
+    if (!sleepHours || !condition || !successAndReflection.trim() || !gift.trim()) return;
 
     const recordData: MorningFormData = {
       image,
-      condition: parseInt(condition),
+      sleepHours: parseFloat(sleepHours),
+      condition: condition as ConditionLevel,
       successAndReflection: successAndReflection.trim(),
       gift: gift.trim(),
     };
@@ -137,34 +140,48 @@ export default function AddNewMorning({
           </div>
         </div>
 
-        {/* 오늘의 컨디션 */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            오늘의 컨디션 (%)
-          </label>
-          <input
-            type="number"
-            value={condition}
-            onChange={(e) => setCondition(e.target.value)}
-            placeholder="0 ~ 100"
-            min="0"
-            max="100"
-            className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400"
-          />
-          {/* 컨디션 프리뷰 */}
-          {condition && (
-            <div className="mt-3 flex items-center gap-3">
-              <div className="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-orange-400 to-orange-500 transition-all duration-300"
-                  style={{ width: `${Math.min(100, parseInt(condition) || 0)}%` }}
-                />
-              </div>
-              <span className="text-sm font-semibold text-gray-900">
-                {condition}%
-              </span>
+        {/* 수면 시간 + 컨디션 */}
+        <div className="mb-6 grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              수면 시간 (시간)
+            </label>
+            <input
+              type="number"
+              value={sleepHours}
+              onChange={(e) => setSleepHours(e.target.value)}
+              placeholder="예: 7.5"
+              min="0"
+              max="24"
+              step="0.5"
+              className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              컨디션
+            </label>
+            <div className="relative">
+              <select
+                value={condition}
+                onChange={(e) => setCondition(e.target.value as ConditionLevel | "")}
+                className="w-full px-4 py-4 pr-10 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 appearance-none cursor-pointer"
+              >
+                <option value="">선택</option>
+                <option value="상">상</option>
+                <option value="중">중</option>
+                <option value="하">하</option>
+              </select>
+              <svg
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
-          )}
+          </div>
         </div>
 
         {/* 오늘의 작은 성공 & 한 줄 회고 */}
@@ -201,7 +218,7 @@ export default function AddNewMorning({
             type="button"
             onClick={handleSubmit}
             disabled={
-              !condition || !successAndReflection.trim() || !gift.trim()
+              !sleepHours || !condition || !successAndReflection.trim() || !gift.trim()
             }
             className="flex-1 py-4 px-4 rounded-xl bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >

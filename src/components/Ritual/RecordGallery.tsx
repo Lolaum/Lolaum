@@ -179,11 +179,13 @@ function ExerciseCardContent({ data }: { data: ExerciseFeedData }) {
 
 function MorningCardContent({ data }: { data: MorningFeedData }) {
   const conditionColor =
-    data.condition >= 80
+    data.condition === "상"
       ? "#10b981"
-      : data.condition >= 60
+      : data.condition === "중"
         ? "#eab32e"
         : "#f97316";
+  const conditionBars =
+    data.condition === "상" ? 5 : data.condition === "중" ? 3 : 1;
 
   return (
     <div className="space-y-3">
@@ -203,7 +205,7 @@ function MorningCardContent({ data }: { data: MorningFeedData }) {
                 className="w-5 h-1.5 rounded-full mr-0.5"
                 style={{
                   backgroundColor:
-                    i < Math.round(data.condition / 20)
+                    i < conditionBars
                       ? conditionColor
                       : "#e5e7eb",
                 }}
