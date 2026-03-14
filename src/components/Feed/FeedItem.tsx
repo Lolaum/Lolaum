@@ -88,7 +88,7 @@ function getSubText(item: FeedItemType): string | null {
     }
     case "모닝": {
       const d = data as MorningFeedData;
-      return d.condition != null ? `컨디션 ${d.condition}점` : null;
+      return d.sleepHours != null ? `수면 ${d.sleepHours}h · 컨디션 ${d.condition}` : null;
     }
     case "영어":
     case "제2외국어": {

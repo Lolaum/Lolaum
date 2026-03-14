@@ -18,7 +18,8 @@ export default function MorningContainer({
       id: 1,
       date: "1월 21일",
       image: "",
-      condition: 85,
+      sleepHours: 7.5,
+      condition: "상",
       successAndReflection: "아침 일찍 일어나서 상쾌한 하루를 시작했다.",
       gift: "좋아하는 커피 한 잔",
     },
@@ -26,7 +27,8 @@ export default function MorningContainer({
       id: 2,
       date: "1월 20일",
       image: "",
-      condition: 70,
+      sleepHours: 6,
+      condition: "중",
       successAndReflection: "어제보다 일찍 일어났다. 작은 성공!",
       gift: "오후에 산책하기",
     },
@@ -34,7 +36,8 @@ export default function MorningContainer({
       id: 3,
       date: "1월 19일",
       image: "",
-      condition: 90,
+      sleepHours: 8,
+      condition: "상",
       successAndReflection: "명상과 스트레칭으로 몸과 마음을 깨웠다.",
       gift: "맛있는 브런치",
     },
@@ -42,10 +45,10 @@ export default function MorningContainer({
 
   // 이번 달 통계 계산
   const recordCount = morningRecords.length;
-  const averageCondition = Math.round(
-    morningRecords.reduce((sum, record) => sum + record.condition, 0) /
-      morningRecords.length,
-  );
+  const averageSleepHours = (
+    morningRecords.reduce((sum, record) => sum + record.sleepHours, 0) /
+    morningRecords.length
+  ).toFixed(1);
 
   const renderContent = () => {
     // 새 기록 추가하기 화면
@@ -84,8 +87,8 @@ export default function MorningContainer({
               <p className="text-xs text-gray-400 mt-0.5">기록한 날</p>
             </div>
             <div className="bg-yellow-50 rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold text-gray-900">{averageCondition}<span className="text-sm font-medium">%</span></p>
-              <p className="text-xs text-gray-400 mt-0.5">평균 컨디션</p>
+              <p className="text-2xl font-bold text-gray-900">{averageSleepHours}<span className="text-sm font-medium">h</span></p>
+              <p className="text-xs text-gray-400 mt-0.5">평균 수면</p>
             </div>
           </div>
         </div>

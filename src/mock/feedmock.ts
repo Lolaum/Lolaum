@@ -174,7 +174,8 @@ export const feed_mock: FeedItem[] = [
     routineId: 5,
     recordId: 106,
     routineData: {
-      condition: 82,
+      sleepHours: 7,
+      condition: "상",
       successAndReflection:
         "오늘 아침 5시 30분에 일어났다. 미루지 않고 바로 일어난 것이 오늘의 작은 성공. 아침 루틴을 지키면 하루가 훨씬 활기차다.",
       gift: "좋아하는 카페에서 아메리카노 한 잔 ☕",
@@ -304,7 +305,8 @@ export const feed_mock: FeedItem[] = [
     routineId: 5,
     recordId: 11,
     routineData: {
-      condition: 65,
+      sleepHours: 5.5,
+      condition: "하",
       successAndReflection: "어제 늦게 잠들었지만 알람에 바로 일어났다. 의지력이 조금씩 강해지고 있다는 걸 느낀다.",
       gift: "좋아하는 팟캐스트 30분 듣기 🎧",
     },
@@ -374,7 +376,8 @@ export const feed_mock: FeedItem[] = [
     routineId: 5,
     recordId: 15,
     routineData: {
-      condition: 90,
+      sleepHours: 8,
+      condition: "상",
       successAndReflection: "오늘은 정말 상쾌한 아침이었다. 알람보다 5분 먼저 깼고, 스트레칭까지 했다. 이런 날이 계속됐으면.",
       gift: "산책 30분 + 좋아하는 노래 듣기 🎵",
     },
