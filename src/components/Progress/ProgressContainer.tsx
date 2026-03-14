@@ -72,8 +72,8 @@ export default function ProgressContainer() {
                 style={{
                   width: `${myData.progress}%`,
                   background:
-                    myData.penalty > 0
-                      ? "linear-gradient(90deg, #fca5a5, #f87171)"
+                    myData.progress === 100
+                      ? "linear-gradient(90deg, #60a5fa, #3b82f6)"
                       : "linear-gradient(90deg, #fbbf24, #eab308)",
                 }}
               />
@@ -139,9 +139,10 @@ export default function ProgressContainer() {
                       className="h-full rounded-full transition-all duration-700"
                       style={{
                         width: `${data.progress}%`,
-                        background: hasPenalty
-                          ? "linear-gradient(90deg, #fca5a5, #f87171)"
-                          : "linear-gradient(90deg, #fbbf24, #eab308)",
+                        background:
+                          data.progress === 100
+                            ? "linear-gradient(90deg, #60a5fa, #3b82f6)"
+                            : "linear-gradient(90deg, #fbbf24, #eab308)",
                       }}
                     />
                   </div>
