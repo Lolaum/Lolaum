@@ -2,23 +2,28 @@
 
 import { members } from "@/data/members";
 
-const mockProgressData: Record<string, { progress: number; penalty: number }> =
-  {
-    "1": { progress: 50, penalty: 0 },
-    "2": { progress: 80, penalty: 0 },
-    "3": { progress: 70, penalty: 1000 },
-    "4": { progress: 30, penalty: 2000 },
-    "5": { progress: 100, penalty: 0 },
-    "6": { progress: 20, penalty: 3000 },
-    "7": { progress: 60, penalty: 0 },
-    "8": { progress: 90, penalty: 1000 },
-  };
+const TOTAL = 15;
+
+const mockProgressData: Record<
+  string,
+  { completed: number; penalty: number; happyChance?: boolean }
+> = {
+  "1": { completed: 7, penalty: 0 },
+  "2": { completed: 12, penalty: 0 },
+  "3": { completed: 10, penalty: 1000 },
+  "4": { completed: 4, penalty: 2000 },
+  "5": { completed: 15, penalty: 0 },
+  "6": { completed: 3, penalty: 3000 },
+  "7": { completed: 9, happyChance: true, penalty: 0 },
+  "8": { completed: 13, penalty: 1000 },
+};
 
 const MY_ID = "1";
 
 export default function ProgressContainer() {
   const me = members.find((m) => m.id === MY_ID);
-  const myData = mockProgressData[MY_ID] ?? { progress: 0, penalty: 0 };
+  const myData = mockProgressData[MY_ID] ?? { completed: 0, penalty: 0, happyChance: false };
+  const myProgress = Math.round((myData.completed / TOTAL) * 100);
   const teamMembers = members.filter((m) => m.id !== MY_ID);
 
   return (
@@ -62,17 +67,18 @@ export default function ProgressContainer() {
               <span className="text-base font-bold text-yellow-600">
                 {me?.name}
               </span>
-              <span className="text-sm font-bold text-yellow-500">
-                {myData.progress}%
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-yellow-400">{myData.completed}/{TOTAL}</span>
+                <span className="text-sm font-bold text-yellow-500">{myProgress}%</span>
+              </div>
             </div>
             <div className="h-2.5 bg-yellow-100 rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-700"
                 style={{
-                  width: `${myData.progress}%`,
+                  width: `${myProgress}%`,
                   background:
-                    myData.progress === 100
+                    myProgress === 100
                       ? "linear-gradient(90deg, #60a5fa, #3b82f6)"
                       : "linear-gradient(90deg, #fbbf24, #eab308)",
                 }}
@@ -81,6 +87,11 @@ export default function ProgressContainer() {
             {myData.penalty > 0 && (
               <p className="text-xs text-red-400 font-medium mt-1.5">
                 벌금 {myData.penalty.toLocaleString()}원 발생
+              </p>
+            )}
+            {(myData.happyChance || myData.penalty > 0) && (
+              <p className="text-xs text-green-500 font-medium mt-0.5">
+                🍀 행복찬스 사용 가능
               </p>
             )}
           </div>
@@ -95,10 +106,13 @@ export default function ProgressContainer() {
         <div className="flex flex-col gap-5">
           {teamMembers.map((member) => {
             const data = mockProgressData[member.id] ?? {
-              progress: 0,
+              completed: 0,
               penalty: 0,
+              happyChance: false,
             };
+            const progress = Math.round((data.completed / TOTAL) * 100);
             const hasPenalty = data.penalty > 0;
+            const hasHappyChance = data.happyChance;
 
             return (
               <div key={member.id} className="flex items-center gap-4">
@@ -129,18 +143,24 @@ export default function ProgressContainer() {
                           벌금 {data.penalty.toLocaleString()}원
                         </span>
                       )}
+                      {(hasHappyChance || hasPenalty) && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-50 text-green-500">
+                          🍀 행복찬스
+                        </span>
+                      )}
                     </div>
-                    <span className="text-xs font-bold text-gray-400">
-                      {data.progress}%
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-gray-300">{data.completed}/{TOTAL}</span>
+                      <span className="text-xs font-bold text-gray-400">{progress}%</span>
+                    </div>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-700"
                       style={{
-                        width: `${data.progress}%`,
+                        width: `${progress}%`,
                         background:
-                          data.progress === 100
+                          progress === 100
                             ? "linear-gradient(90deg, #60a5fa, #3b82f6)"
                             : "linear-gradient(90deg, #fbbf24, #eab308)",
                       }}
