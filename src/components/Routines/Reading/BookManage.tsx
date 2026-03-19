@@ -234,8 +234,8 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
                 {/* 책 표지 */}
                 <div className="w-[120px] h-full bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                   {/* 임시 이미지 대신 배경색 */}
-                  <div className="w-full h-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center">
-                    <span className="text-white text-xs font-medium">
+                  <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                    <span className="text-gray-400 text-xs font-medium">
                       책 표지
                     </span>
                   </div>
@@ -306,8 +306,8 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
               >
                 <div className="flex gap-3">
                   {/* 책 표지 썸네일 */}
-                  <div className="w-14 h-18 bg-gradient-to-br from-orange-300 to-orange-500 rounded-lg flex-shrink-0 flex items-center justify-center">
-                    <span className="text-white text-xs">표지</span>
+                  <div className="w-14 h-18 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center">
+                    <span className="text-gray-400 text-xs">표지</span>
                   </div>
 
                   {/* 책 정보 */}
@@ -344,13 +344,18 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
       <button
         type="button"
         onClick={() => setShowCalendar(true)}
-        className="flex w-full bg-gradient-to-r from-[#fef7e6] to-[#fef4dc] rounded-xl p-6 mt-6 items-center cursor-pointer hover:opacity-80 transition-opacity text-left"
+        className="w-full flex items-center gap-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mt-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 text-left"
       >
-        <CalendarIcon className="w-12 h-12 text-[var(--gold-300)] bg-[#fdefc8] rounded-xl p-2" />
-        <div className="ml-4 flex flex-col justify-center gap-1">
-          <span>독서 달력 보기</span>
-          <span>매일의 독서 기록을 확인하세요</span>
+        <div className="w-10 h-10 bg-yellow-50 rounded-xl flex items-center justify-center flex-shrink-0">
+          <CalendarIcon className="w-5 h-5 text-yellow-500" />
         </div>
+        <div className="flex flex-col justify-center gap-0.5">
+          <span className="text-sm font-semibold text-gray-900">독서 달력 보기</span>
+          <span className="text-xs text-gray-400">매일의 독서 기록을 확인하세요</span>
+        </div>
+        <svg className="w-4 h-4 text-gray-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
       </button>
     </div>
   );

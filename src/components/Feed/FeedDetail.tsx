@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, User } from "lucide-react";
 import {
   BookText,
@@ -24,28 +25,61 @@ import CommentSection from "./CommentSection";
 
 interface FeedDetailProps {
   item: FeedItem;
-  onBack: () => void;
-  onCommentAdd: (feedId: number, comment: Comment) => void;
 }
+
+// 디자인 시스템 기반 카테고리 메타
+const CATEGORY_META: Record<
+  string,
+  { icon: React.ReactNode; label: string; hexColor: string; bgColor: string }
+> = {
+  독서: {
+    icon: <BookText className="w-5 h-5" />,
+    label: "독서",
+    hexColor: "#6366f1",
+    bgColor: "#eef2ff",
+  },
+  운동: {
+    icon: <Dumbbell className="w-5 h-5" />,
+    label: "운동",
+    hexColor: "#ff8900",
+    bgColor: "#fff4e5",
+  },
+  영어: {
+    icon: <BookA className="w-5 h-5" />,
+    label: "영어",
+    hexColor: "#0ea5e9",
+    bgColor: "#f0f9ff",
+  },
+  모닝: {
+    icon: <Sun className="w-5 h-5" />,
+    label: "모닝 루틴",
+    hexColor: "#eab32e",
+    bgColor: "#fefce8",
+  },
+  제2외국어: {
+    icon: <Languages className="w-5 h-5" />,
+    label: "제2외국어 학습",
+    hexColor: "#10b981",
+    bgColor: "#ecfdf5",
+  },
+  자산관리: {
+    icon: <CircleDollarSign className="w-5 h-5" />,
+    label: "자산관리",
+    hexColor: "#10b981",
+    bgColor: "#ecfdf5",
+  },
+};
 
 // 카테고리별 아이콘 & 레이블
 const getCategoryMeta = (category: RoutineCategory) => {
-  switch (category) {
-    case "독서":
-      return { icon: <BookText className="w-5 h-5" />, label: "독서", color: "text-orange-500", bg: "bg-orange-50" };
-    case "운동":
-      return { icon: <Dumbbell className="w-5 h-5" />, label: "운동", color: "text-orange-500", bg: "bg-orange-50" };
-    case "영어":
-      return { icon: <BookA className="w-5 h-5" />, label: "영어", color: "text-blue-500", bg: "bg-blue-50" };
-    case "모닝":
-      return { icon: <Sun className="w-5 h-5" />, label: "모닝 루틴", color: "text-yellow-500", bg: "bg-yellow-50" };
-    case "제2외국어":
-      return { icon: <Languages className="w-5 h-5" />, label: "제2외국어 학습", color: "text-purple-500", bg: "bg-purple-50" };
-    case "자산관리":
-      return { icon: <CircleDollarSign className="w-5 h-5" />, label: "자산관리", color: "text-green-500", bg: "bg-green-50" };
-    default:
-      return { icon: <BookText className="w-5 h-5" />, label: category, color: "text-gray-500", bg: "bg-gray-50" };
-  }
+  return (
+    CATEGORY_META[category] ?? {
+      icon: <BookText className="w-5 h-5" />,
+      label: category,
+      hexColor: "#6b7280",
+      bgColor: "#f3f4f6",
+    }
+  );
 };
 
 const formatFullDate = (dateString: string) => {
@@ -61,17 +95,23 @@ function ExerciseContent({ data }: { data: ExerciseFeedData }) {
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-orange-50 rounded-xl p-3">
           <p className="text-xs text-orange-400 font-medium mb-1">운동 종류</p>
-          <p className="text-sm font-semibold text-gray-800">{data.exerciseName}</p>
+          <p className="text-sm font-semibold text-gray-800">
+            {data.exerciseName}
+          </p>
         </div>
         <div className="bg-orange-50 rounded-xl p-3">
           <p className="text-xs text-orange-400 font-medium mb-1">운동 시간</p>
-          <p className="text-sm font-semibold text-gray-800">{data.duration}분</p>
+          <p className="text-sm font-semibold text-gray-800">
+            {data.duration}분
+          </p>
         </div>
       </div>
       {data.achievement && (
         <div className="bg-gray-50 rounded-xl p-4">
           <p className="text-xs text-gray-400 font-medium mb-1">오늘의 소감</p>
-          <p className="text-sm text-gray-700 leading-relaxed">{data.achievement}</p>
+          <p className="text-sm text-gray-700 leading-relaxed">
+            {data.achievement}
+          </p>
         </div>
       )}
     </div>
@@ -81,25 +121,29 @@ function ExerciseContent({ data }: { data: ExerciseFeedData }) {
 function MorningContent({ data }: { data: MorningFeedData }) {
   return (
     <div className="space-y-4">
-      {/* 컨디션 바 */}
-      <div className="bg-yellow-50 rounded-xl p-4">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs text-yellow-500 font-medium">오늘의 컨디션</p>
-          <p className="text-sm font-bold text-yellow-600">{data.condition}%</p>
+      {/* 수면 시간 & 컨디션 */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-yellow-50 rounded-xl p-4">
+          <p className="text-xs text-yellow-500 font-medium mb-1">수면 시간</p>
+          <p className="text-2xl font-bold text-gray-800">{data.sleepHours}<span className="text-sm font-medium text-gray-500">h</span></p>
         </div>
-        <div className="w-full bg-yellow-200 rounded-full h-2">
-          <div
-            className="bg-yellow-400 h-2 rounded-full transition-all"
-            style={{ width: `${data.condition}%` }}
-          />
+        <div className="bg-yellow-50 rounded-xl p-4">
+          <p className="text-xs text-yellow-500 font-medium mb-1">컨디션</p>
+          <p className="text-2xl font-bold text-gray-800">{data.condition}</p>
         </div>
       </div>
       <div className="bg-gray-50 rounded-xl p-4">
-        <p className="text-xs text-gray-400 font-medium mb-1">오늘의 성공 & 한 줄 회고</p>
-        <p className="text-sm text-gray-700 leading-relaxed">{data.successAndReflection}</p>
+        <p className="text-xs text-gray-400 font-medium mb-1">
+          오늘의 성공 & 한 줄 회고
+        </p>
+        <p className="text-sm text-gray-700 leading-relaxed">
+          {data.successAndReflection}
+        </p>
       </div>
       <div className="bg-gray-50 rounded-xl p-4">
-        <p className="text-xs text-gray-400 font-medium mb-1">오늘 나에게 주는 선물</p>
+        <p className="text-xs text-gray-400 font-medium mb-1">
+          오늘 나에게 주는 선물
+        </p>
         <p className="text-sm text-gray-700 leading-relaxed">{data.gift}</p>
       </div>
     </div>
@@ -107,13 +151,13 @@ function MorningContent({ data }: { data: MorningFeedData }) {
 }
 
 function FinanceContent({ data }: { data: FinanceFeedData }) {
-  const totalNecessary = data.dailyExpenses.flatMap((d) =>
-    d.expenses.filter((e) => e.type === "necessary")
-  ).reduce((sum, e) => sum + e.amount, 0);
+  const totalNecessary = data.dailyExpenses
+    .flatMap((d) => d.expenses.filter((e) => e.type === "necessary"))
+    .reduce((sum, e) => sum + e.amount, 0);
 
-  const totalEmotional = data.dailyExpenses.flatMap((d) =>
-    d.expenses.filter((e) => e.type === "emotional")
-  ).reduce((sum, e) => sum + e.amount, 0);
+  const totalEmotional = data.dailyExpenses
+    .flatMap((d) => d.expenses.filter((e) => e.type === "emotional"))
+    .reduce((sum, e) => sum + e.amount, 0);
 
   return (
     <div className="space-y-4">
@@ -141,17 +185,26 @@ function FinanceContent({ data }: { data: FinanceFeedData }) {
         });
         return (
           <div key={i} className="bg-gray-50 rounded-xl p-4">
-            <p className="text-xs text-gray-500 font-semibold mb-2">{dateStr}</p>
+            <p className="text-xs text-gray-500 font-semibold mb-2">
+              {dateStr}
+            </p>
             <div className="space-y-1.5">
               {daily.expenses.map((expense) => (
-                <div key={expense.id} className="flex items-center justify-between">
+                <div
+                  key={expense.id}
+                  className="flex items-center justify-between"
+                >
                   <div className="flex items-center gap-2">
                     <span
                       className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                        expense.type === "necessary" ? "bg-blue-400" : "bg-red-400"
+                        expense.type === "necessary"
+                          ? "bg-blue-400"
+                          : "bg-red-400"
                       }`}
                     />
-                    <span className="text-sm text-gray-700">{expense.name}</span>
+                    <span className="text-sm text-gray-700">
+                      {expense.name}
+                    </span>
                   </div>
                   <span className="text-sm text-gray-600">
                     {expense.amount.toLocaleString()}원
@@ -166,14 +219,22 @@ function FinanceContent({ data }: { data: FinanceFeedData }) {
       {/* 공부 내용 & 실천 */}
       {data.studyContent && (
         <div className="bg-green-50 rounded-xl p-4">
-          <p className="text-xs text-green-500 font-medium mb-1">오늘의 자산관리 공부</p>
-          <p className="text-sm text-gray-700 leading-relaxed">{data.studyContent}</p>
+          <p className="text-xs text-green-500 font-medium mb-1">
+            오늘의 자산관리 공부
+          </p>
+          <p className="text-sm text-gray-700 leading-relaxed">
+            {data.studyContent}
+          </p>
         </div>
       )}
       {data.practice && (
         <div className="bg-gray-50 rounded-xl p-4">
-          <p className="text-xs text-gray-400 font-medium mb-1">오늘의 실천 / 다짐</p>
-          <p className="text-sm text-gray-700 leading-relaxed">{data.practice}</p>
+          <p className="text-xs text-gray-400 font-medium mb-1">
+            오늘의 실천 / 다짐
+          </p>
+          <p className="text-sm text-gray-700 leading-relaxed">
+            {data.practice}
+          </p>
         </div>
       )}
     </div>
@@ -185,18 +246,26 @@ function LanguageContent({ data }: { data: LanguageFeedData }) {
     <div className="space-y-4">
       {data.achievement && (
         <div className="bg-purple-50 rounded-xl p-3">
-          <p className="text-xs text-purple-400 font-medium mb-1">오늘의 성취</p>
-          <p className="text-sm font-semibold text-gray-800">{data.achievement}</p>
+          <p className="text-xs text-purple-400 font-medium mb-1">
+            오늘의 성취
+          </p>
+          <p className="text-sm font-semibold text-gray-800">
+            {data.achievement}
+          </p>
         </div>
       )}
       {data.expressions.length > 0 && (
         <div>
-          <p className="text-xs text-gray-500 font-semibold mb-2">오늘 배운 표현</p>
+          <p className="text-xs text-gray-500 font-semibold mb-2">
+            오늘 배운 표현
+          </p>
           <div className="space-y-2">
             {data.expressions.map((expr, i) => (
               <div key={i} className="bg-gray-50 rounded-xl p-3">
                 <div className="flex items-start gap-2 mb-1">
-                  <span className="text-sm font-bold text-gray-800">{expr.word}</span>
+                  <span className="text-sm font-bold text-gray-800">
+                    {expr.word}
+                  </span>
                   <span className="text-sm text-gray-400">—</span>
                   <span className="text-sm text-gray-600">{expr.meaning}</span>
                 </div>
@@ -253,7 +322,8 @@ function ReadingContent({ data }: { data: ReadingFeedData }) {
           )}
           {data.progressAmount != null && (
             <p className="text-xs text-orange-400 mt-1.5 font-medium">
-              오늘 +{data.progressAmount}{isPercent ? "%" : "p"} 읽었어요
+              오늘 +{data.progressAmount}
+              {isPercent ? "%" : "p"} 읽었어요
             </p>
           )}
         </div>
@@ -262,8 +332,12 @@ function ReadingContent({ data }: { data: ReadingFeedData }) {
       {/* 오늘의 문장 */}
       {data.note && data.noteType === "sentence" && (
         <div className="bg-orange-50 border-l-2 border-orange-300 rounded-xl p-4">
-          <p className="text-xs text-orange-400 font-medium mb-1">오늘의 문장</p>
-          <p className="text-sm text-gray-700 leading-relaxed italic">&ldquo;{data.note}&rdquo;</p>
+          <p className="text-xs text-orange-400 font-medium mb-1">
+            오늘의 문장
+          </p>
+          <p className="text-sm text-gray-700 leading-relaxed italic">
+            &ldquo;{data.note}&rdquo;
+          </p>
         </div>
       )}
 
@@ -279,7 +353,9 @@ function ReadingContent({ data }: { data: ReadingFeedData }) {
       {data.thoughts && (
         <div className="bg-gray-50 rounded-xl p-4">
           <p className="text-xs text-gray-400 font-medium mb-1">나만의 생각</p>
-          <p className="text-sm text-gray-700 leading-relaxed">{data.thoughts}</p>
+          <p className="text-sm text-gray-700 leading-relaxed">
+            {data.thoughts}
+          </p>
         </div>
       )}
 
@@ -295,23 +371,41 @@ function ReadingContent({ data }: { data: ReadingFeedData }) {
 }
 
 // 타입 가드 함수들
-function isExerciseData(data: NonNullable<FeedItem["routineData"]>, category: RoutineCategory): data is ExerciseFeedData {
+function isExerciseData(
+  data: NonNullable<FeedItem["routineData"]>,
+  category: RoutineCategory,
+): data is ExerciseFeedData {
   return category === "운동" && "exerciseName" in data;
 }
-function isMorningData(data: NonNullable<FeedItem["routineData"]>, category: RoutineCategory): data is MorningFeedData {
+function isMorningData(
+  data: NonNullable<FeedItem["routineData"]>,
+  category: RoutineCategory,
+): data is MorningFeedData {
   return category === "모닝" && "condition" in data;
 }
-function isFinanceData(data: NonNullable<FeedItem["routineData"]>, category: RoutineCategory): data is FinanceFeedData {
+function isFinanceData(
+  data: NonNullable<FeedItem["routineData"]>,
+  category: RoutineCategory,
+): data is FinanceFeedData {
   return category === "자산관리" && "dailyExpenses" in data;
 }
-function isLanguageData(data: NonNullable<FeedItem["routineData"]>, category: RoutineCategory): data is LanguageFeedData {
-  return (category === "영어" || category === "제2외국어") && "expressions" in data;
+function isLanguageData(
+  data: NonNullable<FeedItem["routineData"]>,
+  category: RoutineCategory,
+): data is LanguageFeedData {
+  return (
+    (category === "영어" || category === "제2외국어") && "expressions" in data
+  );
 }
-function isReadingData(data: NonNullable<FeedItem["routineData"]>, category: RoutineCategory): data is ReadingFeedData {
+function isReadingData(
+  data: NonNullable<FeedItem["routineData"]>,
+  category: RoutineCategory,
+): data is ReadingFeedData {
   return category === "독서" && "bookTitle" in data;
 }
 
-export default function FeedDetail({ item, onBack, onCommentAdd }: FeedDetailProps) {
+export default function FeedDetail({ item }: FeedDetailProps) {
+  const router = useRouter();
   const [comments, setComments] = useState<Comment[]>(item.comments ?? []);
   const meta = getCategoryMeta(item.routineCategory);
 
@@ -323,23 +417,24 @@ export default function FeedDetail({ item, onBack, onCommentAdd }: FeedDetailPro
       text,
       date: new Date().toISOString(),
     };
-    const updated = [...comments, newComment];
-    setComments(updated);
-    onCommentAdd(item.id, newComment);
+    setComments((prev) => [...prev, newComment]);
   };
 
   return (
-    <div className="w-full px-4 py-3 sm:px-6">
-      <div className="mx-auto max-w-7xl scale-[0.8] origin-top">
+    <div className="max-w-2xl mx-auto px-4 py-6 pb-8">
+      <div>
         {/* 헤더 */}
         <div className="flex items-center gap-3 mb-6 mt-2">
           <button
-            onClick={onBack}
+            onClick={() => router.back()}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${meta.bg} ${meta.color}`}>
+          <span
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold"
+            style={{ backgroundColor: meta.bgColor, color: meta.hexColor }}
+          >
             {meta.icon}
             {meta.label}
           </span>
@@ -353,8 +448,12 @@ export default function FeedDetail({ item, onBack, onCommentAdd }: FeedDetailPro
               <User className="w-6 h-6 text-gray-400" />
             </div>
             <div>
-              <p className="text-base font-bold text-gray-900">{item.userName}</p>
-              <p className="text-xs text-gray-400">{formatFullDate(item.date)}</p>
+              <p className="text-base font-bold text-gray-900">
+                {item.userName}
+              </p>
+              <p className="text-xs text-gray-400">
+                {formatFullDate(item.date)}
+              </p>
             </div>
           </div>
 
