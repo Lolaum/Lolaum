@@ -14,8 +14,11 @@ export default function LanguageContainer({
   onBackToTimer,
   onBackToHome,
   languageType = "영어",
+  certificationPhotos,
 }: LanguageContainerProps) {
-  const [showAddRecord, setShowAddRecord] = useState(false);
+  const [showAddRecord, setShowAddRecord] = useState(
+    !!certificationPhotos?.length,
+  );
   const [showStudyPhrase, setShowStudyPhrase] = useState(false);
 
   // 영어 학습 기록 데이터
@@ -154,7 +157,13 @@ export default function LanguageContainer({
   const renderContent = () => {
     // 새 기록 추가하기 화면
     if (showAddRecord) {
-      return <AddNewLanguage onCancel={() => setShowAddRecord(false)} onBackToHome={onBackToHome} />;
+      return (
+        <AddNewLanguage
+          onCancel={() => setShowAddRecord(false)}
+          onBackToHome={onBackToHome}
+          initialImages={certificationPhotos}
+        />
+      );
     }
 
     // 메인 화면

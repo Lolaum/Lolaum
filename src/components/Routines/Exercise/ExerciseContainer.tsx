@@ -12,8 +12,11 @@ import {
 export default function ExerciseContainer({
   onBackToTimer,
   onBackToHome,
+  certificationPhotos,
+  elapsedSeconds = 0,
 }: ExerciseContainerProps) {
-  const [showAddRecord, setShowAddRecord] = useState(false);
+  // 인증 사진이 있으면 바로 기록 추가 화면으로
+  const [showAddRecord, setShowAddRecord] = useState(!!certificationPhotos?.length);
 
   // 운동 기록 데이터
   const exerciseRecords: ExerciseRecord[] = [
@@ -53,7 +56,14 @@ export default function ExerciseContainer({
   const renderContent = () => {
     // 새 기록 추가하기 화면
     if (showAddRecord) {
-      return <AddNewExercise onCancel={() => setShowAddRecord(false)} onBackToHome={onBackToHome} />;
+      return (
+        <AddNewExercise
+          onCancel={() => setShowAddRecord(false)}
+          onBackToHome={onBackToHome}
+          initialImages={certificationPhotos}
+          initialDuration={elapsedSeconds > 0 ? Math.round(elapsedSeconds / 60) : undefined}
+        />
+      );
     }
 
     // 메인 화면

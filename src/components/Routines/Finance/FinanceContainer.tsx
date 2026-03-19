@@ -9,8 +9,9 @@ import { FinanceRecord, FinanceContainerProps } from "@/types/routines/finance";
 export default function FinanceContainer({
   onBackToTimer,
   onBackToHome,
+  certificationPhotos,
 }: FinanceContainerProps) {
-  const [showAddRecord, setShowAddRecord] = useState(false);
+  const [showAddRecord, setShowAddRecord] = useState(!!certificationPhotos?.length);
 
   // 자산관리 리추얼 기록 데이터
   const financeRecords: FinanceRecord[] = [

@@ -53,6 +53,7 @@ function CircularProgress({
 export default function Timer({
   taskTitle,
   color,
+  startPhoto,
   onClose,
   onNext,
 }: TimerProps) {
@@ -124,14 +125,14 @@ export default function Timer({
   };
 
   const handleNext = () => {
-    // 타이머 일시정지
+    const finalSeconds = calculateElapsed();
     if (isRunning) {
-      setElapsedBeforePause(calculateElapsed());
+      setElapsedBeforePause(finalSeconds);
       setStartTime(null);
       setIsRunning(false);
     }
     if (onNext) {
-      onNext();
+      onNext(finalSeconds);
     }
   };
 
@@ -160,11 +161,39 @@ export default function Timer({
         </button>
       </div>
 
-      <div className="w-full max-w-sm text-center mx-auto">
-        {/* 태스크 제목 */}
-        <h1 className="mb-4 text-lg font-medium" style={{ color: color }}>
+      {/* 시작 인증 사진 썸네일 */}
+      {startPhoto && (
+        <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-gray-50 rounded-xl border border-gray-100">
+          <img
+            src={startPhoto}
+            alt="시작 인증"
+            className="w-10 h-10 object-cover rounded-lg flex-shrink-0"
+          />
+          <div>
+            <p className="text-xs font-semibold text-gray-700">
+              시작 인증 완료
+            </p>
+            <p className="text-xs text-gray-400">
+              리추얼을 마치면 종료 인증을 해주세요
+            </p>
+          </div>
+          <span
+            className="ml-auto w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+            style={{ backgroundColor: color }}
+          >
+            ✓
+          </span>
+        </div>
+      )}
+
+      {/* 태스크 이름 뱃지 */}
+      <div className="text-center mb-8">
+        <span
+          className="inline-block px-4 py-1.5 rounded-full text-sm font-semibold text-white shadow-sm"
+          style={{ backgroundColor: color }}
+        >
           {taskTitle}
-        </h1>
+        </span>
 
         {/* 원형 프로그레스 + 타이머 */}
         <div className="relative mb-6 flex items-center justify-center">
@@ -193,39 +222,17 @@ export default function Timer({
               시작
             </button>
           </div>
-        ) : (
-          // 진행 중 또는 일시중지 상태
-          <div className="flex flex-col items-center gap-4">
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={handleStartPause}
-                className="rounded-full px-12 py-3 text-base font-bold text-white transition-colors"
-                style={{
-                  backgroundColor: color,
-                  opacity: isRunning ? 1 : 0.9,
-                }}
-              >
-                {isRunning ? "일시중지" : "계속하기"}
-              </button>
-              <button
-                type="button"
-                onClick={handleReset}
-                className="rounded-full bg-gray-200 px-8 py-3 text-base font-bold text-gray-600 transition-colors hover:bg-gray-300"
-              >
-                초기화
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={handleNext}
-              className="flex items-center gap-1 text-base font-medium text-gray-500 hover:text-gray-700 underline mt-5"
-            >
-              다음으로
-              <ChevronsRight className="w-6 h-6" />
-            </button>
-          </div>
-        )}
+        ) : null}
+        <button
+          type="button"
+          onClick={handleNext}
+          disabled={seconds === 0}
+          className="flex items-center gap-1.5 text-sm font-bold px-6 py-3 rounded-2xl transition-all mt-2 disabled:text-gray-300 disabled:cursor-not-allowed"
+          style={seconds > 0 ? { color } : {}}
+        >
+          {startPhoto ? "리추얼 종료하기" : "기록하러 가기"}
+          <ChevronsRight className="w-5 h-5" />
+        </button>
       </div>
     </div>
   );

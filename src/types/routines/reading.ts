@@ -32,6 +32,7 @@ export interface BookManageProps {
 export interface ReadingContainerProps {
   onBackToTimer?: () => void;
   onBackToHome?: () => void;
+  certificationPhotos?: string[]; // [시작 인증 사진, 종료 인증 사진]
 }
 
 export interface ReadingRecord {
