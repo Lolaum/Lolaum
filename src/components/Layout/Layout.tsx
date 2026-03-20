@@ -30,7 +30,7 @@ const navItems: NavItem[] = [
   { href: "/home", label: "홈", icon: HomeIcon },
   { href: "/ritual", label: "리추얼", icon: RitualIcon },
   { href: "/feeds", label: "인증", icon: VerifyIcon },
-  { href: "/team", label: "팀원", icon: TeamIcon },
+  { href: "/progress", label: "진행도", icon: ReportIcon },
 ];
 
 export default function Layout({ children }: LayoutProps) {
