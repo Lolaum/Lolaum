@@ -30,7 +30,7 @@ function applyTimestamp(file: File): Promise<string> {
       const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
       const text = `${dateStr}  ${timeStr}`;
 
-      const fontSize = Math.max(28, Math.round(canvas.width * 0.05));
+      const fontSize = Math.max(40, Math.round(canvas.width * 0.07));
       ctx.font = `bold ${fontSize}px Arial, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -58,9 +58,13 @@ export default function PhotoCertification({
   onPhotoTaken,
   onClose,
 }: PhotoCertificationProps) {
-  const [photo, setPhoto] = useState<string | null>(null);
+  const [originalPhoto, setOriginalPhoto] = useState<string | null>(null);
+  const [timestampedPhoto, setTimestampedPhoto] = useState<string | null>(null);
+  const [removeTimestamp, setRemoveTimestamp] = useState(false);
   const [processing, setProcessing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const photo = removeTimestamp ? originalPhoto : timestampedPhoto;
 
   const totalMinutes = Math.floor(elapsedSeconds / 60);
   const totalSecs = elapsedSeconds % 60;
@@ -70,10 +74,24 @@ export default function PhotoCertification({
     const file = e.target.files?.[0];
     if (!file) return;
     setProcessing(true);
-    const dataUrl = await applyTimestamp(file);
-    setPhoto(dataUrl);
+    const [tsUrl, origUrl] = await Promise.all([
+      applyTimestamp(file),
+      new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      }),
+    ]);
+    setTimestampedPhoto(tsUrl);
+    setOriginalPhoto(origUrl);
     setProcessing(false);
     e.target.value = "";
+  };
+
+  const handleReset = () => {
+    setOriginalPhoto(null);
+    setTimestampedPhoto(null);
+    setRemoveTimestamp(false);
   };
 
   const handleConfirm = () => {
@@ -131,29 +149,39 @@ export default function PhotoCertification({
             ref={inputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             className="hidden"
             onChange={handleFileChange}
           />
         </label>
       ) : (
-        <div className="relative rounded-2xl overflow-hidden">
-          <img
-            src={photo}
-            alt="인증 사진"
-            className="w-full object-cover rounded-2xl max-h-64"
-          />
-          <button
-            type="button"
-            onClick={() => setPhoto(null)}
-            className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-black bg-opacity-50 rounded-full text-white hover:bg-opacity-70"
-          >
-            <X className="w-4 h-4" />
-          </button>
-          <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 rounded-lg px-2 py-1">
-            <p className="text-xs text-white">재촬영하려면 X를 누르세요</p>
+        <>
+          <div className="relative rounded-2xl overflow-hidden">
+            <img
+              src={photo!}
+              alt="인증 사진"
+              className="w-full object-cover rounded-2xl max-h-64"
+            />
+            <button
+              type="button"
+              onClick={handleReset}
+              className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-black bg-opacity-50 rounded-full text-white hover:bg-opacity-70"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 rounded-lg px-2 py-1">
+              <p className="text-xs text-white">재촬영하려면 X를 누르세요</p>
+            </div>
           </div>
-        </div>
+          <label className="flex items-center gap-2 mt-3 cursor-pointer select-none w-fit">
+            <input
+              type="checkbox"
+              checked={removeTimestamp}
+              onChange={(e) => setRemoveTimestamp(e.target.checked)}
+              className="w-4 h-4 rounded accent-gray-600 cursor-pointer"
+            />
+            <span className="text-sm text-gray-500">타임스탬프 삭제하기</span>
+          </label>
+        </>
       )}
 
       {processing && (
