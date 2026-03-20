@@ -53,6 +53,7 @@ function CircularProgress({
 export default function Timer({
   taskTitle,
   color,
+  startPhoto,
   onClose,
   onNext,
 }: TimerProps) {
@@ -124,14 +125,14 @@ export default function Timer({
   };
 
   const handleNext = () => {
-    // 타이머 일시정지
+    const finalSeconds = calculateElapsed();
     if (isRunning) {
-      setElapsedBeforePause(calculateElapsed());
+      setElapsedBeforePause(finalSeconds);
       setStartTime(null);
       setIsRunning(false);
     }
     if (onNext) {
-      onNext();
+      onNext(finalSeconds);
     }
   };
 
@@ -144,8 +145,18 @@ export default function Timer({
           onClick={onClose}
           className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
         >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
@@ -159,7 +170,11 @@ export default function Timer({
           {taskTitle}
         </span>
         <p className="text-xs text-gray-400 mt-2">
-          {isRunning ? "집중 중..." : seconds > 0 ? "일시정지됨" : "준비되면 시작하세요"}
+          {isRunning
+            ? "집중 중..."
+            : seconds > 0
+              ? "일시정지됨"
+              : "준비되면 시작하세요"}
         </p>
       </div>
 

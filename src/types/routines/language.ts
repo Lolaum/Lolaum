@@ -13,6 +13,8 @@ export interface LanguageContainerProps {
   onBackToTimer?: () => void;
   onBackToHome?: () => void;
   languageType?: "영어" | "제2외국어";
+  certificationPhotos?: string[]; // [시작 인증 사진, 종료 인증 사진]
+  elapsedSeconds?: number;
 }
 
 export interface LanguageFormData {
@@ -25,6 +27,7 @@ export interface AddNewLanguageProps {
   onCancel: () => void;
   onBackToHome?: () => void;
   onSubmit?: (recordData: LanguageFormData) => void;
+  initialImages?: string[]; // 인증 사진 자동 주입
 }
 
 export interface Expression {

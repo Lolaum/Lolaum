@@ -21,8 +21,41 @@ export default function GenerateRoutine({ onClose }: GenerateRoutineProps) {
   const [selectedRoutine, setSelectedRoutine] = useState<string>("");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const handleCreate = () => {
+    if (!selectedRoutine) return;
+    setShowSuccess(true);
+  };
 
   return (
+    <>
+    {showSuccess && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { setShowSuccess(false); onClose?.(); }}>
+        <div className="bg-white rounded-3xl shadow-xl p-6 mx-4 w-full max-w-sm flex flex-col items-center text-center" onClick={(e) => e.stopPropagation()}>
+          <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: "#fef9ec" }}>
+            <svg className="w-7 h-7" fill="none" stroke="#eab32e" strokeWidth={2.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 className="text-base font-bold text-gray-800 mb-1">루틴이 생성되었어요!</h2>
+          <p className="text-sm text-gray-500 mb-1">{selectedRoutine}</p>
+          {(startDate || endDate) && (
+            <p className="text-xs text-gray-300 mb-5">
+              {startDate || "—"} ~ {endDate || "계속"}
+            </p>
+          )}
+          {!(startDate || endDate) && <div className="mb-5" />}
+          <button
+            onClick={() => { setShowSuccess(false); onClose?.(); }}
+            className="w-full py-3 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md"
+            style={{ backgroundColor: "#eab32e" }}
+          >
+            확인
+          </button>
+        </div>
+      </div>
+    )}
     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5">
       {/* 헤더 */}
       <h2 className="text-base font-bold text-gray-800 mb-4">새 루틴 만들기</h2>
@@ -53,7 +86,7 @@ export default function GenerateRoutine({ onClose }: GenerateRoutineProps) {
       </div>
 
       {/* 기간 설정 */}
-      <div className="mb-5">
+      <div className="mb-4">
         <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
           시작일
         </label>
@@ -61,6 +94,20 @@ export default function GenerateRoutine({ onClose }: GenerateRoutineProps) {
           type="date"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
+          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] focus:bg-white transition-all"
+        />
+      </div>
+
+      {/* 종료일 설정 */}
+      <div className="mb-5">
+        <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+          종료일
+        </label>
+        <input
+          type="date"
+          value={endDate}
+          min={startDate || undefined}
+          onChange={(e) => setEndDate(e.target.value)}
           className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] focus:bg-white transition-all"
         />
         <p className="mt-1.5 text-xs text-gray-300">종료일을 지정하지 않으면 계속 진행됩니다</p>
@@ -77,6 +124,7 @@ export default function GenerateRoutine({ onClose }: GenerateRoutineProps) {
           </button>
         )}
         <button
+          onClick={handleCreate}
           className="flex-1 py-3 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md"
           style={{ backgroundColor: "#eab32e" }}
         >
@@ -84,5 +132,6 @@ export default function GenerateRoutine({ onClose }: GenerateRoutineProps) {
         </button>
       </div>
     </div>
+    </>
   );
 }
