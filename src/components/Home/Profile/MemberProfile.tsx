@@ -34,7 +34,9 @@ export default function MemberProfile({
     <div className="rounded-3xl bg-white shadow-sm border border-gray-100 p-4 mb-4">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">챌린저</span>
+        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          챌린저
+        </span>
         <span
           className="text-xs font-medium px-2 py-0.5 rounded-full"
           style={{ backgroundColor: "#fef3c7", color: "#92400e" }}
@@ -61,15 +63,25 @@ export default function MemberProfile({
                     className="w-12 h-12 rounded-full flex items-center justify-center transition-all"
                     style={{
                       backgroundColor: isSelected ? "#fef3c7" : "#f3f4f6",
-                      boxShadow: isSelected ? "0 0 0 2.5px #eab32e, 0 0 0 4px #fff" : "none",
+                      boxShadow: isSelected
+                        ? "0 0 0 2.5px #eab32e, 0 0 0 4px #fff"
+                        : "none",
                     }}
                   >
                     {member.avatar ? (
-                      <img src={member.avatar} alt={member.name} className="w-full h-full rounded-full object-cover" />
+                      <img
+                        src={member.avatar}
+                        alt={member.name}
+                        className="w-full h-full rounded-full object-cover"
+                      />
                     ) : member.emoji ? (
                       <span className="text-xl">{member.emoji}</span>
                     ) : (
-                      <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="w-6 h-6 text-gray-400"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                       </svg>
                     )}

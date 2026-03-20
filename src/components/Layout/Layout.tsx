@@ -10,6 +10,7 @@ import RitualIcon from "../icons/RitualIcon";
 import VerifyIcon from "../icons/VerifyIcon";
 import TeamIcon from "../icons/TeamIcon";
 import ReportIcon from "../icons/ReportIcon";
+import ProfileIcon from "../icons/ProfileIcon";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -29,7 +30,7 @@ const navItems: NavItem[] = [
   { href: "/home", label: "홈", icon: HomeIcon },
   { href: "/ritual", label: "리추얼", icon: RitualIcon },
   { href: "/feeds", label: "인증", icon: VerifyIcon },
-  { href: "/team", label: "챌린저", icon: TeamIcon },
+  { href: "/team", label: "팀원", icon: TeamIcon },
 ];
 
 export default function Layout({ children }: LayoutProps) {
