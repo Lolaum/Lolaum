@@ -29,23 +29,19 @@ export default function GenerateRoutine({ onClose }: GenerateRoutineProps) {
 
   const questions =
     selectedRoutine ? declarationQuestions[selectedRoutine] : [];
-
   const allAnswersFilled =
-    questions.length > 0 &&
-    questions.every((q) => (answers[q.id] ?? "").trim().length > 0);
-
-  const handleNextStep = () => {
-    if (!selectedRoutine) return;
-    setStep(2);
-  };
-
-  const handleCreate = () => {
-    if (!allAnswersFilled) return;
-    setShowSuccess(true);
-  };
+    questions.length > 0 && questions.every((q) => answers[q.id]?.trim());
 
   const handleAnswerChange = (questionId: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
+  };
+
+  const handleNextStep = () => {
+    if (selectedRoutine) setStep(2);
+  };
+
+  const handleCreate = () => {
+    setShowSuccess(true);
   };
 
   const handleClose = () => {
@@ -55,9 +51,10 @@ export default function GenerateRoutine({ onClose }: GenerateRoutineProps) {
 
   return (
     <>
+      {/* 성공 모달 */}
       {showSuccess && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"
           onClick={handleClose}
         >
           <div
@@ -215,7 +212,10 @@ export default function GenerateRoutine({ onClose }: GenerateRoutineProps) {
           <>
             {/* 2단계: 선언 폼 */}
             <p className="text-xs text-gray-400 mb-4">
-              <span className="font-semibold" style={{ color: "#eab32e" }}>
+              <span
+                className="font-semibold"
+                style={{ color: "#eab32e" }}
+              >
                 {selectedRoutine}
               </span>{" "}
               선언을 작성해주세요

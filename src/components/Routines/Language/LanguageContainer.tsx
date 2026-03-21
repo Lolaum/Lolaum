@@ -14,8 +14,11 @@ export default function LanguageContainer({
   onBackToTimer,
   onBackToHome,
   languageType = "영어",
+  certificationPhotos,
 }: LanguageContainerProps) {
-  const [showAddRecord, setShowAddRecord] = useState(false);
+  const [showAddRecord, setShowAddRecord] = useState(
+    !!certificationPhotos?.length,
+  );
   const [showStudyPhrase, setShowStudyPhrase] = useState(false);
 
   const isEnglish = languageType === "영어";

@@ -11,10 +11,14 @@ export default function AddNewExercise({
   onCancel,
   onBackToHome,
   onSubmit,
+  initialImages,
+  initialDuration,
 }: AddNewExerciseProps) {
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<string[]>(initialImages ?? []);
   const [exerciseName, setExerciseName] = useState("");
-  const [duration, setDuration] = useState("");
+  const [duration, setDuration] = useState(
+    initialDuration != null ? String(initialDuration) : ""
+  );
   const [achievement, setAchievement] = useState("");
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,6 +102,11 @@ export default function AddNewExercise({
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-3">
             인증 사진 (최대 5장)
+            {initialImages?.length ? (
+              <span className="ml-2 text-xs font-normal text-orange-500">
+                시작·종료 인증 사진 자동 첨부됨
+              </span>
+            ) : null}
           </label>
           <div className="space-y-3">
             {/* 이미지 업로드 영역 */}
@@ -122,22 +131,37 @@ export default function AddNewExercise({
             {/* 업로드된 이미지 미리보기 */}
             {images.length > 0 && (
               <div className="grid grid-cols-2 gap-3">
-                {images.map((image, index) => (
-                  <div key={index} className="relative">
-                    <img
-                      src={image}
-                      alt={`업로드 이미지 ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-xl"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(index)}
-                      className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-black bg-opacity-50 rounded-full text-white hover:bg-opacity-70"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+                {images.map((image, index) => {
+                  const certLabel =
+                    initialImages?.length === 2
+                      ? index === 0
+                        ? "시작"
+                        : index === 1
+                        ? "종료"
+                        : null
+                      : null;
+                  return (
+                    <div key={index} className="relative">
+                      <img
+                        src={image}
+                        alt={`업로드 이미지 ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-xl"
+                      />
+                      {certLabel && (
+                        <span className="absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs font-bold px-2 py-0.5 rounded-md">
+                          {certLabel}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-black bg-opacity-50 rounded-full text-white hover:bg-opacity-70"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

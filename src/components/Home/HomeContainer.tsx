@@ -11,6 +11,18 @@ import LanguageContainer from "@/components/Routines/Language/LanguageContainer"
 import ExerciseContainer from "@/components/Routines/Exercise/ExerciseContainer";
 import MorningContainer from "@/components/Routines/Morning/MorningContainer";
 import FinanceContainer from "@/components/Routines/Finance/FinanceContainer";
+import PhotoCertification from "@/components/Ritual/PhotoCertification";
+
+type RitualStep = "pre_photo" | "timer" | "post_photo" | "record";
+
+// 시작/종료 인증 사진이 필요한 리추얼 목록
+const NEEDS_PHOTO_FLOW = [
+  "운동리추얼",
+  "영어리추얼",
+  "독서리추얼",
+  "제2외국어리추얼",
+  "자산관리리추얼",
+];
 
 export default function HomeContainer() {
   const [mounted, setMounted] = useState(false);
@@ -23,11 +35,12 @@ export default function HomeContainer() {
     title: string;
     color: string;
   } | null>(null);
-  const [showReading, setShowReading] = useState(false);
-  const [showLanguage, setShowLanguage] = useState(false);
-  const [showExercise, setShowExercise] = useState(false);
-  const [showMorning, setShowMorning] = useState(false);
-  const [showFinance, setShowFinance] = useState(false);
+
+  // 리추얼 진행 단계 상태 머신
+  const [ritualStep, setRitualStep] = useState<RitualStep | null>(null);
+  const [startPhoto, setStartPhoto] = useState<string | null>(null);
+  const [endPhoto, setEndPhoto] = useState<string | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   useEffect(() => {
     const now = new Date();
@@ -38,54 +51,24 @@ export default function HomeContainer() {
 
   const handleTaskClick = (title: string, color: string) => {
     setSelectedTask({ title, color });
-    // 모닝 리추얼은 타이머 없이 바로 표시
-    if (title === "모닝리추얼") {
-      setShowMorning(true);
+    if (title === "모닝리추얼" || title === "영어원서리추얼") {
+      // 타이머/인증 없이 바로 기록폼
+      setRitualStep("record");
+      return;
+    }
+    if (NEEDS_PHOTO_FLOW.includes(title)) {
+      setRitualStep("pre_photo");
+    } else {
+      setRitualStep("timer");
     }
   };
 
   const handleCloseTimer = () => {
     setSelectedTask(null);
-    setShowReading(false);
-    setShowLanguage(false);
-    setShowExercise(false);
-    setShowMorning(false);
-    setShowFinance(false);
-  };
-
-  const handleNext = () => {
-    if (selectedTask?.title === "독서리추얼") {
-      setShowReading(true);
-    } else if (
-      selectedTask?.title === "영어리추얼" ||
-      selectedTask?.title === "제2외국어리추얼"
-    ) {
-      setShowLanguage(true);
-    } else if (selectedTask?.title === "운동리추얼") {
-      setShowExercise(true);
-    } else if (selectedTask?.title === "자산관리리추얼") {
-      setShowFinance(true);
-    }
-  };
-
-  const handleCloseReading = () => {
-    setShowReading(false);
-  };
-
-  const handleCloseLanguage = () => {
-    setShowLanguage(false);
-  };
-
-  const handleCloseExercise = () => {
-    setShowExercise(false);
-  };
-
-  const handleCloseMorning = () => {
-    setShowMorning(false);
-  };
-
-  const handleCloseFinance = () => {
-    setShowFinance(false);
+    setRitualStep(null);
+    setStartPhoto(null);
+    setEndPhoto(null);
+    setElapsedSeconds(0);
   };
 
   // 마운트 전에는 로딩 상태 표시
@@ -112,48 +95,132 @@ export default function HomeContainer() {
     );
   }
 
-  // Timer 또는 각종 Container가 활성화되면 해당 화면만 표시
-  if (selectedTask) {
-    return (
+  // 리추얼 진행 화면 렌더링
+  if (selectedTask && ritualStep) {
+    const certPhotos =
+      startPhoto && endPhoto ? [startPhoto, endPhoto] : [];
+
+    const wrap = (children: React.ReactNode) => (
       <div className="w-full px-4 py-3 sm:px-6 md:px-8 lg:px-12">
-        <div className="mx-auto max-w-7xl">
-          {showReading ? (
-            <div>
-              <ReadingContainer onBackToTimer={handleCloseReading} onBackToHome={handleCloseTimer} />
-            </div>
-          ) : showLanguage ? (
-            <div>
-              <LanguageContainer
-                onBackToTimer={handleCloseLanguage}
-                onBackToHome={handleCloseTimer}
-                languageType={
-                  selectedTask.title === "영어리추얼" ? "영어" : "제2외국어"
-                }
-              />
-            </div>
-          ) : showExercise ? (
-            <div>
-              <ExerciseContainer onBackToTimer={handleCloseExercise} onBackToHome={handleCloseTimer} />
-            </div>
-          ) : showMorning ? (
-            <div>
-              <MorningContainer onBackToTimer={handleCloseMorning} onBackToHome={handleCloseTimer} />
-            </div>
-          ) : showFinance ? (
-            <div>
-              <FinanceContainer onBackToTimer={handleCloseFinance} onBackToHome={handleCloseTimer} />
-            </div>
-          ) : (
-            <Timer
-              taskTitle={selectedTask.title}
-              color={selectedTask.color}
-              onClose={handleCloseTimer}
-              onNext={handleNext}
-            />
-          )}
-        </div>
+        <div className="mx-auto max-w-7xl">{children}</div>
       </div>
     );
+
+    // STEP 1: 시작 인증 사진
+    if (ritualStep === "pre_photo") {
+      return wrap(
+        <PhotoCertification
+          mode="start"
+          taskTitle={selectedTask.title}
+          color={selectedTask.color}
+          onPhotoTaken={(photo) => {
+            setStartPhoto(photo);
+            setRitualStep("timer");
+          }}
+          onClose={handleCloseTimer}
+        />
+      );
+    }
+
+    // STEP 2: 타이머
+    if (ritualStep === "timer") {
+      return wrap(
+        <Timer
+          taskTitle={selectedTask.title}
+          color={selectedTask.color}
+          startPhoto={startPhoto ?? undefined}
+          onClose={handleCloseTimer}
+          onNext={(seconds) => {
+            setElapsedSeconds(seconds);
+            if (NEEDS_PHOTO_FLOW.includes(selectedTask.title)) {
+              setRitualStep("post_photo");
+            } else {
+              setRitualStep("record");
+            }
+          }}
+        />
+      );
+    }
+
+    // STEP 3: 종료 인증 사진
+    if (ritualStep === "post_photo") {
+      return wrap(
+        <PhotoCertification
+          mode="end"
+          taskTitle={selectedTask.title}
+          color={selectedTask.color}
+          elapsedSeconds={elapsedSeconds}
+          onPhotoTaken={(photo) => {
+            setEndPhoto(photo);
+            setRitualStep("record");
+          }}
+          onClose={handleCloseTimer}
+        />
+      );
+    }
+
+    // STEP 4: 기록 추가 컨테이너
+    if (ritualStep === "record") {
+      if (selectedTask.title === "모닝리추얼") {
+        return wrap(
+          <MorningContainer
+            onBackToTimer={handleCloseTimer}
+            onBackToHome={handleCloseTimer}
+          />
+        );
+      }
+
+      if (
+        selectedTask.title === "독서리추얼" ||
+        selectedTask.title === "영어원서리추얼"
+      ) {
+        return wrap(
+          <ReadingContainer
+            certificationPhotos={certPhotos}
+            onBackToTimer={handleCloseTimer}
+            onBackToHome={handleCloseTimer}
+          />
+        );
+      }
+
+      if (
+        selectedTask.title === "영어리추얼" ||
+        selectedTask.title === "제2외국어리추얼"
+      ) {
+        return wrap(
+          <LanguageContainer
+            certificationPhotos={certPhotos}
+            elapsedSeconds={elapsedSeconds}
+            onBackToTimer={handleCloseTimer}
+            onBackToHome={handleCloseTimer}
+            languageType={
+              selectedTask.title === "영어리추얼" ? "영어" : "제2외국어"
+            }
+          />
+        );
+      }
+
+      if (selectedTask.title === "운동리추얼") {
+        return wrap(
+          <ExerciseContainer
+            certificationPhotos={certPhotos}
+            elapsedSeconds={elapsedSeconds}
+            onBackToTimer={handleCloseTimer}
+            onBackToHome={handleCloseTimer}
+          />
+        );
+      }
+
+      if (selectedTask.title === "자산관리리추얼") {
+        return wrap(
+          <FinanceContainer
+            certificationPhotos={certPhotos}
+            onBackToTimer={handleCloseTimer}
+            onBackToHome={handleCloseTimer}
+          />
+        );
+      }
+    }
   }
 
   return (
