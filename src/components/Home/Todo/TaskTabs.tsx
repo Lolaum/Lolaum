@@ -78,7 +78,7 @@ export default function TaskTabs({ selectedDate, onTaskClick }: TaskTabsProps) {
           {
             label: "중간회고",
             icon: ClipboardCheck,
-            onClick: undefined,
+            onClick: () => router.push("/mid-review"),
           },
           {
             label: "최종회고",
@@ -113,31 +113,31 @@ export default function TaskTabs({ selectedDate, onTaskClick }: TaskTabsProps) {
 
           {/* 세그먼트 컨트롤 — 슬라이딩 pill */}
           <div className="relative flex bg-gray-100 rounded-2xl p-1 w-36">
-          {/* 슬라이딩 active 배경 */}
-          <div
-            className="absolute inset-y-1 rounded-xl"
-            style={{
-              width: "calc(50% - 4px)",
-              left: activeTab === "routine" ? 4 : "calc(50%)",
-              backgroundColor: "#eab32e",
-              boxShadow: "0 2px 8px rgba(234,179,46,0.35)",
-              transition: "left 0.22s cubic-bezier(0.4, 0, 0.2, 1)",
-            }}
-          />
-          {(["routine", "todo"] as const).map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className="relative z-10 flex-1 py-2.5 text-sm font-semibold flex items-center justify-center"
+            {/* 슬라이딩 active 배경 */}
+            <div
+              className="absolute inset-y-1 rounded-xl"
               style={{
-                color: activeTab === tab ? "#fff" : "#9ca3af",
-                transition: "color 0.18s ease",
+                width: "calc(50% - 4px)",
+                left: activeTab === "routine" ? 4 : "calc(50%)",
+                backgroundColor: "#eab32e",
+                boxShadow: "0 2px 8px rgba(234,179,46,0.35)",
+                transition: "left 0.22s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
-            >
-              {tab === "routine" ? "루틴" : "투두"}
-            </button>
-          ))}
+            />
+            {(["routine", "todo"] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className="relative z-10 flex-1 py-2.5 text-sm font-semibold flex items-center justify-center"
+                style={{
+                  color: activeTab === tab ? "#fff" : "#9ca3af",
+                  transition: "color 0.18s ease",
+                }}
+              >
+                {tab === "routine" ? "루틴" : "투두"}
+              </button>
+            ))}
           </div>
         </div>
 

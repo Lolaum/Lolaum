@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import HomCalendar from "./HomeCalendar";
 import TaskTabs from "./Todo/TaskTabs";
 import MemberProfile from "./Profile/MemberProfile";
@@ -15,6 +16,11 @@ import PhotoCertification from "@/components/Ritual/PhotoCertification";
 
 type RitualStep = "pre_photo" | "timer" | "post_photo" | "record";
 
+const CURRENT_DAY: number = 11;
+const IS_MID_REVIEW_PERIOD = CURRENT_DAY >= 10 && CURRENT_DAY <= 13;
+const IS_LAST_DAY = CURRENT_DAY === 13;
+const DAYS_LEFT = 13 - CURRENT_DAY;
+
 // 시작/종료 인증 사진이 필요한 리추얼 목록
 const NEEDS_PHOTO_FLOW = [
   "운동리추얼",
@@ -25,6 +31,7 @@ const NEEDS_PHOTO_FLOW = [
 ];
 
 export default function HomeContainer() {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [today, setToday] = useState<Date | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -237,6 +244,37 @@ export default function HomeContainer() {
               }
             />
             <Profile />
+            {IS_MID_REVIEW_PERIOD && (
+              <button
+                onClick={() => router.push("/mid-review")}
+                className="w-full rounded-2xl p-4 mb-3 text-left transition-opacity hover:opacity-90 active:opacity-80"
+                style={{
+                  background: IS_LAST_DAY
+                    ? "linear-gradient(135deg, #fee2e2, #fecaca)"
+                    : "linear-gradient(135deg, #fef3c7, #fde68a)",
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p
+                      className="text-sm font-bold mb-0.5"
+                      style={{ color: IS_LAST_DAY ? "#991b1b" : "#92400e" }}
+                    >
+                      {IS_LAST_DAY ? "⚠️ 오늘이 마지막 기회예요!" : "✍️ 중간 회고 작성 기간입니다"}
+                    </p>
+                    <p
+                      className="text-xs"
+                      style={{ color: IS_LAST_DAY ? "#b91c1c" : "#b45309" }}
+                    >
+                      {DAYS_LEFT > 0
+                        ? `${DAYS_LEFT}일 뒤 마감 · 지금 바로 작성하기 →`
+                        : "오늘 자정까지 작성해주세요 →"}
+                    </p>
+                  </div>
+                  <span className="text-2xl ml-3">📝</span>
+                </div>
+              </button>
+            )}
             <div className="sticky top-0 z-10 static">
               <HomCalendar
                 today={today}
