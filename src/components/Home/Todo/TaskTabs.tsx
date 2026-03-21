@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Flame,
   TrendingUp,
@@ -25,6 +26,7 @@ interface TaskTabsProps {
 
 export default function TaskTabs({ selectedDate, onTaskClick }: TaskTabsProps) {
   const [activeTab, setActiveTab] = useState<TabType>("routine");
+  const router = useRouter();
 
   const handleTaskClick = (title: string, color: string) => {
     onTaskClick?.(title, color);
@@ -71,19 +73,23 @@ export default function TaskTabs({ selectedDate, onTaskClick }: TaskTabsProps) {
           {
             label: "리추얼선언",
             icon: Flag,
+            onClick: () => router.push("/declaration"),
           },
           {
             label: "중간회고",
             icon: ClipboardCheck,
+            onClick: undefined,
           },
           {
             label: "최종회고",
             icon: Trophy,
+            onClick: undefined,
           },
-        ].map(({ label, icon: Icon }) => (
+        ].map(({ label, icon: Icon, onClick }) => (
           <button
             key={label}
             type="button"
+            onClick={onClick}
             className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 flex flex-col items-center justify-center gap-1.5 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors"
           >
             <Icon className="w-4 h-4 text-gray-400" strokeWidth={2} />

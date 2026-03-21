@@ -22,7 +22,11 @@ const MY_ID = "1";
 
 export default function ProgressContainer() {
   const me = members.find((m) => m.id === MY_ID);
-  const myData = mockProgressData[MY_ID] ?? { completed: 0, penalty: 0, happyChance: false };
+  const myData = mockProgressData[MY_ID] ?? {
+    completed: 0,
+    penalty: 0,
+    happyChance: false,
+  };
   const myProgress = Math.round((myData.completed / TOTAL) * 100);
   const teamMembers = members.filter((m) => m.id !== MY_ID);
 
@@ -31,7 +35,7 @@ export default function ProgressContainer() {
       {/* 페이지 헤더 */}
       <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-6">
         <p className="text-xs text-gray-400 font-medium mb-0.5">이번 달 현황</p>
-        <h1 className="text-xl font-bold text-gray-900">팀 진행표</h1>
+        <h1 className="text-xl font-bold text-gray-900">리추얼 진행표</h1>
       </div>
 
       {/* 내 진행도 */}
@@ -56,7 +60,11 @@ export default function ProgressContainer() {
             ) : me?.emoji ? (
               <span className="text-2xl">{me.emoji}</span>
             ) : (
-              <svg className="w-7 h-7 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-7 h-7 text-yellow-400"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
               </svg>
             )}
@@ -68,8 +76,12 @@ export default function ProgressContainer() {
                 {me?.name}
               </span>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-yellow-400">{myData.completed}/{TOTAL}</span>
-                <span className="text-sm font-bold text-yellow-500">{myProgress}%</span>
+                <span className="text-xs text-yellow-400">
+                  {myData.completed}/{TOTAL}
+                </span>
+                <span className="text-sm font-bold text-yellow-500">
+                  {myProgress}%
+                </span>
               </div>
             </div>
             <div className="h-2.5 bg-yellow-100 rounded-full overflow-hidden">
@@ -100,7 +112,7 @@ export default function ProgressContainer() {
 
       {/* 팀원 진행도 */}
       <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 px-1">
-        팀원 현황
+        챌린저 현황
       </h2>
       <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4">
         <div className="flex flex-col gap-5">
@@ -126,7 +138,11 @@ export default function ProgressContainer() {
                   ) : member.emoji ? (
                     <span className="text-lg">{member.emoji}</span>
                   ) : (
-                    <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                    <svg
+                      className="w-5 h-5 text-gray-400"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                     </svg>
                   )}
@@ -150,8 +166,12 @@ export default function ProgressContainer() {
                       )}
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] text-gray-300">{data.completed}/{TOTAL}</span>
-                      <span className="text-xs font-bold text-gray-400">{progress}%</span>
+                      <span className="text-[11px] text-gray-300">
+                        {data.completed}/{TOTAL}
+                      </span>
+                      <span className="text-xs font-bold text-gray-400">
+                        {progress}%
+                      </span>
                     </div>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
