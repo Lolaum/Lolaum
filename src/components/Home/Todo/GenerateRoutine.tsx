@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { RoutineType } from "@/types/routines/declaration";
-import { declarationQuestions } from "@/constants/declarationQuestions";
+import { declarationQuestions } from "@/lib/declarationQuestions";
 
 interface GenerateRoutineProps {
   onClose?: () => void;

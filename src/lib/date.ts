@@ -1,4 +1,4 @@
-import { DAYS } from "@/constants/constant";
+import { DAYS } from "@/lib/constants";
 
 // 현재 월의 모든 날짜 생성
 export const getMonthDates = (date: Date) => {
@@ -30,9 +30,13 @@ export const formatDateDisplay = (date: Date): string => {
   return `${month}월 ${day}일 (${weekday})`;
 };
 
-// 날짜를 YYYY-MM-DD 형식으로 변환
-export const formatDateKey = (date: Date): string =>
-  date.toISOString().split("T")[0];
+// 날짜를 YYYY-MM-DD 형식으로 변환 (로컬 타임존 기준)
+export const formatDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 // 주간 범위(월~일) 텍스트 반환
 export const getWeekRangeText = (date: Date) => {

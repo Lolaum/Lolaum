@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Declaration, RoutineType } from "@/types/routines/declaration";
-import { declarationQuestions } from "@/constants/declarationQuestions";
+import { declarationQuestions } from "@/lib/declarationQuestions";
 import { myDeclarations, challengerDeclarations } from "@/mock/declarationmock";
 
 const PAGE_SIZE = 8;

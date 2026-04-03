@@ -15,7 +15,7 @@ import RoutineList from "./RoutineList";
 import {
   formatDateDisplay,
   getWeekRangeText,
-} from "@/modules/Common/dateModules";
+} from "@/lib/date";
 
 type TabType = "routine" | "todo";
 

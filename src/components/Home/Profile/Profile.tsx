@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProfileProps } from "@/types/home/profile";
 import { Flame } from "lucide-react";
+import { getMe } from "@/actions/user";
 
 export default function Profile({
-  name = "사용자 이름",
   description = "매일 성장하는 습관 만들기",
   completedCount = 3,
   totalCount = 4,
@@ -14,12 +14,23 @@ export default function Profile({
     totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editName, setEditName] = useState(name);
+  const [userName, setUserName] = useState("");
+  const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState(description);
-  const [savedName, setSavedName] = useState(name);
+  const [savedName, setSavedName] = useState("");
   const [savedDescription, setSavedDescription] = useState(description);
   const [savedPhoto, setSavedPhoto] = useState<string | null>(null);
   const [editPhoto, setEditPhoto] = useState<string | null>(null);
+
+  useEffect(() => {
+    getMe().then((profile) => {
+      if (profile) {
+        setUserName(profile.username);
+        setSavedName(profile.name);
+        setEditName(profile.name);
+      }
+    });
+  }, []);
 
   const handleSave = () => {
     setSavedName(editName);
@@ -125,7 +136,7 @@ export default function Profile({
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-gray-900 truncate">{savedName}</p>
+          <p className="text-sm font-bold text-gray-900 truncate">{userName || savedName}</p>
           <p className="text-xs text-gray-400 truncate">{savedDescription}</p>
         </div>
         <div className="flex items-center gap-1 bg-yellow-50 rounded-full px-2.5 py-1 flex-shrink-0">
