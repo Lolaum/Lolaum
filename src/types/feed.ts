@@ -69,8 +69,9 @@ export interface Comment {
 }
 
 export interface FeedItem {
-  id: number;
-  userId: number;
+  id: number | string;
+  odOriginalId?: string; // DB UUID (실제 데이터용)
+  userId: number | string;
   userName: string;
   userProfileImage?: string;
   date: string; // ISO 형식 날짜

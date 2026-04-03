@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { Wallet } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Wallet, Loader2 } from "lucide-react";
 import RecordFinance from "./RecordFinance";
 import AddNewFinance from "./AddNewFinance";
-import { FinanceRecord, FinanceContainerProps } from "@/types/routines/finance";
+import { FinanceRecord, FinanceContainerProps, FinanceFormData } from "@/types/routines/finance";
+import { createRitualRecordAuto, getMyRitualRecords } from "@/actions/ritual-record";
+import type { FinanceRecordData, Json } from "@/types/supabase";
 
 export default function FinanceContainer({
   onBackToTimer,
@@ -12,52 +14,50 @@ export default function FinanceContainer({
   certificationPhotos,
 }: FinanceContainerProps) {
   const [showAddRecord, setShowAddRecord] = useState(!!certificationPhotos?.length);
+  const [financeRecords, setFinanceRecords] = useState<FinanceRecord[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // 자산관리 리추얼 기록 데이터
-  const financeRecords: FinanceRecord[] = [
-    {
-      id: 1,
-      dailyExpenses: [
-        {
-          date: "2024-02-21",
-          expenses: [
-            { id: "1", name: "점심 식사", amount: 12000, type: "necessary" },
-            { id: "2", name: "카페", amount: 5500, type: "emotional" },
-            { id: "3", name: "저녁 회식", amount: 35000, type: "necessary" },
-          ],
-        },
-      ],
-      studyContent: `나스닥100 ETF : 기술혁신기업 100개
-> 기술주 비중 5-60%, 성장주/빅테크 집중
-> 단점: S&P500에 비해서는 높은 변동성, 기술주는 금리에 민감`,
-      practice: `1. 이번주 소비 10만원 이내로 !
-2. 토스증권계좌 내일 일어나자마자 한투 ISA로 옮기기`,
-    },
-    {
-      id: 2,
-      dailyExpenses: [
-        {
-          date: "2024-02-19",
-          expenses: [
-            { id: "4", name: "점심 식사", amount: 9000, type: "necessary" },
-            { id: "5", name: "커피", amount: 4500, type: "emotional" },
-          ],
-        },
-        {
-          date: "2024-02-20",
-          expenses: [
-            { id: "6", name: "아침 식사", amount: 8000, type: "necessary" },
-            { id: "7", name: "택시비", amount: 15000, type: "necessary" },
-            { id: "8", name: "간식", amount: 4500, type: "emotional" },
-          ],
-        },
-      ],
-      studyContent: `주식과 펀드의 차이
-- 주식: 기업의 소유권을 나누어 가진 것, 높은 수익과 높은 위험
-- 펀드: 여러 투자자의 돈을 모아 전문가가 운용, 분산 투자로 위험 감소`,
-      practice: `점심 도시락 싸가기 일주일에 3번 이상`,
-    },
-  ];
+  const fetchRecords = useCallback(async () => {
+    setLoading(true);
+    const { data } = await getMyRitualRecords({ routineType: "finance" });
+    if (data) {
+      const records: FinanceRecord[] = data.map((r) => {
+        const d = r.record_data as unknown as FinanceRecordData;
+        return {
+          id: r.id as unknown as number,
+          dailyExpenses: d.dailyExpenses ?? [],
+          studyContent: d.studyContent ?? "",
+          practice: d.practice ?? "",
+        };
+      });
+      setFinanceRecords(records);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchRecords();
+  }, [fetchRecords]);
+
+  const handleSubmit = async (formData: FinanceFormData) => {
+    const today = new Date().toISOString().split("T")[0];
+    const recordData: FinanceRecordData = {
+      dailyExpenses: formData.dailyExpenses,
+      studyContent: formData.studyContent,
+      practice: formData.practice,
+    };
+    const { error } = await createRitualRecordAuto({
+      routineType: "finance",
+      recordDate: today,
+      recordData: recordData as unknown as Json,
+    });
+    if (error) {
+      alert(`기록 저장 실패: ${error}`);
+      return;
+    }
+    setShowAddRecord(false);
+    fetchRecords();
+  };
 
   // 이번 달 통계 계산
   const recordCount = financeRecords.length;
@@ -106,6 +106,7 @@ export default function FinanceContainer({
         <AddNewFinance
           onCancel={() => setShowAddRecord(false)}
           onBackToHome={onBackToHome}
+          onSubmit={handleSubmit}
         />
       );
     }
@@ -177,7 +178,14 @@ export default function FinanceContainer({
         </div>
 
         {/* 자산관리 기록 섹션 */}
-        <RecordFinance financeRecords={financeRecords} />
+        {loading ? (
+          <div className="text-center py-8 text-gray-400">
+            <Loader2 size={20} className="animate-spin mx-auto mb-2" />
+            <p className="text-xs">기록을 불러오는 중...</p>
+          </div>
+        ) : (
+          <RecordFinance financeRecords={financeRecords} />
+        )}
       </>
     );
   };

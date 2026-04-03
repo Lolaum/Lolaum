@@ -71,3 +71,45 @@ export async function createRitualRecord(input: {
   if (error) return { error: error.message };
   return { data };
 }
+
+/** challengeId 자동 조회 후 기록 생성 (UI에서 직접 호출용) */
+export async function createRitualRecordAuto(input: {
+  routineType: RoutineTypeDB;
+  recordDate: string;
+  recordData: Json;
+}): Promise<{ data?: RitualRecord; error?: string }> {
+  const { getOrCreateCurrentChallenge } = await import("./challenge");
+  const { challengeId, error: challengeError } =
+    await getOrCreateCurrentChallenge();
+
+  if (!challengeId) {
+    return { error: challengeError ?? "챌린지를 찾을 수 없습니다." };
+  }
+
+  return createRitualRecord({
+    challengeId,
+    routineType: input.routineType,
+    recordDate: input.recordDate,
+    recordData: input.recordData,
+  });
+}
+
+/** 내 기록 가져오기 (challengeId 자동) */
+export async function getMyRitualRecords(input: {
+  routineType?: RoutineTypeDB;
+  date?: string;
+}): Promise<{ data?: RitualRecord[]; error?: string }> {
+  const { getOrCreateCurrentChallenge } = await import("./challenge");
+  const { challengeId, error: challengeError } =
+    await getOrCreateCurrentChallenge();
+
+  if (!challengeId) {
+    return { error: challengeError ?? "챌린지를 찾을 수 없습니다." };
+  }
+
+  return getRitualRecords({
+    challengeId,
+    routineType: input.routineType,
+    date: input.date,
+  });
+}

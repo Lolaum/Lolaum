@@ -219,7 +219,7 @@ export default function AddNewFinance({
   };
 
   // 제출
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // 유효성 검사
     const hasEmptyDate = dailyExpenses.some((d) => !d.date);
     const hasNoExpenses = dailyExpenses.every((d) => d.expenses.length === 0);
@@ -234,8 +234,11 @@ export default function AddNewFinance({
       practice: practice.trim(),
     };
 
-    onSubmit?.(formData);
-    onCancel();
+    if (onSubmit) {
+      await onSubmit(formData);
+    } else {
+      onCancel();
+    }
   };
 
   // 총액 계산

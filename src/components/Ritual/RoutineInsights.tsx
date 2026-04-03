@@ -1,6 +1,8 @@
 "use client";
 
-import { Dumbbell, BookA, Sun, CircleDollarSign, Flame } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { Dumbbell, BookA, BookText, Sun, CircleDollarSign, Languages, Flame, Loader2 } from "lucide-react";
 import {
   readingInsightData,
   financeInsightData,
@@ -10,6 +12,17 @@ import {
   secondLanguageInsightData,
   myRoutineStats,
 } from "@/mock/ritualmock";
+import { getMyRecordsForDisplay } from "@/actions/ritual-records-display";
+import type { RoutineTypeDB } from "@/types/supabase";
+import type {
+  FeedItem,
+  RoutineCategory,
+  ReadingFeedData,
+  ExerciseFeedData,
+  MorningFeedData,
+  LanguageFeedData,
+  FinanceFeedData,
+} from "@/types/feed";
 
 // ─────────────────────────────
 // 달성 카드 (공통)
@@ -627,6 +640,171 @@ function FinanceInsight() {
 }
 
 // ─────────────────────────────
+// 탭 → routine_type 매핑
+// ─────────────────────────────
+const TAB_TO_ROUTINE: Record<string, RoutineTypeDB> = {
+  독서: "reading",
+  운동: "exercise",
+  모닝: "morning",
+  영어: "english",
+  제2외국어: "second_language",
+  자산관리: "finance",
+};
+
+const CATEGORY_CONFIG: Record<
+  RoutineCategory,
+  { color: string; bgColor: string; icon: React.ReactNode }
+> = {
+  독서: { color: "#6366f1", bgColor: "#eef2ff", icon: <BookText size={13} /> },
+  운동: { color: "#ff8900", bgColor: "#fff4e5", icon: <Dumbbell size={13} /> },
+  영어: { color: "#0ea5e9", bgColor: "#f0f9ff", icon: <BookA size={13} /> },
+  모닝: { color: "#eab32e", bgColor: "#fefce8", icon: <Sun size={13} /> },
+  제2외국어: { color: "#8b5cf6", bgColor: "#f5f3ff", icon: <Languages size={13} /> },
+  자산관리: { color: "#10b981", bgColor: "#ecfdf5", icon: <CircleDollarSign size={13} /> },
+};
+
+// 최근 기록 카드 (리추얼별)
+function RecordPreviewCard({ item }: { item: FeedItem }) {
+  const config = CATEGORY_CONFIG[item.routineCategory];
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${month}.${day}`;
+  };
+
+  const renderSummary = () => {
+    if (!item.routineData) return null;
+    switch (item.routineCategory) {
+      case "독서": {
+        const d = item.routineData as ReadingFeedData;
+        return (
+          <div className="space-y-1.5">
+            <p className="text-sm font-semibold text-gray-800">{d.bookTitle}</p>
+            {d.progressAmount && (
+              <p className="text-xs" style={{ color: config.color }}>+{d.progressAmount}p 읽음</p>
+            )}
+            {d.note && <p className="text-xs text-gray-500 line-clamp-2">{d.note}</p>}
+          </div>
+        );
+      }
+      case "운동": {
+        const d = item.routineData as ExerciseFeedData;
+        return (
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold" style={{ color: config.color }}>{d.exerciseName}</span>
+              <span className="text-xs text-gray-400">{d.duration}분</span>
+            </div>
+            {d.achievement && <p className="text-xs text-gray-500 line-clamp-2">{d.achievement}</p>}
+          </div>
+        );
+      }
+      case "모닝": {
+        const d = item.routineData as MorningFeedData;
+        return (
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400">수면 {d.sleepHours}h</span>
+              <span className="text-xs text-gray-400">컨디션 {d.condition}</span>
+            </div>
+            <p className="text-xs text-gray-500 line-clamp-2">{d.successAndReflection}</p>
+          </div>
+        );
+      }
+      case "영어":
+      case "제2외국어": {
+        const d = item.routineData as LanguageFeedData;
+        return (
+          <div className="space-y-1.5">
+            <p className="text-xs text-gray-600">{d.achievement}</p>
+            {d.expressions?.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {d.expressions.slice(0, 2).map((expr, i) => (
+                  <span key={i} className="text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: config.bgColor, color: config.color }}>
+                    {expr.word}
+                  </span>
+                ))}
+                {d.expressions.length > 2 && (
+                  <span className="text-[10px] text-gray-400">+{d.expressions.length - 2}개</span>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      }
+      case "자산관리": {
+        const d = item.routineData as FinanceFeedData;
+        const total = d.dailyExpenses?.flatMap((e) => e.expenses).reduce((s, e) => s + e.amount, 0) ?? 0;
+        return (
+          <div className="space-y-1.5">
+            {total > 0 && <p className="text-sm font-semibold text-gray-800">{total.toLocaleString()}원</p>}
+            {d.studyContent && <p className="text-xs text-gray-500 line-clamp-2">{d.studyContent}</p>}
+          </div>
+        );
+      }
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div
+      className="bg-white rounded-xl p-3 border border-gray-100"
+      style={{ borderLeft: `3px solid ${config.color}` }}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] text-gray-400">{formatDate(item.date)}</span>
+      </div>
+      {renderSummary()}
+    </div>
+  );
+}
+
+// 최근 기록 리스트 컴포넌트
+function RecentRecords({ routineType, tabName }: { routineType: RoutineTypeDB; tabName: string }) {
+  const [records, setRecords] = useState<FeedItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchRecords() {
+      setLoading(true);
+      const { data } = await getMyRecordsForDisplay({
+        routineType,
+        limit: 5,
+      });
+      setRecords(data);
+      setLoading(false);
+    }
+    fetchRecords();
+  }, [routineType]);
+
+  const config = CATEGORY_CONFIG[tabName as RoutineCategory];
+
+  return (
+    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+      <h3 className="text-sm font-semibold text-gray-700 mb-3">최근 기록</h3>
+      {loading ? (
+        <div className="text-center py-8 text-gray-400">
+          <Loader2 size={20} className="animate-spin mx-auto mb-2" />
+          <p className="text-xs">기록을 불러오는 중...</p>
+        </div>
+      ) : records.length === 0 ? (
+        <div className="text-center py-8 text-gray-400">
+          <p className="text-xs">아직 기록이 없어요</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {records.map((record) => (
+            <RecordPreviewCard key={String(record.id)} item={record} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────
 // 메인 컴포넌트
 // ─────────────────────────────
 interface RoutineInsightsProps {
@@ -634,6 +812,8 @@ interface RoutineInsightsProps {
 }
 
 export default function RoutineInsights({ activeTab }: RoutineInsightsProps) {
+  const routineType = TAB_TO_ROUTINE[activeTab];
+
   const renderInsight = () => {
     switch (activeTab) {
       case "독서":
@@ -653,5 +833,10 @@ export default function RoutineInsights({ activeTab }: RoutineInsightsProps) {
     }
   };
 
-  return <div>{renderInsight()}</div>;
+  return (
+    <div className="space-y-4">
+      {renderInsight()}
+      {routineType && <RecentRecords routineType={routineType} tabName={activeTab} />}
+    </div>
+  );
 }

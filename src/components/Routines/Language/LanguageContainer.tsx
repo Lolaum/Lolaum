@@ -1,14 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { Grid3x3 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Grid3x3, Loader2 } from "lucide-react";
 import RecordStudy from "./RecordStudy";
 import AddNewLanguage from "./AddNewLanguage";
 import StudyPhrase from "./StudyPhrase";
 import {
   LanguageRecord,
   LanguageContainerProps,
+  LanguageFormData,
 } from "@/types/routines/language";
+import { createRitualRecordAuto, getMyRitualRecords } from "@/actions/ritual-record";
+import type { LanguageRecordData, Json, RoutineTypeDB } from "@/types/supabase";
 
 export default function LanguageContainer({
   onBackToTimer,
@@ -20,140 +23,57 @@ export default function LanguageContainer({
     !!certificationPhotos?.length,
   );
   const [showStudyPhrase, setShowStudyPhrase] = useState(false);
+  const [languageRecords, setLanguageRecords] = useState<LanguageRecord[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const isEnglish = languageType === "영어";
   const accentColor = isEnglish ? "#0ea5e9" : "#10b981";
   const accentBg = isEnglish ? "#f0f9ff" : "#ecfdf5";
+  const routineType: RoutineTypeDB = isEnglish ? "english" : "second_language";
 
-  // 영어 학습 기록 데이터
-  const englishRecords: LanguageRecord[] = [
-    {
-      id: 1,
-      date: "1월 21일",
-      achievement: "10문, 2개 표현",
-      expressions: [
-        {
-          word: "profound",
-          meaning: "깊은, 심오한",
-          example: "The book had a profound impact on my life.",
-        },
-        {
-          word: "elaborate",
-          meaning: "정교한, 상세한",
-          example: "Could you elaborate on that point?",
-        },
-      ],
-      expressionCount: 2,
-    },
-    {
-      id: 2,
-      date: "1월 18일",
-      achievement: "15문, 3개 표현",
-      expressions: [
-        {
-          word: "pragmatic",
-          meaning: "실용적인, 현실적인",
-          example: "We need to take a more pragmatic approach.",
-        },
-        {
-          word: "intrinsic",
-          meaning: "본질적인, 고유의",
-          example: "The painting has intrinsic value.",
-        },
-        {
-          word: "versatile",
-          meaning: "다재다능한, 다용도의",
-          example: "She is a versatile actress.",
-        },
-      ],
-      expressionCount: 3,
-    },
-    {
-      id: 3,
-      date: "1월 14일",
-      achievement: "20문, 2개 표현",
-      expressions: [
-        {
-          word: "resilience",
-          meaning: "회복력, 탄력성",
-          example: "The team showed great resilience in difficult times.",
-        },
-        {
-          word: "coherent",
-          meaning: "일관된, 논리적인",
-          example: "She presented a coherent argument.",
-        },
-      ],
-      expressionCount: 2,
-    },
-  ];
+  const fetchRecords = useCallback(async () => {
+    setLoading(true);
+    const { data } = await getMyRitualRecords({ routineType });
+    if (data) {
+      const records: LanguageRecord[] = data.map((r) => {
+        const d = r.record_data as unknown as LanguageRecordData;
+        const date = new Date(r.record_date);
+        return {
+          id: r.id as unknown as number,
+          date: `${date.getMonth() + 1}월 ${date.getDate()}일`,
+          achievement: d.achievement,
+          expressions: d.expressions ?? [],
+          expressionCount: d.expressions?.length ?? 0,
+        };
+      });
+      setLanguageRecords(records);
+    }
+    setLoading(false);
+  }, [routineType]);
 
-  // 언어 학습 기록 데이터 (예: 일본어, 중국어 등)
-  const otherLanguageRecords: LanguageRecord[] = [
-    {
-      id: 1,
-      date: "1월 22일",
-      achievement: "30문, 3개 표현",
-      expressions: [
-        {
-          word: "頑張る (がんばる)",
-          meaning: "노력하다, 힘내다",
-          example: "試験に向けて頑張ります。(시험을 위해 노력합니다.)",
-        },
-        {
-          word: "楽しい (たのしい)",
-          meaning: "즐겁다, 재미있다",
-          example: "日本語の勉強は楽しいです。(일본어 공부는 즐겁습니다.)",
-        },
-        {
-          word: "素晴らしい (すばらしい)",
-          meaning: "훌륭하다, 멋지다",
-          example: "素晴らしい景色ですね。(멋진 경치네요.)",
-        },
-      ],
-      expressionCount: 3,
-    },
-    {
-      id: 2,
-      date: "1월 20일",
-      achievement: "25문, 2개 표현",
-      expressions: [
-        {
-          word: "美味しい (おいしい)",
-          meaning: "맛있다",
-          example: "このラーメンは美味しいです。(이 라면은 맛있습니다.)",
-        },
-        {
-          word: "難しい (むずかしい)",
-          meaning: "어렵다",
-          example: "漢字は難しいです。(한자는 어렵습니다.)",
-        },
-      ],
-      expressionCount: 2,
-    },
-    {
-      id: 3,
-      date: "1월 17일",
-      achievement: "20문, 2개 표현",
-      expressions: [
-        {
-          word: "大切 (たいせつ)",
-          meaning: "소중하다, 중요하다",
-          example: "家族は大切です。(가족은 소중합니다.)",
-        },
-        {
-          word: "便利 (べんり)",
-          meaning: "편리하다",
-          example: "このアプリは便利です。(이 앱은 편리합니다.)",
-        },
-      ],
-      expressionCount: 2,
-    },
-  ];
+  useEffect(() => {
+    fetchRecords();
+  }, [fetchRecords]);
 
-  // languageType에 따라 데이터 선택
-  const languageRecords =
-    languageType === "영어" ? englishRecords : otherLanguageRecords;
+  const handleSubmit = async (formData: LanguageFormData) => {
+    const today = new Date().toISOString().split("T")[0];
+    const recordData: LanguageRecordData = {
+      achievement: formData.achievement,
+      expressions: formData.expressions,
+      images: formData.images,
+    };
+    const { error } = await createRitualRecordAuto({
+      routineType,
+      recordDate: today,
+      recordData: recordData as unknown as Json,
+    });
+    if (error) {
+      alert(`기록 저장 실패: ${error}`);
+      return;
+    }
+    setShowAddRecord(false);
+    fetchRecords();
+  };
 
   // 이번 달 학습한 날 & 총 표현 수 계산
   const studiedDays = languageRecords.length;
@@ -169,6 +89,7 @@ export default function LanguageContainer({
         <AddNewLanguage
           onCancel={() => setShowAddRecord(false)}
           onBackToHome={onBackToHome}
+          onSubmit={handleSubmit}
         />
       );
     }
@@ -298,7 +219,14 @@ export default function LanguageContainer({
         </div>
 
         {/* 학습 기록 섹션 */}
-        <RecordStudy languageRecords={languageRecords} />
+        {loading ? (
+          <div className="text-center py-8 text-gray-400">
+            <Loader2 size={20} className="animate-spin mx-auto mb-2" />
+            <p className="text-xs">기록을 불러오는 중...</p>
+          </div>
+        ) : (
+          <RecordStudy languageRecords={languageRecords} />
+        )}
       </>
     );
   };

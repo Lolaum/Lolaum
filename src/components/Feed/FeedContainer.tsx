@@ -1,10 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import FeedItem from "./FeedItem";
 import { FeedItem as FeedItemType, RoutineCategory } from "@/types/feed";
-import feed_mock from "@/mock/feedmock";
+import { getAllRecordsForDisplay } from "@/actions/ritual-records-display";
+import type { RoutineTypeDB } from "@/types/supabase";
 
 type FilterCategory = "전체" | RoutineCategory;
 
@@ -18,6 +20,16 @@ const filterCategories: FilterCategory[] = [
   "자산관리",
 ];
 
+const CATEGORY_TO_ROUTINE: Record<RoutineCategory, RoutineTypeDB | undefined> =
+  {
+    모닝: "morning",
+    운동: "exercise",
+    독서: "reading",
+    영어: "english",
+    제2외국어: "second_language",
+    자산관리: "finance",
+  };
+
 const ITEMS_PER_PAGE = 8;
 
 export default function FeedContainer() {
@@ -28,22 +40,34 @@ export default function FeedContainer() {
     "전체") as FilterCategory;
   const currentPage = Number(searchParams.get("page") ?? "1");
 
-  const feedData: FeedItemType[] = feed_mock;
+  const [feedData, setFeedData] = useState<FeedItemType[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  // 필터링된 피드 데이터
-  const filteredFeeds =
-    selectedFilter === "전체"
-      ? feedData
-      : feedData.filter((feed) => feed.routineCategory === selectedFilter);
+  const fetchFeeds = useCallback(async () => {
+    setLoading(true);
+    const routineType =
+      selectedFilter !== "전체"
+        ? CATEGORY_TO_ROUTINE[selectedFilter]
+        : undefined;
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredFeeds.length / ITEMS_PER_PAGE),
-  );
-  const pagedFeeds = filteredFeeds.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE,
-  );
+    const { data, total } = await getAllRecordsForDisplay({
+      routineType,
+      limit: ITEMS_PER_PAGE,
+      offset: (currentPage - 1) * ITEMS_PER_PAGE,
+    });
+    setFeedData(data);
+    setTotalCount(total);
+    setLoading(false);
+  }, [selectedFilter, currentPage]);
+
+  useEffect(() => {
+    fetchFeeds();
+  }, [fetchFeeds]);
+
+  const filteredFeeds = feedData;
+  const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
+  const pagedFeeds = filteredFeeds;
 
   const updateParams = (filter: FilterCategory, page: number) => {
     const params = new URLSearchParams();
@@ -90,13 +114,19 @@ export default function FeedContainer() {
 
       {/* 피드 목록 */}
       <div className="grid grid-cols-2 gap-3">
-        {filteredFeeds.length === 0 ? (
-          <div className="text-center py-16 text-gray-400 bg-white rounded-2xl shadow-sm border border-gray-100">
-            <p className="text-4xl mb-3">📋</p>
+        {loading ? (
+          <div className="col-span-2 text-center py-16 text-gray-400">
+            <Loader2 size={24} className="animate-spin mx-auto mb-3" />
+            <p className="text-sm">피드를 불러오는 중...</p>
+          </div>
+        ) : filteredFeeds.length === 0 ? (
+          <div className="col-span-2 text-center py-16 text-gray-400 bg-white rounded-2xl shadow-sm border border-gray-100">
             <p className="text-sm">아직 피드가 없습니다.</p>
           </div>
         ) : (
-          pagedFeeds.map((feed) => <FeedItem key={feed.id} item={feed} />)
+          pagedFeeds.map((feed) => (
+            <FeedItem key={String(feed.id)} item={feed} />
+          ))
         )}
       </div>
 

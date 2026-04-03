@@ -112,7 +112,7 @@ export default function FeedItem({ item }: FeedItemProps) {
 
   return (
     <Link
-      href={`/feeds/${item.id}`}
+      href={`/feeds/${item.odOriginalId ?? item.id}`}
       className="block bg-white rounded-2xl shadow-sm border border-gray-100 p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
       style={{ borderTop: `3px solid ${config.color}` }}
     >

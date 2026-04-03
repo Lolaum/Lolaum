@@ -28,5 +28,5 @@ export interface MorningFormData {
 export interface AddNewMorningProps {
   onCancel: () => void;
   onBackToHome?: () => void;
-  onSubmit?: (recordData: MorningFormData) => void;
+  onSubmit?: (recordData: MorningFormData) => void | Promise<void>;
 }

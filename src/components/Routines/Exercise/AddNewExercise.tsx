@@ -34,7 +34,7 @@ export default function AddNewExercise({
     setImages(images.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!exerciseName.trim() || !duration) return;
 
     const recordData: ExerciseFormData = {
@@ -44,8 +44,11 @@ export default function AddNewExercise({
       achievement: achievement.trim(),
     };
 
-    onSubmit?.(recordData);
-    onCancel();
+    if (onSubmit) {
+      await onSubmit(recordData);
+    } else {
+      onCancel();
+    }
   };
 
   return (

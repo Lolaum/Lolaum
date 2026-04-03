@@ -40,7 +40,7 @@ export interface FinanceFormData {
 export interface AddNewFinanceProps {
   onCancel: () => void;
   onBackToHome?: () => void;
-  onSubmit?: (recordData: FinanceFormData) => void;
+  onSubmit?: (recordData: FinanceFormData) => void | Promise<void>;
 }
 
 export interface RecordFinanceProps {
