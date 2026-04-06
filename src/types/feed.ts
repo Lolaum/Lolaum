@@ -62,6 +62,7 @@ export type FeedRoutineData =
 // 댓글 타입
 export interface Comment {
   id: number;
+  odOriginalId?: string; // DB UUID (실제 데이터용)
   userId: number;
   userName: string;
   text: string;

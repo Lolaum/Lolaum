@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { RoutineTypeDB, RitualRecord } from "@/types/supabase";
 import type {
   FeedItem,
+  Comment,
   RoutineCategory,
   FeedRoutineData,
   ReadingFeedData,
@@ -220,6 +221,45 @@ export async function getRecordById(
     .single();
 
   const item = await recordToFeedItem(record, profile, supabase);
+
+  // 댓글 가져오기: feeds 테이블에서 매핑된 feed_id로 조회
+  if (item) {
+    const { data: feed } = await supabase
+      .from("feeds")
+      .select("id")
+      .eq("ritual_record_id", id)
+      .single();
+
+    if (feed) {
+      const { data: rawComments } = await supabase
+        .from("feed_comments")
+        .select("id, user_id, text, created_at")
+        .eq("feed_id", feed.id)
+        .order("created_at", { ascending: true });
+
+      if (rawComments?.length) {
+        const commentUserIds = [...new Set(rawComments.map((c) => c.user_id))];
+        const { data: commentProfiles } = await supabase
+          .from("profiles")
+          .select("id, name")
+          .in("id", commentUserIds);
+
+        const nameMap = new Map(
+          (commentProfiles ?? []).map((p) => [p.id, p.name]),
+        );
+
+        item.comments = rawComments.map((c) => ({
+          id: c.id as unknown as number,
+          odOriginalId: c.id,
+          userId: c.user_id as unknown as number,
+          userName: nameMap.get(c.user_id) ?? "알 수 없음",
+          text: c.text,
+          date: c.created_at,
+        }));
+      }
+    }
+  }
+
   return { data: item };
 }
 
