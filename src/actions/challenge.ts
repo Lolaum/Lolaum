@@ -21,10 +21,11 @@ export async function getOrCreateCurrentChallenge(): Promise<{
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
 
-  // 현재 월의 챌린지 찾기
+  // 현재 월의 내 챌린지 찾기
   const { data: existing } = await supabase
     .from("challenges")
     .select("id")
+    .eq("user_id", user.id)
     .eq("year", year)
     .eq("month", month)
     .limit(1)
@@ -34,20 +35,7 @@ export async function getOrCreateCurrentChallenge(): Promise<{
     return { challengeId: existing.id };
   }
 
-  // 없으면 유저의 팀을 찾아서 챌린지 생성
-  const { data: teamMember } = await supabase
-    .from("team_members")
-    .select("team_id")
-    .eq("user_id", user.id)
-    .limit(1)
-    .single();
-
-  const teamId = teamMember?.team_id;
-  if (!teamId) {
-    return { challengeId: null, error: "소속된 팀이 없습니다." };
-  }
-
-  // 이달 1일 ~ 말일
+  // 없으면 새 챌린지 생성
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
   const lastDay = new Date(year, month, 0).getDate();
   const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
@@ -55,7 +43,7 @@ export async function getOrCreateCurrentChallenge(): Promise<{
   const { data: created, error } = await supabase
     .from("challenges")
     .insert({
-      team_id: teamId,
+      user_id: user.id,
       year,
       month,
       start_date: startDate,

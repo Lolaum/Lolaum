@@ -98,7 +98,8 @@ export interface Database {
       challenges: {
         Row: {
           id: string;
-          team_id: string;
+          team_id: string | null;
+          user_id: string | null;
           year: number;
           month: number;
           start_date: string;
@@ -109,7 +110,8 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          team_id: string;
+          team_id?: string | null;
+          user_id?: string | null;
           year: number;
           month: number;
           start_date: string;
