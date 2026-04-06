@@ -189,6 +189,40 @@ export async function getMyRecordsForDisplay(options?: {
   return { data: feedItems };
 }
 
+/** 단일 리추얼 기록 가져오기 (피드 상세용) */
+export async function getRecordById(
+  id: string,
+): Promise<{ data: FeedItem | null; error?: string }> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { data: null, error: "인증이 필요합니다." };
+  }
+
+  const { data: record, error } = await supabase
+    .from("ritual_records")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error || !record) {
+    return { data: null, error: error?.message ?? "기록을 찾을 수 없습니다." };
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, name, avatar_url")
+    .eq("id", record.user_id)
+    .single();
+
+  const item = await recordToFeedItem(record, profile, supabase);
+  return { data: item };
+}
+
 /** 전체 유저 리추얼 기록 가져오기 (피드용) */
 export async function getAllRecordsForDisplay(options?: {
   routineType?: RoutineTypeDB;
