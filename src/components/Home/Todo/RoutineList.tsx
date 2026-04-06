@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import GenerateRoutine from "./GenerateRoutine";
 import { Plus, X, Flame, ChevronRight, Trash2 } from "lucide-react";
 import { RoutineListProps } from "@/types/home/todo";
-import { getMyRoutines, deleteRoutine } from "@/actions/routine";
+import { getMyRoutines, deleteRoutine } from "@/api/routine";
 import type { ChallengeRegistration, RoutineTypeDB } from "@/types/supabase";
 import { ROUTINE_TYPE_LABEL } from "@/types/supabase";
 

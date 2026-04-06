@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { signup, checkUsername } from "@/actions/auth";
+import { signup, checkUsername } from "@/api/auth";
 
 export default function Signup() {
   const router = useRouter();

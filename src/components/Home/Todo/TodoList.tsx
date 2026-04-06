@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { formatDateKey } from "@/lib/date";
 import { Check, Trash2 } from "lucide-react";
 import { TodoListProps } from "@/types/home/todo";
-import { getTodos, createTodo, updateTodo, deleteTodo } from "@/actions/todo";
+import { getTodos, createTodo, updateTodo, deleteTodo } from "@/api/todo";
 import type { Todo } from "@/types/supabase";
 
 export default function TodoList({ selectedDate, onTaskClick }: TodoListProps) {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { ProfileProps } from "@/types/home/profile";
 import { Flame } from "lucide-react";
-import { getMe } from "@/actions/user";
+import { getMe } from "@/api/user";
 
 export default function Profile({
   description = "매일 성장하는 습관 만들기",

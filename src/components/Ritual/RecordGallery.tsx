@@ -20,7 +20,7 @@ import {
   LanguageFeedData,
   FinanceFeedData,
 } from "@/types/feed";
-import { getMyRecordsForDisplay } from "@/actions/ritual-records-display";
+import { getMyRecordsForDisplay } from "@/api/ritual-records-display";
 
 const CATEGORY_CONFIG: Record<
   RoutineCategory,

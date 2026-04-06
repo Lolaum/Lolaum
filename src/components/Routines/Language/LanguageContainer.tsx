@@ -10,7 +10,7 @@ import {
   LanguageContainerProps,
   LanguageFormData,
 } from "@/types/routines/language";
-import { createRitualRecordAuto, getMyRitualRecords } from "@/actions/ritual-record";
+import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
 import type { LanguageRecordData, Json, RoutineTypeDB } from "@/types/supabase";
 
 export default function LanguageContainer({

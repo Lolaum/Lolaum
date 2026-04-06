@@ -5,7 +5,7 @@ import { Wallet, Loader2 } from "lucide-react";
 import RecordFinance from "./RecordFinance";
 import AddNewFinance from "./AddNewFinance";
 import { FinanceRecord, FinanceContainerProps, FinanceFormData } from "@/types/routines/finance";
-import { createRitualRecordAuto, getMyRitualRecords } from "@/actions/ritual-record";
+import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
 import type { FinanceRecordData, Json } from "@/types/supabase";
 
 export default function FinanceContainer({

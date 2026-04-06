@@ -12,7 +12,7 @@ import {
   secondLanguageInsightData,
   myRoutineStats,
 } from "@/mock/ritualmock";
-import { getMyRecordsForDisplay } from "@/actions/ritual-records-display";
+import { getMyRecordsForDisplay } from "@/api/ritual-records-display";
 import type { RoutineTypeDB } from "@/types/supabase";
 import type {
   FeedItem,

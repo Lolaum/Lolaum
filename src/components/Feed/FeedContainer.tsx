@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import FeedItem from "./FeedItem";
 import { FeedItem as FeedItemType, RoutineCategory } from "@/types/feed";
-import { getAllRecordsForDisplay } from "@/actions/ritual-records-display";
+import { getAllRecordsForDisplay } from "@/api/ritual-records-display";
 import type { RoutineTypeDB } from "@/types/supabase";
 
 type FilterCategory = "전체" | RoutineCategory;

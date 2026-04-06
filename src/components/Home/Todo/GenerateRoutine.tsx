@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { RoutineType } from "@/types/routines/declaration";
 import { declarationQuestions } from "@/lib/declarationQuestions";
-import { createRoutineAuto } from "@/actions/routine";
+import { createRoutineAuto } from "@/api/routine";
 import { ROUTINE_TYPE_MAP } from "@/types/supabase";
 
 interface GenerateRoutineProps {
