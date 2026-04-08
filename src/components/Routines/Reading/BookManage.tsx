@@ -1,77 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { List, Plus, LayoutGrid, Calendar as CalendarIcon } from "lucide-react";
 import AddNewBook from "./AddNewBook";
 import BookCalendar from "./BookCalendar";
 import BookDetail from "./BookDetail";
-import { Book, ViewMode, BookManageProps } from "@/types/routines/reading";
+import { Book, ViewMode, BookManageProps, CompletedBook } from "@/types/routines/reading";
+import { getBooksAuto, createBookAuto, deleteBook, uploadBookCover, updateBook } from "@/api/book";
+import type { Book as BookDB } from "@/types/supabase";
+
+/** DB Row → 프론트엔드 Book 변환 */
+function toBook(row: BookDB): Book {
+  return {
+    id: row.id,
+    title: row.title,
+    author: row.author,
+    trackingType: row.tracking_type as "page" | "percent",
+    currentValue: row.current_value,
+    totalValue: row.total_value,
+    coverImageUrl: row.cover_image_url,
+    isCompleted: row.is_completed,
+    updatedAt: row.updated_at,
+  };
+}
 
 export default function BookManage({ onBackToTimer, onBackToHome }: BookManageProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [showAddBook, setShowAddBook] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [books, setBooks] = useState<Book[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // 임시 책 데이터
-  const books: Book[] = [
-    {
-      id: 1,
-      title: "아침의 힘",
-      author: "제프 센더스",
-      trackingType: "page",
-      currentPage: 126,
-      totalPages: 280,
-      coverImage: "/images/book1.jpg",
-    },
-    {
-      id: 2,
-      title: "습관의 디테일",
-      author: "제임스 클리어",
-      trackingType: "percent",
-      currentPage: 45,
-      totalPages: 100,
-      coverImage: "/images/book2.jpg",
-    },
-    {
-      id: 3,
-      title: "데일 카네기 인간관계론",
-      author: "데일 카네기",
-      trackingType: "page",
-      currentPage: 118,
-      totalPages: 420,
-      coverImage: "/images/book3.jpg",
-    },
-    {
-      id: 4,
-      title: "아침의 힘",
-      author: "제프 센더스",
-      trackingType: "page",
-      currentPage: 126,
-      totalPages: 280,
-      coverImage: "/images/book1.jpg",
-    },
-    {
-      id: 5,
-      title: "습관의 디테일",
-      author: "제임스 클리어",
-      trackingType: "percent",
-      currentPage: 72,
-      totalPages: 100,
-      coverImage: "/images/book2.jpg",
-    },
-    {
-      id: 6,
-      title: "데일 카네기 인간관계론",
-      author: "데일 카네기",
-      trackingType: "page",
-      currentPage: 118,
-      totalPages: 420,
-      coverImage: "/images/book3.jpg",
-    },
-  ];
+  const fetchBooks = useCallback(async () => {
+    setLoading(true);
+    const result = await getBooksAuto("reading");
+    if (result.data) {
+      setBooks(result.data.map(toBook));
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchBooks();
+  }, [fetchBooks]);
 
   const calculateProgress = (current: number, total: number) => {
+    if (total === 0) return 0;
     return Math.round((current / total) * 100);
   };
 
@@ -79,11 +54,68 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
     setShowAddBook(true);
   };
 
+  const handleBookCreated = async (bookData: {
+    title: string;
+    author: string;
+    trackingType: "page" | "percent";
+    totalPages: number;
+    coverImage?: File;
+  }) => {
+    let coverImageUrl: string | undefined;
+
+    if (bookData.coverImage) {
+      const formData = new FormData();
+      formData.append("file", bookData.coverImage);
+      const uploadResult = await uploadBookCover(formData);
+      if (uploadResult.url) {
+        coverImageUrl = uploadResult.url;
+      }
+    }
+
+    const result = await createBookAuto({
+      title: bookData.title,
+      author: bookData.author,
+      trackingType: bookData.trackingType,
+      totalValue: bookData.trackingType === "percent" ? 100 : bookData.totalPages,
+      coverImageUrl,
+    });
+
+    if (result.data) {
+      setBooks((prev) => [toBook(result.data!), ...prev]);
+    }
+  };
+
+  const handleBookDeleted = async (bookId: string) => {
+    const result = await deleteBook(bookId);
+    if (result.success) {
+      setBooks((prev) => prev.filter((b) => b.id !== bookId));
+      setSelectedBook(null);
+    }
+  };
+
+  const handleBookUpdated = async (bookId: string, input: {
+    title?: string;
+    author?: string;
+    currentValue?: number;
+    isCompleted?: boolean;
+  }) => {
+    const result = await updateBook(bookId, input);
+    if (result.data) {
+      const updated = toBook(result.data);
+      setBooks((prev) => prev.map((b) => (b.id === bookId ? updated : b)));
+      setSelectedBook(updated);
+    }
+  };
+
   // 새 책 추가하기 화면
   if (showAddBook) {
     return (
       <div className="w-full">
-        <AddNewBook onCancel={() => setShowAddBook(false)} onBackToHome={onBackToHome} />
+        <AddNewBook
+          onCancel={() => setShowAddBook(false)}
+          onBackToHome={onBackToHome}
+          onSubmit={handleBookCreated}
+        />
       </div>
     );
   }
@@ -101,6 +133,12 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
               setSelectedBook(found);
             }
           }}
+          completedBooks={books.filter((b) => b.isCompleted).map((b) => ({
+            id: b.id,
+            title: b.title,
+            coverImageUrl: b.coverImageUrl,
+            completedDate: b.updatedAt.split("T")[0],
+          }))}
         />
       </div>
     );
@@ -114,6 +152,8 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
           book={selectedBook}
           onBack={() => setSelectedBook(null)}
           onBackToHome={onBackToHome}
+          onDelete={handleBookDeleted}
+          onUpdate={handleBookUpdated}
         />
       </div>
     );
@@ -168,7 +208,7 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
         <div>
           <h1 className="text-xl font-bold text-gray-900 mb-1">독서 관리</h1>
           <p className="text-sm text-gray-500">
-            현재 {books.length}권의 책을 읽고 있습니다
+            {loading ? "불러오는 중..." : `현재 ${books.length}권의 책을 읽고 있습니다`}
           </p>
         </div>
 
@@ -222,8 +262,8 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
           {/* 책 카드들 */}
           {books.map((book) => {
             const progress = calculateProgress(
-              book.currentPage,
-              book.totalPages,
+              book.currentValue,
+              book.totalValue,
             );
             return (
               <div
@@ -233,12 +273,19 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
               >
                 {/* 책 표지 */}
                 <div className="w-[120px] h-full bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                  {/* 임시 이미지 대신 배경색 */}
-                  <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                    <span className="text-gray-400 text-xs font-medium">
-                      책 표지
-                    </span>
-                  </div>
+                  {book.coverImageUrl ? (
+                    <img
+                      src={book.coverImageUrl}
+                      alt={book.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                      <span className="text-gray-400 text-xs font-medium">
+                        책 표지
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* 책 정보 */}
@@ -253,8 +300,10 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
                   {/* 진행률 정보 */}
                   <div>
                     <div className="text-sm text-gray-600 mb-2">
-                      {book.currentPage} / {book.totalPages} 페이지 · {progress}
-                      %
+                      {book.trackingType === "percent"
+                        ? `${book.currentValue}% 진행`
+                        : `${book.currentValue} / ${book.totalValue} 페이지`}{" "}
+                      · {progress}%
                     </div>
 
                     {/* 진행률 바 */}
@@ -295,8 +344,8 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
           {/* 책 리스트 */}
           {books.map((book) => {
             const progress = calculateProgress(
-              book.currentPage,
-              book.totalPages,
+              book.currentValue,
+              book.totalValue,
             );
             return (
               <div
@@ -306,8 +355,16 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
               >
                 <div className="flex gap-3">
                   {/* 책 표지 썸네일 */}
-                  <div className="w-14 h-18 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center">
-                    <span className="text-gray-400 text-xs">표지</span>
+                  <div className="w-14 h-18 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden flex items-center justify-center">
+                    {book.coverImageUrl ? (
+                      <img
+                        src={book.coverImageUrl}
+                        alt={book.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-gray-400 text-xs">표지</span>
+                    )}
                   </div>
 
                   {/* 책 정보 */}
@@ -320,7 +377,9 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
                     {/* 진행률 정보 */}
                     <div className="flex items-center justify-between text-xs text-gray-600 mb-1.5">
                       <span>
-                        {book.currentPage} / {book.totalPages} 페이지
+                        {book.trackingType === "percent"
+                          ? `${book.currentValue}% 진행`
+                          : `${book.currentValue} / ${book.totalValue} 페이지`}
                       </span>
                       <span className="font-semibold">{progress}%</span>
                     </div>

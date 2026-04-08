@@ -1,56 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Quote, FileText, BookOpen } from "lucide-react";
+import { ChevronDown, Quote, FileText, Trash2 } from "lucide-react";
 import { BookDetailProps, DailyReadingRecord, NoteType } from "@/types/routines/reading";
-
-const MOCK_RECORDS_PAGE: DailyReadingRecord[] = [
-  {
-    id: 1,
-    date: "2026-02-25",
-    trackingType: "page",
-    startValue: 100,
-    endValue: 126,
-    progressAmount: 26,
-    noteType: "sentence",
-    note: "작은 변화가 쌓이면 놀라운 결과를 만들어낸다.",
-    thoughts: "매일 조금씩 나아가는 것이 결국 큰 차이를 만든다는 걸 다시 한번 느꼈다. 꾸준함의 힘을 믿어야겠다.",
-  },
-  {
-    id: 2,
-    date: "2026-02-24",
-    trackingType: "page",
-    startValue: 80,
-    endValue: 100,
-    progressAmount: 20,
-    noteType: "summary",
-    note: "저자는 아침 루틴의 중요성을 강조하며, 매일 같은 시간에 일어나는 습관이 하루의 생산성을 크게 높인다고 설명한다.",
-  },
-];
-
-const MOCK_RECORDS_PERCENT: DailyReadingRecord[] = [
-  {
-    id: 1,
-    date: "2026-02-25",
-    trackingType: "percent",
-    startValue: 38,
-    endValue: 45,
-    progressAmount: 7,
-    noteType: "sentence",
-    note: "습관은 반복으로 완성된다.",
-    thoughts: "이 문장을 보면서 내가 지금 하고 있는 독서 습관도 결국 쌓인다는 생각이 들었다. 매일 읽자.",
-  },
-  {
-    id: 2,
-    date: "2026-02-24",
-    trackingType: "percent",
-    startValue: 30,
-    endValue: 38,
-    progressAmount: 8,
-    noteType: "summary",
-    note: "작은 습관이 큰 변화를 만든다는 핵심 주장을 다루는 챕터.",
-  },
-];
 
 function AddReadingRecord({
   book,
@@ -64,7 +16,7 @@ function AddReadingRecord({
   onSave: (record: Omit<DailyReadingRecord, "id">) => void;
 }) {
   const isPercent = book.trackingType === "percent";
-  const [startValue, setStartValue] = useState(book.currentPage.toString());
+  const [startValue, setStartValue] = useState(book.currentValue.toString());
   const [endValue, setEndValue] = useState("");
   const [noteType, setNoteType] = useState<NoteType>("sentence");
   const [note, setNote] = useState("");
@@ -155,9 +107,9 @@ function AddReadingRecord({
                   type="number"
                   value={endValue}
                   onChange={(e) => setEndValue(e.target.value)}
-                  placeholder={isPercent ? "최대 100" : `최대 ${book.totalPages}`}
+                  placeholder={isPercent ? "최대 100" : `최대 ${book.totalValue}`}
                   min={0}
-                  max={isPercent ? 100 : book.totalPages}
+                  max={isPercent ? 100 : book.totalValue}
                   className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400 pr-8"
                 />
                 {isPercent && (
@@ -250,15 +202,15 @@ function AddReadingRecord({
   );
 }
 
-export default function BookDetail({ book, onBack, onBackToHome }: BookDetailProps) {
+export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpdate }: BookDetailProps) {
   const isPercent = book.trackingType === "percent";
   const [showAddRecord, setShowAddRecord] = useState(false);
-  const [records, setRecords] = useState<DailyReadingRecord[]>(
-    isPercent ? MOCK_RECORDS_PERCENT : MOCK_RECORDS_PAGE
-  );
+  const [records, setRecords] = useState<DailyReadingRecord[]>([]);
   const [expandedIds, setExpandedIds] = useState<number[]>([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  const progress = Math.round((book.currentPage / book.totalPages) * 100);
+  const progress = book.totalValue > 0 ? Math.round((book.currentValue / book.totalValue) * 100) : 0;
   const totalProgress = records.reduce((sum, r) => sum + r.progressAmount, 0);
 
   const toggleExpand = (id: number) => {
@@ -267,9 +219,25 @@ export default function BookDetail({ book, onBack, onBackToHome }: BookDetailPro
     );
   };
 
-  const handleSave = (record: Omit<DailyReadingRecord, "id">) => {
+  const handleSave = async (record: Omit<DailyReadingRecord, "id">) => {
     setRecords((prev) => [{ id: Date.now(), ...record }, ...prev]);
     setShowAddRecord(false);
+
+    // 진행도 업데이트 + 100% 도달 시 완독 처리
+    if (onUpdate && record.endValue > book.currentValue) {
+      const isNowCompleted = record.endValue >= book.totalValue;
+      await onUpdate(book.id, {
+        currentValue: record.endValue,
+        ...(isNowCompleted && { isCompleted: true }),
+      });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!onDelete) return;
+    setDeleting(true);
+    await onDelete(book.id);
+    setDeleting(false);
   };
 
   const formatDate = (dateStr: string) => {
@@ -315,35 +283,78 @@ export default function BookDetail({ book, onBack, onBackToHome }: BookDetailPro
         </button>
       </div>
 
-      {/* 헤더: 책 제목 + 기록 추가 버튼 */}
+      {/* 헤더: 책 제목 + 기록 추가 / 삭제 버튼 */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-bold text-gray-900">{book.title}</h1>
-        <button
-          type="button"
-          onClick={() => setShowAddRecord(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-orange-500 hover:text-orange-600 transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          기록 추가
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            삭제
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowAddRecord(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-orange-500 hover:text-orange-600 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            기록 추가
+          </button>
+        </div>
       </div>
+
+      {/* 삭제 확인 모달 */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">책을 삭제할까요?</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              &ldquo;{book.title}&rdquo;을(를) 삭제하면 독서 기록도 함께 사라집니다.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 py-3 px-4 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 py-3 px-4 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 transition-colors disabled:bg-gray-300"
+              >
+                {deleting ? "삭제 중..." : "삭제하기"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 책 정보 카드 */}
       <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
         <div className="flex gap-4">
-          <div className="w-[72px] h-[100px] bg-gradient-to-br from-orange-300 to-orange-500 rounded-lg flex-shrink-0 flex items-center justify-center">
-            <span className="text-white text-xs font-medium">책 표지</span>
+          <div className="w-[72px] h-[100px] bg-gradient-to-br from-orange-300 to-orange-500 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
+            {book.coverImageUrl ? (
+              <img src={book.coverImageUrl} alt={book.title} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-white text-xs font-medium">책 표지</span>
+            )}
           </div>
           <div className="flex-1 flex flex-col justify-between py-1">
             <p className="text-sm text-gray-500">{book.author}</p>
             <div>
               <div className="flex items-center justify-between text-sm text-gray-600 mb-1.5">
                 {isPercent ? (
-                  <span>{book.currentPage}% 진행</span>
+                  <span>{book.currentValue}% 진행</span>
                 ) : (
-                  <span>{book.currentPage} / {book.totalPages} 페이지</span>
+                  <span>{book.currentValue} / {book.totalValue} 페이지</span>
                 )}
                 <span className="font-semibold text-orange-500">{progress}%</span>
               </div>
@@ -379,7 +390,7 @@ export default function BookDetail({ book, onBack, onBackToHome }: BookDetailPro
               {totalProgress}{isPercent ? "%" : "p"}
             </div>
             <div className="text-sm text-gray-500">
-              {isPercent ? "진행한 %": "총 읽은 페이지"}
+              {isPercent ? "진행한 %" : "총 읽은 페이지"}
             </div>
           </div>
         </div>

@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Dumbbell, BookA, BookText, Sun, CircleDollarSign, Languages, Flame, Loader2 } from "lucide-react";
 import {
-  readingInsightData,
   financeInsightData,
   exerciseInsightData,
   morningInsightData,
@@ -13,6 +12,7 @@ import {
   myRoutineStats,
 } from "@/mock/ritualmock";
 import { getMyRecordsForDisplay } from "@/api/ritual-records-display";
+import { getBooksAuto } from "@/api/book";
 import type { RoutineTypeDB } from "@/types/supabase";
 import type {
   FeedItem,
@@ -90,8 +90,52 @@ function AchievementCard({ name, color }: { name: string; color: string }) {
 // 독서 인사이트
 // ─────────────────────────────
 function ReadingInsight() {
-  const { currentBooks, totalPages, totalSentences, completedBooks } =
-    readingInsightData;
+  const [books, setBooks] = useState<{ id: string; title: string; author: string; currentValue: number; totalValue: number; trackingType: string; coverImageUrl: string | null; isCompleted: boolean }[]>([]);
+  const [totalSentences, setTotalSentences] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      const [booksResult, recordsResult] = await Promise.all([
+        getBooksAuto("reading"),
+        getMyRecordsForDisplay({ routineType: "reading" }),
+      ]);
+
+      if (booksResult.data) {
+        setBooks(booksResult.data.map((b) => ({
+          id: b.id,
+          title: b.title,
+          author: b.author,
+          currentValue: b.current_value,
+          totalValue: b.total_value,
+          trackingType: b.tracking_type,
+          coverImageUrl: b.cover_image_url,
+          isCompleted: b.is_completed,
+        })));
+      }
+
+      // 기록 수 = 문장 수
+      setTotalSentences(recordsResult.data?.length ?? 0);
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
+
+  const completedCount = books.filter((b) => b.isCompleted).length;
+  const currentBooks = books.filter((b) => !b.isCompleted);
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <AchievementCard name="독서" color="#6366f1" />
+        <div className="text-center py-8 text-gray-400">
+          <Loader2 size={20} className="animate-spin mx-auto mb-2" />
+          <p className="text-xs">불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -99,7 +143,7 @@ function ReadingInsight() {
       {/* 요약 통계 */}
       <div className="grid grid-cols-2 gap-3">
         {[
-          { label: "완독", value: `${completedBooks}권`, color: "#6366f1" },
+          { label: "완독", value: `${completedCount}권`, color: "#6366f1" },
           {
             label: "기록 문장",
             value: `${totalSentences}개`,
@@ -123,44 +167,83 @@ function ReadingInsight() {
         <h3 className="text-sm font-semibold text-gray-700 mb-3">
           읽는 중인 책
         </h3>
-        <div className="space-y-4">
-          {currentBooks.map((book, i) => {
-            const percent = Math.round(
-              (book.currentPage / book.totalPages) * 100,
-            );
-            return (
-              <div key={i}>
-                <div className="flex justify-between items-start mb-1.5">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800">
-                      {book.title}
-                    </p>
-                    <p className="text-xs text-gray-400">{book.author}</p>
+        {currentBooks.length === 0 ? (
+          <p className="text-xs text-gray-400 text-center py-4">
+            현재 읽고 있는 책이 없어요
+          </p>
+        ) : (
+          <div className="space-y-4">
+            {currentBooks.map((book) => {
+              const percent = book.totalValue > 0
+                ? Math.round((book.currentValue / book.totalValue) * 100)
+                : 0;
+              return (
+                <div key={book.id} className="flex gap-3">
+                  {/* 책 표지 */}
+                  <div className="w-10 h-14 rounded overflow-hidden flex-shrink-0 bg-gray-100">
+                    {book.coverImageUrl ? (
+                      <img src={book.coverImageUrl} alt={book.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-indigo-300 to-indigo-500 flex items-center justify-center">
+                        <span className="text-white text-[7px]">표지</span>
+                      </div>
+                    )}
                   </div>
-                  <span
-                    className="text-sm font-bold"
-                    style={{ color: book.color }}
-                  >
-                    {percent}%
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start mb-1.5">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-800 truncate">
+                          {book.title}
+                        </p>
+                        <p className="text-xs text-gray-400">{book.author}</p>
+                      </div>
+                      <span className="text-sm font-bold text-indigo-500 flex-shrink-0 ml-2">
+                        {percent}%
+                      </span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all bg-indigo-500"
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1">
+                      {book.trackingType === "percent"
+                        ? `${book.currentValue}% 진행`
+                        : `${book.currentValue}p / ${book.totalValue}p`}
+                    </p>
+                  </div>
                 </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${percent}%`,
-                      backgroundColor: book.color,
-                    }}
-                  />
-                </div>
-                <p className="text-[10px] text-gray-400 mt-1">
-                  {book.currentPage}p / {book.totalPages}p
-                </p>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
+
+      {/* 완독한 책 */}
+      {completedCount > 0 && (
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">
+            완독한 책
+          </h3>
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide">
+            {books.filter((b) => b.isCompleted).map((book) => (
+              <div key={book.id} className="flex-shrink-0 flex flex-col items-center gap-1.5">
+                <div className="w-12 h-16 rounded-lg overflow-hidden shadow-sm ring-2 ring-indigo-400">
+                  {book.coverImageUrl ? (
+                    <img src={book.coverImageUrl} alt={book.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-indigo-300 to-indigo-500 flex items-center justify-center">
+                      <span className="text-white text-[7px]">완독</span>
+                    </div>
+                  )}
+                </div>
+                <span className="text-[10px] text-gray-600 max-w-[60px] truncate">{book.title}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

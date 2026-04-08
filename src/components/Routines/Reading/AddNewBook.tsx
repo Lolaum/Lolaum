@@ -33,8 +33,10 @@ export default function AddNewBook({ onCancel, onBackToHome, onSubmit }: AddNewB
     e.preventDefault();
   };
 
-  const handleSubmit = () => {
-    if (!title.trim()) return;
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!title.trim() || submitting) return;
 
     const bookData: BookFormData = {
       title: title.trim(),
@@ -44,7 +46,9 @@ export default function AddNewBook({ onCancel, onBackToHome, onSubmit }: AddNewB
       coverImage: coverImage || undefined,
     };
 
-    onSubmit?.(bookData);
+    setSubmitting(true);
+    await onSubmit?.(bookData);
+    setSubmitting(false);
     onCancel();
   };
 
@@ -233,10 +237,10 @@ export default function AddNewBook({ onCancel, onBackToHome, onSubmit }: AddNewB
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={!title.trim()}
+            disabled={!title.trim() || submitting}
             className="flex-1 py-4 px-4 rounded-xl bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
-            책 추가하기
+            {submitting ? "추가하는 중..." : "책 추가하기"}
           </button>
         </div>
       </div>
