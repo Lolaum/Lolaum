@@ -154,7 +154,7 @@ export default function BookCalendar({ onBack, onBookSelect, completedBooks = []
                 onClick={() => onBookSelect?.(book.title)}
                 className="flex-shrink-0 flex flex-col items-center gap-1.5"
               >
-                <div className="w-12 h-16 rounded-lg overflow-hidden shadow-sm ring-2 ring-orange-400">
+                <div className="w-12 h-16 rounded-lg overflow-hidden shadow-sm">
                   {book.coverImageUrl ? (
                     <img src={book.coverImageUrl} alt={book.title} className="w-full h-full object-cover" />
                   ) : (
@@ -226,7 +226,7 @@ export default function BookCalendar({ onBack, onBookSelect, completedBooks = []
                     <button
                       type="button"
                       onClick={() => onBookSelect?.(completedBook.title)}
-                      className="w-10 h-14 rounded overflow-hidden shadow-md hover:scale-110 transition-transform ring-2 ring-orange-400 relative"
+                      className="w-10 h-14 rounded overflow-hidden shadow-md hover:scale-110 transition-transform relative"
                       title={`${completedBook.title} (완독!)`}
                     >
                       {completedBook.coverImageUrl ? (

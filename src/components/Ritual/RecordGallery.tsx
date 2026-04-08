@@ -376,7 +376,7 @@ function GalleryCard({ item }: { item: FeedItem }) {
 
 // ── 메인 아카이빙 ──
 
-export default function RecordGallery() {
+export default function RecordGallery({ refreshKey = 0 }: { refreshKey?: number } = {}) {
   const [activeFilter, setActiveFilter] = useState<RoutineCategory | "전체">(
     "전체",
   );
@@ -391,7 +391,7 @@ export default function RecordGallery() {
       setLoading(false);
     }
     fetchRecords();
-  }, []);
+  }, [refreshKey]);
 
   const filtered =
     activeFilter === "전체"

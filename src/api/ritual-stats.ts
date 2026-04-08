@@ -1,0 +1,599 @@
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
+import { getOrCreateCurrentChallenge } from "./challenge";
+import type {
+  RoutineTypeDB,
+  RitualRecord,
+  ExerciseRecordData,
+  MorningRecordData,
+  LanguageRecordData,
+  FinanceRecordData,
+} from "@/types/supabase";
+
+// ── 타입 ──────────────────────────────────────────────
+
+export interface RitualOverallStats {
+  totalRecords: number;
+  currentStreak: number;
+  completionRate: number;
+}
+
+export interface MyPageStats {
+  currentStreak: number;   // 연속 실천 (하루에 루틴 1개라도 완료한 연속 일수)
+  longestStreak: number;   // 최장 기록 (가장 긴 연속 실천 기간)
+  totalCompletions: number; // 총 완료 (루틴 완료 수 합산)
+}
+
+export interface CompletionRateStats {
+  rate: number;             // 달성률 (%)
+  completedDays: number;    // 루틴 완전 달성 일수 (최대 15)
+  hasDeclaration: boolean;  // 리추얼 선언 작성 여부
+  hasMidReview: boolean;    // 중간회고 작성 여부
+  hasFinalReview: boolean;  // 최종회고 작성 여부
+  totalAchieved: number;    // 달성 합계 (최대 18)
+}
+
+export interface RoutineCardStats {
+  id: string;
+  name: string;
+  routineType: RoutineTypeDB;
+  color: string;
+  bgColor: string;
+  totalDays: number;
+  streak: number;
+  weekActivity: boolean[];
+}
+
+export interface ExerciseInsight {
+  totalMinutes: number;
+  totalSessions: number;
+  avgMinutes: number;
+  exercises: { name: string; count: number; totalMinutes: number }[];
+}
+
+export interface MorningInsight {
+  avgCondition: number;
+  avgSleepHours: string;
+  sleepTrend: number[];
+}
+
+export interface LanguageInsight {
+  totalExpressions: number;
+  totalDays: number;
+  recentExpressions: { word: string; meaning: string }[];
+}
+
+export interface FinanceInsight {
+  currentMonth: {
+    total: number;
+    necessary: number;
+    emotional: number;
+    categories: { name: string; amount: number; color: string; percent: number }[];
+  };
+  weeklySpending: { week: string; amount: number }[];
+}
+
+// ── 루틴 설정 ──────────────────────────────────────────
+
+const ROUTINE_CONFIG: Record<
+  string,
+  { name: string; color: string; bgColor: string }
+> = {
+  reading: { name: "독서", color: "#6366f1", bgColor: "#eef2ff" },
+  exercise: { name: "운동", color: "#ff8900", bgColor: "#fff4e5" },
+  morning: { name: "모닝", color: "#eab32e", bgColor: "#fefce8" },
+  english: { name: "영어", color: "#0ea5e9", bgColor: "#f0f9ff" },
+  second_language: { name: "제2외국어", color: "#8b5cf6", bgColor: "#f5f3ff" },
+  finance: { name: "자산관리", color: "#10b981", bgColor: "#ecfdf5" },
+};
+
+// ── 유틸 ──────────────────────────────────────────────
+
+function calcStreak(dates: string[]): number {
+  if (dates.length === 0) return 0;
+  const sorted = [...dates].sort((a, b) => b.localeCompare(a)); // 최신순
+  const today = new Date().toISOString().split("T")[0];
+  let streak = 0;
+  let checkDate = new Date(today);
+
+  // 오늘 기록이 없으면 어제부터 체크
+  if (sorted[0] !== today) {
+    checkDate.setDate(checkDate.getDate() - 1);
+  }
+
+  for (const date of sorted) {
+    const checkStr = checkDate.toISOString().split("T")[0];
+    if (date === checkStr) {
+      streak++;
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else if (date < checkStr) {
+      break;
+    }
+  }
+  return streak;
+}
+
+function calcLongestStreak(dates: string[]): number {
+  if (dates.length === 0) return 0;
+  const sorted = [...new Set(dates)].sort();
+  let longest = 1;
+  let current = 1;
+
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = new Date(sorted[i - 1]);
+    const curr = new Date(sorted[i]);
+    const diffDays = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24);
+
+    if (diffDays === 1) {
+      current++;
+      if (current > longest) longest = current;
+    } else {
+      current = 1;
+    }
+  }
+  return longest;
+}
+
+function getWeekActivity(dates: string[]): boolean[] {
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0=일, 1=월, ...
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+
+  const activity: boolean[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + mondayOffset + i);
+    const dateStr = d.toISOString().split("T")[0];
+    activity.push(dates.includes(dateStr));
+  }
+  return activity;
+}
+
+// ── API: 전체 통계 + 루틴별 카드 ──────────────────────
+
+export async function getRitualStats(): Promise<{
+  overall?: RitualOverallStats;
+  routines?: RoutineCardStats[];
+  error?: string;
+}> {
+  const { challengeId, error: cError } = await getOrCreateCurrentChallenge();
+  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "인증이 필요합니다." };
+
+  // 기록 + 등록 루틴 동시 조회
+  const [recordsRes, registrationsRes] = await Promise.all([
+    supabase
+      .from("ritual_records")
+      .select("routine_type, record_date")
+      .eq("user_id", user.id)
+      .eq("challenge_id", challengeId),
+    supabase
+      .from("challenge_registrations")
+      .select("routine_type")
+      .eq("user_id", user.id)
+      .eq("challenge_id", challengeId),
+  ]);
+
+  const records = recordsRes.data ?? [];
+  const registrations = registrationsRes.data ?? [];
+
+  // 전체 통계
+  const totalRecords = records.length;
+  const allDates = [...new Set(records.map((r) => r.record_date))].sort();
+  const currentStreak = calcStreak(allDates);
+
+  // 달성률: 날짜별로 등록된 루틴을 모두 완료했는지 계산
+  const registeredTypes = new Set(registrations.map((r) => r.routine_type));
+  const dateMap = new Map<string, Set<string>>();
+  for (const r of records) {
+    if (!dateMap.has(r.record_date)) dateMap.set(r.record_date, new Set());
+    dateMap.get(r.record_date)!.add(r.routine_type);
+  }
+  let fullyCompleteDays = 0;
+  for (const [, completedTypes] of dateMap) {
+    const allDone = [...registeredTypes].every((rt) => completedTypes.has(rt));
+    if (allDone) fullyCompleteDays++;
+  }
+  const totalDaysWithRecords = dateMap.size || 1;
+  const completionRate = Math.round((fullyCompleteDays / totalDaysWithRecords) * 100);
+
+  const overall: RitualOverallStats = { totalRecords, currentStreak, completionRate };
+
+  // 루틴별 카드 (등록된 루틴만)
+  const registeredTypesList = registrations.map((r) => r.routine_type as RoutineTypeDB);
+  const routines: RoutineCardStats[] = registeredTypesList
+    .filter((rt) => ROUTINE_CONFIG[rt])
+    .map((rt) => {
+      const config = ROUTINE_CONFIG[rt];
+      const routineDates = records
+        .filter((r) => r.routine_type === rt)
+        .map((r) => r.record_date);
+      const uniqueDates = [...new Set(routineDates)];
+
+      return {
+        id: rt,
+        name: config.name,
+        routineType: rt,
+        color: config.color,
+        bgColor: config.bgColor,
+        totalDays: uniqueDates.length,
+        streak: calcStreak(uniqueDates),
+        weekActivity: getWeekActivity(uniqueDates),
+      };
+    });
+
+  return { overall, routines };
+}
+
+// ── API: 운동 인사이트 ────────────────────────────────
+
+export async function getExerciseInsight(): Promise<{
+  data?: ExerciseInsight;
+  error?: string;
+}> {
+  const { challengeId, error: cError } = await getOrCreateCurrentChallenge();
+  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "인증이 필요합니다." };
+
+  const { data: records } = await supabase
+    .from("ritual_records")
+    .select("record_data")
+    .eq("user_id", user.id)
+    .eq("challenge_id", challengeId)
+    .eq("routine_type", "exercise");
+
+  if (!records || records.length === 0) {
+    return { data: { totalMinutes: 0, totalSessions: 0, avgMinutes: 0, exercises: [] } };
+  }
+
+  const exerciseMap: Record<string, { count: number; totalMinutes: number }> = {};
+  let totalMinutes = 0;
+
+  for (const r of records) {
+    const d = r.record_data as unknown as ExerciseRecordData;
+    totalMinutes += d.duration || 0;
+    const name = d.exerciseName || "기타";
+    if (!exerciseMap[name]) exerciseMap[name] = { count: 0, totalMinutes: 0 };
+    exerciseMap[name].count++;
+    exerciseMap[name].totalMinutes += d.duration || 0;
+  }
+
+  const exercises = Object.entries(exerciseMap)
+    .map(([name, v]) => ({ name, ...v }))
+    .sort((a, b) => b.totalMinutes - a.totalMinutes);
+
+  return {
+    data: {
+      totalMinutes,
+      totalSessions: records.length,
+      avgMinutes: Math.round(totalMinutes / records.length),
+      exercises,
+    },
+  };
+}
+
+// ── API: 모닝 인사이트 ────────────────────────────────
+
+export async function getMorningInsight(): Promise<{
+  data?: MorningInsight;
+  error?: string;
+}> {
+  const { challengeId, error: cError } = await getOrCreateCurrentChallenge();
+  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "인증이 필요합니다." };
+
+  const { data: records } = await supabase
+    .from("ritual_records")
+    .select("record_data, record_date")
+    .eq("user_id", user.id)
+    .eq("challenge_id", challengeId)
+    .eq("routine_type", "morning")
+    .order("record_date", { ascending: true });
+
+  if (!records || records.length === 0) {
+    return { data: { avgCondition: 0, avgSleepHours: "0h", sleepTrend: [] } };
+  }
+
+  const conditionMap = { "상": 90, "중": 60, "하": 30 };
+  let totalCondition = 0;
+  let totalSleep = 0;
+  const sleepTrend: number[] = [];
+
+  for (const r of records) {
+    const d = r.record_data as unknown as MorningRecordData;
+    totalCondition += conditionMap[d.condition] ?? 60;
+    totalSleep += d.sleepHours || 0;
+    sleepTrend.push(d.sleepHours || 0);
+  }
+
+  const avgSleepRaw = totalSleep / records.length;
+  const hours = Math.floor(avgSleepRaw);
+  const mins = Math.round((avgSleepRaw - hours) * 60);
+
+  return {
+    data: {
+      avgCondition: Math.round(totalCondition / records.length),
+      avgSleepHours: `${hours}h ${mins}m`,
+      sleepTrend: sleepTrend.slice(-15), // 최근 15일
+    },
+  };
+}
+
+// ── API: 영어 / 제2외국어 인사이트 ────────────────────
+
+export async function getLanguageInsight(
+  routineType: "english" | "second_language" = "english",
+): Promise<{ data?: LanguageInsight; error?: string }> {
+  const { challengeId, error: cError } = await getOrCreateCurrentChallenge();
+  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "인증이 필요합니다." };
+
+  const { data: records } = await supabase
+    .from("ritual_records")
+    .select("record_data, record_date")
+    .eq("user_id", user.id)
+    .eq("challenge_id", challengeId)
+    .eq("routine_type", routineType)
+    .order("record_date", { ascending: false });
+
+  if (!records || records.length === 0) {
+    return { data: { totalExpressions: 0, totalDays: 0, recentExpressions: [] } };
+  }
+
+  const uniqueDates = new Set(records.map((r) => r.record_date));
+  let totalExpressions = 0;
+  const recentExpressions: { word: string; meaning: string }[] = [];
+
+  for (const r of records) {
+    const d = r.record_data as unknown as LanguageRecordData;
+    const exprs = d.expressions ?? [];
+    totalExpressions += exprs.length;
+    // 최근 5개만
+    if (recentExpressions.length < 5) {
+      for (const expr of exprs) {
+        if (recentExpressions.length >= 5) break;
+        recentExpressions.push({ word: expr.word, meaning: expr.meaning });
+      }
+    }
+  }
+
+  return {
+    data: {
+      totalExpressions,
+      totalDays: uniqueDates.size,
+      recentExpressions,
+    },
+  };
+}
+
+// ── API: 자산관리 인사이트 ────────────────────────────
+
+export async function getFinanceInsight(): Promise<{
+  data?: FinanceInsight;
+  error?: string;
+}> {
+  const { challengeId, error: cError } = await getOrCreateCurrentChallenge();
+  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "인증이 필요합니다." };
+
+  const { data: records } = await supabase
+    .from("ritual_records")
+    .select("record_data, record_date")
+    .eq("user_id", user.id)
+    .eq("challenge_id", challengeId)
+    .eq("routine_type", "finance")
+    .order("record_date", { ascending: true });
+
+  if (!records || records.length === 0) {
+    return {
+      data: {
+        currentMonth: { total: 0, necessary: 0, emotional: 0, categories: [] },
+        weeklySpending: [],
+      },
+    };
+  }
+
+  let total = 0;
+  let necessary = 0;
+  let emotional = 0;
+  const categoryMap: Record<string, number> = {};
+  const weeklyMap: Record<string, number> = {};
+
+  for (const r of records) {
+    const d = r.record_data as unknown as FinanceRecordData;
+    const allExpenses = (d.dailyExpenses ?? []).flatMap((de) => de.expenses ?? []);
+
+    for (const exp of allExpenses) {
+      total += exp.amount;
+      if (exp.type === "necessary") necessary += exp.amount;
+      else emotional += exp.amount;
+
+      const catName = exp.name || "기타";
+      categoryMap[catName] = (categoryMap[catName] || 0) + exp.amount;
+    }
+
+    // 주차 계산
+    const date = new Date(r.record_date);
+    const weekNum = Math.ceil(date.getDate() / 7);
+    const weekLabel = `${weekNum}주`;
+    weeklyMap[weekLabel] = (weeklyMap[weekLabel] || 0) +
+      allExpenses.reduce((s, e) => s + e.amount, 0);
+  }
+
+  const categoryColors = ["#f97316", "#6366f1", "#ec4899", "#10b981", "#94a3b8"];
+  const categories = Object.entries(categoryMap)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, amount], i) => ({
+      name,
+      amount,
+      color: categoryColors[i % categoryColors.length],
+      percent: total > 0 ? Math.round((amount / total) * 100) : 0,
+    }));
+
+  const weeklySpending = Object.entries(weeklyMap).map(([week, amount]) => ({
+    week,
+    amount,
+  }));
+
+  return {
+    data: {
+      currentMonth: { total, necessary, emotional, categories },
+      weeklySpending,
+    },
+  };
+}
+
+// ── API: 마이페이지 통계 ────────────────────────────────
+
+export async function getMyPageStats(): Promise<{
+  data?: MyPageStats;
+  error?: string;
+}> {
+  const { challengeId, error: cError } = await getOrCreateCurrentChallenge();
+  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "인증이 필요합니다." };
+
+  // 이번 달 기록 (연속 실천, 총 완료) + 전체 기록 (최장 기록) 동시 조회
+  const [currentRes, allRes] = await Promise.all([
+    supabase
+      .from("ritual_records")
+      .select("record_date")
+      .eq("user_id", user.id)
+      .eq("challenge_id", challengeId),
+    supabase
+      .from("ritual_records")
+      .select("record_date")
+      .eq("user_id", user.id),
+  ]);
+
+  if (currentRes.error) return { error: currentRes.error.message };
+  if (allRes.error) return { error: allRes.error.message };
+
+  const currentRecords = currentRes.data ?? [];
+  const allRecords = allRes.data ?? [];
+
+  const currentDates = [...new Set(currentRecords.map((r) => r.record_date))];
+  const allDates = allRecords.map((r) => r.record_date);
+
+  return {
+    data: {
+      currentStreak: calcStreak(currentDates),
+      longestStreak: calcLongestStreak(allDates),
+      totalCompletions: currentRecords.length,
+    },
+  };
+}
+
+// ── API: 달성률 ────────────────────────────────────────
+
+const TOTAL_DAYS = 18; // 15일(루틴) + 3일(선언/중간회고/최종회고)
+
+export async function getCompletionRate(): Promise<{
+  data?: CompletionRateStats;
+  error?: string;
+}> {
+  const { challengeId, error: cError } = await getOrCreateCurrentChallenge();
+  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "인증이 필요합니다." };
+
+  const [recordsRes, registrationsRes, declarationsRes, midReviewsRes] = await Promise.all([
+    supabase
+      .from("ritual_records")
+      .select("routine_type, record_date")
+      .eq("user_id", user.id)
+      .eq("challenge_id", challengeId),
+    supabase
+      .from("challenge_registrations")
+      .select("routine_type")
+      .eq("user_id", user.id)
+      .eq("challenge_id", challengeId),
+    supabase
+      .from("declarations")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("challenge_id", challengeId)
+      .limit(1),
+    supabase
+      .from("mid_reviews")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("challenge_id", challengeId)
+      .limit(1),
+    // TODO: 최종회고 테이블 생성 후 여기에 추가
+  ]);
+
+  // 날짜별로 등록된 루틴을 모두 완료했는지 계산
+  const registeredTypes = new Set(
+    (registrationsRes.data ?? []).map((r) => r.routine_type),
+  );
+  const dateMap = new Map<string, Set<string>>();
+  for (const r of (recordsRes.data ?? [])) {
+    if (!dateMap.has(r.record_date)) dateMap.set(r.record_date, new Set());
+    dateMap.get(r.record_date)!.add(r.routine_type);
+  }
+  let fullyCompleteDays = 0;
+  for (const [, completedTypes] of dateMap) {
+    const allDone = [...registeredTypes].every((rt) => completedTypes.has(rt));
+    if (allDone) fullyCompleteDays++;
+  }
+  const completedDays = Math.min(fullyCompleteDays, 15);
+  const hasDeclaration = (declarationsRes.data?.length ?? 0) > 0;
+  const hasMidReview = (midReviewsRes.data?.length ?? 0) > 0;
+  const hasFinalReview = false; // TODO: 최종회고 테이블 연동
+
+  const totalAchieved =
+    completedDays +
+    (hasDeclaration ? 1 : 0) +
+    (hasMidReview ? 1 : 0) +
+    (hasFinalReview ? 1 : 0);
+
+  const rate = Math.round((totalAchieved / TOTAL_DAYS) * 100);
+
+  return {
+    data: {
+      rate,
+      completedDays,
+      hasDeclaration,
+      hasMidReview,
+      hasFinalReview,
+      totalAchieved,
+    },
+  };
+}

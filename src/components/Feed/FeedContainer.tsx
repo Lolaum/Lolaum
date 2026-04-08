@@ -4,31 +4,21 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import FeedItem from "./FeedItem";
-import { FeedItem as FeedItemType, RoutineCategory } from "@/types/feed";
+import { FeedItem as FeedItemType } from "@/types/feed";
 import { getAllRecordsForDisplay } from "@/api/ritual-records-display";
 import type { RoutineTypeDB } from "@/types/supabase";
 
-type FilterCategory = "전체" | RoutineCategory;
+type FilterKey = "all" | RoutineTypeDB;
 
-const filterCategories: FilterCategory[] = [
-  "전체",
-  "독서",
-  "운동",
-  "영어",
-  "모닝",
-  "제2외국어",
-  "자산관리",
+const FILTERS: { key: FilterKey; label: string }[] = [
+  { key: "all", label: "전체" },
+  { key: "reading", label: "독서" },
+  { key: "exercise", label: "운동" },
+  { key: "english", label: "영어" },
+  { key: "morning", label: "모닝" },
+  { key: "second_language", label: "제2외국어" },
+  { key: "finance", label: "자산관리" },
 ];
-
-const CATEGORY_TO_ROUTINE: Record<RoutineCategory, RoutineTypeDB | undefined> =
-  {
-    모닝: "morning",
-    운동: "exercise",
-    독서: "reading",
-    영어: "english",
-    제2외국어: "second_language",
-    자산관리: "finance",
-  };
 
 const ITEMS_PER_PAGE = 8;
 
@@ -36,8 +26,7 @@ export default function FeedContainer() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const selectedFilter = (searchParams.get("filter") ??
-    "전체") as FilterCategory;
+  const selectedFilter = (searchParams.get("filter") ?? "all") as FilterKey;
   const currentPage = Number(searchParams.get("page") ?? "1");
 
   const [feedData, setFeedData] = useState<FeedItemType[]>([]);
@@ -46,10 +35,8 @@ export default function FeedContainer() {
 
   const fetchFeeds = useCallback(async () => {
     setLoading(true);
-    const routineType =
-      selectedFilter !== "전체"
-        ? CATEGORY_TO_ROUTINE[selectedFilter]
-        : undefined;
+    const routineType: RoutineTypeDB | undefined =
+      selectedFilter !== "all" ? selectedFilter : undefined;
 
     const { data, total } = await getAllRecordsForDisplay({
       routineType,
@@ -69,16 +56,16 @@ export default function FeedContainer() {
   const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
   const pagedFeeds = filteredFeeds;
 
-  const updateParams = (filter: FilterCategory, page: number) => {
+  const updateParams = (filter: FilterKey, page: number) => {
     const params = new URLSearchParams();
-    if (filter !== "전체") params.set("filter", filter);
+    if (filter !== "all") params.set("filter", filter);
     if (page !== 1) params.set("page", String(page));
     const query = params.toString();
     router.replace(query ? `/feeds?${query}` : "/feeds");
   };
 
-  const handleFilterChange = (category: FilterCategory) => {
-    updateParams(category, 1);
+  const handleFilterChange = (key: FilterKey) => {
+    updateParams(key, 1);
   };
 
   const handlePageChange = (page: number) => {
@@ -97,17 +84,17 @@ export default function FeedContainer() {
 
       {/* 필터 칩 */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 mb-5 scrollbar-hide">
-        {filterCategories.map((category) => (
+        {FILTERS.map(({ key, label }) => (
           <button
-            key={category}
-            onClick={() => handleFilterChange(category)}
+            key={key}
+            onClick={() => handleFilterChange(key)}
             className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
-              selectedFilter === category
+              selectedFilter === key
                 ? "bg-[var(--gold-400)] text-white shadow-sm"
                 : "bg-gray-100 text-gray-500 hover:bg-gray-200"
             }`}
           >
-            {category}
+            {label}
           </button>
         ))}
       </div>

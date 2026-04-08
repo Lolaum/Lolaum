@@ -56,6 +56,7 @@ export async function createRitualRecord(input: {
     return { error: "인증이 필요합니다." };
   }
 
+  // 하루에 여러 기록 허용 (INSERT), 달성률은 Set으로 하루 1회만 인정
   const { data, error } = await supabase
     .from("ritual_records")
     .insert({
@@ -69,6 +70,43 @@ export async function createRitualRecord(input: {
     .single();
 
   if (error) return { error: error.message };
+
+  // daily_completions 갱신: 등록된 루틴 수 vs 해당 날짜 완료된 루틴 수 비교
+  const [registrationsRes, recordsRes] = await Promise.all([
+    supabase
+      .from("challenge_registrations")
+      .select("routine_type")
+      .eq("user_id", user.id)
+      .eq("challenge_id", input.challengeId),
+    supabase
+      .from("ritual_records")
+      .select("routine_type")
+      .eq("user_id", user.id)
+      .eq("challenge_id", input.challengeId)
+      .eq("record_date", input.recordDate),
+  ]);
+
+  const totalRegistered = registrationsRes.data?.length ?? 0;
+  const completedTypes = new Set(
+    (recordsRes.data ?? []).map((r) => r.routine_type),
+  );
+  const totalCompleted = (registrationsRes.data ?? []).filter((r) =>
+    completedTypes.has(r.routine_type),
+  ).length;
+
+  if (totalRegistered > 0) {
+    await supabase.from("daily_completions").upsert(
+      {
+        user_id: user.id,
+        challenge_id: input.challengeId,
+        completion_date: input.recordDate,
+        total_registered: totalRegistered,
+        total_completed: totalCompleted,
+      },
+      { onConflict: "user_id,challenge_id,completion_date" },
+    );
+  }
+
   return { data };
 }
 

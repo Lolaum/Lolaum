@@ -2,17 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { ProfileProps } from "@/types/home/profile";
-import { Flame } from "lucide-react";
+import { Flame, Trophy, CheckCircle2 } from "lucide-react";
 import { getMe } from "@/api/user";
+import { getMyPageStats, MyPageStats, getCompletionRate, CompletionRateStats } from "@/api/ritual-stats";
 
 export default function Profile({
   description = "매일 성장하는 습관 만들기",
-  completedCount = 3,
-  totalCount = 4,
 }: ProfileProps) {
-  const progressPercent =
-    totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
   const [showEditModal, setShowEditModal] = useState(false);
   const [userName, setUserName] = useState("");
   const [editName, setEditName] = useState("");
@@ -21,6 +17,8 @@ export default function Profile({
   const [savedDescription, setSavedDescription] = useState(description);
   const [savedPhoto, setSavedPhoto] = useState<string | null>(null);
   const [editPhoto, setEditPhoto] = useState<string | null>(null);
+  const [stats, setStats] = useState<MyPageStats | null>(null);
+  const [completionRate, setCompletionRate] = useState<CompletionRateStats | null>(null);
 
   useEffect(() => {
     getMe().then((profile) => {
@@ -29,6 +27,12 @@ export default function Profile({
         setSavedName(profile.name);
         setEditName(profile.name);
       }
+    });
+    getMyPageStats().then((res) => {
+      if (res.data) setStats(res.data);
+    });
+    getCompletionRate().then((res) => {
+      if (res.data) setCompletionRate(res.data);
     });
   }, []);
 
@@ -141,25 +145,46 @@ export default function Profile({
         </div>
         <div className="flex items-center gap-1 bg-yellow-50 rounded-full px-2.5 py-1 flex-shrink-0">
           <Flame size={12} className="text-yellow-500" />
-          <span className="text-xs font-bold text-yellow-500">12일</span>
+          <span className="text-xs font-bold text-yellow-500">{stats?.currentStreak || 1}일</span>
         </div>
       </button>
 
-      {/* 오늘의 진행률 */}
+      {/* 마이페이지 통계 */}
+      <div className="flex items-center justify-around mb-4 py-3 bg-gray-50 rounded-2xl">
+        <div className="flex flex-col items-center gap-1">
+          <Flame size={16} className="text-orange-400" />
+          <span className="text-lg font-bold text-gray-900">{stats?.currentStreak || 1}</span>
+          <span className="text-[10px] text-gray-400 font-medium">연속 실천</span>
+        </div>
+        <div className="w-px h-8 bg-gray-200" />
+        <div className="flex flex-col items-center gap-1">
+          <Trophy size={16} className="text-yellow-500" />
+          <span className="text-lg font-bold text-gray-900">{stats?.longestStreak ?? 0}</span>
+          <span className="text-[10px] text-gray-400 font-medium">최장 기록</span>
+        </div>
+        <div className="w-px h-8 bg-gray-200" />
+        <div className="flex flex-col items-center gap-1">
+          <CheckCircle2 size={16} className="text-green-500" />
+          <span className="text-lg font-bold text-gray-900">{stats?.totalCompletions ?? 0}</span>
+          <span className="text-[10px] text-gray-400 font-medium">총 완료</span>
+        </div>
+      </div>
+
+      {/* 달성률 */}
       <div>
         <div className="flex justify-between items-center mb-1.5">
-          <span className="text-xs text-gray-400 font-medium">오늘의 달성률</span>
+          <span className="text-xs text-gray-400 font-medium">달성률</span>
           <span className="text-xs font-semibold text-gray-500">
-            {completedCount}/{totalCount}
+            {completionRate?.totalAchieved ?? 0}/18
           </span>
         </div>
         <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
           <div
             className="h-full rounded-full bg-yellow-400 transition-all duration-500"
-            style={{ width: `${progressPercent}%` }}
+            style={{ width: `${completionRate?.rate ?? 0}%` }}
           />
         </div>
-        <p className="text-lg font-bold text-gray-900 mt-2">{progressPercent}%</p>
+        <p className="text-lg font-bold text-gray-900 mt-2">{completionRate?.rate ?? 0}%</p>
       </div>
     </div>
     </>

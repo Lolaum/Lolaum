@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ChevronDown, Quote, FileText, Trash2 } from "lucide-react";
 import { BookDetailProps, DailyReadingRecord, NoteType } from "@/types/routines/reading";
+import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
+import type { ReadingRecordData, Json } from "@/types/supabase";
 
 function AddReadingRecord({
   book,
@@ -210,8 +212,41 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // DB에서 이 책의 기존 기록 불러오기
+  const fetchRecords = useCallback(async () => {
+    const { data } = await getMyRitualRecords({ routineType: "reading" });
+    if (data) {
+      const bookRecords: DailyReadingRecord[] = data
+        .filter((r) => {
+          const d = r.record_data as unknown as ReadingRecordData;
+          return d.bookId === book.id;
+        })
+        .map((r) => {
+          const d = r.record_data as unknown as ReadingRecordData;
+          return {
+            id: r.id as unknown as number,
+            date: r.record_date,
+            trackingType: d.trackingType,
+            startValue: d.startValue,
+            endValue: d.endValue,
+            progressAmount: d.progressAmount,
+            noteType: d.noteType,
+            note: d.note,
+            thoughts: d.thoughts,
+          };
+        })
+        .sort((a, b) => b.date.localeCompare(a.date));
+      setRecords(bookRecords);
+    }
+  }, [book.id]);
+
+  useEffect(() => {
+    fetchRecords();
+  }, [fetchRecords]);
+
   const progress = book.totalValue > 0 ? Math.round((book.currentValue / book.totalValue) * 100) : 0;
   const totalProgress = records.reduce((sum, r) => sum + r.progressAmount, 0);
+  const uniqueDaysCount = new Set(records.map((r) => r.date)).size;
 
   const toggleExpand = (id: number) => {
     setExpandedIds((prev) =>
@@ -220,8 +255,31 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
   };
 
   const handleSave = async (record: Omit<DailyReadingRecord, "id">) => {
-    setRecords((prev) => [{ id: Date.now(), ...record }, ...prev]);
+    // DB에 ritual_record 저장
+    const recordData: ReadingRecordData = {
+      bookId: book.id,
+      trackingType: record.trackingType,
+      startValue: record.startValue,
+      endValue: record.endValue,
+      progressAmount: record.progressAmount,
+      noteType: record.noteType,
+      note: record.note,
+      thoughts: record.thoughts,
+    };
+
+    const { error } = await createRitualRecordAuto({
+      routineType: "reading",
+      recordDate: record.date,
+      recordData: recordData as unknown as Json,
+    });
+
+    if (error) {
+      alert(`기록 저장 실패: ${error}`);
+      return;
+    }
+
     setShowAddRecord(false);
+    fetchRecords(); // DB에서 다시 불러오기
 
     // 진행도 업데이트 + 100% 도달 시 완독 처리
     if (onUpdate && record.endValue > book.currentValue) {
@@ -348,7 +406,23 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
             )}
           </div>
           <div className="flex-1 flex flex-col justify-between py-1">
-            <p className="text-sm text-gray-500">{book.author}</p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500">{book.author}</p>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!onUpdate) return;
+                  await onUpdate(book.id, { isCompleted: !book.isCompleted });
+                }}
+                className={`text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${
+                  book.isCompleted
+                    ? "bg-green-100 text-green-600 hover:bg-green-200"
+                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                }`}
+              >
+                {book.isCompleted ? "완독" : "읽는 중"}
+              </button>
+            </div>
             <div>
               <div className="flex items-center justify-between text-sm text-gray-600 mb-1.5">
                 {isPercent ? (
@@ -382,7 +456,7 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
         </div>
         <div className="flex items-baseline gap-6">
           <div>
-            <div className="text-4xl font-bold text-gray-900">{records.length}</div>
+            <div className="text-4xl font-bold text-gray-900">{uniqueDaysCount}</div>
             <div className="text-sm text-gray-500">읽은 날</div>
           </div>
           <div>
