@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { Declaration, RoutineType } from "@/types/routines/declaration";
 import { declarationQuestions } from "@/lib/declarationQuestions";
-import { myDeclarations, challengerDeclarations } from "@/mock/declarationmock";
+import { getMyDeclarations, getChallengerDeclarations } from "@/api/declaration";
 
 const PAGE_SIZE = 8;
 
@@ -57,21 +58,38 @@ export default function DeclarationContainer() {
   const [activeTab, setActiveTab] = useState<RoutineType | "전체">("전체");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const [myDecls, setMyDecls] = useState<Declaration[]>([]);
+  const [challengerDecls, setChallengerDecls] = useState<Declaration[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const allDeclarations = [...myDeclarations, ...challengerDeclarations];
+  useEffect(() => {
+    async function fetchDeclarations() {
+      setLoading(true);
+      const [myRes, challengerRes] = await Promise.all([
+        getMyDeclarations(),
+        getChallengerDeclarations(),
+      ]);
+      setMyDecls(myRes.data ?? []);
+      setChallengerDecls(challengerRes.data ?? []);
+      setLoading(false);
+    }
+    fetchDeclarations();
+  }, []);
+
+  const allDeclarations = [...myDecls, ...challengerDecls];
   const availableTypes = allRoutineTypes.filter((type) =>
     allDeclarations.some((d) => d.routineType === type)
   );
 
   const filteredMine =
     activeTab === "전체"
-      ? myDeclarations
-      : myDeclarations.filter((d) => d.routineType === activeTab);
+      ? myDecls
+      : myDecls.filter((d) => d.routineType === activeTab);
 
   const filteredChallengers =
     activeTab === "전체"
-      ? challengerDeclarations
-      : challengerDeclarations.filter((d) => d.routineType === activeTab);
+      ? challengerDecls
+      : challengerDecls.filter((d) => d.routineType === activeTab);
 
   const visibleChallengers = filteredChallengers.slice(0, visibleCount);
   const hasMore = visibleCount < filteredChallengers.length;
@@ -118,6 +136,14 @@ export default function DeclarationContainer() {
         <h1 className="text-lg font-bold text-gray-800">리추얼 선언</h1>
       </div>
 
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+          <Loader2 size={24} className="animate-spin mb-3" />
+          <p className="text-sm">선언을 불러오는 중...</p>
+        </div>
+      )}
+
+      {!loading && <>
       {/* 탭 필터 */}
       <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
         <button
@@ -225,6 +251,7 @@ export default function DeclarationContainer() {
           <p className="text-sm font-medium">아직 선언이 없어요</p>
         </div>
       )}
+      </>}
     </div>
   );
 }

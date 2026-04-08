@@ -4,6 +4,7 @@ import { useState } from "react";
 import { RoutineType } from "@/types/routines/declaration";
 import { declarationQuestions } from "@/lib/declarationQuestions";
 import { createRoutineAuto } from "@/api/routine";
+import { createDeclaration } from "@/api/declaration";
 import { ROUTINE_TYPE_MAP } from "@/types/supabase";
 
 interface GenerateRoutineProps {
@@ -61,6 +62,23 @@ export default function GenerateRoutine({ onClose, onCreated }: GenerateRoutineP
 
     if (error) {
       setErrorMsg(error);
+      setSubmitting(false);
+      return;
+    }
+
+    // 선언 저장
+    const declarationAnswers = questions.map((q) => ({
+      questionId: q.id,
+      answer: answers[q.id]?.trim() ?? "",
+    }));
+
+    const { error: declError } = await createDeclaration({
+      routineType,
+      answers: declarationAnswers,
+    });
+
+    if (declError) {
+      setErrorMsg(`루틴은 생성되었지만 선언 저장 실패: ${declError}`);
       setSubmitting(false);
       return;
     }
