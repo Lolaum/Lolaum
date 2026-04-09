@@ -145,7 +145,7 @@ export default function Profile({
         </div>
         <div className="flex items-center gap-1 bg-yellow-50 rounded-full px-2.5 py-1 flex-shrink-0">
           <Flame size={12} className="text-yellow-500" />
-          <span className="text-xs font-bold text-yellow-500">{stats?.currentStreak || 1}일</span>
+          <span className="text-xs font-bold text-yellow-500">{stats?.currentStreak ?? 0}일</span>
         </div>
       </button>
 
@@ -153,7 +153,7 @@ export default function Profile({
       <div className="flex items-center justify-around mb-4 py-3 bg-gray-50 rounded-2xl">
         <div className="flex flex-col items-center gap-1">
           <Flame size={16} className="text-orange-400" />
-          <span className="text-lg font-bold text-gray-900">{stats?.currentStreak || 1}</span>
+          <span className="text-lg font-bold text-gray-900">{stats?.currentStreak ?? 0}</span>
           <span className="text-[10px] text-gray-400 font-medium">연속 실천</span>
         </div>
         <div className="w-px h-8 bg-gray-200" />

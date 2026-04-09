@@ -46,7 +46,7 @@ export default function TaskTabs({ selectedDate, onTaskClick }: TaskTabsProps) {
       <div className="grid grid-cols-3 gap-3">
         {[
           {
-            value: String(stats?.currentStreak || 1),
+            value: String(stats?.currentStreak ?? 0),
             label: "연속 실천",
             icon: Flame,
             color: "#ff8900",
