@@ -1,35 +1,25 @@
 "use client";
 
-interface Member {
-  id: string;
-  name: string;
-  avatar?: string;
-  emoji?: string;
-  monthsJoined: number;
-}
+import { useEffect, useState } from "react";
+import { getCurrentChallengers, type ChallengerSummary } from "@/api/user";
 
 interface MemberProfileProps {
-  members?: Member[];
   selectedMemberId?: string;
   onSelectMember?: (memberId: string) => void;
 }
 
-const defaultMembers: Member[] = [
-  { id: "1", name: "민수", emoji: "🧑", monthsJoined: 6 },
-  { id: "2", name: "지은", emoji: "🧑", monthsJoined: 4 },
-  { id: "3", name: "현우", monthsJoined: 2 },
-  { id: "4", name: "서연", emoji: "🧑", monthsJoined: 8 },
-  { id: "5", name: "태희", emoji: "🧑", monthsJoined: 1 },
-  { id: "6", name: "준호", monthsJoined: 3 },
-  { id: "7", name: "수빈", emoji: "🧑", monthsJoined: 5 },
-  { id: "8", name: "동현", emoji: "🧑", monthsJoined: 7 },
-];
-
 export default function MemberProfile({
-  members = defaultMembers,
   selectedMemberId,
   onSelectMember,
 }: MemberProfileProps) {
+  const [members, setMembers] = useState<ChallengerSummary[]>([]);
+
+  useEffect(() => {
+    getCurrentChallengers().then((res) => {
+      if (res.data) setMembers(res.data);
+    });
+  }, []);
+
   return (
     <div className="rounded-3xl bg-white shadow-sm border border-gray-100 p-4 mb-4">
       {/* 헤더 */}
@@ -68,9 +58,9 @@ export default function MemberProfile({
                         : "none",
                     }}
                   >
-                    {member.avatar ? (
+                    {member.avatarUrl ? (
                       <img
-                        src={member.avatar}
+                        src={member.avatarUrl}
                         alt={member.name}
                         className="w-full h-full rounded-full object-cover"
                       />
@@ -86,15 +76,6 @@ export default function MemberProfile({
                       </svg>
                     )}
                   </div>
-                  <span
-                    className="absolute -bottom-1 -right-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap border-2 border-white"
-                    style={{
-                      backgroundColor: "#fef3c7",
-                      color: "#92400e",
-                    }}
-                  >
-                    {member.monthsJoined}🔥
-                  </span>
                 </div>
                 {/* 이름 */}
                 <span

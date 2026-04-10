@@ -135,6 +135,22 @@ function calcLongestStreak(dates: string[]): number {
   return longest;
 }
 
+/**
+ * 신청한 모든 루틴(registeredTypes)에 대해 항목(rows)이 작성되었는지 검사.
+ * 선언/중간회고/최종회고가 "신청한 루틴 수만큼 채워졌을 때"만 달성으로 인정한다.
+ */
+function isAllRoutinesCovered(
+  registeredTypes: Set<string>,
+  rows: { routine_type: string }[] | null | undefined,
+): boolean {
+  if (registeredTypes.size === 0) return false;
+  const written = new Set((rows ?? []).map((r) => r.routine_type));
+  for (const rt of registeredTypes) {
+    if (!written.has(rt)) return false;
+  }
+  return true;
+}
+
 function getWeekActivity(dates: string[]): boolean[] {
   const today = new Date();
   const dayOfWeek = today.getDay(); // 0=일, 1=월, ...
@@ -183,16 +199,14 @@ export async function getRitualPageData(): Promise<{
       .eq("challenge_id", challengeId),
     supabase
       .from("declarations")
-      .select("id")
+      .select("routine_type")
       .eq("user_id", user.id)
-      .eq("challenge_id", challengeId)
-      .limit(1),
+      .eq("challenge_id", challengeId),
     supabase
       .from("mid_reviews")
-      .select("id")
+      .select("routine_type")
       .eq("user_id", user.id)
-      .eq("challenge_id", challengeId)
-      .limit(1),
+      .eq("challenge_id", challengeId),
   ]);
 
   const records = recordsRes.data ?? [];
@@ -250,10 +264,17 @@ export async function getRitualPageData(): Promise<{
     });
 
   // completion stats (전체 18일 기준)
+  // 회고/선언은 "신청한 모든 루틴에 대해 작성"되어야 +1
   const completedDays = Math.min(fullyCompleteDays, 15);
-  const hasDeclaration = (declarationsRes.data?.length ?? 0) > 0;
-  const hasMidReview = (midReviewsRes.data?.length ?? 0) > 0;
-  const hasFinalReview = false;
+  const hasDeclaration = isAllRoutinesCovered(
+    registeredTypes,
+    declarationsRes.data,
+  );
+  const hasMidReview = isAllRoutinesCovered(
+    registeredTypes,
+    midReviewsRes.data,
+  );
+  const hasFinalReview = false; // TODO: 최종회고 테이블 생성 후 동일 로직 적용
   const totalAchieved =
     completedDays +
     (hasDeclaration ? 1 : 0) +
@@ -629,16 +650,14 @@ export async function getHomeStats(): Promise<{
         .eq("challenge_id", challengeId),
       supabase
         .from("declarations")
-        .select("id")
+        .select("routine_type")
         .eq("user_id", user.id)
-        .eq("challenge_id", challengeId)
-        .limit(1),
+        .eq("challenge_id", challengeId),
       supabase
         .from("mid_reviews")
-        .select("id")
+        .select("routine_type")
         .eq("user_id", user.id)
-        .eq("challenge_id", challengeId)
-        .limit(1),
+        .eq("challenge_id", challengeId),
     ]);
 
   const currentRecords = currentRes.data ?? [];
@@ -667,9 +686,16 @@ export async function getHomeStats(): Promise<{
     if (allDone) fullyCompleteDays++;
   }
   const completedDays = Math.min(fullyCompleteDays, 15);
-  const hasDeclaration = (declarationsRes.data?.length ?? 0) > 0;
-  const hasMidReview = (midReviewsRes.data?.length ?? 0) > 0;
-  const hasFinalReview = false;
+  // 회고/선언은 "신청한 모든 루틴에 대해 작성"되어야 +1
+  const hasDeclaration = isAllRoutinesCovered(
+    registeredTypes,
+    declarationsRes.data,
+  );
+  const hasMidReview = isAllRoutinesCovered(
+    registeredTypes,
+    midReviewsRes.data,
+  );
+  const hasFinalReview = false; // TODO: 최종회고 테이블 생성 후 동일 로직 적용
   const totalAchieved =
     completedDays +
     (hasDeclaration ? 1 : 0) +
@@ -763,16 +789,14 @@ export async function getCompletionRate(): Promise<{
       .eq("challenge_id", challengeId),
     supabase
       .from("declarations")
-      .select("id")
+      .select("routine_type")
       .eq("user_id", user.id)
-      .eq("challenge_id", challengeId)
-      .limit(1),
+      .eq("challenge_id", challengeId),
     supabase
       .from("mid_reviews")
-      .select("id")
+      .select("routine_type")
       .eq("user_id", user.id)
-      .eq("challenge_id", challengeId)
-      .limit(1),
+      .eq("challenge_id", challengeId),
     // TODO: 최종회고 테이블 생성 후 여기에 추가
   ]);
 
@@ -791,8 +815,15 @@ export async function getCompletionRate(): Promise<{
     if (allDone) fullyCompleteDays++;
   }
   const completedDays = Math.min(fullyCompleteDays, 15);
-  const hasDeclaration = (declarationsRes.data?.length ?? 0) > 0;
-  const hasMidReview = (midReviewsRes.data?.length ?? 0) > 0;
+  // 회고/선언은 "신청한 모든 루틴에 대해 작성"되어야 +1
+  const hasDeclaration = isAllRoutinesCovered(
+    registeredTypes,
+    declarationsRes.data,
+  );
+  const hasMidReview = isAllRoutinesCovered(
+    registeredTypes,
+    midReviewsRes.data,
+  );
   const hasFinalReview = false; // TODO: 최종회고 테이블 연동
 
   const totalAchieved =
