@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { getMonthDates } from "@/modules/Common/dateModules";
-import { DAYS } from "@/constants/constant";
+import { getMonthDates } from "@/lib/date";
+import { DAYS } from "@/lib/constants";
 
 interface HomCalendarProps {
   today: Date;

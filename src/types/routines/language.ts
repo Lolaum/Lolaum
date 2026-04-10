@@ -26,7 +26,7 @@ export interface LanguageFormData {
 export interface AddNewLanguageProps {
   onCancel: () => void;
   onBackToHome?: () => void;
-  onSubmit?: (recordData: LanguageFormData) => void;
+  onSubmit?: (recordData: LanguageFormData) => void | Promise<void>;
   initialImages?: string[]; // 인증 사진 자동 주입
 }
 

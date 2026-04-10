@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { Calendar } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Calendar, Loader2 } from "lucide-react";
 import RecordExercise from "./RecordExercise";
 import AddNewExercise from "./AddNewExercise";
 import {
   ExerciseRecord,
   ExerciseContainerProps,
+  ExerciseFormData,
 } from "@/types/routines/exercise";
+import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
+import type { ExerciseRecordData, Json } from "@/types/supabase";
 
 export default function ExerciseContainer({
   onBackToTimer,
@@ -15,36 +18,55 @@ export default function ExerciseContainer({
   certificationPhotos,
   elapsedSeconds = 0,
 }: ExerciseContainerProps) {
-  // 인증 사진이 있으면 바로 기록 추가 화면으로
   const [showAddRecord, setShowAddRecord] = useState(!!certificationPhotos?.length);
+  const [exerciseRecords, setExerciseRecords] = useState<ExerciseRecord[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // 운동 기록 데이터
-  const exerciseRecords: ExerciseRecord[] = [
-    {
-      id: 1,
-      date: "1월 20일",
-      exerciseName: "필라테스",
-      duration: 50,
-      images: [],
-      achievement: "코어 강화에 집중. 몸의 중심이 단단해지는 느낌.",
-    },
-    {
-      id: 2,
-      date: "1월 17일",
-      exerciseName: "달리기",
-      duration: 25,
-      images: [],
-      achievement: "짧지만 집중도 높은 운동.",
-    },
-    {
-      id: 3,
-      date: "1월 15일",
-      exerciseName: "웨이트 트레이닝",
-      duration: 60,
-      images: [],
-      achievement: "스쿼트와 데드리프트 중심. 자세에 더 신경 써야겠다.",
-    },
-  ];
+  const fetchRecords = useCallback(async () => {
+    setLoading(true);
+    const { data } = await getMyRitualRecords({ routineType: "exercise" });
+    if (data) {
+      const records: ExerciseRecord[] = data.map((r) => {
+        const d = r.record_data as unknown as ExerciseRecordData;
+        const date = new Date(r.record_date);
+        return {
+          id: r.id as unknown as number,
+          date: `${date.getMonth() + 1}월 ${date.getDate()}일`,
+          exerciseName: d.exerciseName,
+          duration: d.duration,
+          images: d.images ?? [],
+          achievement: d.achievement ?? "",
+        };
+      });
+      setExerciseRecords(records);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchRecords();
+  }, [fetchRecords]);
+
+  const handleSubmit = async (formData: ExerciseFormData) => {
+    const today = new Date().toISOString().split("T")[0];
+    const recordData: ExerciseRecordData = {
+      exerciseName: formData.exerciseName,
+      duration: formData.duration,
+      images: formData.images,
+      achievement: formData.achievement,
+    };
+    const { error } = await createRitualRecordAuto({
+      routineType: "exercise",
+      recordDate: today,
+      recordData: recordData as unknown as Json,
+    });
+    if (error) {
+      alert(`기록 저장 실패: ${error}`);
+      return;
+    }
+    setShowAddRecord(false);
+    fetchRecords();
+  };
 
   // 이번 달 통계 계산
   const exerciseCount = exerciseRecords.length;
@@ -60,6 +82,7 @@ export default function ExerciseContainer({
         <AddNewExercise
           onCancel={() => setShowAddRecord(false)}
           onBackToHome={onBackToHome}
+          onSubmit={handleSubmit}
           initialImages={certificationPhotos}
           initialDuration={elapsedSeconds > 0 ? Math.round(elapsedSeconds / 60) : undefined}
         />
@@ -121,7 +144,14 @@ export default function ExerciseContainer({
         </div>
 
         {/* 운동 기록 섹션 */}
-        <RecordExercise exerciseRecords={exerciseRecords} />
+        {loading ? (
+          <div className="text-center py-8 text-gray-400">
+            <Loader2 size={20} className="animate-spin mx-auto mb-2" />
+            <p className="text-xs">기록을 불러오는 중...</p>
+          </div>
+        ) : (
+          <RecordExercise exerciseRecords={exerciseRecords} />
+        )}
       </>
     );
   };

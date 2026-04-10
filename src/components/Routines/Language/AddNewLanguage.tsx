@@ -57,7 +57,7 @@ export default function AddNewLanguage({
     setImages(images.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const validExpressions = expressions.filter(
       (e) => e.word.trim() || e.meaning.trim() || e.example.trim()
     );
@@ -74,8 +74,11 @@ export default function AddNewLanguage({
       })),
     };
 
-    onSubmit?.(recordData);
-    onCancel();
+    if (onSubmit) {
+      await onSubmit(recordData);
+    } else {
+      onCancel();
+    }
   };
 
   return (

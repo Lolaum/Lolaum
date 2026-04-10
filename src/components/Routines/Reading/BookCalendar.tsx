@@ -1,33 +1,61 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { ReadingRecord, BookCalendarProps } from "@/types/routines/reading";
+import { useState, useEffect } from "react";
+import { ChevronLeft, ChevronRight, BookCheck } from "lucide-react";
+import { ReadingRecord, BookCalendarProps, CompletedBook } from "@/types/routines/reading";
+import { getMyRitualRecords } from "@/api/ritual-record";
+import { getBooksAuto } from "@/api/book";
+import type { ReadingRecordData } from "@/types/supabase";
 
-export default function BookCalendar({ onBack, onBookSelect }: BookCalendarProps) {
+export default function BookCalendar({ onBack, onBookSelect, completedBooks = [] }: BookCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
-
-  // 임시 독서 기록 데이터
-  const readingRecords: ReadingRecord[] = [
-    {
-      date: "2026-01-05",
-      bookCover: "/images/book1.jpg",
-      bookTitle: "아침의 힘",
-    },
-    {
-      date: "2026-01-12",
-      bookCover: "/images/book2.jpg",
-      bookTitle: "습관의 디테일",
-    },
-    {
-      date: "2026-01-18",
-      bookCover: "/images/book3.jpg",
-      bookTitle: "데일 카네기 인간관계론",
-    },
-  ];
+  const [readingRecords, setReadingRecords] = useState<ReadingRecord[]>([]);
+  const [bookMap, setBookMap] = useState<Record<string, { title: string; coverImageUrl: string | null }>>({});
+  const [loading, setLoading] = useState(true);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+
+      // 책 목록과 독서 기록을 동시에 가져오기
+      const [booksResult, recordsResult] = await Promise.all([
+        getBooksAuto("reading"),
+        getMyRitualRecords({ routineType: "reading" }),
+      ]);
+
+      // 책 ID → 정보 매핑
+      const map: Record<string, { title: string; coverImageUrl: string | null }> = {};
+      if (booksResult.data) {
+        for (const book of booksResult.data) {
+          map[book.id] = { title: book.title, coverImageUrl: book.cover_image_url };
+        }
+      }
+      setBookMap(map);
+
+      // ritual_records에서 독서 기록 추출
+      if (recordsResult.data) {
+        const records: ReadingRecord[] = [];
+        for (const record of recordsResult.data) {
+          const data = record.record_data as unknown as ReadingRecordData;
+          if (data?.bookId && map[data.bookId]) {
+            records.push({
+              date: record.record_date,
+              bookCover: map[data.bookId].coverImageUrl ?? "",
+              bookTitle: map[data.bookId].title,
+            });
+          }
+        }
+        setReadingRecords(records);
+      }
+
+      setLoading(false);
+    }
+
+    fetchData();
+  }, []);
 
   // 해당 월의 첫 날과 마지막 날
   const firstDayOfMonth = new Date(year, month, 1);
@@ -51,6 +79,12 @@ export default function BookCalendar({ onBack, onBookSelect }: BookCalendarProps
   const getReadingRecord = (day: number) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     return readingRecords.find((record) => record.date === dateStr);
+  };
+
+  // 해당 날짜에 완독된 책 찾기
+  const getCompletedBook = (day: number): CompletedBook | undefined => {
+    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    return completedBooks.find((book) => book.completedDate === dateStr);
   };
 
   // 요일 헤더
@@ -105,6 +139,41 @@ export default function BookCalendar({ onBack, onBookSelect }: BookCalendarProps
         </div>
       </div>
 
+      {/* 완독 책 목록 */}
+      {completedBooks.length > 0 && (
+        <div className="mb-6 bg-orange-50 rounded-2xl p-4 border border-orange-100">
+          <div className="flex items-center gap-2 mb-3">
+            <BookCheck className="w-5 h-5 text-orange-500" />
+            <h3 className="text-sm font-semibold text-orange-700">이번 달 완독</h3>
+          </div>
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide">
+            {completedBooks.map((book) => (
+              <button
+                key={book.id}
+                type="button"
+                onClick={() => onBookSelect?.(book.title)}
+                className="flex-shrink-0 flex flex-col items-center gap-1.5"
+              >
+                <div className="w-12 h-16 rounded-lg overflow-hidden shadow-sm">
+                  {book.coverImageUrl ? (
+                    <img src={book.coverImageUrl} alt={book.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center">
+                      <span className="text-white text-[7px] font-medium">완독</span>
+                    </div>
+                  )}
+                </div>
+                <span className="text-[10px] text-gray-600 max-w-[60px] truncate">{book.title}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {loading && (
+        <p className="text-center text-sm text-gray-400 mb-4">불러오는 중...</p>
+      )}
+
       {/* 요일 헤더 */}
       <div className="grid grid-cols-7 mb-4">
         {weekDays.map((day, index) => (
@@ -130,6 +199,7 @@ export default function BookCalendar({ onBack, onBookSelect }: BookCalendarProps
           const isSunday = dayOfWeek === 0;
           const isSaturday = dayOfWeek === 6;
           const readingRecord = day ? getReadingRecord(day) : null;
+          const completedBook = day ? getCompletedBook(day) : undefined;
 
           return (
             <div
@@ -151,19 +221,52 @@ export default function BookCalendar({ onBack, onBookSelect }: BookCalendarProps
                     {day}
                   </span>
 
-                  {/* 책 표지 (독서 기록이 있는 경우) */}
-                  {readingRecord && (
+                  {/* 완독된 책 표지 (우선 표시) */}
+                  {completedBook ? (
+                    <button
+                      type="button"
+                      onClick={() => onBookSelect?.(completedBook.title)}
+                      className="w-10 h-14 rounded overflow-hidden shadow-md hover:scale-110 transition-transform relative"
+                      title={`${completedBook.title} (완독!)`}
+                    >
+                      {completedBook.coverImageUrl ? (
+                        <img
+                          src={completedBook.coverImageUrl}
+                          alt={completedBook.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center">
+                          <span className="text-white text-[7px] font-medium">완독</span>
+                        </div>
+                      )}
+                      {/* 완독 배지 */}
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 rounded-full flex items-center justify-center">
+                        <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    </button>
+                  ) : readingRecord ? (
                     <button
                       type="button"
                       onClick={() => onBookSelect?.(readingRecord.bookTitle)}
                       className="w-10 h-14 rounded overflow-hidden shadow-sm hover:scale-110 hover:shadow-md transition-transform"
                       title={readingRecord.bookTitle}
                     >
-                      <div className="w-full h-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center">
-                        <span className="text-white text-[8px]">표지</span>
-                      </div>
+                      {readingRecord.bookCover ? (
+                        <img
+                          src={readingRecord.bookCover}
+                          alt={readingRecord.bookTitle}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center">
+                          <span className="text-white text-[8px]">표지</span>
+                        </div>
+                      )}
                     </button>
-                  )}
+                  ) : null}
                 </>
               )}
             </div>

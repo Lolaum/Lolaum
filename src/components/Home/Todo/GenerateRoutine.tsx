@@ -2,10 +2,14 @@
 
 import { useState } from "react";
 import { RoutineType } from "@/types/routines/declaration";
-import { declarationQuestions } from "@/constants/declarationQuestions";
+import { declarationQuestions } from "@/lib/declarationQuestions";
+import { createRoutineAuto } from "@/api/routine";
+import { createDeclaration } from "@/api/declaration";
+import { ROUTINE_TYPE_MAP } from "@/types/supabase";
 
 interface GenerateRoutineProps {
   onClose?: () => void;
+  onCreated?: () => void;
 }
 
 const routineOptions: RoutineType[] = [
@@ -19,13 +23,15 @@ const routineOptions: RoutineType[] = [
   "원서읽기리추얼",
 ];
 
-export default function GenerateRoutine({ onClose }: GenerateRoutineProps) {
+export default function GenerateRoutine({ onClose, onCreated }: GenerateRoutineProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedRoutine, setSelectedRoutine] = useState<RoutineType | "">("");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showSuccess, setShowSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const questions =
     selectedRoutine ? declarationQuestions[selectedRoutine] : [];
@@ -40,13 +46,50 @@ export default function GenerateRoutine({ onClose }: GenerateRoutineProps) {
     if (selectedRoutine) setStep(2);
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
+    if (!selectedRoutine) return;
+    setSubmitting(true);
+    setErrorMsg(null);
+
+    const routineType = ROUTINE_TYPE_MAP[selectedRoutine];
+    if (!routineType) {
+      setErrorMsg("잘못된 루틴 타입입니다.");
+      setSubmitting(false);
+      return;
+    }
+
+    const { error } = await createRoutineAuto(routineType);
+
+    if (error) {
+      setErrorMsg(error);
+      setSubmitting(false);
+      return;
+    }
+
+    // 선언 저장
+    const declarationAnswers = questions.map((q) => ({
+      questionId: q.id,
+      answer: answers[q.id]?.trim() ?? "",
+    }));
+
+    const { error: declError } = await createDeclaration({
+      routineType,
+      answers: declarationAnswers,
+    });
+
+    if (declError) {
+      setErrorMsg(`루틴은 생성되었지만 선언 저장 실패: ${declError}`);
+      setSubmitting(false);
+      return;
+    }
+
+    setSubmitting(false);
     setShowSuccess(true);
   };
 
   const handleClose = () => {
     setShowSuccess(false);
-    onClose?.();
+    onCreated?.();
   };
 
   return (
@@ -238,6 +281,11 @@ export default function GenerateRoutine({ onClose }: GenerateRoutineProps) {
               ))}
             </div>
 
+            {/* 에러 메시지 */}
+            {errorMsg && (
+              <p className="text-xs text-red-500 mb-3 px-1">{errorMsg}</p>
+            )}
+
             {/* 버튼 */}
             <div className="flex gap-2">
               <button
@@ -248,11 +296,11 @@ export default function GenerateRoutine({ onClose }: GenerateRoutineProps) {
               </button>
               <button
                 onClick={handleCreate}
-                disabled={!allAnswersFilled}
+                disabled={!allAnswersFilled || submitting}
                 className="flex-1 py-3 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ backgroundColor: "#eab32e" }}
               >
-                루틴 추가
+                {submitting ? "생성 중..." : "루틴 추가"}
               </button>
             </div>
           </>

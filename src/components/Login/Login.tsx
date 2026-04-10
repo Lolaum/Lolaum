@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { login } from "@/api/auth";
 
 export default function Login() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -15,11 +18,16 @@ export default function Login() {
     setError("");
 
     try {
-      console.log("로그인 시도:", { email, password });
-      window.location.href = "/home";
-    } catch (error) {
+      const result = await login({ email, password });
+
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+
+      router.push("/home");
+    } catch {
       setError("로그인 중 오류가 발생했습니다. 다시 시도해주세요.");
-      console.error("로그인 실패:", error);
     } finally {
       setIsLoading(false);
     }
@@ -160,7 +168,7 @@ export default function Login() {
           <div className="text-center">
             <p className="text-sm text-gray-400">
               아직 계정이 없으신가요?{" "}
-              <a href="#" className="font-bold text-[var(--gold-500)] hover:text-[var(--gold-600)] transition-colors">
+              <a href="/signup" className="font-bold text-[var(--gold-500)] hover:text-[var(--gold-600)] transition-colors">
                 회원가입
               </a>
             </p>

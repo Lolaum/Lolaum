@@ -21,11 +21,14 @@ export type Json =
 
 export interface Database {
   public: {
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
     Tables: {
       profiles: {
         Row: {
           id: string;
           name: string;
+          username: string;
           email: string;
           avatar_url: string | null;
           emoji: string | null;
@@ -35,6 +38,7 @@ export interface Database {
         Insert: {
           id: string;
           name: string;
+          username: string;
           email: string;
           avatar_url?: string | null;
           emoji?: string | null;
@@ -44,11 +48,13 @@ export interface Database {
         Update: {
           id?: string;
           name?: string;
+          username?: string;
           email?: string;
           avatar_url?: string | null;
           emoji?: string | null;
           updated_at?: string;
         };
+        Relationships: [];
       };
       teams: {
         Row: {
@@ -67,6 +73,7 @@ export interface Database {
           name?: string;
           max_members?: number;
         };
+        Relationships: [];
       };
       team_members: {
         Row: {
@@ -86,11 +93,13 @@ export interface Database {
         Update: {
           role?: "admin" | "member";
         };
+        Relationships: [];
       };
       challenges: {
         Row: {
           id: string;
-          team_id: string;
+          team_id: string | null;
+          user_id: string | null;
           year: number;
           month: number;
           start_date: string;
@@ -101,7 +110,8 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          team_id: string;
+          team_id?: string | null;
+          user_id?: string | null;
           year: number;
           month: number;
           start_date: string;
@@ -116,6 +126,7 @@ export interface Database {
           weekly_target?: number;
           total_weeks?: number;
         };
+        Relationships: [];
       };
       challenge_registrations: {
         Row: {
@@ -135,6 +146,7 @@ export interface Database {
         Update: {
           routine_type?: RoutineTypeDB;
         };
+        Relationships: [];
       };
       ritual_records: {
         Row: {
@@ -161,6 +173,7 @@ export interface Database {
           record_data?: Json;
           updated_at?: string;
         };
+        Relationships: [];
       };
       books: {
         Row: {
@@ -202,6 +215,7 @@ export interface Database {
           is_completed?: boolean;
           updated_at?: string;
         };
+        Relationships: [];
       };
       feeds: {
         Row: {
@@ -227,6 +241,7 @@ export interface Database {
         Update: {
           feed_data?: Json;
         };
+        Relationships: [];
       };
       feed_comments: {
         Row: {
@@ -246,6 +261,7 @@ export interface Database {
         Update: {
           text?: string;
         };
+        Relationships: [];
       };
       declarations: {
         Row: {
@@ -267,6 +283,7 @@ export interface Database {
         Update: {
           answers?: Json;
         };
+        Relationships: [];
       };
       mid_reviews: {
         Row: {
@@ -306,6 +323,7 @@ export interface Database {
           keep_doing?: string;
           will_change?: string;
         };
+        Relationships: [];
       };
       daily_completions: {
         Row: {
@@ -340,6 +358,7 @@ export interface Database {
           has_penalty?: boolean;
           updated_at?: string;
         };
+        Relationships: [];
       };
       todos: {
         Row: {
@@ -366,6 +385,7 @@ export interface Database {
           todo_date?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
     };
   };

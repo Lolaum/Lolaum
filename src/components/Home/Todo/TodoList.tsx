@@ -1,46 +1,65 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import mock_todo from "@/mock/todomock";
-import { formatDateDisplay, formatDateKey } from "@/modules/Common/dateModules";
+import React, { useState, useEffect, useCallback } from "react";
+import { formatDateKey } from "@/lib/date";
 import { Check, Trash2 } from "lucide-react";
 import { TodoListProps } from "@/types/home/todo";
+import { getTodos, createTodo, updateTodo, deleteTodo } from "@/api/todo";
+import type { Todo } from "@/types/supabase";
 
 export default function TodoList({ selectedDate, onTaskClick }: TodoListProps) {
   const dateKey = formatDateKey(selectedDate);
-  const initialTodos = mock_todo[dateKey] || [];
-  const [todos, setTodos] = useState(initialTodos);
+  const [todos, setTodos] = useState<Todo[]>([]);
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // 날짜 변경 시 투두 리스트 업데이트
-  useEffect(() => {
-    setTodos(mock_todo[dateKey] || []);
+  const fetchTodos = useCallback(async () => {
+    setLoading(true);
+    const { data } = await getTodos(dateKey);
+    setTodos(data || []);
+    setLoading(false);
   }, [dateKey]);
 
-  const handleToggle = (id: number) => {
+  useEffect(() => {
+    fetchTodos();
+  }, [fetchTodos]);
+
+  const handleToggle = async (id: string, currentCompleted: boolean) => {
+    // 낙관적 업데이트
     setTodos((prev) =>
       prev.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo,
+        todo.id === id ? { ...todo, completed: !currentCompleted } : todo,
       ),
     );
+    const { error } = await updateTodo(id, { completed: !currentCompleted });
+    if (error) {
+      // 실패 시 원복
+      setTodos((prev) =>
+        prev.map((todo) =>
+          todo.id === id ? { ...todo, completed: currentCompleted } : todo,
+        ),
+      );
+    }
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!input.trim()) return;
-    setTodos((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        title: input,
-        completed: false,
-      },
-    ]);
+    const title = input.trim();
     setInput("");
+    const { data } = await createTodo({ title, todo_date: dateKey });
+    if (data) {
+      setTodos((prev) => [...prev, data]);
+    }
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: string) => {
     setTodos((prev) => prev.filter((todo) => todo.id !== id));
+    const { error } = await deleteTodo(id);
+    if (error) {
+      fetchTodos();
+    }
   };
 
+  const inProgress = todos.filter((t) => !t.completed);
   const completedTodos = todos.filter((t) => t.completed);
 
   return (
@@ -72,19 +91,21 @@ export default function TodoList({ selectedDate, onTaskClick }: TodoListProps) {
       {/* 진행 중 */}
       <div className="mb-1">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2.5">
-          진행 중 ({todos.filter((t) => !t.completed).length})
+          진행 중 ({inProgress.length})
         </p>
         <div className="space-y-2">
-          {todos.filter((t) => !t.completed).length === 0 ? (
+          {loading ? (
+            <p className="text-sm text-gray-300 text-center py-4">불러오는 중...</p>
+          ) : inProgress.length === 0 ? (
             <p className="text-sm text-gray-200 text-center py-4">할 일이 없습니다</p>
           ) : (
-            todos.filter((t) => !t.completed).map((todo) => (
+            inProgress.map((todo) => (
               <div
                 key={todo.id}
                 className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3 border border-transparent hover:border-gray-200 transition-colors"
               >
                 <button
-                  onClick={() => handleToggle(todo.id)}
+                  onClick={() => handleToggle(todo.id, todo.completed)}
                   className="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center flex-shrink-0 transition-all hover:border-[var(--gold-400)]"
                 />
                 <span className="flex-1 text-sm text-gray-800 font-medium">{todo.title}</span>
@@ -107,7 +128,7 @@ export default function TodoList({ selectedDate, onTaskClick }: TodoListProps) {
                 className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3"
               >
                 <button
-                  onClick={() => handleToggle(todo.id)}
+                  onClick={() => handleToggle(todo.id, todo.completed)}
                   className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
                   style={{ backgroundColor: "#eab32e" }}
                   aria-label="완료 취소"

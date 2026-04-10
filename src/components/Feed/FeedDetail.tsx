@@ -21,6 +21,7 @@ import {
   ReadingFeedData,
   RoutineCategory,
 } from "@/types/feed";
+import { addComment, deleteComment, updateComment } from "@/api/comment";
 import CommentSection from "./CommentSection";
 
 interface FeedDetailProps {
@@ -408,16 +409,33 @@ export default function FeedDetail({ item }: FeedDetailProps) {
   const router = useRouter();
   const [comments, setComments] = useState<Comment[]>(item.comments ?? []);
   const meta = getCategoryMeta(item.routineCategory);
+  const recordId = item.odOriginalId;
 
-  const handleAddComment = (text: string) => {
-    const newComment: Comment = {
-      id: Date.now(),
-      userId: 0,
-      userName: "나",
-      text,
-      date: new Date().toISOString(),
-    };
-    setComments((prev) => [...prev, newComment]);
+  const handleAddComment = async (text: string) => {
+    if (!recordId) return;
+    try {
+      const { data, error } = await addComment(recordId, text);
+      if (error) { console.error("댓글 추가 실패:", error); return; }
+      if (data) setComments((prev) => [...prev, data]);
+    } catch (e) { console.error("댓글 추가 예외:", e); }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      const { error } = await deleteComment(commentId);
+      if (error) { console.error("댓글 삭제 실패:", error); return; }
+      setComments((prev) => prev.filter((c) => c.odOriginalId !== commentId));
+    } catch (e) { console.error("댓글 삭제 예외:", e); }
+  };
+
+  const handleUpdateComment = async (commentId: string, text: string) => {
+    try {
+      const { error } = await updateComment(commentId, text);
+      if (error) { console.error("댓글 수정 실패:", error); return; }
+      setComments((prev) =>
+        prev.map((c) => c.odOriginalId === commentId ? { ...c, text } : c),
+      );
+    } catch (e) { console.error("댓글 수정 예외:", e); }
   };
 
   return (
@@ -484,7 +502,12 @@ export default function FeedDetail({ item }: FeedDetailProps) {
           <div className="border-t border-gray-100 mt-6" />
 
           {/* 댓글 섹션 */}
-          <CommentSection comments={comments} onAddComment={handleAddComment} />
+          <CommentSection
+            comments={comments}
+            onAddComment={handleAddComment}
+            onDeleteComment={handleDeleteComment}
+            onUpdateComment={handleUpdateComment}
+          />
         </div>
       </div>
     </div>

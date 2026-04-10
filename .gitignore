@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# supabase
+/supabase
+
+# project docs (local only)
+CLAUDE.md
+page-map.html

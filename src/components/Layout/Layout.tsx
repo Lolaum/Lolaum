@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import MenuIcon from "../icons/MenuIcon";
 import HomeIcon from "../icons/HomeIcon";
 import RitualIcon from "../icons/RitualIcon";

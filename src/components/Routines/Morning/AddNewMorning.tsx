@@ -31,7 +31,7 @@ export default function AddNewMorning({
     setImage("");
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!sleepHours || !condition || !successAndReflection.trim() || !gift.trim()) return;
 
     const recordData: MorningFormData = {
@@ -42,8 +42,11 @@ export default function AddNewMorning({
       gift: gift.trim(),
     };
 
-    onSubmit?.(recordData);
-    onCancel();
+    if (onSubmit) {
+      await onSubmit(recordData);
+    } else {
+      onCancel();
+    }
   };
 
   return (

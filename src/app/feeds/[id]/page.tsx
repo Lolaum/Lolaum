@@ -1,6 +1,6 @@
 import React from "react";
 import { notFound } from "next/navigation";
-import feed_mock from "@/mock/feedmock";
+import { getRecordById } from "@/api/ritual-records-display";
 import FeedDetail from "@/components/Feed/FeedDetail";
 import Layout from "@/components/Layout/Layout";
 
@@ -10,7 +10,7 @@ interface Props {
 
 export default async function FeedDetailPage({ params }: Props) {
   const { id } = await params;
-  const feed = feed_mock.find((f) => f.id === Number(id));
+  const { data: feed } = await getRecordById(id);
 
   if (!feed) {
     notFound();

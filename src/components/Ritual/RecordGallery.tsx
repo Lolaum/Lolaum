@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   BookText,
@@ -9,6 +9,7 @@ import {
   Sun,
   Languages,
   CircleDollarSign,
+  Loader2,
 } from "lucide-react";
 import {
   FeedItem,
@@ -19,7 +20,7 @@ import {
   LanguageFeedData,
   FinanceFeedData,
 } from "@/types/feed";
-import { myGalleryRecords } from "@/mock/ritualmock";
+import { getMyRecordsForDisplay } from "@/api/ritual-records-display";
 
 const CATEGORY_CONFIG: Record<
   RoutineCategory,
@@ -351,7 +352,7 @@ function GalleryCard({ item }: { item: FeedItem }) {
 
   return (
     <Link
-      href={`/feeds/${item.id}`}
+      href={`/feeds/${item.odOriginalId ?? item.id}`}
       className="block bg-white rounded-2xl p-4 shadow-sm border border-gray-100 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
       style={{ borderTop: `3px solid ${config.color}` }}
     >
@@ -375,15 +376,27 @@ function GalleryCard({ item }: { item: FeedItem }) {
 
 // ── 메인 아카이빙 ──
 
-export default function RecordGallery() {
+export default function RecordGallery({ refreshKey = 0 }: { refreshKey?: number } = {}) {
   const [activeFilter, setActiveFilter] = useState<RoutineCategory | "전체">(
     "전체",
   );
+  const [records, setRecords] = useState<FeedItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchRecords() {
+      setLoading(true);
+      const { data } = await getMyRecordsForDisplay();
+      setRecords(data);
+      setLoading(false);
+    }
+    fetchRecords();
+  }, [refreshKey]);
 
   const filtered =
     activeFilter === "전체"
-      ? myGalleryRecords
-      : myGalleryRecords.filter((r) => r.routineCategory === activeFilter);
+      ? records
+      : records.filter((r) => r.routineCategory === activeFilter);
 
   return (
     <div>
@@ -423,7 +436,12 @@ export default function RecordGallery() {
       </p>
 
       {/* 2열 그리드 */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-16 text-gray-400">
+          <Loader2 size={24} className="animate-spin mx-auto mb-3" />
+          <p className="text-sm">기록을 불러오는 중...</p>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
           <p className="text-4xl mb-3">📝</p>
           <p className="text-sm">아직 기록이 없어요</p>

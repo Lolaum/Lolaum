@@ -1,54 +1,77 @@
 "use client";
 
-import { useState } from "react";
-import { Calendar } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Calendar, Loader2 } from "lucide-react";
 import RecordMorning from "./RecordMorning";
 import AddNewMorning from "./AddNewMorning";
-import { MorningRecord, MorningContainerProps } from "@/types/routines/morning";
+import { MorningRecord, MorningContainerProps, MorningFormData } from "@/types/routines/morning";
+import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
+import type { MorningRecordData, Json } from "@/types/supabase";
 
 export default function MorningContainer({
   onBackToTimer,
   onBackToHome,
 }: MorningContainerProps) {
   const [showAddRecord, setShowAddRecord] = useState(false);
+  const [morningRecords, setMorningRecords] = useState<MorningRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
-  // 모닝 리추얼 기록 데이터
-  const morningRecords: MorningRecord[] = [
-    {
-      id: 1,
-      date: "1월 21일",
-      image: "",
-      sleepHours: 7.5,
-      condition: "상",
-      successAndReflection: "아침 일찍 일어나서 상쾌한 하루를 시작했다.",
-      gift: "좋아하는 커피 한 잔",
-    },
-    {
-      id: 2,
-      date: "1월 20일",
-      image: "",
-      sleepHours: 6,
-      condition: "중",
-      successAndReflection: "어제보다 일찍 일어났다. 작은 성공!",
-      gift: "오후에 산책하기",
-    },
-    {
-      id: 3,
-      date: "1월 19일",
-      image: "",
-      sleepHours: 8,
-      condition: "상",
-      successAndReflection: "명상과 스트레칭으로 몸과 마음을 깨웠다.",
-      gift: "맛있는 브런치",
-    },
-  ];
+  const fetchRecords = useCallback(async () => {
+    setLoading(true);
+    const { data } = await getMyRitualRecords({ routineType: "morning" });
+    if (data) {
+      const records: MorningRecord[] = data.map((r) => {
+        const d = r.record_data as unknown as MorningRecordData;
+        const date = new Date(r.record_date);
+        return {
+          id: r.id as unknown as number,
+          date: `${date.getMonth() + 1}월 ${date.getDate()}일`,
+          image: d.image ?? "",
+          sleepHours: d.sleepHours,
+          condition: d.condition,
+          successAndReflection: d.successAndReflection,
+          gift: d.gift,
+        };
+      });
+      setMorningRecords(records);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchRecords();
+  }, [fetchRecords]);
+
+  const handleSubmit = async (formData: MorningFormData) => {
+    setSubmitting(true);
+    const today = new Date().toISOString().split("T")[0];
+    const recordData: MorningRecordData = {
+      sleepHours: formData.sleepHours,
+      condition: formData.condition,
+      successAndReflection: formData.successAndReflection,
+      gift: formData.gift,
+      image: formData.image || undefined,
+    };
+    const { error } = await createRitualRecordAuto({
+      routineType: "morning",
+      recordDate: today,
+      recordData: recordData as unknown as Json,
+    });
+    setSubmitting(false);
+    if (error) {
+      alert(`기록 저장 실패: ${error}`);
+      return;
+    }
+    setShowAddRecord(false);
+    fetchRecords();
+  };
 
   // 이번 달 통계 계산
   const recordCount = morningRecords.length;
-  const averageSleepHours = (
-    morningRecords.reduce((sum, record) => sum + record.sleepHours, 0) /
-    morningRecords.length
-  ).toFixed(1);
+  const averageSleepHours = recordCount > 0
+    ? (morningRecords.reduce((sum, record) => sum + record.sleepHours, 0) / recordCount).toFixed(1)
+    : "0";
 
   const renderContent = () => {
     // 새 기록 추가하기 화면
@@ -57,6 +80,7 @@ export default function MorningContainer({
         <AddNewMorning
           onCancel={() => setShowAddRecord(false)}
           onBackToHome={onBackToHome}
+          onSubmit={handleSubmit}
         />
       );
     }
@@ -123,7 +147,14 @@ export default function MorningContainer({
         </div>
 
         {/* 모닝 기록 섹션 */}
-        <RecordMorning morningRecords={morningRecords} />
+        {loading ? (
+          <div className="text-center py-8 text-gray-400">
+            <Loader2 size={20} className="animate-spin mx-auto mb-2" />
+            <p className="text-xs">기록을 불러오는 중...</p>
+          </div>
+        ) : (
+          <RecordMorning morningRecords={morningRecords} />
+        )}
       </>
     );
   };

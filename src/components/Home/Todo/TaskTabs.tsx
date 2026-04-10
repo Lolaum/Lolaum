@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Flame,
@@ -15,7 +15,8 @@ import RoutineList from "./RoutineList";
 import {
   formatDateDisplay,
   getWeekRangeText,
-} from "@/modules/Common/dateModules";
+} from "@/lib/date";
+import { getMyPageStats, MyPageStats } from "@/api/ritual-stats";
 
 type TabType = "routine" | "todo";
 
@@ -26,7 +27,14 @@ interface TaskTabsProps {
 
 export default function TaskTabs({ selectedDate, onTaskClick }: TaskTabsProps) {
   const [activeTab, setActiveTab] = useState<TabType>("routine");
+  const [stats, setStats] = useState<MyPageStats | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    getMyPageStats().then((res) => {
+      if (res.data) setStats(res.data);
+    });
+  }, []);
 
   const handleTaskClick = (title: string, color: string) => {
     onTaskClick?.(title, color);
@@ -38,19 +46,19 @@ export default function TaskTabs({ selectedDate, onTaskClick }: TaskTabsProps) {
       <div className="grid grid-cols-3 gap-3">
         {[
           {
-            value: "3",
+            value: String(stats?.currentStreak ?? 0),
             label: "연속 실천",
             icon: Flame,
             color: "#ff8900",
           },
           {
-            value: "7",
+            value: String(stats?.longestStreak ?? 0),
             label: "최장 기록",
             icon: TrendingUp,
             color: "#6366f1",
           },
           {
-            value: "24",
+            value: String(stats?.totalCompletions ?? 0),
             label: "총 완료",
             icon: CheckCircle2,
             color: "#10b981",

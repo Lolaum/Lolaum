@@ -1,6 +1,6 @@
 "use client";
 
-import { members } from "@/data/members";
+import { members } from "@/mock/members";
 
 const TOTAL = 15;
 

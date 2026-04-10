@@ -1,13 +1,15 @@
 // 독서 관련 타입 정의
 
 export interface Book {
-  id: number;
+  id: string;
   title: string;
   author: string;
   trackingType: "page" | "percent";
-  currentPage: number; // page: 현재 페이지 / percent: 현재 % (0-100)
-  totalPages: number;  // page: 총 페이지 / percent: 항상 100
-  coverImage: string;
+  currentValue: number; // page: 현재 페이지 / percent: 현재 % (0-100)
+  totalValue: number;   // page: 총 페이지 / percent: 항상 100
+  coverImageUrl: string | null;
+  isCompleted: boolean;
+  updatedAt: string;    // ISO date string
 }
 
 export interface BookFormData {
@@ -21,7 +23,7 @@ export interface BookFormData {
 export interface AddNewBookProps {
   onCancel: () => void;
   onBackToHome?: () => void;
-  onSubmit?: (bookData: BookFormData) => void;
+  onSubmit?: (bookData: BookFormData) => void | Promise<void>;
 }
 
 export interface BookManageProps {
@@ -41,9 +43,17 @@ export interface ReadingRecord {
   bookTitle: string;
 }
 
+export interface CompletedBook {
+  id: string;
+  title: string;
+  coverImageUrl: string | null;
+  completedDate: string; // YYYY-MM-DD (updated_at)
+}
+
 export interface BookCalendarProps {
   onBack?: () => void;
   onBookSelect?: (bookTitle: string) => void;
+  completedBooks?: CompletedBook[];
 }
 
 export type ViewMode = "grid" | "list";
@@ -66,4 +76,11 @@ export interface BookDetailProps {
   book: Book;
   onBack: () => void;
   onBackToHome?: () => void;
+  onDelete?: (bookId: string) => void | Promise<void>;
+  onUpdate?: (bookId: string, input: {
+    title?: string;
+    author?: string;
+    currentValue?: number;
+    isCompleted?: boolean;
+  }) => void | Promise<void>;
 }
