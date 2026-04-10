@@ -4,11 +4,18 @@ import { useState, useEffect } from "react";
 import { ProfileProps } from "@/types/home/profile";
 import { Flame, Trophy, CheckCircle2 } from "lucide-react";
 import { getMe } from "@/api/user";
-import { getMyPageStats, MyPageStats, getCompletionRate, CompletionRateStats } from "@/api/ritual-stats";
+import { MyPageStats, CompletionRateStats } from "@/api/ritual-stats";
+
+interface Props extends ProfileProps {
+  stats?: MyPageStats | null;
+  completionRate?: CompletionRateStats | null;
+}
 
 export default function Profile({
   description = "매일 성장하는 습관 만들기",
-}: ProfileProps) {
+  stats: statsProp,
+  completionRate: completionRateProp,
+}: Props) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [userName, setUserName] = useState("");
   const [editName, setEditName] = useState("");
@@ -17,8 +24,10 @@ export default function Profile({
   const [savedDescription, setSavedDescription] = useState(description);
   const [savedPhoto, setSavedPhoto] = useState<string | null>(null);
   const [editPhoto, setEditPhoto] = useState<string | null>(null);
-  const [stats, setStats] = useState<MyPageStats | null>(null);
-  const [completionRate, setCompletionRate] = useState<CompletionRateStats | null>(null);
+
+  // 부모(HomeContainer)에서 stats/completionRate를 받아와 중복 호출을 피한다
+  const stats = statsProp;
+  const completionRate = completionRateProp;
 
   useEffect(() => {
     getMe().then((profile) => {
@@ -27,12 +36,6 @@ export default function Profile({
         setSavedName(profile.name);
         setEditName(profile.name);
       }
-    });
-    getMyPageStats().then((res) => {
-      if (res.data) setStats(res.data);
-    });
-    getCompletionRate().then((res) => {
-      if (res.data) setCompletionRate(res.data);
     });
   }, []);
 

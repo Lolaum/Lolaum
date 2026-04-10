@@ -1,6 +1,7 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { getCurrentChallengeId } from "@/lib/current-challenge";
 import type { Json, RitualRecord, RoutineTypeDB } from "@/types/supabase";
 
 export async function getRitualRecords(input: {
@@ -8,16 +9,12 @@ export async function getRitualRecords(input: {
   date?: string;
   routineType?: RoutineTypeDB;
 }): Promise<{ data?: RitualRecord[]; error?: string }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) {
     return { error: "인증이 필요합니다." };
   }
 
+  const supabase = await createClient();
   let query = supabase
     .from("ritual_records")
     .select("*")
@@ -46,15 +43,12 @@ export async function createRitualRecord(input: {
   recordDate: string;
   recordData: Json;
 }): Promise<{ data?: RitualRecord; error?: string }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) {
     return { error: "인증이 필요합니다." };
   }
+
+  const supabase = await createClient();
 
   // 하루에 여러 기록 허용 (INSERT), 달성률은 Set으로 하루 1회만 인정
   const { data, error } = await supabase
@@ -116,9 +110,8 @@ export async function createRitualRecordAuto(input: {
   recordDate: string;
   recordData: Json;
 }): Promise<{ data?: RitualRecord; error?: string }> {
-  const { getOrCreateCurrentChallenge } = await import("./challenge");
   const { challengeId, error: challengeError } =
-    await getOrCreateCurrentChallenge();
+    await getCurrentChallengeId();
 
   if (!challengeId) {
     return { error: challengeError ?? "챌린지를 찾을 수 없습니다." };
@@ -137,9 +130,8 @@ export async function getMyRitualRecords(input: {
   routineType?: RoutineTypeDB;
   date?: string;
 }): Promise<{ data?: RitualRecord[]; error?: string }> {
-  const { getOrCreateCurrentChallenge } = await import("./challenge");
   const { challengeId, error: challengeError } =
-    await getOrCreateCurrentChallenge();
+    await getCurrentChallengeId();
 
   if (!challengeId) {
     return { error: challengeError ?? "챌린지를 찾을 수 없습니다." };

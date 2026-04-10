@@ -1,7 +1,7 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-import { getOrCreateCurrentChallenge } from "./challenge";
+import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { getCurrentChallengeId } from "@/lib/current-challenge";
 import type { Book } from "@/types/supabase";
 
 // ── 조회 ──────────────────────────────────────────────
@@ -10,13 +10,10 @@ export async function getBooks(
   challengeId: string,
   routineType: "reading" | "english_book" = "reading",
 ): Promise<{ data?: Book[]; error?: string }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) return { error: "인증이 필요합니다." };
+
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("books")
@@ -33,7 +30,7 @@ export async function getBooks(
 export async function getBooksAuto(
   routineType: "reading" | "english_book" = "reading",
 ): Promise<{ data?: Book[]; error?: string }> {
-  const { challengeId, error } = await getOrCreateCurrentChallenge();
+  const { challengeId, error } = await getCurrentChallengeId();
   if (!challengeId) return { error: error ?? "챌린지를 찾을 수 없습니다." };
   return getBooks(challengeId, routineType);
 }
@@ -56,16 +53,13 @@ export async function getBook(
 export async function getCompletedBooksAuto(
   routineType: "reading" | "english_book" = "reading",
 ): Promise<{ data?: Book[]; error?: string }> {
-  const { challengeId, error } = await getOrCreateCurrentChallenge();
+  const { challengeId, error } = await getCurrentChallengeId();
   if (!challengeId) return { error: error ?? "챌린지를 찾을 수 없습니다." };
 
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) return { error: "인증이 필요합니다." };
+
+  const supabase = await createClient();
 
   const { data, error: dbError } = await supabase
     .from("books")
@@ -91,13 +85,10 @@ export async function createBook(input: {
   totalValue: number;
   coverImageUrl?: string;
 }): Promise<{ data?: Book; error?: string }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) return { error: "인증이 필요합니다." };
+
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("books")
@@ -126,7 +117,7 @@ export async function createBookAuto(input: {
   totalValue: number;
   coverImageUrl?: string;
 }): Promise<{ data?: Book; error?: string }> {
-  const { challengeId, error } = await getOrCreateCurrentChallenge();
+  const { challengeId, error } = await getCurrentChallengeId();
   if (!challengeId) return { error: error ?? "챌린지를 찾을 수 없습니다." };
   return createBook({
     challengeId,
@@ -193,13 +184,10 @@ export async function deleteBook(
 export async function uploadBookCover(
   formData: FormData,
 ): Promise<{ url?: string; error?: string }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) return { error: "인증이 필요합니다." };
+
+  const supabase = await createClient();
 
   const file = formData.get("file") as File | null;
   if (!file) return { error: "파일이 없습니다." };

@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import type { Comment } from "@/types/feed";
 
 /**
@@ -49,13 +49,10 @@ async function getOrCreateFeedId(
 export async function getComments(
   recordId: string,
 ): Promise<{ data: Comment[]; error?: string }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) return { data: [], error: "인증이 필요합니다." };
+
+  const supabase = await createClient();
 
   // feed 찾기 (없으면 댓글도 없음)
   const { data: feed } = await supabase
@@ -101,13 +98,10 @@ export async function addComment(
   recordId: string,
   text: string,
 ): Promise<{ data?: Comment; error?: string }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) return { error: "인증이 필요합니다." };
+
+  const supabase = await createClient();
 
   const feedId = await getOrCreateFeedId(recordId, supabase);
   if (!feedId) return { error: "피드를 찾을 수 없습니다." };
@@ -148,13 +142,10 @@ export async function updateComment(
   commentId: string,
   text: string,
 ): Promise<{ error?: string }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) return { error: "인증이 필요합니다." };
+
+  const supabase = await createClient();
 
   const { error } = await supabase
     .from("feed_comments")
@@ -170,13 +161,10 @@ export async function updateComment(
 export async function deleteComment(
   commentId: string,
 ): Promise<{ error?: string }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) return { error: "인증이 필요합니다." };
+
+  const supabase = await createClient();
 
   const { error } = await supabase
     .from("feed_comments")

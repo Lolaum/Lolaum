@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import type { RoutineTypeDB, RitualRecord } from "@/types/supabase";
 import type {
   FeedItem,
@@ -25,11 +25,17 @@ const ROUTINE_TO_CATEGORY: Partial<Record<RoutineTypeDB, RoutineCategory>> = {
   english_book: "독서", // 원서읽기도 독서 카테고리로 표시
 };
 
-// DB record_data → FeedRoutineData 변환
-async function transformRecordData(
+interface BookInfo {
+  title: string;
+  author: string;
+  total_value: number | null;
+}
+
+// DB record_data → FeedRoutineData 변환 (책 정보는 사전 조회된 map에서 lookup)
+function transformRecordData(
   record: RitualRecord,
-  supabase: Awaited<ReturnType<typeof createClient>>,
-): Promise<FeedRoutineData | undefined> {
+  bookMap: Map<string, BookInfo>,
+): FeedRoutineData | undefined {
   const data = record.record_data as Record<string, unknown>;
   if (!data) return undefined;
 
@@ -54,29 +60,14 @@ async function transformRecordData(
     case "reading":
     case "english_book": {
       const bookId = data.bookId as string | undefined;
-      let bookTitle = "책 제목 없음";
-      let author = "";
-      let totalPages: number | undefined;
-
-      if (bookId) {
-        const { data: book } = await supabase
-          .from("books")
-          .select("title, author, total_value, current_value, tracking_type")
-          .eq("id", bookId)
-          .single();
-        if (book) {
-          bookTitle = book.title;
-          author = book.author;
-          totalPages = book.total_value;
-        }
-      }
+      const book = bookId ? bookMap.get(bookId) : undefined;
 
       return {
-        bookTitle,
-        author,
+        bookTitle: book?.title ?? "책 제목 없음",
+        author: book?.author ?? "",
         trackingType: (data.trackingType as "page" | "percent") ?? "page",
         pagesRead: data.endValue as number | undefined,
-        totalPages,
+        totalPages: book?.total_value ?? undefined,
         progressAmount: data.progressAmount as number | undefined,
         noteType: (data.noteType as "sentence" | "summary") ?? "sentence",
         note: data.note as string | undefined,
@@ -106,16 +97,43 @@ async function transformRecordData(
   }
 }
 
+// records에 등장하는 모든 bookId를 한 번의 쿼리로 일괄 조회
+async function fetchBookMap(
+  records: RitualRecord[],
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<Map<string, BookInfo>> {
+  const bookIds = new Set<string>();
+  for (const r of records) {
+    if (r.routine_type !== "reading" && r.routine_type !== "english_book") continue;
+    const data = r.record_data as Record<string, unknown> | null;
+    const bookId = data?.bookId as string | undefined;
+    if (bookId) bookIds.add(bookId);
+  }
+
+  if (bookIds.size === 0) return new Map();
+
+  const { data: books } = await supabase
+    .from("books")
+    .select("id, title, author, total_value")
+    .in("id", [...bookIds]);
+
+  const map = new Map<string, BookInfo>();
+  for (const b of books ?? []) {
+    map.set(b.id, { title: b.title, author: b.author, total_value: b.total_value });
+  }
+  return map;
+}
+
 // DB RitualRecord → FeedItem 변환
-async function recordToFeedItem(
+function recordToFeedItem(
   record: RitualRecord,
   profile: { id: string; name: string; avatar_url: string | null } | null,
-  supabase: Awaited<ReturnType<typeof createClient>>,
-): Promise<FeedItem | null> {
+  bookMap: Map<string, BookInfo>,
+): FeedItem | null {
   const category = ROUTINE_TO_CATEGORY[record.routine_type];
   if (!category) return null; // recording 등 지원하지 않는 타입은 스킵
 
-  const routineData = await transformRecordData(record, supabase);
+  const routineData = transformRecordData(record, bookMap);
 
   return {
     id: record.id as unknown as number, // UUID를 id로 사용
@@ -137,18 +155,15 @@ export async function getMyRecordsForDisplay(options?: {
   routineType?: RoutineTypeDB;
   limit?: number;
 }): Promise<{ data: FeedItem[]; error?: string }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) {
     return { data: [], error: "인증이 필요합니다." };
   }
 
-  // 프로필 가져오기
-  const { data: profile } = await supabase
+  const supabase = await createClient();
+
+  // 프로필 + 기록 동시 조회
+  const profilePromise = supabase
     .from("profiles")
     .select("id, name, avatar_url")
     .eq("id", user.id)
@@ -156,33 +171,35 @@ export async function getMyRecordsForDisplay(options?: {
 
   let query = supabase
     .from("ritual_records")
-    .select("*")
-    .eq("user_id", user.id);
+    .select("id, user_id, routine_type, record_date, record_data, challenge_id, created_at")
+    .eq("user_id", user.id)
+    .neq("routine_type", "recording")
+    .order("record_date", { ascending: false });
 
   if (options?.routineType) {
     query = query.eq("routine_type", options.routineType);
   }
-
-  // recording 타입은 제외 (UI에서 지원하지 않음)
-  query = query.neq("routine_type", "recording");
-
-  query = query.order("record_date", { ascending: false });
-
   if (options?.limit) {
     query = query.limit(options.limit);
   }
 
-  const { data: records, error } = await query;
+  const [{ data: profile }, { data: records, error }] = await Promise.all([
+    profilePromise,
+    query,
+  ]);
 
   if (error) return { data: [], error: error.message };
   if (!records?.length) return { data: [] };
 
+  // 필요한 모든 책을 한 번에 조회
+  const bookMap = await fetchBookMap(records as RitualRecord[], supabase);
+
   const feedItems: FeedItem[] = [];
-  for (const record of records) {
-    const item = await recordToFeedItem(
+  for (const record of records as RitualRecord[]) {
+    const item = recordToFeedItem(
       record,
       profile ? { id: profile.id, name: profile.name, avatar_url: profile.avatar_url } : null,
-      supabase,
+      bookMap,
     );
     if (item) feedItems.push(item);
   }
@@ -194,19 +211,16 @@ export async function getMyRecordsForDisplay(options?: {
 export async function getRecordById(
   id: string,
 ): Promise<{ data: FeedItem | null; error?: string }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) {
     return { data: null, error: "인증이 필요합니다." };
   }
 
+  const supabase = await createClient();
+
   const { data: record, error } = await supabase
     .from("ritual_records")
-    .select("*")
+    .select("id, user_id, routine_type, record_date, record_data, challenge_id, created_at")
     .eq("id", id)
     .single();
 
@@ -214,49 +228,56 @@ export async function getRecordById(
     return { data: null, error: error?.message ?? "기록을 찾을 수 없습니다." };
   }
 
-  const { data: profile } = await supabase
+  // 프로필 + 댓글용 feed 매핑 + 책정보 모두 병렬 조회
+  const profilePromise = supabase
     .from("profiles")
     .select("id, name, avatar_url")
     .eq("id", record.user_id)
     .single();
 
-  const item = await recordToFeedItem(record, profile, supabase);
+  const feedPromise = supabase
+    .from("feeds")
+    .select("id")
+    .eq("ritual_record_id", id)
+    .maybeSingle();
 
-  // 댓글 가져오기: feeds 테이블에서 매핑된 feed_id로 조회
-  if (item) {
-    const { data: feed } = await supabase
-      .from("feeds")
-      .select("id")
-      .eq("ritual_record_id", id)
-      .single();
+  const bookMapPromise = fetchBookMap([record as RitualRecord], supabase);
 
-    if (feed) {
-      const { data: rawComments } = await supabase
-        .from("feed_comments")
-        .select("id, user_id, text, created_at")
-        .eq("feed_id", feed.id)
-        .order("created_at", { ascending: true });
+  const [{ data: profile }, { data: feed }, bookMap] = await Promise.all([
+    profilePromise,
+    feedPromise,
+    bookMapPromise,
+  ]);
 
-      if (rawComments?.length) {
-        const commentUserIds = [...new Set(rawComments.map((c) => c.user_id))];
-        const { data: commentProfiles } = await supabase
-          .from("profiles")
-          .select("id, name")
-          .in("id", commentUserIds);
+  const item = recordToFeedItem(record as RitualRecord, profile, bookMap);
 
-        const nameMap = new Map(
-          (commentProfiles ?? []).map((p) => [p.id, p.name]),
-        );
+  // 댓글 조회
+  if (item && feed) {
+    const { data: rawComments } = await supabase
+      .from("feed_comments")
+      .select("id, user_id, text, created_at")
+      .eq("feed_id", feed.id)
+      .order("created_at", { ascending: true });
 
-        item.comments = rawComments.map((c) => ({
-          id: c.id as unknown as number,
-          odOriginalId: c.id,
-          userId: c.user_id as unknown as number,
-          userName: nameMap.get(c.user_id) ?? "알 수 없음",
-          text: c.text,
-          date: c.created_at,
-        }));
-      }
+    if (rawComments?.length) {
+      const commentUserIds = [...new Set(rawComments.map((c) => c.user_id))];
+      const { data: commentProfiles } = await supabase
+        .from("profiles")
+        .select("id, name")
+        .in("id", commentUserIds);
+
+      const nameMap = new Map(
+        (commentProfiles ?? []).map((p) => [p.id, p.name]),
+      );
+
+      item.comments = rawComments.map((c): Comment => ({
+        id: c.id as unknown as number,
+        odOriginalId: c.id,
+        userId: c.user_id as unknown as number,
+        userName: nameMap.get(c.user_id) ?? "알 수 없음",
+        text: c.text,
+        date: c.created_at,
+      }));
     }
   }
 
@@ -269,36 +290,27 @@ export async function getAllRecordsForDisplay(options?: {
   limit?: number;
   offset?: number;
 }): Promise<{ data: FeedItem[]; total: number; error?: string }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) {
     return { data: [], total: 0, error: "인증이 필요합니다." };
   }
 
-  // 먼저 총 개수 쿼리
+  const supabase = await createClient();
+
+  // count + 데이터 쿼리
   let countQuery = supabase
     .from("ritual_records")
     .select("id", { count: "exact", head: true })
     .neq("routine_type", "recording");
 
-  if (options?.routineType) {
-    countQuery = countQuery.eq("routine_type", options.routineType);
-  }
-
-  const { count } = await countQuery;
-
-  // 데이터 쿼리
   let query = supabase
     .from("ritual_records")
-    .select("*")
+    .select("id, user_id, routine_type, record_date, record_data, challenge_id, created_at")
     .neq("routine_type", "recording")
     .order("record_date", { ascending: false });
 
   if (options?.routineType) {
+    countQuery = countQuery.eq("routine_type", options.routineType);
     query = query.eq("routine_type", options.routineType);
   }
 
@@ -310,26 +322,29 @@ export async function getAllRecordsForDisplay(options?: {
     query = query.range(options.offset, options.offset + (options?.limit ?? 8) - 1);
   }
 
-  const { data: records, error } = await query;
+  const [{ count }, { data: records, error }] = await Promise.all([
+    countQuery,
+    query,
+  ]);
 
   if (error) return { data: [], total: 0, error: error.message };
   if (!records?.length) return { data: [], total: 0 };
 
-  // 관련된 모든 user_id의 프로필 가져오기
+  // 프로필 + 책정보 병렬 조회
   const userIds = [...new Set(records.map((r) => r.user_id))];
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, name, avatar_url")
-    .in("id", userIds);
+  const [profilesRes, bookMap] = await Promise.all([
+    supabase.from("profiles").select("id, name, avatar_url").in("id", userIds),
+    fetchBookMap(records as RitualRecord[], supabase),
+  ]);
 
   const profileMap = new Map(
-    (profiles ?? []).map((p) => [p.id, p]),
+    (profilesRes.data ?? []).map((p) => [p.id, p]),
   );
 
   const feedItems: FeedItem[] = [];
-  for (const record of records) {
+  for (const record of records as RitualRecord[]) {
     const profile = profileMap.get(record.user_id) ?? null;
-    const item = await recordToFeedItem(record, profile, supabase);
+    const item = recordToFeedItem(record, profile, bookMap);
     if (item) feedItems.push(item);
   }
 

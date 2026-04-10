@@ -1,7 +1,7 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-import { getOrCreateCurrentChallenge } from "./challenge";
+import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { getCurrentChallengeId } from "@/lib/current-challenge";
 import type { RoutineTypeDB, Json } from "@/types/supabase";
 import { ROUTINE_TYPE_LABEL } from "@/types/supabase";
 import type { Declaration, DeclarationAnswer } from "@/types/routines/declaration";
@@ -33,15 +33,14 @@ export async function getMyDeclarations(): Promise<{
   data?: Declaration[];
   error?: string;
 }> {
-  const { challengeId, error: cError } = await getOrCreateCurrentChallenge();
+  const [{ challengeId, error: cError }, user] = await Promise.all([
+    getCurrentChallengeId(),
+    getCurrentUser(),
+  ]);
+  if (!user) return { error: "인증이 필요합니다." };
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "인증이 필요합니다." };
-
   const { data, error } = await supabase
     .from("declarations")
     .select("id, user_id, routine_type, answers, created_at, profiles(name, emoji)")
@@ -58,15 +57,14 @@ export async function createDeclaration(input: {
   routineType: RoutineTypeDB;
   answers: { questionId: string; answer: string }[];
 }): Promise<{ error?: string }> {
-  const { challengeId, error: cError } = await getOrCreateCurrentChallenge();
+  const [{ challengeId, error: cError }, user] = await Promise.all([
+    getCurrentChallengeId(),
+    getCurrentUser(),
+  ]);
+  if (!user) return { error: "인증이 필요합니다." };
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "인증이 필요합니다." };
-
   const { error } = await supabase.from("declarations").insert({
     user_id: user.id,
     challenge_id: challengeId,
@@ -83,15 +81,14 @@ export async function getChallengerDeclarations(): Promise<{
   data?: Declaration[];
   error?: string;
 }> {
-  const { challengeId, error: cError } = await getOrCreateCurrentChallenge();
-  if (!challengeId) return { error: cError ?? "��린지를 찾을 수 없습니다." };
+  const [{ challengeId, error: cError }, user] = await Promise.all([
+    getCurrentChallengeId(),
+    getCurrentUser(),
+  ]);
+  if (!user) return { error: "인증이 필요합니다." };
+  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "인증이 필요합니다." };
-
   const { data, error } = await supabase
     .from("declarations")
     .select("id, user_id, routine_type, answers, created_at, profiles(name, emoji)")
