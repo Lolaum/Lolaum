@@ -1,20 +1,18 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { getCurrentChallengeId } from "@/lib/current-challenge";
 import type { ChallengeRegistration, RoutineTypeDB } from "@/types/supabase";
 
 export async function getRoutines(
   challengeId: string,
 ): Promise<{ data?: ChallengeRegistration[]; error?: string }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) {
     return { error: "인증이 필요합니다." };
   }
+
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("challenge_registrations")
@@ -31,15 +29,12 @@ export async function createRoutine(input: {
   challengeId: string;
   routineType: RoutineTypeDB;
 }): Promise<{ data?: ChallengeRegistration; error?: string }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) {
     return { error: "인증이 필요합니다." };
   }
+
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("challenge_registrations")
@@ -74,9 +69,8 @@ export async function getMyRoutines(): Promise<{
   data?: ChallengeRegistration[];
   error?: string;
 }> {
-  const { getOrCreateCurrentChallenge } = await import("./challenge");
   const { challengeId, error: challengeError } =
-    await getOrCreateCurrentChallenge();
+    await getCurrentChallengeId();
 
   if (!challengeId) {
     return { error: challengeError ?? "챌린지를 찾을 수 없습니다." };
@@ -89,9 +83,8 @@ export async function getMyRoutines(): Promise<{
 export async function createRoutineAuto(
   routineType: RoutineTypeDB,
 ): Promise<{ data?: ChallengeRegistration; error?: string }> {
-  const { getOrCreateCurrentChallenge } = await import("./challenge");
   const { challengeId, error: challengeError } =
-    await getOrCreateCurrentChallenge();
+    await getCurrentChallengeId();
 
   if (!challengeId) {
     return { error: challengeError ?? "챌린지를 찾을 수 없습니다." };

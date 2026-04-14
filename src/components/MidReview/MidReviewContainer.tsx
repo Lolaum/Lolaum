@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { MidReview, MidReviewCondition } from "@/types/routines/midReview";
 import { RoutineType } from "@/types/routines/declaration";
-import { myMidReview, challengerMidReviews } from "@/mock/midReviewMock";
+import { getMyMidReviews, getChallengerMidReviews } from "@/api/mid-review";
 
 const PAGE_SIZE = 8;
 
@@ -100,22 +101,39 @@ export default function MidReviewContainer() {
   const [activeTab, setActiveTab] = useState<RoutineType | "전체">("전체");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const [myReviews, setMyReviews] = useState<MidReview[]>([]);
+  const [challengerReviews, setChallengerReviews] = useState<MidReview[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchReviews() {
+      setLoading(true);
+      const [mineRes, challengerRes] = await Promise.all([
+        getMyMidReviews(),
+        getChallengerMidReviews(),
+      ]);
+      setMyReviews(mineRes.data ?? []);
+      setChallengerReviews(challengerRes.data ?? []);
+      setLoading(false);
+    }
+    fetchReviews();
+  }, []);
 
   const availableTypes = allRoutineTypes.filter((type) =>
-    challengerMidReviews.some((r) => r.routineType === type)
+    [...myReviews, ...challengerReviews].some((r) => r.routineType === type)
   );
 
   const filteredChallengers =
     activeTab === "전체"
-      ? challengerMidReviews
-      : challengerMidReviews.filter((r) => r.routineType === activeTab);
+      ? challengerReviews
+      : challengerReviews.filter((r) => r.routineType === activeTab);
 
-  const filteredMine =
-    myMidReview === null
-      ? null
-      : activeTab === "전체" || myMidReview.routineType === activeTab
-      ? myMidReview
-      : null;
+  // 내가 작성한 회고: 전체 탭에선 작성한 모든 리추얼, 그 외엔 해당 루틴만
+  const filteredMine: MidReview[] =
+    activeTab === "전체"
+      ? myReviews
+      : myReviews.filter((r) => r.routineType === activeTab);
+  const hasNoMyReview = myReviews.length === 0;
 
   const visibleChallengers = filteredChallengers.slice(0, visibleCount);
   const hasMore = visibleCount < filteredChallengers.length;
@@ -153,12 +171,30 @@ export default function MidReviewContainer() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-lg font-bold text-gray-800">중간 회고</h1>
           <p className="text-xs text-gray-400">10~13일차 · 챌린저들의 중간 점검</p>
         </div>
+        <button
+          onClick={() => router.push("/mid-review/write")}
+          className="px-4 py-2 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md flex items-center gap-1.5"
+          style={{ backgroundColor: "#eab32e" }}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          작성하기
+        </button>
       </div>
 
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+          <Loader2 size={24} className="animate-spin mb-3" />
+          <p className="text-sm">중간 회고를 불러오는 중...</p>
+        </div>
+      )}
+
+      {!loading && <>
       {/* 탭 필터 */}
       <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
         <button
@@ -194,59 +230,67 @@ export default function MidReviewContainer() {
           나의 중간 회고
         </h2>
 
-        {filteredMine ? (
-          <div className="rounded-3xl p-5 bg-white shadow-sm" style={{ border: "2px solid #eab32e" }}>
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-xl">{routineEmojis[filteredMine.routineType]}</span>
-              <span className="text-base font-bold text-gray-800">{filteredMine.routineType}</span>
-            </div>
-            <div className="flex flex-col gap-4">
-              <div>
-                <p className="text-xs font-semibold text-gray-400 mb-1.5">잘 됐던 조건</p>
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {filteredMine.goodConditions.map((c) => (
-                    <ConditionChip key={c} label={c} />
-                  ))}
+        {filteredMine.length > 0 ? (
+          <div className="flex flex-col gap-4">
+            {filteredMine.map((review) => (
+              <div
+                key={review.id}
+                className="rounded-3xl p-5 bg-white shadow-sm"
+                style={{ border: "2px solid #eab32e" }}
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-xl">{routineEmojis[review.routineType]}</span>
+                  <span className="text-base font-bold text-gray-800">{review.routineType}</span>
                 </div>
-                {filteredMine.goodConditions.map((c) => (
-                  <div key={c} className="mb-1">
-                    <span className="text-[10px] text-gray-400">{c} · </span>
-                    <span className="text-xs text-gray-700">{filteredMine.goodConditionDetails[c]}</span>
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 mb-1.5">잘 됐던 조건</p>
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {review.goodConditions.map((c) => (
+                        <ConditionChip key={c} label={c} />
+                      ))}
+                    </div>
+                    {review.goodConditions.map((c) => (
+                      <div key={c} className="mb-1">
+                        <span className="text-[10px] text-gray-400">{c} · </span>
+                        <span className="text-xs text-gray-700">{review.goodConditionDetails[c]}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-gray-400 mb-1.5">걸림돌</p>
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {filteredMine.hardConditions.map((c) => (
-                    <span
-                      key={c}
-                      className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-400"
-                    >
-                      {c}
-                    </span>
-                  ))}
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 mb-1.5">걸림돌</p>
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {review.hardConditions.map((c) => (
+                        <span
+                          key={c}
+                          className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-400"
+                        >
+                          {c}
+                        </span>
+                      ))}
+                    </div>
+                    {review.hardConditions.map((c) => (
+                      <div key={c} className="mb-1">
+                        <span className="text-[10px] text-gray-400">{c} · </span>
+                        <span className="text-xs text-gray-700">{review.hardConditionDetails[c]}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 mb-1">초심 점검</p>
+                    <p className="text-xs text-gray-600 mb-1">{review.whyStarted}</p>
+                    <p className="text-xs text-gray-600">
+                      <span className="font-medium text-green-600">유지 ·</span> {review.keepDoing}
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      <span className="font-medium text-blue-500">변화 ·</span> {review.willChange}
+                    </p>
+                  </div>
                 </div>
-                {filteredMine.hardConditions.map((c) => (
-                  <div key={c} className="mb-1">
-                    <span className="text-[10px] text-gray-400">{c} · </span>
-                    <span className="text-xs text-gray-700">{filteredMine.hardConditionDetails[c]}</span>
-                  </div>
-                ))}
               </div>
-              <div>
-                <p className="text-xs font-semibold text-gray-400 mb-1">초심 점검</p>
-                <p className="text-xs text-gray-600 mb-1">{filteredMine.whyStarted}</p>
-                <p className="text-xs text-gray-600">
-                  <span className="font-medium text-green-600">유지 ·</span> {filteredMine.keepDoing}
-                </p>
-                <p className="text-xs text-gray-600">
-                  <span className="font-medium text-blue-500">변화 ·</span> {filteredMine.willChange}
-                </p>
-              </div>
-            </div>
+            ))}
           </div>
-        ) : myMidReview === null ? (
+        ) : hasNoMyReview ? (
           <div
             className="rounded-3xl p-5 bg-white border-2 border-dashed flex flex-col items-center gap-3 py-8"
             style={{ borderColor: "#eab32e" }}
@@ -304,6 +348,7 @@ export default function MidReviewContainer() {
           <p className="text-sm font-medium">아직 중간 회고가 없어요</p>
         </div>
       )}
+      </>}
     </div>
   );
 }

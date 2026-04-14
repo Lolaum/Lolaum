@@ -7,7 +7,6 @@ import { signup, checkUsername } from "@/api/auth";
 export default function Signup() {
   const router = useRouter();
   const [form, setForm] = useState({
-    name: "",
     username: "",
     email: "",
     password: "",
@@ -29,7 +28,7 @@ export default function Signup() {
 
   const handleCheckUsername = useCallback(async () => {
     const username = form.username.trim();
-    if (!username || username.length < 3) return;
+    if (!username) return;
 
     setUsernameStatus("checking");
     const result = await checkUsername(username);
@@ -37,16 +36,12 @@ export default function Signup() {
   }, [form.username]);
 
   const validate = () => {
-    if (!form.name.trim()) return "닉네임을 입력해주세요.";
-    if (!form.username.trim()) return "아이디를 입력해주세요.";
-    if (form.username.trim().length < 3) return "아이디는 3자 이상이어야 합니다.";
-    if (!/^[a-zA-Z0-9_]+$/.test(form.username.trim()))
-      return "아이디는 영문, 숫자, 밑줄(_)만 사용 가능합니다.";
+    if (!form.username.trim()) return "닉네임을 입력해주세요.";
     if (!form.email.trim()) return "이메일을 입력해주세요.";
     if (!form.password) return "비밀번호를 입력해주세요.";
     if (form.password.length < 6) return "비밀번호는 6자 이상이어야 합니다.";
     if (form.password !== form.passwordConfirm) return "비밀번호가 일치하지 않습니다.";
-    if (usernameStatus === "taken") return "이미 사용 중인 아이디입니다.";
+    if (usernameStatus === "taken") return "이미 사용 중인 닉네임입니다.";
     return null;
   };
 
@@ -63,7 +58,7 @@ export default function Signup() {
     setIsLoading(true);
     try {
       const result = await signup({
-        name: form.name.trim(),
+        name: form.username.trim(),
         username: form.username.trim(),
         email: form.email.trim(),
         password: form.password,
@@ -123,24 +118,8 @@ export default function Signup() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* 닉네임 */}
             <div>
-              <label htmlFor="name" className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wider">
-                닉네임
-              </label>
-              <input
-                id="name"
-                type="text"
-                required
-                value={form.name}
-                onChange={(e) => updateField("name", e.target.value)}
-                className="block w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3.5 text-sm text-gray-900 placeholder-gray-300 transition-all focus:border-[var(--gold-400)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/20"
-                placeholder="닉네임을 입력하세요"
-              />
-            </div>
-
-            {/* 아이디 */}
-            <div>
               <label htmlFor="username" className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wider">
-                아이디
+                닉네임
               </label>
               <div className="flex gap-2">
                 <input
@@ -150,22 +129,22 @@ export default function Signup() {
                   value={form.username}
                   onChange={(e) => updateField("username", e.target.value)}
                   className="block w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3.5 text-sm text-gray-900 placeholder-gray-300 transition-all focus:border-[var(--gold-400)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/20"
-                  placeholder="영문, 숫자, 밑줄 (3자 이상)"
+                  placeholder="닉네임을 입력하세요"
                 />
                 <button
                   type="button"
                   onClick={handleCheckUsername}
-                  disabled={!form.username.trim() || form.username.trim().length < 3 || usernameStatus === "checking"}
+                  disabled={!form.username.trim() || usernameStatus === "checking"}
                   className="shrink-0 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3.5 text-xs font-semibold text-gray-500 transition-all hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {usernameStatus === "checking" ? "확인중..." : "중복확인"}
                 </button>
               </div>
               {usernameStatus === "available" && (
-                <p className="mt-1.5 text-xs text-green-600 font-medium">사용 가능한 아이디입니다.</p>
+                <p className="mt-1.5 text-xs text-green-600 font-medium">사용 가능한 닉네임입니다.</p>
               )}
               {usernameStatus === "taken" && (
-                <p className="mt-1.5 text-xs text-red-500 font-medium">이미 사용 중인 아이디입니다.</p>
+                <p className="mt-1.5 text-xs text-red-500 font-medium">이미 사용 중인 닉네임입니다.</p>
               )}
             </div>
 

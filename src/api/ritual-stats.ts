@@ -1,7 +1,7 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-import { getOrCreateCurrentChallenge } from "./challenge";
+import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { getCurrentChallengeId } from "@/lib/current-challenge";
 import type {
   RoutineTypeDB,
   RitualRecord,
@@ -90,6 +90,69 @@ const ROUTINE_CONFIG: Record<
 
 // ── 유틸 ──────────────────────────────────────────────
 
+/** 이번 달 1일부터 오늘까지의 평일(월~금) 날짜 목록 */
+function getPastWeekdayDates(year: number, month: number): Set<string> {
+  const today = new Date();
+  const dates = new Set<string>();
+  const d = new Date(year, month - 1, 1);
+  while (d <= today && d.getMonth() === month - 1) {
+    const day = d.getDay();
+    if (day >= 1 && day <= 5) dates.add(d.toISOString().split("T")[0]);
+    d.setDate(d.getDate() + 1);
+  }
+  return dates;
+}
+
+/** 이번 달 1일부터 오늘까지의 주말(토, 일) 날짜 목록 */
+function getPastWeekendDates(year: number, month: number): Set<string> {
+  const today = new Date();
+  const dates = new Set<string>();
+  const d = new Date(year, month - 1, 1);
+  while (d <= today && d.getMonth() === month - 1) {
+    const day = d.getDay();
+    if (day === 0 || day === 6) dates.add(d.toISOString().split("T")[0]);
+    d.setDate(d.getDate() + 1);
+  }
+  return dates;
+}
+
+/**
+ * 평일 완료 + 주말 보충 기반 달성 일수 계산 (진행표와 동일 로직)
+ * dateMap: 날짜 → 완료한 루틴 Set
+ * registeredTypes: 등록된 루틴 Set
+ */
+function calcCompletedDays(
+  dateMap: Map<string, Set<string>>,
+  registeredTypes: Set<string>,
+): number {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const pastWeekdays = getPastWeekdayDates(year, month);
+  const pastWeekends = getPastWeekendDates(year, month);
+
+  const isFullyComplete = (date: string): boolean => {
+    const done = dateMap.get(date);
+    if (!done) return false;
+    for (const rt of registeredTypes) {
+      if (!done.has(rt)) return false;
+    }
+    return true;
+  };
+
+  let weekdayComplete = 0;
+  for (const wd of pastWeekdays) {
+    if (isFullyComplete(wd)) weekdayComplete++;
+  }
+
+  let weekendMakeup = 0;
+  for (const we of pastWeekends) {
+    if (isFullyComplete(we)) weekendMakeup++;
+  }
+
+  return Math.min(weekdayComplete + weekendMakeup, 15);
+}
+
 function calcStreak(dates: string[]): number {
   if (dates.length === 0) return 0;
   const sorted = [...dates].sort((a, b) => b.localeCompare(a)); // 최신순
@@ -135,6 +198,22 @@ function calcLongestStreak(dates: string[]): number {
   return longest;
 }
 
+/**
+ * 신청한 모든 루틴(registeredTypes)에 대해 항목(rows)이 작성되었는지 검사.
+ * 선언/중간회고/최종회고가 "신청한 루틴 수만큼 채워졌을 때"만 달성으로 인정한다.
+ */
+function isAllRoutinesCovered(
+  registeredTypes: Set<string>,
+  rows: { routine_type: string }[] | null | undefined,
+): boolean {
+  if (registeredTypes.size === 0) return false;
+  const written = new Set((rows ?? []).map((r) => r.routine_type));
+  for (const rt of registeredTypes) {
+    if (!written.has(rt)) return false;
+  }
+  return true;
+}
+
 function getWeekActivity(dates: string[]): boolean[] {
   const today = new Date();
   const dayOfWeek = today.getDay(); // 0=일, 1=월, ...
@@ -150,6 +229,134 @@ function getWeekActivity(dates: string[]): boolean[] {
   return activity;
 }
 
+// ── API: Ritual 페이지 통합 데이터 ─────────────────────
+// RitualContainer가 항상 함께 사용하는 overall + routines + completion을
+// 단일 server action으로 묶어 클라이언트→서버 왕복을 줄인다.
+
+export async function getRitualPageData(): Promise<{
+  overall?: RitualOverallStats;
+  routines?: RoutineCardStats[];
+  completion?: CompletionRateStats;
+  error?: string;
+}> {
+  const [{ challengeId, error: cError }, user] = await Promise.all([
+    getCurrentChallengeId(),
+    getCurrentUser(),
+  ]);
+  if (!user) return { error: "인증이 필요합니다." };
+  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
+
+  const supabase = await createClient();
+
+  // 4개 쿼리를 한 번에 병렬 실행 (이전엔 두 endpoint가 ritual_records/registrations를 중복 조회)
+  const [recordsRes, registrationsRes, declarationsRes, midReviewsRes] = await Promise.all([
+    supabase
+      .from("ritual_records")
+      .select("routine_type, record_date")
+      .eq("user_id", user.id)
+      .eq("challenge_id", challengeId),
+    supabase
+      .from("challenge_registrations")
+      .select("routine_type")
+      .eq("user_id", user.id)
+      .eq("challenge_id", challengeId),
+    supabase
+      .from("declarations")
+      .select("routine_type")
+      .eq("user_id", user.id)
+      .eq("challenge_id", challengeId),
+    supabase
+      .from("mid_reviews")
+      .select("routine_type")
+      .eq("user_id", user.id)
+      .eq("challenge_id", challengeId),
+  ]);
+
+  const records = recordsRes.data ?? [];
+  const registrations = registrationsRes.data ?? [];
+
+  const totalRecords = records.length;
+  const allDates = [...new Set(records.map((r) => r.record_date))].sort();
+  const currentStreak = calcStreak(allDates);
+
+  // 날짜별 완료 루틴 set
+  const registeredTypes = new Set(registrations.map((r) => r.routine_type));
+  const dateMap = new Map<string, Set<string>>();
+  for (const r of records) {
+    if (!dateMap.has(r.record_date)) dateMap.set(r.record_date, new Set());
+    dateMap.get(r.record_date)!.add(r.routine_type);
+  }
+  let fullyCompleteDays = 0;
+  for (const [, completedTypes] of dateMap) {
+    const allDone = [...registeredTypes].every((rt) => completedTypes.has(rt));
+    if (allDone) fullyCompleteDays++;
+  }
+
+  // overall stats
+  const totalDaysWithRecords = dateMap.size || 1;
+  const overallCompletionRate = Math.round(
+    (fullyCompleteDays / totalDaysWithRecords) * 100,
+  );
+  const overall: RitualOverallStats = {
+    totalRecords,
+    currentStreak,
+    completionRate: overallCompletionRate,
+  };
+
+  // routines cards
+  const registeredTypesList = registrations.map((r) => r.routine_type as RoutineTypeDB);
+  const routines: RoutineCardStats[] = registeredTypesList
+    .filter((rt) => ROUTINE_CONFIG[rt])
+    .map((rt) => {
+      const config = ROUTINE_CONFIG[rt];
+      const routineDates = records
+        .filter((r) => r.routine_type === rt)
+        .map((r) => r.record_date);
+      const uniqueDates = [...new Set(routineDates)];
+
+      return {
+        id: rt,
+        name: config.name,
+        routineType: rt,
+        color: config.color,
+        bgColor: config.bgColor,
+        totalDays: uniqueDates.length,
+        streak: calcStreak(uniqueDates),
+        weekActivity: getWeekActivity(uniqueDates),
+      };
+    });
+
+  // completion stats (전체 18일 기준)
+  // 회고/선언은 "신청한 모든 루틴에 대해 작성"되어야 +1
+  const completedDays = Math.min(fullyCompleteDays, 15);
+  const hasDeclaration = isAllRoutinesCovered(
+    registeredTypes,
+    declarationsRes.data,
+  );
+  const hasMidReview = isAllRoutinesCovered(
+    registeredTypes,
+    midReviewsRes.data,
+  );
+  const hasFinalReview = false; // TODO: 최종회고 테이블 생성 후 동일 로직 적용
+  const totalAchieved =
+    completedDays +
+    (hasDeclaration ? 1 : 0) +
+    (hasMidReview ? 1 : 0) +
+    (hasFinalReview ? 1 : 0);
+  const rate = Math.round((totalAchieved / TOTAL_DAYS) * 100);
+
+  const completion: CompletionRateStats = {
+    rate,
+    completedDays,
+    hasDeclaration,
+    hasMidReview,
+    hasFinalReview,
+    totalAchieved,
+  };
+
+  return { overall, routines, completion };
+}
+
 // ── API: 전체 통계 + 루틴별 카드 ──────────────────────
 
 export async function getRitualStats(): Promise<{
@@ -157,14 +364,14 @@ export async function getRitualStats(): Promise<{
   routines?: RoutineCardStats[];
   error?: string;
 }> {
-  const { challengeId, error: cError } = await getOrCreateCurrentChallenge();
+  const [{ challengeId, error: cError }, user] = await Promise.all([
+    getCurrentChallengeId(),
+    getCurrentUser(),
+  ]);
+  if (!user) return { error: "인증이 필요합니다." };
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "인증이 필요합니다." };
 
   // 기록 + 등록 루틴 동시 조회
   const [recordsRes, registrationsRes] = await Promise.all([
@@ -237,14 +444,14 @@ export async function getExerciseInsight(): Promise<{
   data?: ExerciseInsight;
   error?: string;
 }> {
-  const { challengeId, error: cError } = await getOrCreateCurrentChallenge();
+  const [{ challengeId, error: cError }, user] = await Promise.all([
+    getCurrentChallengeId(),
+    getCurrentUser(),
+  ]);
+  if (!user) return { error: "인증이 필요합니다." };
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "인증이 필요합니다." };
 
   const { data: records } = await supabase
     .from("ritual_records")
@@ -289,14 +496,14 @@ export async function getMorningInsight(): Promise<{
   data?: MorningInsight;
   error?: string;
 }> {
-  const { challengeId, error: cError } = await getOrCreateCurrentChallenge();
+  const [{ challengeId, error: cError }, user] = await Promise.all([
+    getCurrentChallengeId(),
+    getCurrentUser(),
+  ]);
+  if (!user) return { error: "인증이 필요합니다." };
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "인증이 필요합니다." };
 
   const { data: records } = await supabase
     .from("ritual_records")
@@ -340,14 +547,14 @@ export async function getMorningInsight(): Promise<{
 export async function getLanguageInsight(
   routineType: "english" | "second_language" = "english",
 ): Promise<{ data?: LanguageInsight; error?: string }> {
-  const { challengeId, error: cError } = await getOrCreateCurrentChallenge();
+  const [{ challengeId, error: cError }, user] = await Promise.all([
+    getCurrentChallengeId(),
+    getCurrentUser(),
+  ]);
+  if (!user) return { error: "인증이 필요합니다." };
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "인증이 필요합니다." };
 
   const { data: records } = await supabase
     .from("ritual_records")
@@ -393,14 +600,14 @@ export async function getFinanceInsight(): Promise<{
   data?: FinanceInsight;
   error?: string;
 }> {
-  const { challengeId, error: cError } = await getOrCreateCurrentChallenge();
+  const [{ challengeId, error: cError }, user] = await Promise.all([
+    getCurrentChallengeId(),
+    getCurrentUser(),
+  ]);
+  if (!user) return { error: "인증이 필요합니다." };
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "인증이 필요합니다." };
 
   const { data: records } = await supabase
     .from("ritual_records")
@@ -470,20 +677,113 @@ export async function getFinanceInsight(): Promise<{
   };
 }
 
+// ── API: Home 화면 통합 통계 ───────────────────────────
+// HomeContainer에서 MyPageStats(Profile + TaskTabs) + CompletionRate(Profile)를
+// 한 번에 받아오기 위한 통합 server action.
+
+export async function getHomeStats(): Promise<{
+  myPage?: MyPageStats;
+  completion?: CompletionRateStats;
+  error?: string;
+}> {
+  const [{ challengeId, error: cError }, user] = await Promise.all([
+    getCurrentChallengeId(),
+    getCurrentUser(),
+  ]);
+  if (!user) return { error: "인증이 필요합니다." };
+  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
+
+  const supabase = await createClient();
+
+  const [currentRes, allRes, registrationsRes, declarationsRes, midReviewsRes] =
+    await Promise.all([
+      supabase
+        .from("ritual_records")
+        .select("routine_type, record_date")
+        .eq("user_id", user.id)
+        .eq("challenge_id", challengeId),
+      supabase
+        .from("ritual_records")
+        .select("record_date")
+        .eq("user_id", user.id),
+      supabase
+        .from("challenge_registrations")
+        .select("routine_type")
+        .eq("user_id", user.id)
+        .eq("challenge_id", challengeId),
+      supabase
+        .from("declarations")
+        .select("routine_type")
+        .eq("user_id", user.id)
+        .eq("challenge_id", challengeId),
+      supabase
+        .from("mid_reviews")
+        .select("routine_type")
+        .eq("user_id", user.id)
+        .eq("challenge_id", challengeId),
+    ]);
+
+  const currentRecords = currentRes.data ?? [];
+  const allRecords = allRes.data ?? [];
+  const registrations = registrationsRes.data ?? [];
+
+  // myPage stats
+  const currentDates = [...new Set(currentRecords.map((r) => r.record_date))];
+  const allDates = allRecords.map((r) => r.record_date);
+  const myPage: MyPageStats = {
+    currentStreak: calcStreak(currentDates),
+    longestStreak: calcLongestStreak(allDates),
+    totalCompletions: currentRecords.length,
+  };
+
+  // completion stats (평일 완료 + 주말 보충 기반 — 진행표와 동일 로직)
+  const registeredTypes = new Set(registrations.map((r) => r.routine_type));
+  const dateMap = new Map<string, Set<string>>();
+  for (const r of currentRecords) {
+    if (!dateMap.has(r.record_date)) dateMap.set(r.record_date, new Set());
+    dateMap.get(r.record_date)!.add(r.routine_type);
+  }
+  const completedDays = calcCompletedDays(dateMap, registeredTypes);
+  const hasDeclaration = isAllRoutinesCovered(
+    registeredTypes,
+    declarationsRes.data,
+  );
+  const hasMidReview = isAllRoutinesCovered(
+    registeredTypes,
+    midReviewsRes.data,
+  );
+  const hasFinalReview = false; // TODO: 최종회고 테이블 생성 후 동일 로직 적용
+  const totalAchieved =
+    completedDays +
+    (hasDeclaration ? 1 : 0) +
+    (hasMidReview ? 1 : 0) +
+    (hasFinalReview ? 1 : 0);
+  const completion: CompletionRateStats = {
+    rate: Math.round((totalAchieved / TOTAL_DAYS) * 100),
+    completedDays,
+    hasDeclaration,
+    hasMidReview,
+    hasFinalReview,
+    totalAchieved,
+  };
+
+  return { myPage, completion };
+}
+
 // ── API: 마이페이지 통계 ────────────────────────────────
 
 export async function getMyPageStats(): Promise<{
   data?: MyPageStats;
   error?: string;
 }> {
-  const { challengeId, error: cError } = await getOrCreateCurrentChallenge();
+  const [{ challengeId, error: cError }, user] = await Promise.all([
+    getCurrentChallengeId(),
+    getCurrentUser(),
+  ]);
+  if (!user) return { error: "인증이 필요합니다." };
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "인증이 필요합니다." };
 
   // 이번 달 기록 (연속 실천, 총 완료) + 전체 기록 (최장 기록) 동시 조회
   const [currentRes, allRes] = await Promise.all([
@@ -524,14 +824,14 @@ export async function getCompletionRate(): Promise<{
   data?: CompletionRateStats;
   error?: string;
 }> {
-  const { challengeId, error: cError } = await getOrCreateCurrentChallenge();
+  const [{ challengeId, error: cError }, user] = await Promise.all([
+    getCurrentChallengeId(),
+    getCurrentUser(),
+  ]);
+  if (!user) return { error: "인증이 필요합니다." };
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "인증이 필요합니다." };
 
   const [recordsRes, registrationsRes, declarationsRes, midReviewsRes] = await Promise.all([
     supabase
@@ -546,20 +846,18 @@ export async function getCompletionRate(): Promise<{
       .eq("challenge_id", challengeId),
     supabase
       .from("declarations")
-      .select("id")
+      .select("routine_type")
       .eq("user_id", user.id)
-      .eq("challenge_id", challengeId)
-      .limit(1),
+      .eq("challenge_id", challengeId),
     supabase
       .from("mid_reviews")
-      .select("id")
+      .select("routine_type")
       .eq("user_id", user.id)
-      .eq("challenge_id", challengeId)
-      .limit(1),
+      .eq("challenge_id", challengeId),
     // TODO: 최종회고 테이블 생성 후 여기에 추가
   ]);
 
-  // 날짜별로 등록된 루틴을 모두 완료했는지 계산
+  // 평일 완료 + 주말 보충 기반 달성 일수 (진행표와 동일 로직)
   const registeredTypes = new Set(
     (registrationsRes.data ?? []).map((r) => r.routine_type),
   );
@@ -568,14 +866,15 @@ export async function getCompletionRate(): Promise<{
     if (!dateMap.has(r.record_date)) dateMap.set(r.record_date, new Set());
     dateMap.get(r.record_date)!.add(r.routine_type);
   }
-  let fullyCompleteDays = 0;
-  for (const [, completedTypes] of dateMap) {
-    const allDone = [...registeredTypes].every((rt) => completedTypes.has(rt));
-    if (allDone) fullyCompleteDays++;
-  }
-  const completedDays = Math.min(fullyCompleteDays, 15);
-  const hasDeclaration = (declarationsRes.data?.length ?? 0) > 0;
-  const hasMidReview = (midReviewsRes.data?.length ?? 0) > 0;
+  const completedDays = calcCompletedDays(dateMap, registeredTypes);
+  const hasDeclaration = isAllRoutinesCovered(
+    registeredTypes,
+    declarationsRes.data,
+  );
+  const hasMidReview = isAllRoutinesCovered(
+    registeredTypes,
+    midReviewsRes.data,
+  );
   const hasFinalReview = false; // TODO: 최종회고 테이블 연동
 
   const totalAchieved =

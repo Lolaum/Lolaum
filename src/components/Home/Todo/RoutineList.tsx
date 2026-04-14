@@ -86,14 +86,12 @@ export default function RoutineList({
         </button>
       </div>
 
-      {/* 루틴 생성 폼 */}
+      {/* 루틴 생성 바텀시트 */}
       {showGenerateRoutine && (
-        <div className="mb-4">
-          <GenerateRoutine
-            onClose={() => setShowGenerateRoutine(false)}
-            onCreated={handleCreated}
-          />
-        </div>
+        <GenerateRoutine
+          onClose={() => setShowGenerateRoutine(false)}
+          onCreated={handleCreated}
+        />
       )}
 
       {/* 루틴 리스트 */}

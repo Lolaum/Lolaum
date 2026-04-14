@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Flame,
@@ -16,25 +16,19 @@ import {
   formatDateDisplay,
   getWeekRangeText,
 } from "@/lib/date";
-import { getMyPageStats, MyPageStats } from "@/api/ritual-stats";
+import { MyPageStats } from "@/api/ritual-stats";
 
 type TabType = "routine" | "todo";
 
 interface TaskTabsProps {
   selectedDate: Date;
   onTaskClick?: (title: string, color: string) => void;
+  stats?: MyPageStats | null;
 }
 
-export default function TaskTabs({ selectedDate, onTaskClick }: TaskTabsProps) {
+export default function TaskTabs({ selectedDate, onTaskClick, stats }: TaskTabsProps) {
   const [activeTab, setActiveTab] = useState<TabType>("routine");
-  const [stats, setStats] = useState<MyPageStats | null>(null);
   const router = useRouter();
-
-  useEffect(() => {
-    getMyPageStats().then((res) => {
-      if (res.data) setStats(res.data);
-    });
-  }, []);
 
   const handleTaskClick = (title: string, color: string) => {
     onTaskClick?.(title, color);

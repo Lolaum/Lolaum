@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MidReviewCondition } from "@/types/routines/midReview";
+import { createMidReview } from "@/api/mid-review";
+import { ROUTINE_TYPE_LABEL, type RoutineTypeDB } from "@/types/supabase";
+import type { RoutineType } from "@/types/routines/declaration";
 
 const CONDITIONS: MidReviewCondition[] = [
   "시간대",
@@ -11,6 +14,18 @@ const CONDITIONS: MidReviewCondition[] = [
   "컨디션",
   "감정",
   "전날 행동",
+];
+
+// 8개 리추얼 모두 중간 회고 작성 가능
+const ALL_ROUTINE_TYPES: RoutineTypeDB[] = [
+  "morning",
+  "exercise",
+  "reading",
+  "english",
+  "second_language",
+  "recording",
+  "finance",
+  "english_book",
 ];
 
 const CONDITION_PROMPTS: Record<MidReviewCondition, string> = {
@@ -26,6 +41,13 @@ export default function MidReviewWriteContainer() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [done, setDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // 8개 리추얼 모두 작성 가능
+  const [selectedRoutine, setSelectedRoutine] = useState<RoutineTypeDB | "">(
+    ALL_ROUTINE_TYPES[0],
+  );
 
   // Step 1
   const [goodConditions, setGoodConditions] = useState<MidReviewCondition[]>([]);
@@ -58,16 +80,45 @@ export default function MidReviewWriteContainer() {
     }
   };
 
-  const canNext1 = goodConditions.length >= 2 && goodConditions.every((c) => goodDetails[c]?.trim());
+  const canNext1 =
+    !!selectedRoutine &&
+    goodConditions.length >= 2 &&
+    goodConditions.every((c) => goodDetails[c]?.trim());
   const canNext2 = hardConditions.length >= 1 && hardConditions.every((c) => hardDetails[c]?.trim());
-  const canSubmit = whyStarted.trim() && keepDoing.trim() && willChange.trim();
+  const canSubmit =
+    !!selectedRoutine &&
+    !!whyStarted.trim() &&
+    !!keepDoing.trim() &&
+    !!willChange.trim() &&
+    !submitting;
 
-  const handleSubmit = () => {
-    // TODO: 실제 서버 저장 로직
+  const handleSubmit = async () => {
+    if (!selectedRoutine) return;
+    setSubmitting(true);
+    setErrorMsg(null);
+
+    const { error } = await createMidReview({
+      routineType: selectedRoutine,
+      goodConditions,
+      goodConditionDetails: goodDetails,
+      hardConditions,
+      hardConditionDetails: hardDetails,
+      whyStarted: whyStarted.trim(),
+      keepDoing: keepDoing.trim(),
+      willChange: willChange.trim(),
+    });
+
+    if (error) {
+      setErrorMsg(error);
+      setSubmitting(false);
+      return;
+    }
+
+    setSubmitting(false);
     setDone(true);
     setTimeout(() => {
       router.push("/mid-review");
-    }, 2000);
+    }, 1500);
   };
 
   if (done) {
@@ -116,6 +167,43 @@ export default function MidReviewWriteContainer() {
       {/* Step 1 */}
       {step === 1 && (
         <div>
+          {/* 루틴 선택 */}
+          <div className="mb-6">
+            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+              회고할 리추얼 <span className="text-red-400">*</span>
+            </label>
+            <div className="relative">
+              <select
+                value={selectedRoutine}
+                onChange={(e) =>
+                  setSelectedRoutine(e.target.value as RoutineTypeDB | "")
+                }
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-800 appearance-none cursor-pointer focus:outline-none focus:border-yellow-400 focus:bg-white transition-all"
+              >
+                {ALL_ROUTINE_TYPES.map((rt) => (
+                  <option key={rt} value={rt}>
+                    {ROUTINE_TYPE_LABEL[rt] as RoutineType}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                <svg
+                  className="w-4 h-4 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+
           <div className="mb-6">
             <span
               className="inline-block text-xs font-bold px-2.5 py-1 rounded-full mb-3"
@@ -327,6 +415,10 @@ export default function MidReviewWriteContainer() {
             </div>
           </div>
 
+          {errorMsg && (
+            <p className="text-xs text-red-500 mb-3 px-1">{errorMsg}</p>
+          )}
+
           <button
             onClick={handleSubmit}
             disabled={!canSubmit}
@@ -337,7 +429,7 @@ export default function MidReviewWriteContainer() {
                 : { backgroundColor: "#f3f4f6", color: "#d1d5db" }
             }
           >
-            중간 회고 완료하기
+            {submitting ? "저장 중..." : "중간 회고 완료하기"}
           </button>
         </div>
       )}

@@ -135,8 +135,8 @@ export default function Login() {
                 />
                 <span className="text-sm text-gray-500">로그인 상태 유지</span>
               </label>
-              <a href="#" className="text-sm font-medium text-[var(--gold-500)] hover:text-[var(--gold-600)] transition-colors">
-                비밀번호 찾기
+              <a href="/find-account" className="text-sm font-medium text-[var(--gold-500)] hover:text-[var(--gold-600)] transition-colors">
+                아이디/비밀번호 찾기
               </a>
             </div>
 

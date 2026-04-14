@@ -1,20 +1,17 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import type { Todo } from "@/types/supabase";
 
 export async function getTodos(
   date: string,
 ): Promise<{ data?: Todo[]; error?: string }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) {
     return { error: "인증이 필요합니다." };
   }
+
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("todos")
@@ -31,15 +28,12 @@ export async function createTodo(input: {
   title: string;
   todo_date: string;
 }): Promise<{ data?: Todo; error?: string }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCurrentUser();
   if (!user) {
     return { error: "인증이 필요합니다." };
   }
+
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("todos")

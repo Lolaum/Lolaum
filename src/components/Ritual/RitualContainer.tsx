@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Flame, Calendar, TrendingUp, Loader2 } from "lucide-react";
-import { getRitualStats, getCompletionRate } from "@/api/ritual-stats";
+import { getRitualPageData } from "@/api/ritual-stats";
 import type { RitualOverallStats, RoutineCardStats } from "@/api/ritual-stats";
 import RecordGallery from "./RecordGallery";
 import RoutineInsights from "./RoutineInsights";
@@ -45,14 +45,11 @@ export default function RitualContainer() {
   useEffect(() => {
     async function fetchStats() {
       setLoading(true);
-      const [result, crResult] = await Promise.all([
-        getRitualStats(),
-        getCompletionRate(),
-      ]);
+      const result = await getRitualPageData();
       if (result.overall) {
         setOverall({
           ...result.overall,
-          completionRate: crResult.data?.rate ?? result.overall.completionRate,
+          completionRate: result.completion?.rate ?? result.overall.completionRate,
         });
       }
       if (result.routines) setRoutines(result.routines);

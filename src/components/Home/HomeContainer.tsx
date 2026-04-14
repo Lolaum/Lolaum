@@ -13,6 +13,7 @@ import ExerciseContainer from "@/components/Routines/Exercise/ExerciseContainer"
 import MorningContainer from "@/components/Routines/Morning/MorningContainer";
 import FinanceContainer from "@/components/Routines/Finance/FinanceContainer";
 import PhotoCertification from "@/components/Ritual/PhotoCertification";
+import { getHomeStats, MyPageStats, CompletionRateStats } from "@/api/ritual-stats";
 
 type RitualStep = "pre_photo" | "timer" | "post_photo" | "record";
 
@@ -48,12 +49,23 @@ export default function HomeContainer() {
   const [startPhoto, setStartPhoto] = useState<string | null>(null);
   const [endPhoto, setEndPhoto] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [myPageStats, setMyPageStats] = useState<MyPageStats | null>(null);
+  const [completionRate, setCompletionRate] = useState<CompletionRateStats | null>(null);
 
   useEffect(() => {
     const now = new Date();
     setToday(now);
     setSelectedDate(now);
     setMounted(true);
+  }, []);
+
+  // Profile + TaskTabs가 같은 데이터를 쓰므로 컨테이너에서 한 번만 호출
+  // (myPage stats + completion rate를 단일 server action으로 통합)
+  useEffect(() => {
+    getHomeStats().then((res) => {
+      if (res.myPage) setMyPageStats(res.myPage);
+      if (res.completion) setCompletionRate(res.completion);
+    });
   }, []);
 
   const handleTaskClick = (title: string, color: string) => {
@@ -243,7 +255,7 @@ export default function HomeContainer() {
                 setSelectedMemberId((prev) => (prev === id ? undefined : id))
               }
             />
-            <Profile />
+            <Profile stats={myPageStats} completionRate={completionRate} />
             {IS_MID_REVIEW_PERIOD && (
               <button
                 onClick={() => router.push("/mid-review")}
@@ -289,6 +301,7 @@ export default function HomeContainer() {
             <TaskTabs
               selectedDate={selectedDate}
               onTaskClick={handleTaskClick}
+              stats={myPageStats}
             />
           </div>
         </div>
