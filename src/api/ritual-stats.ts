@@ -90,6 +90,69 @@ const ROUTINE_CONFIG: Record<
 
 // ── 유틸 ──────────────────────────────────────────────
 
+/** 이번 달 1일부터 오늘까지의 평일(월~금) 날짜 목록 */
+function getPastWeekdayDates(year: number, month: number): Set<string> {
+  const today = new Date();
+  const dates = new Set<string>();
+  const d = new Date(year, month - 1, 1);
+  while (d <= today && d.getMonth() === month - 1) {
+    const day = d.getDay();
+    if (day >= 1 && day <= 5) dates.add(d.toISOString().split("T")[0]);
+    d.setDate(d.getDate() + 1);
+  }
+  return dates;
+}
+
+/** 이번 달 1일부터 오늘까지의 주말(토, 일) 날짜 목록 */
+function getPastWeekendDates(year: number, month: number): Set<string> {
+  const today = new Date();
+  const dates = new Set<string>();
+  const d = new Date(year, month - 1, 1);
+  while (d <= today && d.getMonth() === month - 1) {
+    const day = d.getDay();
+    if (day === 0 || day === 6) dates.add(d.toISOString().split("T")[0]);
+    d.setDate(d.getDate() + 1);
+  }
+  return dates;
+}
+
+/**
+ * 평일 완료 + 주말 보충 기반 달성 일수 계산 (진행표와 동일 로직)
+ * dateMap: 날짜 → 완료한 루틴 Set
+ * registeredTypes: 등록된 루틴 Set
+ */
+function calcCompletedDays(
+  dateMap: Map<string, Set<string>>,
+  registeredTypes: Set<string>,
+): number {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const pastWeekdays = getPastWeekdayDates(year, month);
+  const pastWeekends = getPastWeekendDates(year, month);
+
+  const isFullyComplete = (date: string): boolean => {
+    const done = dateMap.get(date);
+    if (!done) return false;
+    for (const rt of registeredTypes) {
+      if (!done.has(rt)) return false;
+    }
+    return true;
+  };
+
+  let weekdayComplete = 0;
+  for (const wd of pastWeekdays) {
+    if (isFullyComplete(wd)) weekdayComplete++;
+  }
+
+  let weekendMakeup = 0;
+  for (const we of pastWeekends) {
+    if (isFullyComplete(we)) weekendMakeup++;
+  }
+
+  return Math.min(weekdayComplete + weekendMakeup, 15);
+}
+
 function calcStreak(dates: string[]): number {
   if (dates.length === 0) return 0;
   const sorted = [...dates].sort((a, b) => b.localeCompare(a)); // 최신순
@@ -673,20 +736,14 @@ export async function getHomeStats(): Promise<{
     totalCompletions: currentRecords.length,
   };
 
-  // completion stats
+  // completion stats (평일 완료 + 주말 보충 기반 — 진행표와 동일 로직)
   const registeredTypes = new Set(registrations.map((r) => r.routine_type));
   const dateMap = new Map<string, Set<string>>();
   for (const r of currentRecords) {
     if (!dateMap.has(r.record_date)) dateMap.set(r.record_date, new Set());
     dateMap.get(r.record_date)!.add(r.routine_type);
   }
-  let fullyCompleteDays = 0;
-  for (const [, completedTypes] of dateMap) {
-    const allDone = [...registeredTypes].every((rt) => completedTypes.has(rt));
-    if (allDone) fullyCompleteDays++;
-  }
-  const completedDays = Math.min(fullyCompleteDays, 15);
-  // 회고/선언은 "신청한 모든 루틴에 대해 작성"되어야 +1
+  const completedDays = calcCompletedDays(dateMap, registeredTypes);
   const hasDeclaration = isAllRoutinesCovered(
     registeredTypes,
     declarationsRes.data,
@@ -800,7 +857,7 @@ export async function getCompletionRate(): Promise<{
     // TODO: 최종회고 테이블 생성 후 여기에 추가
   ]);
 
-  // 날짜별로 등록된 루틴을 모두 완료했는지 계산
+  // 평일 완료 + 주말 보충 기반 달성 일수 (진행표와 동일 로직)
   const registeredTypes = new Set(
     (registrationsRes.data ?? []).map((r) => r.routine_type),
   );
@@ -809,13 +866,7 @@ export async function getCompletionRate(): Promise<{
     if (!dateMap.has(r.record_date)) dateMap.set(r.record_date, new Set());
     dateMap.get(r.record_date)!.add(r.routine_type);
   }
-  let fullyCompleteDays = 0;
-  for (const [, completedTypes] of dateMap) {
-    const allDone = [...registeredTypes].every((rt) => completedTypes.has(rt));
-    if (allDone) fullyCompleteDays++;
-  }
-  const completedDays = Math.min(fullyCompleteDays, 15);
-  // 회고/선언은 "신청한 모든 루틴에 대해 작성"되어야 +1
+  const completedDays = calcCompletedDays(dateMap, registeredTypes);
   const hasDeclaration = isAllRoutinesCovered(
     registeredTypes,
     declarationsRes.data,

@@ -215,7 +215,7 @@ function MyProgressCard({
   member: ChallengerProgress;
   totalDays: number;
 }) {
-  const progress = Math.round((member.completedDays / totalDays) * 100);
+  const progress = Math.round((member.totalAchieved / totalDays) * 100);
 
   return (
     <div className="rounded-2xl bg-yellow-50 border border-yellow-100 p-4 mb-6">
@@ -236,7 +236,7 @@ function MyProgressCard({
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-yellow-400">
-                {member.completedDays}/{totalDays}
+                {member.totalAchieved}/{totalDays}
               </span>
               <span className="text-sm font-bold text-yellow-500">
                 {progress}%
@@ -268,7 +268,7 @@ function MemberRow({
   member: ChallengerProgress;
   totalDays: number;
 }) {
-  const progress = Math.round((member.completedDays / totalDays) * 100);
+  const progress = Math.round((member.totalAchieved / totalDays) * 100);
 
   return (
     <div className="flex items-center gap-4">
@@ -287,7 +287,7 @@ function MemberRow({
           </div>
           <div className="flex items-center gap-1.5">
             <span className="text-[11px] text-gray-300">
-              {member.completedDays}/{totalDays}
+              {member.totalAchieved}/{totalDays}
             </span>
             <span className="text-xs font-bold text-gray-400">{progress}%</span>
           </div>

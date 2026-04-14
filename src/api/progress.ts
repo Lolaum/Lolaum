@@ -8,17 +8,22 @@ export interface ChallengerProgress {
   avatarUrl: string | null;
   emoji: string | null;
   completedDays: number; // 평일 완료 + 주말 보충 일수 (최대 15)
+  totalAchieved: number; // 달성 합계 (최대 18: 15일 + 선언/중간회고/최종회고)
   penaltyAmount: number; // 기부금 (원)
   happyChanceUsed: boolean; // 행복찬스 사용됨 (평일 1회 이상 미완료)
+  hasDeclaration: boolean;
+  hasMidReview: boolean;
+  hasFinalReview: boolean;
 }
 
 export interface ProgressPageData {
   me: ChallengerProgress | null;
   challengers: ChallengerProgress[];
-  totalDays: number;
+  totalDays: number; // 18 (15일 + 3 보너스)
 }
 
-const TOTAL = 15;
+const TOTAL_ROUTINE_DAYS = 15;
+const TOTAL_DAYS = 18; // 15일(루틴) + 3(선언/중간회고/최종회고)
 
 /**
  * 이번 달 1일부터 오늘까지의 평일(월~금) 날짜 목록
@@ -87,7 +92,7 @@ export async function getProgressPageData(): Promise<{
 
   if (cError) return { error: cError.message };
   if (!challenges || challenges.length === 0) {
-    return { data: { me: null, challengers: [], totalDays: TOTAL } };
+    return { data: { me: null, challengers: [], totalDays: TOTAL_DAYS } };
   }
 
   type ChallengeRow = {
@@ -106,8 +111,8 @@ export async function getProgressPageData(): Promise<{
   // user_id → challenge_id 매핑
   const userChallengeMap = new Map(rows.map((r) => [r.user_id, r.id]));
 
-  // 2. 등록 루틴 + 기록을 한 번에 조회
-  const [regRes, recRes] = await Promise.all([
+  // 2. 등록 루틴 + 기록 + 선언/회고를 한 번에 조회
+  const [regRes, recRes, declRes, midRevRes] = await Promise.all([
     supabase
       .from("challenge_registrations")
       .select("user_id, routine_type, challenge_id")
@@ -115,6 +120,14 @@ export async function getProgressPageData(): Promise<{
     supabase
       .from("ritual_records")
       .select("user_id, routine_type, record_date, challenge_id")
+      .in("challenge_id", challengeIds),
+    supabase
+      .from("declarations")
+      .select("user_id, routine_type, challenge_id")
+      .in("challenge_id", challengeIds),
+    supabase
+      .from("mid_reviews")
+      .select("user_id, routine_type, challenge_id")
       .in("challenge_id", challengeIds),
   ]);
 
@@ -128,6 +141,18 @@ export async function getProgressPageData(): Promise<{
       userRegistrations.set(r.user_id, new Set());
     }
     userRegistrations.get(r.user_id)!.add(r.routine_type);
+  }
+
+  // 3-1. 유저별 선언/회고 루틴 세트
+  const userDeclarations = new Map<string, Set<string>>();
+  for (const r of declRes.data ?? []) {
+    if (!userDeclarations.has(r.user_id)) userDeclarations.set(r.user_id, new Set());
+    userDeclarations.get(r.user_id)!.add(r.routine_type);
+  }
+  const userMidReviews = new Map<string, Set<string>>();
+  for (const r of midRevRes.data ?? []) {
+    if (!userMidReviews.has(r.user_id)) userMidReviews.set(r.user_id, new Set());
+    userMidReviews.get(r.user_id)!.add(r.routine_type);
   }
 
   // 4. 유저별 날짜별 완료 루틴 세트
@@ -158,8 +183,12 @@ export async function getProgressPageData(): Promise<{
         avatarUrl: r.profiles.avatar_url,
         emoji: r.profiles.emoji,
         completedDays: 0,
+        totalAchieved: 0,
         penaltyAmount: 0,
         happyChanceUsed: false,
+        hasDeclaration: false,
+        hasMidReview: false,
+        hasFinalReview: false,
       };
     }
 
@@ -195,7 +224,20 @@ export async function getProgressPageData(): Promise<{
     }
 
     // 진행률: 평일 완료 + 주말 보충 (최대 15)
-    const completedDays = Math.min(weekdayComplete + weekendMakeup, TOTAL);
+    const completedDays = Math.min(weekdayComplete + weekendMakeup, TOTAL_ROUTINE_DAYS);
+
+    // 선언/회고 보너스 (등록한 모든 루틴에 대해 작성해야 +1)
+    const declSet = userDeclarations.get(r.user_id);
+    const hasDeclaration = !!declSet && [...registered].every((rt) => declSet.has(rt));
+    const midRevSet = userMidReviews.get(r.user_id);
+    const hasMidReview = !!midRevSet && [...registered].every((rt) => midRevSet.has(rt));
+    const hasFinalReview = false; // TODO: 최종회고 테이블 연동
+
+    const totalAchieved =
+      completedDays +
+      (hasDeclaration ? 1 : 0) +
+      (hasMidReview ? 1 : 0) +
+      (hasFinalReview ? 1 : 0);
 
     // 기부금 계산:
     // 평일 미완료 최초 1회 = 행복찬스 (면제)
@@ -214,18 +256,22 @@ export async function getProgressPageData(): Promise<{
       avatarUrl: r.profiles.avatar_url,
       emoji: r.profiles.emoji,
       completedDays,
+      totalAchieved,
       penaltyAmount,
       happyChanceUsed,
+      hasDeclaration,
+      hasMidReview,
+      hasFinalReview,
     };
   });
 
-  // 나와 나머지 분리 (완료일 내림차순)
+  // 나와 나머지 분리 (달성 합계 내림차순)
   const me = allChallengers.find((c) => c.userId === user.id) ?? null;
   const challengers = allChallengers
     .filter((c) => c.userId !== user.id)
-    .sort((a, b) => b.completedDays - a.completedDays);
+    .sort((a, b) => b.totalAchieved - a.totalAchieved);
 
   return {
-    data: { me, challengers, totalDays: TOTAL },
+    data: { me, challengers, totalDays: TOTAL_DAYS },
   };
 }
