@@ -91,6 +91,7 @@ export default function RoutineList({
         <GenerateRoutine
           onClose={() => setShowGenerateRoutine(false)}
           onCreated={handleCreated}
+          existingRoutineTypes={routines.map((r) => r.routine_type)}
         />
       )}
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { List, Plus, LayoutGrid, Calendar as CalendarIcon } from "lucide-react";
+import { List, Plus, LayoutGrid, Calendar as CalendarIcon, Loader2 } from "lucide-react";
 import AddNewBook from "./AddNewBook";
 import BookCalendar from "./BookCalendar";
 import BookDetail from "./BookDetail";
@@ -31,6 +31,7 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchBooks = useCallback(async () => {
     setLoading(true);
@@ -61,6 +62,7 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
     totalPages: number;
     coverImage?: File;
   }) => {
+    setSubmitting(true);
     let coverImageUrl: string | undefined;
 
     if (bookData.coverImage) {
@@ -83,6 +85,7 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
     if (result.data) {
       setBooks((prev) => [toBook(result.data!), ...prev]);
     }
+    setSubmitting(false);
   };
 
   const handleBookDeleted = async (bookId: string) => {
@@ -107,6 +110,15 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
     }
   };
 
+  const loadingOverlay = submitting && (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-2xl p-6 flex flex-col items-center gap-3 shadow-xl">
+        <Loader2 size={28} className="animate-spin text-orange-500" />
+        <p className="text-sm font-medium text-gray-700">저장 중...</p>
+      </div>
+    </div>
+  );
+
   // 새 책 추가하기 화면
   if (showAddBook) {
     return (
@@ -116,6 +128,7 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
           onBackToHome={onBackToHome}
           onSubmit={handleBookCreated}
         />
+        {loadingOverlay}
       </div>
     );
   }

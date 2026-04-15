@@ -21,6 +21,7 @@ export default function ExerciseContainer({
   const [showAddRecord, setShowAddRecord] = useState(!!certificationPhotos?.length);
   const [exerciseRecords, setExerciseRecords] = useState<ExerciseRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -48,6 +49,7 @@ export default function ExerciseContainer({
   }, [fetchRecords]);
 
   const handleSubmit = async (formData: ExerciseFormData) => {
+    setSubmitting(true);
     const today = new Date().toISOString().split("T")[0];
     const recordData: ExerciseRecordData = {
       exerciseName: formData.exerciseName,
@@ -60,6 +62,7 @@ export default function ExerciseContainer({
       recordDate: today,
       recordData: recordData as unknown as Json,
     });
+    setSubmitting(false);
     if (error) {
       alert(`기록 저장 실패: ${error}`);
       return;
@@ -157,8 +160,18 @@ export default function ExerciseContainer({
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 py-4">
-      {renderContent()}
-    </div>
+    <>
+      <div className="w-full max-w-2xl mx-auto px-4 py-4">
+        {renderContent()}
+      </div>
+      {submitting && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl p-6 flex flex-col items-center gap-3 shadow-xl">
+            <Loader2 size={28} className="animate-spin text-orange-500" />
+            <p className="text-sm font-medium text-gray-700">기록 저장 중...</p>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

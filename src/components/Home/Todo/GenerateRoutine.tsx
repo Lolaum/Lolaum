@@ -11,6 +11,7 @@ import { ROUTINE_TYPE_MAP } from "@/types/supabase";
 interface GenerateRoutineProps {
   onClose: () => void;
   onCreated?: () => void;
+  existingRoutineTypes?: string[];
 }
 
 const routineOptions: { type: RoutineType; emoji: string }[] = [
@@ -27,6 +28,7 @@ const routineOptions: { type: RoutineType; emoji: string }[] = [
 export default function GenerateRoutine({
   onClose,
   onCreated,
+  existingRoutineTypes = [],
 }: GenerateRoutineProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedRoutine, setSelectedRoutine] = useState<RoutineType | "">("");
@@ -219,7 +221,9 @@ export default function GenerateRoutine({
                     루틴 선택 <span className="text-red-400">*</span>
                   </label>
                   <div className="grid grid-cols-2 gap-2">
-                    {routineOptions.map(({ type, emoji }) => {
+                    {routineOptions
+                      .filter(({ type }) => !existingRoutineTypes.includes(ROUTINE_TYPE_MAP[type]))
+                      .map(({ type, emoji }) => {
                       const isSelected = selectedRoutine === type;
                       return (
                         <button

@@ -25,6 +25,7 @@ export default function LanguageContainer({
   const [showStudyPhrase, setShowStudyPhrase] = useState(false);
   const [languageRecords, setLanguageRecords] = useState<LanguageRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   const isEnglish = languageType === "영어";
   const accentColor = isEnglish ? "#0ea5e9" : "#10b981";
@@ -56,6 +57,7 @@ export default function LanguageContainer({
   }, [fetchRecords]);
 
   const handleSubmit = async (formData: LanguageFormData) => {
+    setSubmitting(true);
     const today = new Date().toISOString().split("T")[0];
     const recordData: LanguageRecordData = {
       achievement: formData.achievement,
@@ -67,6 +69,7 @@ export default function LanguageContainer({
       recordDate: today,
       recordData: recordData as unknown as Json,
     });
+    setSubmitting(false);
     if (error) {
       alert(`기록 저장 실패: ${error}`);
       return;
@@ -90,6 +93,7 @@ export default function LanguageContainer({
           onCancel={() => setShowAddRecord(false)}
           onBackToHome={onBackToHome}
           onSubmit={handleSubmit}
+          initialImages={certificationPhotos}
         />
       );
     }
@@ -188,7 +192,7 @@ export default function LanguageContainer({
               <p className="text-sm font-semibold text-gray-900">
                 단어 카드로 복습하기
               </p>
-              <p className="text-xs text-gray-400 mt-0.5">14개의 표현</p>
+              <p className="text-xs text-gray-400 mt-0.5">{totalExpressions}개의 표현</p>
             </div>
           </div>
           <svg
@@ -242,6 +246,14 @@ export default function LanguageContainer({
           onClose={() => setShowStudyPhrase(false)}
           accentColor={accentColor}
         />
+      )}
+      {submitting && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl p-6 flex flex-col items-center gap-3 shadow-xl">
+            <Loader2 size={28} className="animate-spin" style={{ color: accentColor }} />
+            <p className="text-sm font-medium text-gray-700">기록 저장 중...</p>
+          </div>
+        </div>
       )}
     </>
   );

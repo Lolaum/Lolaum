@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { Shuffle } from "lucide-react";
 import { LanguageRecord } from "@/types/routines/language";
 
 interface StudyPhraseProps {
@@ -15,13 +16,22 @@ interface FlashCard {
   example: string;
 }
 
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 export default function StudyPhrase({
   languageRecords,
   onClose,
   accentColor,
 }: StudyPhraseProps) {
   // 모든 레코드의 expressions를 펼쳐서 하나의 카드 배열로 만듦
-  const allCards = useMemo(() => {
+  const originalCards = useMemo(() => {
     const cards: FlashCard[] = [];
     languageRecords.forEach((record) => {
       record.expressions.forEach((expr) => {
@@ -35,11 +45,27 @@ export default function StudyPhrase({
     return cards;
   }, [languageRecords]);
 
+  const [cards, setCards] = useState(originalCards);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [isShuffled, setIsShuffled] = useState(false);
 
-  const currentCard = allCards[currentIndex];
-  const totalCards = allCards.length;
+  const handleShuffle = useCallback(() => {
+    setCards(shuffleArray(originalCards));
+    setCurrentIndex(0);
+    setIsFlipped(false);
+    setIsShuffled(true);
+  }, [originalCards]);
+
+  const handleUnshuffle = useCallback(() => {
+    setCards(originalCards);
+    setCurrentIndex(0);
+    setIsFlipped(false);
+    setIsShuffled(false);
+  }, [originalCards]);
+
+  const currentCard = cards[currentIndex];
+  const totalCards = cards.length;
 
   const handleNext = () => {
     if (currentIndex < totalCards - 1) {
@@ -70,13 +96,27 @@ export default function StudyPhrase({
           <div className="text-sm text-gray-500">
             {currentIndex + 1} / {totalCards}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 bg-white rounded-xl text-gray-700 text-sm hover:bg-gray-50 transition-colors"
-          >
-            닫기
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={isShuffled ? handleUnshuffle : handleShuffle}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm transition-colors"
+              style={{
+                backgroundColor: isShuffled ? accentColor : "white",
+                color: isShuffled ? "white" : "#6b7280",
+              }}
+            >
+              <Shuffle size={14} />
+              {isShuffled ? "순서대로" : "셔플"}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-white rounded-xl text-gray-700 text-sm hover:bg-gray-50 transition-colors"
+            >
+              닫기
+            </button>
+          </div>
         </div>
 
         {/* 카드 */}

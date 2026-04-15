@@ -160,8 +160,18 @@ export default function MorningContainer({
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 py-4">
-      {renderContent()}
-    </div>
+    <>
+      <div className="w-full max-w-2xl mx-auto px-4 py-4">
+        {renderContent()}
+      </div>
+      {submitting && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl p-6 flex flex-col items-center gap-3 shadow-xl">
+            <Loader2 size={28} className="animate-spin text-yellow-500" />
+            <p className="text-sm font-medium text-gray-700">기록 저장 중...</p>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

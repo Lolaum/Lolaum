@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ChevronDown, Quote, FileText, Trash2 } from "lucide-react";
+import { ChevronDown, Quote, FileText, Trash2, Loader2 } from "lucide-react";
 import { BookDetailProps, DailyReadingRecord, NoteType } from "@/types/routines/reading";
 import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
 import type { ReadingRecordData, Json } from "@/types/supabase";
@@ -211,6 +211,7 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
   const [expandedIds, setExpandedIds] = useState<number[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // DB에서 이 책의 기존 기록 불러오기
   const fetchRecords = useCallback(async () => {
@@ -255,6 +256,7 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
   };
 
   const handleSave = async (record: Omit<DailyReadingRecord, "id">) => {
+    setSubmitting(true);
     // DB에 ritual_record 저장
     const recordData: ReadingRecordData = {
       bookId: book.id,
@@ -274,6 +276,7 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
     });
 
     if (error) {
+      setSubmitting(false);
       alert(`기록 저장 실패: ${error}`);
       return;
     }
@@ -289,6 +292,7 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
         ...(isNowCompleted && { isCompleted: true }),
       });
     }
+    setSubmitting(false);
   };
 
   const handleDelete = async () => {
@@ -303,15 +307,27 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
     return `${month}월 ${day}일`;
   };
 
+  const loadingOverlay = submitting && (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-2xl p-6 flex flex-col items-center gap-3 shadow-xl">
+        <Loader2 size={28} className="animate-spin text-orange-500" />
+        <p className="text-sm font-medium text-gray-700">기록 저장 중...</p>
+      </div>
+    </div>
+  );
+
   // 기록 추가 화면
   if (showAddRecord) {
     return (
-      <AddReadingRecord
-        book={book}
-        onCancel={() => setShowAddRecord(false)}
-        onBackToHome={onBackToHome}
-        onSave={handleSave}
-      />
+      <>
+        <AddReadingRecord
+          book={book}
+          onCancel={() => setShowAddRecord(false)}
+          onBackToHome={onBackToHome}
+          onSave={handleSave}
+        />
+        {loadingOverlay}
+      </>
     );
   }
 
