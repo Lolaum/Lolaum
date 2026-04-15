@@ -12,17 +12,30 @@ interface PhotoCertificationProps {
   onClose: () => void;
 }
 
+const MAX_IMAGE_SIZE = 1200;
+
+function resizeCanvas(img: HTMLImageElement): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  let { naturalWidth: w, naturalHeight: h } = img;
+  if (w > MAX_IMAGE_SIZE || h > MAX_IMAGE_SIZE) {
+    const ratio = Math.min(MAX_IMAGE_SIZE / w, MAX_IMAGE_SIZE / h);
+    w = Math.round(w * ratio);
+    h = Math.round(h * ratio);
+  }
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(img, 0, 0, w, h);
+  return canvas;
+}
+
 function applyTimestamp(file: File): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-
+      const canvas = resizeCanvas(img);
       const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0);
 
       const now = new Date();
       const pad = (n: number) => String(n).padStart(2, "0");
@@ -30,7 +43,7 @@ function applyTimestamp(file: File): Promise<string> {
       const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
       const text = `${dateStr}  ${timeStr}`;
 
-      const fontSize = Math.max(40, Math.round(canvas.width * 0.07));
+      const fontSize = Math.max(24, Math.round(canvas.width * 0.07));
       ctx.font = `bold ${fontSize}px Arial, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -44,7 +57,20 @@ function applyTimestamp(file: File): Promise<string> {
       ctx.fillText(text, canvas.width / 2, canvas.height / 2);
 
       URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL("image/jpeg", 0.92));
+      resolve(canvas.toDataURL("image/jpeg", 0.8));
+    };
+    img.src = url;
+  });
+}
+
+function resizeImage(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = resizeCanvas(img);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", 0.8));
     };
     img.src = url;
   });
@@ -76,11 +102,7 @@ export default function PhotoCertification({
     setProcessing(true);
     const [tsUrl, origUrl] = await Promise.all([
       applyTimestamp(file),
-      new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      }),
+      resizeImage(file),
     ]);
     setTimestampedPhoto(tsUrl);
     setOriginalPhoto(origUrl);

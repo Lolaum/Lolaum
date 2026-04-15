@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ChevronDown, Quote, FileText, Trash2, Loader2 } from "lucide-react";
+import { getKoreanToday } from "@/lib/date";
 import { BookDetailProps, DailyReadingRecord, NoteType } from "@/types/routines/reading";
 import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
 import type { ReadingRecordData, Json } from "@/types/supabase";
@@ -33,7 +34,7 @@ function AddReadingRecord({
 
   const handleSave = () => {
     if (!canSave) return;
-    const today = new Date().toISOString().split("T")[0];
+    const today = getKoreanToday();
     onSave({
       date: today,
       trackingType: book.trackingType,

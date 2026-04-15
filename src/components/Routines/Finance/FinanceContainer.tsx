@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Wallet, Loader2 } from "lucide-react";
+import { getKoreanToday } from "@/lib/date";
 import RecordFinance from "./RecordFinance";
 import AddNewFinance from "./AddNewFinance";
 import { FinanceRecord, FinanceContainerProps, FinanceFormData } from "@/types/routines/finance";
@@ -42,7 +43,7 @@ export default function FinanceContainer({
 
   const handleSubmit = async (formData: FinanceFormData) => {
     setSubmitting(true);
-    const today = new Date().toISOString().split("T")[0];
+    const today = getKoreanToday();
     const recordData: FinanceRecordData = {
       dailyExpenses: formData.dailyExpenses,
       studyContent: formData.studyContent,

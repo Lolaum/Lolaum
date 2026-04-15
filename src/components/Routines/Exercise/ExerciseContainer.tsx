@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Calendar, Loader2 } from "lucide-react";
+import { getKoreanToday } from "@/lib/date";
 import RecordExercise from "./RecordExercise";
 import AddNewExercise from "./AddNewExercise";
 import {
@@ -50,7 +51,7 @@ export default function ExerciseContainer({
 
   const handleSubmit = async (formData: ExerciseFormData) => {
     setSubmitting(true);
-    const today = new Date().toISOString().split("T")[0];
+    const today = getKoreanToday();
     const recordData: ExerciseRecordData = {
       exerciseName: formData.exerciseName,
       duration: formData.duration,

@@ -18,6 +18,8 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "morning", label: "모닝" },
   { key: "second_language", label: "제2외국어" },
   { key: "finance", label: "자산관리" },
+  { key: "recording", label: "기록" },
+  { key: "english_book", label: "원서읽기" },
 ];
 
 const ITEMS_PER_PAGE = 8;

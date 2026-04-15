@@ -3,6 +3,7 @@
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { getCurrentChallengeId } from "@/lib/current-challenge";
 import type { RoutineTypeDB, Json } from "@/types/supabase";
+import { getKoreanNow } from "@/lib/date";
 import { ROUTINE_TYPE_LABEL } from "@/types/supabase";
 import type {
   MidReview,
@@ -54,7 +55,7 @@ const SELECT_COLUMNS =
 
 /** 중간 회고 작성 가능 기간 검증 (매월 10~13일) */
 function assertWritableWindow(): string | null {
-  const day = new Date().getDate();
+  const day = getKoreanNow().getDate();
   if (day < 10 || day > 13) {
     return "중간 회고는 매월 10~13일에만 작성/수정할 수 있습니다.";
   }

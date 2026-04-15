@@ -56,11 +56,23 @@ const CATEGORY_CONFIG: Record<
     label: "제2외국어",
     icon: <Languages size={14} />,
   },
+  원서읽기: {
+    color: "#8b5cf6",
+    bgColor: "#f5f3ff",
+    label: "원서읽기",
+    icon: <BookText size={14} />,
+  },
   자산관리: {
     color: "#10b981",
     bgColor: "#ecfdf5",
     label: "자산관리",
     icon: <CircleDollarSign size={14} />,
+  },
+  기록: {
+    color: "#f43f5e",
+    bgColor: "#fff1f2",
+    label: "기록",
+    icon: <BookText size={14} />,
   },
 };
 
@@ -70,7 +82,10 @@ const FILTERS: (RoutineCategory | "전체")[] = [
   "운동",
   "모닝",
   "영어",
+  "제2외국어",
+  "원서읽기",
   "자산관리",
+  "기록",
 ];
 
 const formatDate = (dateString: string) => {
@@ -338,9 +353,12 @@ function GalleryCard({ item }: { item: FeedItem }) {
         );
       case "영어":
       case "제2외국어":
+      case "원서읽기":
         return (
           <LanguageCardContent data={item.routineData as LanguageFeedData} />
         );
+      case "기록":
+        return null;
       case "자산관리":
         return (
           <FinanceCardContent data={item.routineData as FinanceFeedData} />

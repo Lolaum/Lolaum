@@ -7,9 +7,9 @@ import type { RitualOverallStats, RoutineCardStats } from "@/api/ritual-stats";
 import RecordGallery from "./RecordGallery";
 import RoutineInsights from "./RoutineInsights";
 
-type TabId = "아카이빙" | "독서" | "운동" | "모닝" | "영어" | "제2외국어" | "자산관리";
+type TabId = "아카이빙" | "독서" | "운동" | "모닝" | "영어" | "제2외국어" | "원서읽기" | "자산관리" | "기록";
 
-const TABS: TabId[] = ["아카이빙", "독서", "운동", "모닝", "영어", "제2외국어", "자산관리"];
+const TABS: TabId[] = ["아카이빙", "독서", "운동", "모닝", "영어", "제2외국어", "원서읽기", "자산관리", "기록"];
 
 const TAB_COLORS: Record<TabId, string> = {
   아카이빙: "#eab32e",
@@ -17,8 +17,10 @@ const TAB_COLORS: Record<TabId, string> = {
   운동: "#ff8900",
   모닝: "#eab32e",
   영어: "#0ea5e9",
-  제2외국어: "#8b5cf6",
+  제2외국어: "#10b981",
+  원서읽기: "#8b5cf6",
   자산관리: "#10b981",
+  기록: "#f43f5e",
 };
 
 const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];

@@ -2,6 +2,7 @@
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { getCurrentChallengeId } from "@/lib/current-challenge";
+import { getKoreanNow, toDateString } from "@/lib/date";
 import type {
   RoutineTypeDB,
   RitualRecord,
@@ -84,7 +85,7 @@ const ROUTINE_CONFIG: Record<
   exercise: { name: "운동", color: "#ff8900", bgColor: "#fff4e5" },
   morning: { name: "모닝", color: "#eab32e", bgColor: "#fefce8" },
   english: { name: "영어", color: "#0ea5e9", bgColor: "#f0f9ff" },
-  second_language: { name: "제2외국어", color: "#8b5cf6", bgColor: "#f5f3ff" },
+  second_language: { name: "제2외국어", color: "#10b981", bgColor: "#ecfdf5" },
   finance: { name: "자산관리", color: "#10b981", bgColor: "#ecfdf5" },
 };
 
@@ -92,12 +93,12 @@ const ROUTINE_CONFIG: Record<
 
 /** 이번 달 1일부터 오늘까지의 평일(월~금) 날짜 목록 */
 function getPastWeekdayDates(year: number, month: number): Set<string> {
-  const today = new Date();
+  const today = getKoreanNow();
   const dates = new Set<string>();
   const d = new Date(year, month - 1, 1);
   while (d <= today && d.getMonth() === month - 1) {
     const day = d.getDay();
-    if (day >= 1 && day <= 5) dates.add(d.toISOString().split("T")[0]);
+    if (day >= 1 && day <= 5) dates.add(toDateString(d));
     d.setDate(d.getDate() + 1);
   }
   return dates;
@@ -105,12 +106,12 @@ function getPastWeekdayDates(year: number, month: number): Set<string> {
 
 /** 이번 달 1일부터 오늘까지의 주말(토, 일) 날짜 목록 */
 function getPastWeekendDates(year: number, month: number): Set<string> {
-  const today = new Date();
+  const today = getKoreanNow();
   const dates = new Set<string>();
   const d = new Date(year, month - 1, 1);
   while (d <= today && d.getMonth() === month - 1) {
     const day = d.getDay();
-    if (day === 0 || day === 6) dates.add(d.toISOString().split("T")[0]);
+    if (day === 0 || day === 6) dates.add(toDateString(d));
     d.setDate(d.getDate() + 1);
   }
   return dates;
@@ -125,7 +126,7 @@ function calcCompletedDays(
   dateMap: Map<string, Set<string>>,
   registeredTypes: Set<string>,
 ): number {
-  const now = new Date();
+  const now = getKoreanNow();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
   const pastWeekdays = getPastWeekdayDates(year, month);
@@ -156,9 +157,9 @@ function calcCompletedDays(
 function calcStreak(dates: string[]): number {
   if (dates.length === 0) return 0;
   const sorted = [...dates].sort((a, b) => b.localeCompare(a)); // 최신순
-  const today = new Date().toISOString().split("T")[0];
+  const today = toDateString(getKoreanNow());
   let streak = 0;
-  let checkDate = new Date(today);
+  let checkDate = getKoreanNow();
 
   // 오늘 기록이 없으면 어제부터 체크
   if (sorted[0] !== today) {
@@ -166,7 +167,7 @@ function calcStreak(dates: string[]): number {
   }
 
   for (const date of sorted) {
-    const checkStr = checkDate.toISOString().split("T")[0];
+    const checkStr = toDateString(checkDate);
     if (date === checkStr) {
       streak++;
       checkDate.setDate(checkDate.getDate() - 1);
@@ -215,7 +216,7 @@ function isAllRoutinesCovered(
 }
 
 function getWeekActivity(dates: string[]): boolean[] {
-  const today = new Date();
+  const today = getKoreanNow();
   const dayOfWeek = today.getDay(); // 0=일, 1=월, ...
   const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
 
@@ -223,7 +224,7 @@ function getWeekActivity(dates: string[]): boolean[] {
   for (let i = 0; i < 7; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() + mondayOffset + i);
-    const dateStr = d.toISOString().split("T")[0];
+    const dateStr = toDateString(d);
     activity.push(dates.includes(dateStr));
   }
   return activity;

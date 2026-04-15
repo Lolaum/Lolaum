@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { getKoreanNow, toDateString } from "@/lib/date";
 
 export interface ChallengerProgress {
   userId: string;
@@ -29,14 +30,14 @@ const TOTAL_DAYS = 18; // 15일(루틴) + 3(선언/중간회고/최종회고)
  * 이번 달 1일부터 오늘까지의 평일(월~금) 날짜 목록
  */
 function getPastWeekdayDates(year: number, month: number): Set<string> {
-  const today = new Date();
+  const today = getKoreanNow();
   const dates = new Set<string>();
   const d = new Date(year, month - 1, 1);
 
   while (d <= today && d.getMonth() === month - 1) {
     const day = d.getDay();
     if (day >= 1 && day <= 5) {
-      dates.add(d.toISOString().split("T")[0]);
+      dates.add(toDateString(d));
     }
     d.setDate(d.getDate() + 1);
   }
@@ -47,14 +48,14 @@ function getPastWeekdayDates(year: number, month: number): Set<string> {
  * 이번 달 1일부터 오늘까지의 주말(토, 일) 날짜 목록
  */
 function getPastWeekendDates(year: number, month: number): Set<string> {
-  const today = new Date();
+  const today = getKoreanNow();
   const dates = new Set<string>();
   const d = new Date(year, month - 1, 1);
 
   while (d <= today && d.getMonth() === month - 1) {
     const day = d.getDay();
     if (day === 0 || day === 6) {
-      dates.add(d.toISOString().split("T")[0]);
+      dates.add(toDateString(d));
     }
     d.setDate(d.getDate() + 1);
   }
@@ -79,7 +80,7 @@ export async function getProgressPageData(): Promise<{
 
   const supabase = await createClient();
 
-  const now = new Date();
+  const now = getKoreanNow();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
 

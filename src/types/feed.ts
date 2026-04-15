@@ -8,7 +8,9 @@ export type RoutineCategory =
   | "독서"
   | "모닝"
   | "제2외국어"
-  | "자산관리";
+  | "원서읽기"
+  | "자산관리"
+  | "기록";
 
 // 루틴별 피드 데이터 타입
 export interface ExerciseFeedData {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Grid3x3, Loader2 } from "lucide-react";
+import { getKoreanToday } from "@/lib/date";
 import RecordStudy from "./RecordStudy";
 import AddNewLanguage from "./AddNewLanguage";
 import StudyPhrase from "./StudyPhrase";
@@ -58,7 +59,7 @@ export default function LanguageContainer({
 
   const handleSubmit = async (formData: LanguageFormData) => {
     setSubmitting(true);
-    const today = new Date().toISOString().split("T")[0];
+    const today = getKoreanToday();
     const recordData: LanguageRecordData = {
       achievement: formData.achievement,
       expressions: formData.expressions,

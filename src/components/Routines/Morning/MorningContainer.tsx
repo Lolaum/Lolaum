@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Calendar, Loader2 } from "lucide-react";
+import { getKoreanToday } from "@/lib/date";
 import RecordMorning from "./RecordMorning";
 import AddNewMorning from "./AddNewMorning";
 import { MorningRecord, MorningContainerProps, MorningFormData } from "@/types/routines/morning";
@@ -45,7 +46,7 @@ export default function MorningContainer({
 
   const handleSubmit = async (formData: MorningFormData) => {
     setSubmitting(true);
-    const today = new Date().toISOString().split("T")[0];
+    const today = getKoreanToday();
     const recordData: MorningRecordData = {
       sleepHours: formData.sleepHours,
       condition: formData.condition,

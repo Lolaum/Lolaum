@@ -10,6 +10,8 @@ import {
   Sun,
   Languages,
   CircleDollarSign,
+  BookType,
+  SquarePen,
 } from "lucide-react";
 import {
   FeedItem,
@@ -69,6 +71,18 @@ const CATEGORY_META: Record<
     hexColor: "#10b981",
     bgColor: "#ecfdf5",
   },
+  원서읽기: {
+    icon: <BookType className="w-5 h-5" />,
+    label: "원서읽기",
+    hexColor: "#8b5cf6",
+    bgColor: "#f5f3ff",
+  },
+  기록: {
+    icon: <SquarePen className="w-5 h-5" />,
+    label: "기록",
+    hexColor: "#f43f5e",
+    bgColor: "#fff1f2",
+  },
 };
 
 // 카테고리별 아이콘 & 레이블
@@ -126,7 +140,10 @@ function MorningContent({ data }: { data: MorningFeedData }) {
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-yellow-50 rounded-xl p-4">
           <p className="text-xs text-yellow-500 font-medium mb-1">수면 시간</p>
-          <p className="text-2xl font-bold text-gray-800">{data.sleepHours}<span className="text-sm font-medium text-gray-500">h</span></p>
+          <p className="text-2xl font-bold text-gray-800">
+            {data.sleepHours}
+            <span className="text-sm font-medium text-gray-500">h</span>
+          </p>
         </div>
         <div className="bg-yellow-50 rounded-xl p-4">
           <p className="text-xs text-yellow-500 font-medium mb-1">컨디션</p>
@@ -415,27 +432,42 @@ export default function FeedDetail({ item }: FeedDetailProps) {
     if (!recordId) return;
     try {
       const { data, error } = await addComment(recordId, text);
-      if (error) { console.error("댓글 추가 실패:", error); return; }
+      if (error) {
+        console.error("댓글 추가 실패:", error);
+        return;
+      }
       if (data) setComments((prev) => [...prev, data]);
-    } catch (e) { console.error("댓글 추가 예외:", e); }
+    } catch (e) {
+      console.error("댓글 추가 예외:", e);
+    }
   };
 
   const handleDeleteComment = async (commentId: string) => {
     try {
       const { error } = await deleteComment(commentId);
-      if (error) { console.error("댓글 삭제 실패:", error); return; }
+      if (error) {
+        console.error("댓글 삭제 실패:", error);
+        return;
+      }
       setComments((prev) => prev.filter((c) => c.odOriginalId !== commentId));
-    } catch (e) { console.error("댓글 삭제 예외:", e); }
+    } catch (e) {
+      console.error("댓글 삭제 예외:", e);
+    }
   };
 
   const handleUpdateComment = async (commentId: string, text: string) => {
     try {
       const { error } = await updateComment(commentId, text);
-      if (error) { console.error("댓글 수정 실패:", error); return; }
+      if (error) {
+        console.error("댓글 수정 실패:", error);
+        return;
+      }
       setComments((prev) =>
-        prev.map((c) => c.odOriginalId === commentId ? { ...c, text } : c),
+        prev.map((c) => (c.odOriginalId === commentId ? { ...c, text } : c)),
       );
-    } catch (e) { console.error("댓글 수정 예외:", e); }
+    } catch (e) {
+      console.error("댓글 수정 예외:", e);
+    }
   };
 
   return (

@@ -50,7 +50,7 @@ export async function createRitualRecord(input: {
 
   const supabase = await createClient();
 
-  // 하루에 여러 기록 허용 (INSERT), 달성률은 Set으로 하루 1회만 인정
+  // 모든 루틴 하루에 여러 기록 허용 (INSERT)
   const { data, error } = await supabase
     .from("ritual_records")
     .insert({

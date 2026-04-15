@@ -531,7 +531,9 @@ const TAB_TO_ROUTINE: Record<string, RoutineTypeDB> = {
   모닝: "morning",
   영어: "english",
   제2외국어: "second_language",
+  원서읽기: "english_book",
   자산관리: "finance",
+  기록: "recording",
 };
 
 const CATEGORY_CONFIG: Record<
@@ -542,8 +544,10 @@ const CATEGORY_CONFIG: Record<
   운동: { color: "#ff8900", bgColor: "#fff4e5", icon: <Dumbbell size={13} /> },
   영어: { color: "#0ea5e9", bgColor: "#f0f9ff", icon: <BookA size={13} /> },
   모닝: { color: "#eab32e", bgColor: "#fefce8", icon: <Sun size={13} /> },
-  제2외국어: { color: "#8b5cf6", bgColor: "#f5f3ff", icon: <Languages size={13} /> },
+  제2외국어: { color: "#10b981", bgColor: "#ecfdf5", icon: <Languages size={13} /> },
+  원서읽기: { color: "#8b5cf6", bgColor: "#f5f3ff", icon: <BookText size={13} /> },
   자산관리: { color: "#10b981", bgColor: "#ecfdf5", icon: <CircleDollarSign size={13} /> },
+  기록: { color: "#f43f5e", bgColor: "#fff1f2", icon: <BookText size={13} /> },
 };
 
 // 최근 기록 카드 (리추얼별)
@@ -706,11 +710,15 @@ export default function RoutineInsights({ activeTab, routines, refreshKey = 0 }:
       case "모닝":
         return <MorningInsightView routines={routines} refreshKey={refreshKey} />;
       case "제2외국어":
-        return <LanguageInsightView routines={routines} routineType="second_language" tabName="제2외국어" color="#8b5cf6" refreshKey={refreshKey} />;
+        return <LanguageInsightView routines={routines} routineType="second_language" tabName="제2외국어" color="#10b981" refreshKey={refreshKey} />;
       case "영어":
         return <LanguageInsightView routines={routines} routineType="english" tabName="영어" color="#0ea5e9" refreshKey={refreshKey} />;
       case "자산관리":
         return <FinanceInsightView routines={routines} refreshKey={refreshKey} />;
+      case "원서읽기":
+        return <RecentRecords routineType="english_book" tabName="원서읽기" refreshKey={refreshKey} />;
+      case "기록":
+        return <RecentRecords routineType="recording" tabName="기록" refreshKey={refreshKey} />;
       default:
         return null;
     }

@@ -1,5 +1,25 @@
 import { DAYS } from "@/lib/constants";
 
+/** 한국 시간(KST) 기준 오늘 날짜를 YYYY-MM-DD로 반환 */
+export const getKoreanToday = (): string => {
+  return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
+};
+
+/** 한국 시간(KST) 기준 현재 시각의 Date 객체 반환 (로컬 타임존 무관) */
+export const getKoreanNow = (): Date => {
+  const now = new Date();
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  return new Date(utc + 9 * 3600000); // KST = UTC+9
+};
+
+/** Date 객체를 YYYY-MM-DD 문자열로 변환 (UTC 변환 없이 로컬 기준) */
+export const toDateString = (d: Date): string => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 // 현재 월의 모든 날짜 생성
 export const getMonthDates = (date: Date) => {
   const year = date.getFullYear();

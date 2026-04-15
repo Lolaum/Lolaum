@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { getKoreanNow } from "@/lib/date";
 
 /**
  * 현재 월의 챌린지 ID를 가져온다(없으면 자동 생성).
@@ -17,7 +18,7 @@ export const getCurrentChallengeId = cache(async (): Promise<{
 
   const supabase = await createClient();
 
-  const now = new Date();
+  const now = getKoreanNow();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
 
