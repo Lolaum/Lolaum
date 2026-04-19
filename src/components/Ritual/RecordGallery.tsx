@@ -9,6 +9,8 @@ import {
   Sun,
   Languages,
   CircleDollarSign,
+  Pen,
+  BookOpen,
   Loader2,
 } from "lucide-react";
 import {
@@ -19,6 +21,7 @@ import {
   MorningFeedData,
   LanguageFeedData,
   FinanceFeedData,
+  RecordingFeedData,
 } from "@/types/feed";
 import { getMyRecordsForDisplay } from "@/api/ritual-records-display";
 
@@ -56,11 +59,23 @@ const CATEGORY_CONFIG: Record<
     label: "제2외국어",
     icon: <Languages size={14} />,
   },
+  기록: {
+    color: "#8b5cf6",
+    bgColor: "#f5f3ff",
+    label: "기록",
+    icon: <Pen size={14} />,
+  },
   자산관리: {
     color: "#10b981",
     bgColor: "#ecfdf5",
     label: "자산관리",
     icon: <CircleDollarSign size={14} />,
+  },
+  원서읽기: {
+    color: "#ec4899",
+    bgColor: "#fdf2f8",
+    label: "원서읽기",
+    icon: <BookOpen size={14} />,
   },
 };
 
@@ -70,7 +85,10 @@ const FILTERS: (RoutineCategory | "전체")[] = [
   "운동",
   "모닝",
   "영어",
+  "제2외국어",
+  "기록",
   "자산관리",
+  "원서읽기",
 ];
 
 const formatDate = (dateString: string) => {
@@ -317,6 +335,64 @@ function FinanceCardContent({ data }: { data: FinanceFeedData }) {
   );
 }
 
+function EnglishBookCardContent({ data }: { data: ReadingFeedData }) {
+  const progress =
+    data.pagesRead && data.totalPages
+      ? Math.round((data.pagesRead / data.totalPages) * 100)
+      : 0;
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="font-semibold text-gray-900 text-sm leading-tight">
+          {data.bookTitle}
+        </p>
+        <p className="text-xs text-gray-400 mt-0.5">{data.author}</p>
+      </div>
+
+      {data.pagesRead && data.totalPages && (
+        <div>
+          <div className="flex justify-between text-xs text-gray-400 mb-1">
+            <span>
+              {data.pagesRead}p / {data.totalPages}p
+            </span>
+            <span className="font-medium" style={{ color: "#ec4899" }}>
+              +{data.progressAmount}p
+            </span>
+          </div>
+          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${progress}%`, backgroundColor: "#ec4899" }}
+            />
+          </div>
+        </div>
+      )}
+
+      <div
+        className="rounded-xl p-2.5 flex items-center gap-1.5"
+        style={{ backgroundColor: "#fdf2f8" }}
+      >
+        <span className="text-sm">📸</span>
+        <p className="text-xs text-pink-500 font-medium">스크린샷 인증 완료</p>
+      </div>
+    </div>
+  );
+}
+
+function RecordingCardContent({ data }: { data: RecordingFeedData }) {
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-gray-600 leading-relaxed line-clamp-4">
+        {data.content}
+      </p>
+      {data.link && (
+        <p className="text-xs text-violet-500 truncate">{data.link}</p>
+      )}
+    </div>
+  );
+}
+
 // ── 아카이빙 카드 ──
 
 function GalleryCard({ item }: { item: FeedItem }) {
@@ -344,6 +420,14 @@ function GalleryCard({ item }: { item: FeedItem }) {
       case "자산관리":
         return (
           <FinanceCardContent data={item.routineData as FinanceFeedData} />
+        );
+      case "기록":
+        return (
+          <RecordingCardContent data={item.routineData as RecordingFeedData} />
+        );
+      case "원서읽기":
+        return (
+          <EnglishBookCardContent data={item.routineData as ReadingFeedData} />
         );
       default:
         return null;

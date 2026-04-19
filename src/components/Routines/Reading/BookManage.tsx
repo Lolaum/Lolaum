@@ -24,22 +24,21 @@ function toBook(row: BookDB): Book {
   };
 }
 
-export default function BookManage({ onBackToTimer, onBackToHome }: BookManageProps) {
+export default function BookManage({ onBackToTimer, onBackToHome, isEnglishBook, certificationPhotos }: BookManageProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [showAddBook, setShowAddBook] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
-
   const fetchBooks = useCallback(async () => {
     setLoading(true);
-    const result = await getBooksAuto("reading");
+    const result = await getBooksAuto(isEnglishBook ? "english_book" : "reading");
     if (result.data) {
       setBooks(result.data.map(toBook));
     }
     setLoading(false);
-  }, []);
+  }, [isEnglishBook]);
 
   useEffect(() => {
     fetchBooks();
@@ -73,6 +72,7 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
     }
 
     const result = await createBookAuto({
+      routineType: isEnglishBook ? "english_book" : "reading",
       title: bookData.title,
       author: bookData.author,
       trackingType: bookData.trackingType,
@@ -154,6 +154,8 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
           onBackToHome={onBackToHome}
           onDelete={handleBookDeleted}
           onUpdate={handleBookUpdated}
+          isEnglishBook={isEnglishBook}
+          certificationPhotos={certificationPhotos}
         />
       </div>
     );
@@ -163,50 +165,58 @@ export default function BookManage({ onBackToTimer, onBackToHome }: BookManagePr
     <div className="w-full max-w-4xl mx-auto">
       {/* 뒤로가기 버튼 및 x버튼 */}
       <div className="flex items-center justify-between mb-4">
-        <button
-          type="button"
-          onClick={onBackToTimer}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-        >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        {!isEnglishBook ? (
+          <button
+            type="button"
+            onClick={onBackToTimer}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-          <span className="text-sm">타이머로 돌아가기</span>
-        </button>
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span className="text-sm">타이머로 돌아가기</span>
+          </button>
+        ) : (
+          <div />
+        )}
         <button
           type="button"
           onClick={onBackToHome}
           className="flex items-center justify-center w-8 h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
         >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
+
+      {/* 영어원서: 외부 링크 */}
+      {isEnglishBook && (
+        <button
+          type="button"
+          className="w-full flex items-center gap-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+        >
+          <div className="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          </div>
+          <div className="text-left flex-1">
+            <p className="text-sm font-semibold text-gray-900">원서 읽기 자료</p>
+            <p className="text-xs text-gray-400 mt-0.5">클릭하여 원서 자료 페이지로 이동</p>
+          </div>
+          <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      )}
+
       {/* 헤더 */}
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 mb-1">독서 관리</h1>
+          <h1 className="text-xl font-bold text-gray-900 mb-1">
+            {isEnglishBook ? "원서 관리" : "독서 관리"}
+          </h1>
           <p className="text-sm text-gray-500">
             {loading ? "불러오는 중..." : `현재 ${books.length}권의 책을 읽고 있습니다`}
           </p>

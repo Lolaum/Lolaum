@@ -24,6 +24,25 @@ export async function getTodos(
   return { data: data ?? [] };
 }
 
+export async function getAllTodos(): Promise<{ data?: Todo[]; error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { error: "인증이 필요합니다." };
+  }
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("todos")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("todo_date", { ascending: false })
+    .order("created_at", { ascending: true });
+
+  if (error) return { error: error.message };
+  return { data: data ?? [] };
+}
+
 export async function createTodo(input: {
   title: string;
   todo_date: string;

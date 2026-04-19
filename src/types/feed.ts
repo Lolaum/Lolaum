@@ -8,7 +8,9 @@ export type RoutineCategory =
   | "독서"
   | "모닝"
   | "제2외국어"
-  | "자산관리";
+  | "기록"
+  | "자산관리"
+  | "원서읽기";
 
 // 루틴별 피드 데이터 타입
 export interface ExerciseFeedData {
@@ -16,6 +18,7 @@ export interface ExerciseFeedData {
   exerciseName: string;
   duration: number;
   achievement: string;
+  certPhotos?: string[];
 }
 
 export interface MorningFeedData {
@@ -24,18 +27,27 @@ export interface MorningFeedData {
   condition: "상" | "중" | "하";
   successAndReflection: string;
   gift: string;
+  certPhotos?: string[];
 }
 
 export interface FinanceFeedData {
   dailyExpenses: DailyExpense[];
   studyContent: string;
   practice: string;
+  certPhotos?: string[];
+}
+
+export interface RecordingFeedData {
+  content: string;
+  link?: string;
+  certPhotos?: string[];
 }
 
 export interface LanguageFeedData {
   images: string[];
   achievement: string;
   expressions: { word: string; meaning: string; example: string }[];
+  certPhotos?: string[];
 }
 
 export interface ReadingFeedData {
@@ -50,6 +62,7 @@ export interface ReadingFeedData {
   note?: string;            // 오늘의 문장 or 내용 요약
   thoughts?: string;        // 나만의 생각
   notes?: string;           // 기존 필드 (하위 호환)
+  certPhotos?: string[];
 }
 
 export type FeedRoutineData =
@@ -57,7 +70,8 @@ export type FeedRoutineData =
   | MorningFeedData
   | FinanceFeedData
   | LanguageFeedData
-  | ReadingFeedData;
+  | ReadingFeedData
+  | RecordingFeedData;
 
 // 댓글 타입
 export interface Comment {

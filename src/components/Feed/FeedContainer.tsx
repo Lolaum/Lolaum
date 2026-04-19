@@ -14,10 +14,12 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "all", label: "전체" },
   { key: "reading", label: "독서" },
   { key: "exercise", label: "운동" },
-  { key: "english", label: "영어" },
   { key: "morning", label: "모닝" },
+  { key: "english", label: "영어" },
   { key: "second_language", label: "제2외국어" },
+  { key: "recording", label: "기록" },
   { key: "finance", label: "자산관리" },
+  { key: "english_book", label: "원서읽기" },
 ];
 
 const ITEMS_PER_PAGE = 8;

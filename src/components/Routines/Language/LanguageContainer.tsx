@@ -61,6 +61,7 @@ export default function LanguageContainer({
       achievement: formData.achievement,
       expressions: formData.expressions,
       images: formData.images,
+      certPhotos: certificationPhotos?.length ? certificationPhotos : undefined,
     };
     const { error } = await createRitualRecordAuto({
       routineType,

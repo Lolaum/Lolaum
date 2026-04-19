@@ -16,7 +16,7 @@ import {
   formatDateDisplay,
   getWeekRangeText,
 } from "@/lib/date";
-import { MyPageStats } from "@/api/ritual-stats";
+import { MyPageStats, CompletionRateStats } from "@/api/ritual-stats";
 
 type TabType = "routine" | "todo";
 
@@ -24,9 +24,12 @@ interface TaskTabsProps {
   selectedDate: Date;
   onTaskClick?: (title: string, color: string) => void;
   stats?: MyPageStats | null;
+  completionRate?: CompletionRateStats | null;
+  isPastDate?: boolean;
+  routineCompletionMap?: Record<string, number>;
 }
 
-export default function TaskTabs({ selectedDate, onTaskClick, stats }: TaskTabsProps) {
+export default function TaskTabs({ selectedDate, onTaskClick, stats, completionRate, isPastDate, routineCompletionMap }: TaskTabsProps) {
   const [activeTab, setActiveTab] = useState<TabType>("routine");
   const router = useRouter();
 
@@ -149,6 +152,8 @@ export default function TaskTabs({ selectedDate, onTaskClick, stats }: TaskTabsP
             <RoutineList
               selectedDate={selectedDate}
               onTaskClick={handleTaskClick}
+              routineCompletionMap={routineCompletionMap}
+              isPastDate={isPastDate}
             />
           ) : (
             <TodoList

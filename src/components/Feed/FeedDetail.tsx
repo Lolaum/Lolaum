@@ -1,5 +1,6 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, User } from "lucide-react";
@@ -10,6 +11,8 @@ import {
   Sun,
   Languages,
   CircleDollarSign,
+  Pen,
+  BookOpen,
 } from "lucide-react";
 import {
   FeedItem,
@@ -19,6 +22,7 @@ import {
   FinanceFeedData,
   LanguageFeedData,
   ReadingFeedData,
+  RecordingFeedData,
   RoutineCategory,
 } from "@/types/feed";
 import { addComment, deleteComment, updateComment } from "@/api/comment";
@@ -63,11 +67,23 @@ const CATEGORY_META: Record<
     hexColor: "#10b981",
     bgColor: "#ecfdf5",
   },
+  기록: {
+    icon: <Pen className="w-5 h-5" />,
+    label: "기록",
+    hexColor: "#8b5cf6",
+    bgColor: "#f5f3ff",
+  },
   자산관리: {
     icon: <CircleDollarSign className="w-5 h-5" />,
     label: "자산관리",
     hexColor: "#10b981",
     bgColor: "#ecfdf5",
+  },
+  원서읽기: {
+    icon: <BookOpen className="w-5 h-5" />,
+    label: "원서읽기",
+    hexColor: "#ec4899",
+    bgColor: "#fdf2f8",
   },
 };
 
@@ -371,6 +387,85 @@ function ReadingContent({ data }: { data: ReadingFeedData }) {
   );
 }
 
+function EnglishBookContent({ data }: { data: ReadingFeedData }) {
+  const isPercent = data.trackingType === "percent";
+  const progress =
+    data.pagesRead != null && data.totalPages
+      ? Math.round((data.pagesRead / data.totalPages) * 100)
+      : null;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start gap-4">
+        <div className="flex-shrink-0 w-16 h-20 bg-pink-100 rounded-lg flex items-center justify-center">
+          <BookOpen className="w-7 h-7 text-pink-300" />
+        </div>
+        <div className="flex-1">
+          <p className="text-base font-bold text-gray-900">{data.bookTitle}</p>
+          {data.author && (
+            <p className="text-sm text-gray-500 mt-0.5">{data.author}</p>
+          )}
+          {progress !== null && (
+            <div className="mt-2">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-gray-400">진도</span>
+                <span className="text-xs font-semibold text-pink-500">
+                  {isPercent
+                    ? `${data.pagesRead}% (${progress}%)`
+                    : `${data.pagesRead}p / ${data.totalPages}p (${progress}%)`}
+                </span>
+              </div>
+              <div className="w-full bg-pink-100 rounded-full h-1.5">
+                <div
+                  className="bg-pink-400 h-1.5 rounded-full"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+          )}
+          {data.progressAmount != null && (
+            <p className="text-xs text-pink-400 mt-1.5 font-medium">
+              오늘 +{data.progressAmount}
+              {isPercent ? "%" : "p"} 읽었어요
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-pink-50 rounded-xl p-4 flex items-center gap-2">
+        <span className="text-lg">📸</span>
+        <p className="text-sm text-pink-500 font-medium">스크린샷 인증 완료</p>
+      </div>
+    </div>
+  );
+}
+
+function RecordingContent({ data }: { data: RecordingFeedData }) {
+  return (
+    <div className="space-y-4">
+      <div className="bg-violet-50 rounded-xl p-4">
+        <p className="text-xs text-violet-400 font-medium mb-1">기록 내용</p>
+        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+          {data.content}
+        </p>
+      </div>
+      {data.link && (
+        <div className="bg-gray-50 rounded-xl p-4">
+          <p className="text-xs text-gray-400 font-medium mb-1">참고 링크</p>
+          <a
+            href={data.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-violet-500 underline break-all"
+          >
+            {data.link}
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // 타입 가드 함수들
 function isExerciseData(
   data: NonNullable<FeedItem["routineData"]>,
@@ -403,6 +498,42 @@ function isReadingData(
   category: RoutineCategory,
 ): data is ReadingFeedData {
   return category === "독서" && "bookTitle" in data;
+}
+function isEnglishBookData(
+  data: NonNullable<FeedItem["routineData"]>,
+  category: RoutineCategory,
+): data is ReadingFeedData {
+  return category === "원서읽기" && "bookTitle" in data;
+}
+function isRecordingData(
+  data: NonNullable<FeedItem["routineData"]>,
+  category: RoutineCategory,
+): data is RecordingFeedData {
+  return category === "기록" && "content" in data;
+}
+
+/** 인증 사진 그리드 (깨진 이미지 자동 숨김) */
+function CertPhotoGrid({ routineData }: { routineData?: FeedItem["routineData"] }) {
+  const [failedSet, setFailedSet] = React.useState<Set<number>>(new Set());
+  if (!routineData) return null;
+  const photos = (routineData as ExerciseFeedData).certPhotos?.filter(Boolean) ?? [];
+  const visible = photos.filter((_, i) => !failedSet.has(i));
+  if (visible.length === 0) return null;
+  return (
+    <div className="mb-5 grid grid-cols-2 gap-2 rounded-xl overflow-hidden">
+      {photos.map((src, i) =>
+        failedSet.has(i) ? null : (
+          <img
+            key={i}
+            src={src}
+            alt={`인증 사진 ${i + 1}`}
+            className="w-full h-40 object-cover rounded-xl"
+            onError={() => setFailedSet((prev) => new Set(prev).add(i))}
+          />
+        ),
+      )}
+    </div>
+  );
 }
 
 export default function FeedDetail({ item }: FeedDetailProps) {
@@ -475,6 +606,9 @@ export default function FeedDetail({ item }: FeedDetailProps) {
             </div>
           </div>
 
+          {/* 인증 사진 */}
+          <CertPhotoGrid routineData={item.routineData} />
+
           {/* 루틴 콘텐츠 */}
           {item.routineData ? (
             <>
@@ -492,6 +626,12 @@ export default function FeedDetail({ item }: FeedDetailProps) {
               )}
               {isReadingData(item.routineData, item.routineCategory) && (
                 <ReadingContent data={item.routineData} />
+              )}
+              {isEnglishBookData(item.routineData, item.routineCategory) && (
+                <EnglishBookContent data={item.routineData} />
+              )}
+              {isRecordingData(item.routineData, item.routineCategory) && (
+                <RecordingContent data={item.routineData} />
               )}
             </>
           ) : (

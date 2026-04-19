@@ -35,6 +35,8 @@ const DEFAULT_COLOR = { color: "#6b7280", bgColor: "#f3f4f6" };
 export default function RoutineList({
   selectedDate,
   onTaskClick,
+  routineCompletionMap = {},
+  isPastDate = false,
 }: RoutineListProps) {
   const [routines, setRoutines] = useState<ChallengeRegistration[]>([]);
   const [loading, setLoading] = useState(false);
@@ -91,6 +93,7 @@ export default function RoutineList({
         <GenerateRoutine
           onClose={() => setShowGenerateRoutine(false)}
           onCreated={handleCreated}
+          existingTypes={routines.map((r) => r.routine_type)}
         />
       )}
 
@@ -108,30 +111,37 @@ export default function RoutineList({
             const title = ROUTINE_TYPE_LABEL[routine.routine_type];
             const colors = TAG_COLORS[tag] || DEFAULT_COLOR;
 
+            const completedDays = routineCompletionMap[routine.routine_type] ?? 0;
+            const fillPercent = Math.min(Math.round((completedDays / 18) * 100), 100);
+
             return (
               <div
                 key={routine.id}
-                onClick={() => onTaskClick(title, colors.color)}
-                className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]"
+                onClick={() => !isPastDate && onTaskClick(title, colors.color)}
+                className={`relative overflow-hidden rounded-2xl p-4 shadow-sm border border-gray-100 transition-all duration-200 ${
+                  isPastDate
+                    ? "opacity-50 cursor-not-allowed"
+                    : "cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]"
+                }`}
                 style={{
                   borderLeft: `4px solid ${colors.color}`,
+                  backgroundColor: "#fff",
                 }}
               >
-                <div className="flex items-center gap-3">
+                {/* 달성률 배경 채우기 */}
+                <div
+                  className="absolute inset-0 transition-all duration-500 pointer-events-none"
+                  style={{
+                    width: `${fillPercent}%`,
+                    backgroundColor: colors.bgColor,
+                  }}
+                />
+                <div className="flex items-center gap-3 relative z-10">
                   {/* 루틴 정보 */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-gray-800">
                         {title}
-                      </span>
-                      <span
-                        className="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
-                        style={{
-                          backgroundColor: colors.bgColor,
-                          color: colors.color,
-                        }}
-                      >
-                        {tag}
                       </span>
                     </div>
                   </div>

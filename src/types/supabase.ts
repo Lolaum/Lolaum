@@ -418,6 +418,7 @@ export interface MorningRecordData {
   successAndReflection: string;
   gift: string;
   image?: string;
+  certPhotos?: string[];
 }
 
 export interface ExerciseRecordData {
@@ -425,6 +426,7 @@ export interface ExerciseRecordData {
   duration: number;
   images?: string[];
   achievement?: string;
+  certPhotos?: string[];
 }
 
 export interface ReadingRecordData {
@@ -436,12 +438,14 @@ export interface ReadingRecordData {
   noteType: "sentence" | "summary";
   note: string;
   thoughts?: string;
+  certPhotos?: string[];
 }
 
 export interface LanguageRecordData {
   achievement: string;
   expressions: { word: string; meaning: string; example: string }[];
   images?: string[];
+  certPhotos?: string[];
 }
 
 export interface FinanceRecordData {
@@ -456,11 +460,13 @@ export interface FinanceRecordData {
   }[];
   studyContent: string;
   practice: string;
+  certPhotos?: string[];
 }
 
 export interface RecordingRecordData {
   content: string;
   link?: string;
+  certPhotos?: string[];
 }
 
 // routine_type 한글-영문 매핑
