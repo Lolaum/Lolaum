@@ -12,17 +12,19 @@ import type {
   MorningFeedData,
   LanguageFeedData,
   FinanceFeedData,
+  RecordingFeedData,
 } from "@/types/feed";
 
 // routine_type → RoutineCategory 매핑
-const ROUTINE_TO_CATEGORY: Partial<Record<RoutineTypeDB, RoutineCategory>> = {
+const ROUTINE_TO_CATEGORY: Record<RoutineTypeDB, RoutineCategory> = {
   morning: "모닝",
   exercise: "운동",
   reading: "독서",
   english: "영어",
   second_language: "제2외국어",
+  recording: "기록",
   finance: "자산관리",
-  english_book: "독서", // 원서읽기도 독서 카테고리로 표시
+  english_book: "원서읽기",
 };
 
 interface BookInfo {
@@ -46,6 +48,7 @@ function transformRecordData(
         exerciseName: (data.exerciseName as string) ?? "",
         duration: (data.duration as number) ?? 0,
         achievement: (data.achievement as string) ?? "",
+        certPhotos: (data.certPhotos as string[]) ?? undefined,
       } satisfies ExerciseFeedData;
 
     case "morning":
@@ -55,6 +58,7 @@ function transformRecordData(
         condition: (data.condition as "상" | "중" | "하") ?? "중",
         successAndReflection: (data.successAndReflection as string) ?? "",
         gift: (data.gift as string) ?? "",
+        certPhotos: (data.certPhotos as string[]) ?? undefined,
       } satisfies MorningFeedData;
 
     case "reading":
@@ -72,6 +76,7 @@ function transformRecordData(
         noteType: (data.noteType as "sentence" | "summary") ?? "sentence",
         note: data.note as string | undefined,
         thoughts: data.thoughts as string | undefined,
+        certPhotos: (data.certPhotos as string[]) ?? undefined,
       } satisfies ReadingFeedData;
     }
 
@@ -82,6 +87,7 @@ function transformRecordData(
         achievement: (data.achievement as string) ?? "",
         expressions:
           (data.expressions as { word: string; meaning: string; example: string }[]) ?? [],
+        certPhotos: (data.certPhotos as string[]) ?? undefined,
       } satisfies LanguageFeedData;
 
     case "finance":
@@ -90,7 +96,15 @@ function transformRecordData(
           (data.dailyExpenses as FinanceFeedData["dailyExpenses"]) ?? [],
         studyContent: (data.studyContent as string) ?? "",
         practice: (data.practice as string) ?? "",
+        certPhotos: (data.certPhotos as string[]) ?? undefined,
       } satisfies FinanceFeedData;
+
+    case "recording":
+      return {
+        content: (data.content as string) ?? "",
+        link: data.link as string | undefined,
+        certPhotos: (data.certPhotos as string[]) ?? undefined,
+      } satisfies RecordingFeedData;
 
     default:
       return undefined;
@@ -131,7 +145,6 @@ function recordToFeedItem(
   bookMap: Map<string, BookInfo>,
 ): FeedItem | null {
   const category = ROUTINE_TO_CATEGORY[record.routine_type];
-  if (!category) return null; // recording 등 지원하지 않는 타입은 스킵
 
   const routineData = transformRecordData(record, bookMap);
 
@@ -173,7 +186,6 @@ export async function getMyRecordsForDisplay(options?: {
     .from("ritual_records")
     .select("id, user_id, routine_type, record_date, record_data, challenge_id, created_at")
     .eq("user_id", user.id)
-    .neq("routine_type", "recording")
     .order("record_date", { ascending: false });
 
   if (options?.routineType) {
@@ -300,13 +312,11 @@ export async function getAllRecordsForDisplay(options?: {
   // count + 데이터 쿼리
   let countQuery = supabase
     .from("ritual_records")
-    .select("id", { count: "exact", head: true })
-    .neq("routine_type", "recording");
+    .select("id", { count: "exact", head: true });
 
   let query = supabase
     .from("ritual_records")
     .select("id, user_id, routine_type, record_date, record_data, challenge_id, created_at")
-    .neq("routine_type", "recording")
     .order("record_date", { ascending: false });
 
   if (options?.routineType) {
