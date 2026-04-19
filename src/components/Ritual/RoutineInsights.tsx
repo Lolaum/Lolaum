@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Dumbbell, BookA, BookText, Sun, CircleDollarSign, Languages, Flame, Loader2 } from "lucide-react";
+import { Dumbbell, BookA, BookText, Sun, CircleDollarSign, Languages, Pen, BookOpen, Flame, Loader2 } from "lucide-react";
 import { getMyRecordsForDisplay } from "@/api/ritual-records-display";
 import { getBooksAuto } from "@/api/book";
 import {
@@ -21,6 +21,7 @@ import type {
   MorningFeedData,
   LanguageFeedData,
   FinanceFeedData,
+  RecordingFeedData,
 } from "@/types/feed";
 
 // ─────────────────────────────
@@ -531,7 +532,9 @@ const TAB_TO_ROUTINE: Record<string, RoutineTypeDB> = {
   모닝: "morning",
   영어: "english",
   제2외국어: "second_language",
+  기록: "recording",
   자산관리: "finance",
+  원서읽기: "english_book",
 };
 
 const CATEGORY_CONFIG: Record<
@@ -543,7 +546,9 @@ const CATEGORY_CONFIG: Record<
   영어: { color: "#0ea5e9", bgColor: "#f0f9ff", icon: <BookA size={13} /> },
   모닝: { color: "#eab32e", bgColor: "#fefce8", icon: <Sun size={13} /> },
   제2외국어: { color: "#8b5cf6", bgColor: "#f5f3ff", icon: <Languages size={13} /> },
+  기록: { color: "#8b5cf6", bgColor: "#f5f3ff", icon: <Pen size={13} /> },
   자산관리: { color: "#10b981", bgColor: "#ecfdf5", icon: <CircleDollarSign size={13} /> },
+  원서읽기: { color: "#ec4899", bgColor: "#fdf2f8", icon: <BookOpen size={13} /> },
 };
 
 // 최근 기록 카드 (리추얼별)
@@ -623,6 +628,26 @@ function RecordPreviewCard({ item }: { item: FeedItem }) {
           <div className="space-y-1.5">
             {total > 0 && <p className="text-sm font-semibold text-gray-800">{total.toLocaleString()}원</p>}
             {d.studyContent && <p className="text-xs text-gray-500 line-clamp-2">{d.studyContent}</p>}
+          </div>
+        );
+      }
+      case "기록": {
+        const d = item.routineData as RecordingFeedData;
+        return (
+          <div className="space-y-1.5">
+            <p className="text-xs text-gray-500 line-clamp-3">{d.content}</p>
+          </div>
+        );
+      }
+      case "원서읽기": {
+        const d = item.routineData as ReadingFeedData;
+        return (
+          <div className="space-y-1.5">
+            <p className="text-sm font-semibold text-gray-800">{d.bookTitle}</p>
+            {d.progressAmount && (
+              <p className="text-xs" style={{ color: config.color }}>+{d.progressAmount}p 읽음</p>
+            )}
+            {d.note && <p className="text-xs text-gray-500 line-clamp-2">{d.note}</p>}
           </div>
         );
       }

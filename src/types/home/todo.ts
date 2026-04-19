@@ -8,4 +8,6 @@ export interface TodoListProps {
 export interface RoutineListProps {
   selectedDate: Date;
   onTaskClick: (title: string, color: string) => void;
+  routineCompletionMap?: Record<string, number>; // routine_type → 완료 일수
+  isPastDate?: boolean;    // 지난 날짜 여부 (루틴 진행 차단용)
 }

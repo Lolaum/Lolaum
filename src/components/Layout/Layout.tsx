@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
+import { logout } from "@/api/auth";
 import MenuIcon from "../icons/MenuIcon";
 import HomeIcon from "../icons/HomeIcon";
 import RitualIcon from "../icons/RitualIcon";
@@ -33,9 +34,15 @@ const navItems: NavItem[] = [
 
 export default function Layout({ children }: LayoutProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const isDesktopQuery = useMediaQuery("(min-width: 768px)");
   const [mounted, setMounted] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -96,6 +103,18 @@ export default function Layout({ children }: LayoutProps) {
               className="mx-auto h-8 w-30"
             />
           </Link>
+          {/* 로그아웃 */}
+          <button
+            onClick={handleLogout}
+            className="p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+            aria-label="로그아웃"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
         </header>
       )}
 
@@ -185,8 +204,8 @@ export default function Layout({ children }: LayoutProps) {
             </div>
 
             {/* 드로어 메뉴 아이템 */}
-            <nav className="p-4">
-              <ul className="space-y-2">
+            <nav className="p-4 flex flex-col h-[calc(100%-65px)]">
+              <ul className="space-y-2 flex-1">
                 {navItems.map((item) => {
                   const isActive =
                     pathname === item.href ||
@@ -211,6 +230,17 @@ export default function Layout({ children }: LayoutProps) {
                   );
                 })}
               </ul>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors w-full"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                <span className="font-medium">로그아웃</span>
+              </button>
             </nav>
           </div>
         </>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Upload, X } from "lucide-react";
+import { fileToBase64 } from "@/lib/utils";
 import {
   AddNewExerciseProps,
   ExerciseFormData,
@@ -21,13 +22,13 @@ export default function AddNewExercise({
   );
   const [achievement, setAchievement] = useState("");
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
-    const newImages = Array.from(files).slice(0, 5 - images.length);
-    const imageUrls = newImages.map((file) => URL.createObjectURL(file));
-    setImages([...images, ...imageUrls].slice(0, 5));
+    const newFiles = Array.from(files).slice(0, 5 - images.length);
+    const base64Images = await Promise.all(newFiles.map(fileToBase64));
+    setImages([...images, ...base64Images].slice(0, 5));
   };
 
   const removeImage = (index: number) => {

@@ -29,12 +29,15 @@ export interface AddNewBookProps {
 export interface BookManageProps {
   onBackToTimer?: () => void;
   onBackToHome?: () => void;
+  isEnglishBook?: boolean;
+  certificationPhotos?: string[];
 }
 
 export interface ReadingContainerProps {
   onBackToTimer?: () => void;
   onBackToHome?: () => void;
   certificationPhotos?: string[]; // [시작 인증 사진, 종료 인증 사진]
+  isEnglishBook?: boolean;        // 영어원서리추얼 여부
 }
 
 export interface ReadingRecord {
@@ -83,4 +86,6 @@ export interface BookDetailProps {
     currentValue?: number;
     isCompleted?: boolean;
   }) => void | Promise<void>;
+  isEnglishBook?: boolean;
+  certificationPhotos?: string[];
 }
