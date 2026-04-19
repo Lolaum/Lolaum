@@ -55,7 +55,7 @@ export interface ExerciseInsight {
 export interface MorningInsight {
   avgCondition: number;
   avgSleepHours: string;
-  sleepTrend: number[];
+  sleepTrend: { date: string; value: number }[];
 }
 
 export interface LanguageInsight {
@@ -522,13 +522,13 @@ export async function getMorningInsight(): Promise<{
   const conditionMap = { "상": 90, "중": 60, "하": 30 };
   let totalCondition = 0;
   let totalSleep = 0;
-  const sleepTrend: number[] = [];
+  const sleepTrend: { date: string; value: number }[] = [];
 
   for (const r of records) {
     const d = r.record_data as unknown as MorningRecordData;
     totalCondition += conditionMap[d.condition] ?? 60;
     totalSleep += d.sleepHours || 0;
-    sleepTrend.push(d.sleepHours || 0);
+    sleepTrend.push({ date: r.record_date, value: d.sleepHours || 0 });
   }
 
   const avgSleepRaw = totalSleep / records.length;
@@ -539,7 +539,7 @@ export async function getMorningInsight(): Promise<{
     data: {
       avgCondition: Math.round(totalCondition / records.length),
       avgSleepHours: `${hours}h ${mins}m`,
-      sleepTrend: sleepTrend.slice(-15), // 최근 15일
+      sleepTrend: sleepTrend.slice(-18), // 최근 18일
     },
   };
 }

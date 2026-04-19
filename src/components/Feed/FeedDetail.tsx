@@ -1,9 +1,9 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, User } from "lucide-react";
+import { ArrowLeft, User, X, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   BookText,
   Dumbbell,
@@ -512,27 +512,149 @@ function isRecordingData(
   return category === "기록" && "content" in data;
 }
 
-/** 인증 사진 그리드 (깨진 이미지 자동 숨김) */
-function CertPhotoGrid({ routineData }: { routineData?: FeedItem["routineData"] }) {
+/** routineData에서 인증 사진 URL 배열 추출 (certPhotos + 레거시 필드) */
+function getAllPhotos(routineData: FeedItem["routineData"], category: RoutineCategory): string[] {
+  if (!routineData) return [];
+
+  // 공통 인증 사진 (certPhotos)
+  const certPhotos = (routineData as ExerciseFeedData).certPhotos?.filter(Boolean) ?? [];
+  if (certPhotos.length > 0) return certPhotos;
+
+  // 루틴별 기존 이미지 필드 (certPhotos가 없는 과거 데이터 대응)
+  switch (category) {
+    case "운동": {
+      const d = routineData as ExerciseFeedData;
+      return d.images?.filter(Boolean) ?? [];
+    }
+    case "모닝": {
+      const d = routineData as MorningFeedData;
+      return d.image ? [d.image] : [];
+    }
+    case "영어":
+    case "제2외국어": {
+      const d = routineData as LanguageFeedData;
+      return d.images?.filter(Boolean) ?? [];
+    }
+    default:
+      return [];
+  }
+}
+
+/** 사진 전체화면 뷰어 (좌우 넘기기 지원) */
+function PhotoViewer({ photos, initialIndex, onClose }: { photos: string[]; initialIndex: number; onClose: () => void }) {
+  const [current, setCurrent] = useState(initialIndex);
+  const total = photos.length;
+
+  const goPrev = useCallback(() => setCurrent((c) => (c - 1 + total) % total), [total]);
+  const goNext = useCallback(() => setCurrent((c) => (c + 1) % total), [total]);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") goPrev();
+      if (e.key === "ArrowRight") goNext();
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKey);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKey);
+    };
+  }, [onClose, goPrev, goNext]);
+
+  // 스와이프 지원
+  const touchRef = React.useRef<number | null>(null);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+      onClick={onClose}
+      onTouchStart={(e) => { touchRef.current = e.touches[0].clientX; }}
+      onTouchEnd={(e) => {
+        if (touchRef.current === null) return;
+        const diff = e.changedTouches[0].clientX - touchRef.current;
+        if (Math.abs(diff) > 50) { diff > 0 ? goPrev() : goNext(); }
+        touchRef.current = null;
+      }}
+    >
+      {/* X 닫기 버튼 */}
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors z-10"
+      >
+        <X className="w-6 h-6" />
+      </button>
+
+      {/* 좌측 화살표 */}
+      {total > 1 && (
+        <button
+          onClick={(e) => { e.stopPropagation(); goPrev(); }}
+          className="absolute left-3 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors z-10"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+      )}
+
+      {/* 이미지 */}
+      <img
+        src={photos[current]}
+        alt={`인증 사진 ${current + 1}`}
+        className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg"
+        onClick={(e) => e.stopPropagation()}
+      />
+
+      {/* 우측 화살표 */}
+      {total > 1 && (
+        <button
+          onClick={(e) => { e.stopPropagation(); goNext(); }}
+          className="absolute right-3 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors z-10"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
+      )}
+
+      {/* 인디케이터 */}
+      {total > 1 && (
+        <div className="absolute bottom-6 flex gap-1.5">
+          {photos.map((_, i) => (
+            <span
+              key={i}
+              className={`w-2 h-2 rounded-full transition-colors ${i === current ? "bg-white" : "bg-white/40"}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** 인증 사진 그리드 (깨진 이미지 자동 숨김 + 클릭 확대) */
+function CertPhotoGrid({ routineData, category }: { routineData?: FeedItem["routineData"]; category: RoutineCategory }) {
   const [failedSet, setFailedSet] = React.useState<Set<number>>(new Set());
-  if (!routineData) return null;
-  const photos = (routineData as ExerciseFeedData).certPhotos?.filter(Boolean) ?? [];
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const photos = getAllPhotos(routineData, category);
   const visible = photos.filter((_, i) => !failedSet.has(i));
   if (visible.length === 0) return null;
   return (
-    <div className="mb-5 grid grid-cols-2 gap-2 rounded-xl overflow-hidden">
-      {photos.map((src, i) =>
-        failedSet.has(i) ? null : (
-          <img
-            key={i}
-            src={src}
-            alt={`인증 사진 ${i + 1}`}
-            className="w-full h-40 object-cover rounded-xl"
-            onError={() => setFailedSet((prev) => new Set(prev).add(i))}
-          />
-        ),
+    <>
+      <div className="mb-5 grid grid-cols-2 gap-2 rounded-xl overflow-hidden">
+        {photos.map((src, i) =>
+          failedSet.has(i) ? null : (
+            <img
+              key={i}
+              src={src}
+              alt={`인증 사진 ${i + 1}`}
+              className="w-full h-48 object-cover rounded-xl cursor-pointer active:opacity-80 transition-opacity"
+              onClick={() => setViewerIndex(i)}
+              onError={() => setFailedSet((prev) => new Set(prev).add(i))}
+            />
+          ),
+        )}
+      </div>
+      {viewerIndex !== null && (
+        <PhotoViewer photos={visible} initialIndex={viewerIndex} onClose={() => setViewerIndex(null)} />
       )}
-    </div>
+    </>
   );
 }
 
@@ -607,7 +729,7 @@ export default function FeedDetail({ item }: FeedDetailProps) {
           </div>
 
           {/* 인증 사진 */}
-          <CertPhotoGrid routineData={item.routineData} />
+          <CertPhotoGrid routineData={item.routineData} category={item.routineCategory} />
 
           {/* 루틴 콘텐츠 */}
           {item.routineData ? (

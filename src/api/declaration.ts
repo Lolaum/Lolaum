@@ -13,7 +13,7 @@ interface DeclarationRow {
   routine_type: RoutineTypeDB;
   answers: unknown;
   created_at: string;
-  profiles: { name: string; emoji: string | null } | null;
+  profiles: { name: string; emoji: string | null; avatar_url: string | null } | null;
 }
 
 function toDeclaration(row: DeclarationRow): Declaration {
@@ -22,6 +22,7 @@ function toDeclaration(row: DeclarationRow): Declaration {
     userId: row.user_id,
     userName: row.profiles?.name ?? "익명",
     userEmoji: row.profiles?.emoji ?? undefined,
+    avatarUrl: row.profiles?.avatar_url ?? undefined,
     routineType: ROUTINE_TYPE_LABEL[row.routine_type] as RoutineType,
     answers: row.answers as DeclarationAnswer[],
     createdAt: row.created_at,
@@ -43,7 +44,7 @@ export async function getMyDeclarations(): Promise<{
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("declarations")
-    .select("id, user_id, routine_type, answers, created_at, profiles(name, emoji)")
+    .select("id, user_id, routine_type, answers, created_at, profiles(name, emoji, avatar_url)")
     .eq("user_id", user.id)
     .eq("challenge_id", challengeId)
     .order("created_at", { ascending: true });
@@ -91,11 +92,59 @@ export async function getChallengerDeclarations(): Promise<{
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("declarations")
-    .select("id, user_id, routine_type, answers, created_at, profiles(name, emoji)")
+    .select("id, user_id, routine_type, answers, created_at, profiles(name, emoji, avatar_url)")
     .eq("challenge_id", challengeId)
     .neq("user_id", user.id)
     .order("created_at", { ascending: false });
 
   if (error) return { error: error.message };
   return { data: (data as unknown as DeclarationRow[]).map(toDeclaration) };
+}
+
+/** 선언 단건 조회 */
+export async function getDeclarationById(
+  id: string,
+): Promise<{ data?: Declaration; currentUserId?: string; error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "인증이 필요합니다." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("declarations")
+    .select("id, user_id, routine_type, answers, created_at, profiles(name, emoji, avatar_url)")
+    .eq("id", id)
+    .single();
+
+  if (error) return { error: error.message };
+  return {
+    data: toDeclaration(data as unknown as DeclarationRow),
+    currentUserId: user.id,
+  };
+}
+
+/** 모든 사람의 선언 목록 조회 (본인 포함) */
+export async function getAllDeclarations(): Promise<{
+  data?: Declaration[];
+  currentUserId?: string;
+  error?: string;
+}> {
+  const [{ challengeId, error: cError }, user] = await Promise.all([
+    getCurrentChallengeId(),
+    getCurrentUser(),
+  ]);
+  if (!user) return { error: "인증이 필요합니다." };
+  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("declarations")
+    .select("id, user_id, routine_type, answers, created_at, profiles(name, emoji, avatar_url)")
+    .eq("challenge_id", challengeId)
+    .order("created_at", { ascending: false });
+
+  if (error) return { error: error.message };
+  return {
+    data: (data as unknown as DeclarationRow[]).map(toDeclaration),
+    currentUserId: user.id,
+  };
 }
