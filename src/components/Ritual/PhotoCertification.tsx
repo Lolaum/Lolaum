@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Camera, X } from "lucide-react";
+import exifr from "exifr";
 
 interface PhotoCertificationProps {
   mode: "start" | "end";
@@ -12,7 +13,17 @@ interface PhotoCertificationProps {
   onClose: () => void;
 }
 
-function applyTimestamp(file: File): Promise<string> {
+async function applyTimestamp(file: File): Promise<string> {
+  // EXIF 메타데이터에서 촬영 시간 추출 (없으면 현재 시간 사용)
+  let photoDate: Date;
+  try {
+    const exif = await exifr.parse(file, ["DateTimeOriginal", "CreateDate"]);
+    const exifDate = exif?.DateTimeOriginal ?? exif?.CreateDate;
+    photoDate = exifDate instanceof Date ? exifDate : new Date();
+  } catch {
+    photoDate = new Date();
+  }
+
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -24,10 +35,9 @@ function applyTimestamp(file: File): Promise<string> {
       const ctx = canvas.getContext("2d")!;
       ctx.drawImage(img, 0, 0);
 
-      const now = new Date();
       const pad = (n: number) => String(n).padStart(2, "0");
-      const dateStr = `${now.getFullYear()}. ${pad(now.getMonth() + 1)}. ${pad(now.getDate())}`;
-      const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      const dateStr = `${photoDate.getFullYear()}. ${pad(photoDate.getMonth() + 1)}. ${pad(photoDate.getDate())}`;
+      const timeStr = `${pad(photoDate.getHours())}:${pad(photoDate.getMinutes())}:${pad(photoDate.getSeconds())}`;
       const text = `${dateStr}  ${timeStr}`;
 
       const fontSize = Math.max(40, Math.round(canvas.width * 0.07));
