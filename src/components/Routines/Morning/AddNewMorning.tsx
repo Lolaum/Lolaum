@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Upload, X } from "lucide-react";
+import { fileToBase64 } from "@/lib/utils";
 import {
   AddNewMorningProps,
   MorningFormData,
@@ -19,12 +20,12 @@ export default function AddNewMorning({
   const [successAndReflection, setSuccessAndReflection] = useState("");
   const [gift, setGift] = useState("");
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const imageUrl = URL.createObjectURL(files[0]);
-    setImage(imageUrl);
+    const base64 = await fileToBase64(files[0]);
+    setImage(base64);
   };
 
   const removeImage = () => {
