@@ -1,19 +1,21 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 // import { useRouter } from "next/navigation"; // 중간 회고 알림 숨김으로 미사용
 import HomCalendar from "./HomeCalendar";
 import TaskTabs from "./Todo/TaskTabs";
 import MemberProfile from "./Profile/MemberProfile";
 import Profile from "./Profile/Profile";
 import Timer from "./Timer/Timer";
-import ReadingContainer from "@/components/Routines/Reading/ReadingContainer";
-import LanguageContainer from "@/components/Routines/Language/LanguageContainer";
-import ExerciseContainer from "@/components/Routines/Exercise/ExerciseContainer";
-import MorningContainer from "@/components/Routines/Morning/MorningContainer";
-import FinanceContainer from "@/components/Routines/Finance/FinanceContainer";
-import RecordingContainer from "@/components/Routines/Recording/RecordingContainer";
-import PhotoCertification from "@/components/Ritual/PhotoCertification";
+
+const ReadingContainer = dynamic(() => import("@/components/Routines/Reading/ReadingContainer"), { ssr: false });
+const LanguageContainer = dynamic(() => import("@/components/Routines/Language/LanguageContainer"), { ssr: false });
+const ExerciseContainer = dynamic(() => import("@/components/Routines/Exercise/ExerciseContainer"), { ssr: false });
+const MorningContainer = dynamic(() => import("@/components/Routines/Morning/MorningContainer"), { ssr: false });
+const FinanceContainer = dynamic(() => import("@/components/Routines/Finance/FinanceContainer"), { ssr: false });
+const RecordingContainer = dynamic(() => import("@/components/Routines/Recording/RecordingContainer"), { ssr: false });
+const PhotoCertification = dynamic(() => import("@/components/Ritual/PhotoCertification"), { ssr: false });
 import { getHomeStats, MyPageStats, CompletionRateStats, CalendarDayMarker } from "@/api/ritual-stats";
 
 type RitualStep = "pre_photo" | "timer" | "post_photo" | "record";
