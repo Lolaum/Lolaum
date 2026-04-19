@@ -85,7 +85,9 @@ const ROUTINE_CONFIG: Record<
   morning: { name: "모닝", color: "#eab32e", bgColor: "#fefce8" },
   english: { name: "영어", color: "#0ea5e9", bgColor: "#f0f9ff" },
   second_language: { name: "제2외국어", color: "#8b5cf6", bgColor: "#f5f3ff" },
+  recording: { name: "기록", color: "#8b5cf6", bgColor: "#f5f3ff" },
   finance: { name: "자산관리", color: "#10b981", bgColor: "#ecfdf5" },
+  english_book: { name: "원서읽기", color: "#ec4899", bgColor: "#fdf2f8" },
 };
 
 // ── 유틸 ──────────────────────────────────────────────
