@@ -15,6 +15,7 @@ export interface MidReview {
   userId: string;
   userName: string;
   userEmoji?: string;
+  avatarUrl?: string;
   routineType: RoutineType;
   createdAt: string;
   // Step 1: 잘 됐던 날 패턴

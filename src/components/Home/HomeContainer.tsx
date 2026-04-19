@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation"; // 중간 회고 알림 숨김으로 미사용
 import HomCalendar from "./HomeCalendar";
 import TaskTabs from "./Todo/TaskTabs";
 import MemberProfile from "./Profile/MemberProfile";
@@ -18,10 +18,11 @@ import { getHomeStats, MyPageStats, CompletionRateStats, CalendarDayMarker } fro
 
 type RitualStep = "pre_photo" | "timer" | "post_photo" | "record";
 
-const CURRENT_DAY: number = 11;
-const IS_MID_REVIEW_PERIOD = CURRENT_DAY >= 10 && CURRENT_DAY <= 13;
-const IS_LAST_DAY = CURRENT_DAY === 13;
-const DAYS_LEFT = 13 - CURRENT_DAY;
+// 중간 회고 작성 기간 알림 — 숨김 처리
+// const CURRENT_DAY: number = 11;
+// const IS_MID_REVIEW_PERIOD = CURRENT_DAY >= 10 && CURRENT_DAY <= 13;
+// const IS_LAST_DAY = CURRENT_DAY === 13;
+// const DAYS_LEFT = 13 - CURRENT_DAY;
 
 // 시작/종료 인증 사진이 필요한 리추얼 목록
 const NEEDS_PHOTO_FLOW = [
@@ -35,7 +36,7 @@ const NEEDS_PHOTO_FLOW = [
 ];
 
 export default function HomeContainer() {
-  const router = useRouter();
+  // const router = useRouter(); // 중간 회고 알림 숨김으로 미사용
   const [mounted, setMounted] = useState(false);
   const [today, setToday] = useState<Date | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -288,6 +289,7 @@ export default function HomeContainer() {
               }
             />
             <Profile stats={myPageStats} completionRate={completionRate} />
+            {/* 중간 회고 작성 기간 알림 — 숨김 처리
             {IS_MID_REVIEW_PERIOD && (
               <button
                 onClick={() => router.push("/mid-review")}
@@ -319,6 +321,7 @@ export default function HomeContainer() {
                 </div>
               </button>
             )}
+            */}
             <div className="sticky top-0 z-10 static">
               <HomCalendar
                 today={today}

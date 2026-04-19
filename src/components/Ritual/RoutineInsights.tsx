@@ -283,7 +283,7 @@ function ExerciseInsightView({ routines, refreshKey = 0 }: { routines: RoutineCa
 // 모닝 인사이트
 // ─────────────────────────────
 function MorningInsightView({ routines, refreshKey = 0 }: { routines: RoutineCardStats[]; refreshKey?: number }) {
-  const [data, setData] = useState<{ avgCondition: number; avgSleepHours: string; sleepTrend: number[] } | null>(null);
+  const [data, setData] = useState<{ avgCondition: number; avgSleepHours: string; sleepTrend: { date: string; value: number }[] } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -316,42 +316,76 @@ function MorningInsightView({ routines, refreshKey = 0 }: { routines: RoutineCar
         ))}
       </div>
 
-      {data.sleepTrend.length > 0 && (
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-2 mb-4">
-            <Sun size={15} style={{ color: "#eab32e" }} />
-            <h3 className="text-sm font-semibold text-gray-700">수면 시간 트렌드</h3>
+      {data.sleepTrend.length > 0 && (() => {
+        const MIN_DAYS = 18;
+        const trend = data.sleepTrend;
+        const totalSlots = Math.max(MIN_DAYS, trend.length);
+        const slotW = 20;
+        const chartW = totalSlots * slotW;
+        const chartH = 80;
+        const labelH = 14;
+        const totalH = chartH + labelH;
+        const toY = (v: number) => chartH - ((v - 5) / 5) * 72;
+        // 데이터 포인트 — 왼쪽(index 0)부터 시작
+        const realPoints = trend.map((item, i) => ({
+          x: i * slotW + slotW / 2,
+          y: toY(item.value),
+          v: item.value,
+        }));
+        // 날짜 라벨 (M/D 형식, 3칸 간격 + 첫날/마지막날)
+        const dateLabels = trend
+          .map((item, i) => {
+            if (i !== 0 && i !== trend.length - 1 && i % 3 !== 0) return null;
+            const d = new Date(item.date);
+            return { x: i * slotW + slotW / 2, label: `${d.getMonth() + 1}/${d.getDate()}` };
+          })
+          .filter(Boolean) as { x: number; label: string }[];
+
+        return (
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center gap-2 mb-4">
+              <Sun size={15} style={{ color: "#eab32e" }} />
+              <h3 className="text-sm font-semibold text-gray-700">수면 시간 트렌드</h3>
+            </div>
+            <div className="h-36 relative overflow-x-auto">
+              <svg viewBox={`0 0 ${chartW} ${totalH}`} className="w-full h-full" preserveAspectRatio="none">
+                {[6, 7, 8].map((h) => (
+                  <line key={h} x1="0" y1={toY(h)} x2={chartW} y2={toY(h)} stroke="#f3f4f6" strokeWidth="1" />
+                ))}
+                <defs>
+                  <linearGradient id="sleepGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#eab32e" stopOpacity="0.3" />
+                    <stop offset="100%" stopColor="#eab32e" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                {realPoints.length > 1 && (
+                  <polygon
+                    points={[
+                      `${realPoints[0].x},${chartH}`,
+                      ...realPoints.map((p) => `${p.x},${p.y}`),
+                      `${realPoints[realPoints.length - 1].x},${chartH}`,
+                    ].join(" ")}
+                    fill="url(#sleepGrad)"
+                  />
+                )}
+                <polyline
+                  points={realPoints.map((p) => `${p.x},${p.y}`).join(" ")}
+                  fill="none" stroke="#eab32e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                />
+                {realPoints.map((p, i) => (
+                  <circle key={i} cx={p.x} cy={p.y} r="3" fill="white" stroke="#eab32e" strokeWidth="1.5" />
+                ))}
+                {/* 날짜 라벨 */}
+                {dateLabels.map((dl, i) => (
+                  <text key={i} x={dl.x} y={totalH - 1} textAnchor="middle" fontSize="7" fill="#9ca3af">
+                    {dl.label}
+                  </text>
+                ))}
+              </svg>
+            </div>
           </div>
-          <div className="h-32 relative">
-            <svg viewBox={`0 0 ${data.sleepTrend.length * 20} 80`} className="w-full h-full" preserveAspectRatio="none">
-              {[6, 7, 8].map((h) => (
-                <line key={h} x1="0" y1={80 - ((h - 5) / 5) * 72} x2={data.sleepTrend.length * 20} y2={80 - ((h - 5) / 5) * 72} stroke="#f3f4f6" strokeWidth="1" />
-              ))}
-              <defs>
-                <linearGradient id="sleepGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#eab32e" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor="#eab32e" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              <polygon
-                points={[
-                  `0,80`,
-                  ...data.sleepTrend.map((v, i) => `${i * 20 + 10},${80 - ((v - 5) / 5) * 72}`),
-                  `${(data.sleepTrend.length - 1) * 20 + 10},80`,
-                ].join(" ")}
-                fill="url(#sleepGrad)"
-              />
-              <polyline
-                points={data.sleepTrend.map((v, i) => `${i * 20 + 10},${80 - ((v - 5) / 5) * 72}`).join(" ")}
-                fill="none" stroke="#eab32e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              />
-              {data.sleepTrend.map((v, i) => (
-                <circle key={i} cx={i * 20 + 10} cy={80 - ((v - 5) / 5) * 72} r="3" fill="white" stroke="#eab32e" strokeWidth="1.5" />
-              ))}
-            </svg>
-          </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
@@ -657,15 +691,16 @@ function RecordPreviewCard({ item }: { item: FeedItem }) {
   };
 
   return (
-    <div
-      className="bg-white rounded-xl p-3 border border-gray-100"
+    <Link
+      href={`/feeds/${item.odOriginalId ?? item.id}`}
+      className="block bg-white rounded-xl p-3 border border-gray-100 transition-shadow hover:shadow-md active:opacity-80"
       style={{ borderLeft: `3px solid ${config.color}` }}
     >
       <div className="flex items-center justify-between mb-2">
         <span className="text-[10px] text-gray-400">{formatDate(item.date)}</span>
       </div>
       {renderSummary()}
-    </div>
+    </Link>
   );
 }
 

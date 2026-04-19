@@ -18,6 +18,7 @@ export interface Declaration {
   userId: string;
   userName: string;
   userEmoji?: string;
+  avatarUrl?: string;
   routineType: RoutineType;
   answers: DeclarationAnswer[];
   createdAt: string;

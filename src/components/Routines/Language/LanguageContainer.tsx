@@ -91,6 +91,7 @@ export default function LanguageContainer({
           onCancel={() => setShowAddRecord(false)}
           onBackToHome={onBackToHome}
           onSubmit={handleSubmit}
+          initialImages={certificationPhotos}
         />
       );
     }
@@ -189,7 +190,7 @@ export default function LanguageContainer({
               <p className="text-sm font-semibold text-gray-900">
                 단어 카드로 복습하기
               </p>
-              <p className="text-xs text-gray-400 mt-0.5">14개의 표현</p>
+              <p className="text-xs text-gray-400 mt-0.5">{totalExpressions}개의 표현</p>
             </div>
           </div>
           <svg

@@ -20,7 +20,7 @@ export default function StudyPhrase({
   onClose,
   accentColor,
 }: StudyPhraseProps) {
-  // 모든 레코드의 expressions를 펼쳐서 하나의 카드 배열로 만듦
+  // 모든 레코드의 expressions를 펼쳐서 셔플된 카드 배열로 만듦
   const allCards = useMemo(() => {
     const cards: FlashCard[] = [];
     languageRecords.forEach((record) => {
@@ -32,6 +32,11 @@ export default function StudyPhrase({
         });
       });
     });
+    // Fisher-Yates 셔플
+    for (let i = cards.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [cards[i], cards[j]] = [cards[j], cards[i]];
+    }
     return cards;
   }, [languageRecords]);
 
