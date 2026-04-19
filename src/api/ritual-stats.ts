@@ -677,6 +677,13 @@ export async function getFinanceInsight(): Promise<{
   };
 }
 
+// ── 타입: 날짜별 달력 마커 ────────────────────────────────
+export interface CalendarDayMarker {
+  hasRoutine: boolean;   // 루틴 기록이 있는 날
+  hasTodo: boolean;      // 완료된 투두가 있는 날
+  isFullyComplete: boolean; // 등록된 루틴을 모두 완료한 날
+}
+
 // ── API: Home 화면 통합 통계 ───────────────────────────
 // HomeContainer에서 MyPageStats(Profile + TaskTabs) + CompletionRate(Profile)를
 // 한 번에 받아오기 위한 통합 server action.
@@ -684,6 +691,8 @@ export async function getFinanceInsight(): Promise<{
 export async function getHomeStats(): Promise<{
   myPage?: MyPageStats;
   completion?: CompletionRateStats;
+  calendarMarkers?: Record<string, CalendarDayMarker>;
+  routineCompletionMap?: Record<string, number>; // routine_type → 완료 일수
   error?: string;
 }> {
   const [{ challengeId, error: cError }, user] = await Promise.all([
@@ -695,7 +704,7 @@ export async function getHomeStats(): Promise<{
 
   const supabase = await createClient();
 
-  const [currentRes, allRes, registrationsRes, declarationsRes, midReviewsRes] =
+  const [currentRes, allRes, registrationsRes, declarationsRes, midReviewsRes, todosRes] =
     await Promise.all([
       supabase
         .from("ritual_records")
@@ -721,11 +730,17 @@ export async function getHomeStats(): Promise<{
         .select("routine_type")
         .eq("user_id", user.id)
         .eq("challenge_id", challengeId),
+      supabase
+        .from("todos")
+        .select("todo_date, completed")
+        .eq("user_id", user.id)
+        .eq("completed", true),
     ]);
 
   const currentRecords = currentRes.data ?? [];
   const allRecords = allRes.data ?? [];
   const registrations = registrationsRes.data ?? [];
+  const completedTodos = todosRes.data ?? [];
 
   // myPage stats
   const currentDates = [...new Set(currentRecords.map((r) => r.record_date))];
@@ -767,7 +782,52 @@ export async function getHomeStats(): Promise<{
     totalAchieved,
   };
 
-  return { myPage, completion };
+  // calendar markers (날짜별 루틴/투두 완료 마커)
+  const todoDateSet = new Set(completedTodos.map((t) => t.todo_date));
+  const calendarMarkers: Record<string, CalendarDayMarker> = {};
+
+  // 루틴 기록이 있는 날짜
+  for (const [date, completedTypes] of dateMap) {
+    const allDone = [...registeredTypes].every((rt) => completedTypes.has(rt));
+    calendarMarkers[date] = {
+      hasRoutine: true,
+      hasTodo: todoDateSet.has(date),
+      isFullyComplete: allDone,
+    };
+  }
+
+  // 투두만 완료된 날짜 (루틴 기록은 없는 경우)
+  for (const date of todoDateSet) {
+    if (!calendarMarkers[date]) {
+      calendarMarkers[date] = {
+        hasRoutine: false,
+        hasTodo: true,
+        isFullyComplete: false,
+      };
+    }
+  }
+
+  // 루틴별 완료 횟수 (완료 일수 + 리추얼선언 + 중간회고 + 최종회고)
+  const routineCompletionMap: Record<string, number> = {};
+  const routineDateSets = new Map<string, Set<string>>();
+  for (const r of currentRecords) {
+    if (!routineDateSets.has(r.routine_type)) routineDateSets.set(r.routine_type, new Set());
+    routineDateSets.get(r.routine_type)!.add(r.record_date);
+  }
+  const declaredTypes = new Set((declarationsRes.data ?? []).map((r) => r.routine_type));
+  const midReviewedTypes = new Set((midReviewsRes.data ?? []).map((r) => r.routine_type));
+  // TODO: 최종회고 테이블 생성 후 동일 로직 적용
+  const finalReviewedTypes = new Set<string>();
+
+  for (const rt of registeredTypes) {
+    const days = routineDateSets.get(rt)?.size ?? 0;
+    const decl = declaredTypes.has(rt) ? 1 : 0;
+    const mid = midReviewedTypes.has(rt) ? 1 : 0;
+    const final = finalReviewedTypes.has(rt) ? 1 : 0;
+    routineCompletionMap[rt] = days + decl + mid + final;
+  }
+
+  return { myPage, completion, calendarMarkers, routineCompletionMap };
 }
 
 // ── API: 마이페이지 통계 ────────────────────────────────

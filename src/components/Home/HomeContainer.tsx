@@ -12,8 +12,9 @@ import LanguageContainer from "@/components/Routines/Language/LanguageContainer"
 import ExerciseContainer from "@/components/Routines/Exercise/ExerciseContainer";
 import MorningContainer from "@/components/Routines/Morning/MorningContainer";
 import FinanceContainer from "@/components/Routines/Finance/FinanceContainer";
+import RecordingContainer from "@/components/Routines/Recording/RecordingContainer";
 import PhotoCertification from "@/components/Ritual/PhotoCertification";
-import { getHomeStats, MyPageStats, CompletionRateStats } from "@/api/ritual-stats";
+import { getHomeStats, MyPageStats, CompletionRateStats, CalendarDayMarker } from "@/api/ritual-stats";
 
 type RitualStep = "pre_photo" | "timer" | "post_photo" | "record";
 
@@ -51,6 +52,8 @@ export default function HomeContainer() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [myPageStats, setMyPageStats] = useState<MyPageStats | null>(null);
   const [completionRate, setCompletionRate] = useState<CompletionRateStats | null>(null);
+  const [calendarMarkers, setCalendarMarkers] = useState<Record<string, CalendarDayMarker>>({});
+  const [routineCompletionMap, setRoutineCompletionMap] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const now = new Date();
@@ -65,13 +68,21 @@ export default function HomeContainer() {
     getHomeStats().then((res) => {
       if (res.myPage) setMyPageStats(res.myPage);
       if (res.completion) setCompletionRate(res.completion);
+      if (res.calendarMarkers) setCalendarMarkers(res.calendarMarkers);
+      if (res.routineCompletionMap) setRoutineCompletionMap(res.routineCompletionMap);
     });
   }, []);
 
+  // 선택된 날짜가 오늘 이전인지 확인
+  const isPastDate = selectedDate && today
+    ? selectedDate.toDateString() !== today.toDateString() && selectedDate < today
+    : false;
+
   const handleTaskClick = (title: string, color: string) => {
+    if (isPastDate) return; // 지난 날짜에서는 루틴 진행 불가
     setSelectedTask({ title, color });
-    if (title === "모닝리추얼" || title === "영어원서리추얼") {
-      // 타이머/인증 없이 바로 기록폼
+    if (title === "모닝리추얼" || title === "원서읽기리추얼") {
+      // 타이머 없이 바로 기록폼
       setRitualStep("record");
       return;
     }
@@ -189,15 +200,22 @@ export default function HomeContainer() {
         );
       }
 
-      if (
-        selectedTask.title === "독서리추얼" ||
-        selectedTask.title === "영어원서리추얼"
-      ) {
+      if (selectedTask.title === "독서리추얼") {
         return wrap(
           <ReadingContainer
             certificationPhotos={certPhotos}
             onBackToTimer={handleCloseTimer}
             onBackToHome={handleCloseTimer}
+          />
+        );
+      }
+
+      if (selectedTask.title === "원서읽기리추얼") {
+        return wrap(
+          <ReadingContainer
+            onBackToTimer={handleCloseTimer}
+            onBackToHome={handleCloseTimer}
+            isEnglishBook
           />
         );
       }
@@ -234,6 +252,16 @@ export default function HomeContainer() {
         return wrap(
           <FinanceContainer
             certificationPhotos={certPhotos}
+            onBackToTimer={handleCloseTimer}
+            onBackToHome={handleCloseTimer}
+          />
+        );
+      }
+
+      if (selectedTask.title === "기록리추얼") {
+        return wrap(
+          <RecordingContainer
+            elapsedSeconds={elapsedSeconds}
             onBackToTimer={handleCloseTimer}
             onBackToHome={handleCloseTimer}
           />
@@ -292,6 +320,7 @@ export default function HomeContainer() {
                 today={today}
                 selectedDate={selectedDate}
                 onSelectDate={setSelectedDate}
+                markers={calendarMarkers}
               />
             </div>
           </div>
@@ -302,6 +331,9 @@ export default function HomeContainer() {
               selectedDate={selectedDate}
               onTaskClick={handleTaskClick}
               stats={myPageStats}
+              completionRate={completionRate}
+              isPastDate={isPastDate}
+              routineCompletionMap={routineCompletionMap}
             />
           </div>
         </div>

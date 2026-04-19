@@ -1,12 +1,27 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { formatDateKey } from "@/lib/date";
+import { DAYS } from "@/lib/constants";
 import { Check, Trash2 } from "lucide-react";
 import { TodoListProps } from "@/types/home/todo";
 import { getTodos, createTodo, updateTodo, deleteTodo } from "@/api/todo";
 import type { Todo } from "@/types/supabase";
 
-export default function TodoList({ selectedDate, onTaskClick }: TodoListProps) {
+/** "2024-04-19" → "4월 19일 (토)" */
+function formatDayLabel(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  const month = d.getMonth() + 1;
+  const day = d.getDate();
+  const weekday = DAYS[d.getDay()];
+  return `${month}월 ${day}일 (${weekday})`;
+}
+
+/** 오늘 날짜인지 확인 */
+function isToday(dateStr: string): boolean {
+  return dateStr === formatDateKey(new Date());
+}
+
+export default function TodoList({ selectedDate }: TodoListProps) {
   const dateKey = formatDateKey(selectedDate);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [input, setInput] = useState("");
@@ -24,7 +39,6 @@ export default function TodoList({ selectedDate, onTaskClick }: TodoListProps) {
   }, [fetchTodos]);
 
   const handleToggle = async (id: string, currentCompleted: boolean) => {
-    // 낙관적 업데이트
     setTodos((prev) =>
       prev.map((todo) =>
         todo.id === id ? { ...todo, completed: !currentCompleted } : todo,
@@ -32,7 +46,6 @@ export default function TodoList({ selectedDate, onTaskClick }: TodoListProps) {
     );
     const { error } = await updateTodo(id, { completed: !currentCompleted });
     if (error) {
-      // 실패 시 원복
       setTodos((prev) =>
         prev.map((todo) =>
           todo.id === id ? { ...todo, completed: currentCompleted } : todo,
@@ -47,7 +60,7 @@ export default function TodoList({ selectedDate, onTaskClick }: TodoListProps) {
     setInput("");
     const { data } = await createTodo({ title, todo_date: dateKey });
     if (data) {
-      setTodos((prev) => [...prev, data]);
+      setTodos((prev) => [data, ...prev]);
     }
   };
 
@@ -60,10 +73,25 @@ export default function TodoList({ selectedDate, onTaskClick }: TodoListProps) {
   };
 
   const inProgress = todos.filter((t) => !t.completed);
-  const completedTodos = todos.filter((t) => t.completed);
+  const completed = todos.filter((t) => t.completed);
 
   return (
     <div>
+      {/* 날짜 헤더 */}
+      <div className="flex items-center gap-2 mb-4 px-1">
+        <span className="text-xs font-bold text-gray-600">
+          {formatDayLabel(dateKey)}
+        </span>
+        {isToday(dateKey) && (
+          <span className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "#eab32e" }}>
+            오늘
+          </span>
+        )}
+        <span className="text-[10px] text-gray-300">
+          {completed.length}/{todos.length}
+        </span>
+      </div>
+
       {/* 할 일 추가 */}
       <div className="mb-5">
         <div className="flex gap-2">
@@ -93,7 +121,7 @@ export default function TodoList({ selectedDate, onTaskClick }: TodoListProps) {
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2.5">
           진행 중 ({inProgress.length})
         </p>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {loading ? (
             <p className="text-sm text-gray-300 text-center py-4">불러오는 중...</p>
           ) : inProgress.length === 0 ? (
@@ -116,13 +144,13 @@ export default function TodoList({ selectedDate, onTaskClick }: TodoListProps) {
       </div>
 
       {/* 완료됨 */}
-      {completedTodos.length > 0 && (
+      {completed.length > 0 && (
         <div className="mt-4">
           <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2.5">
-            완료됨 ({completedTodos.length})
+            완료됨 ({completed.length})
           </p>
-          <div className="space-y-2">
-            {completedTodos.map((todo) => (
+          <div className="space-y-1.5">
+            {completed.map((todo) => (
               <div
                 key={todo.id}
                 className="flex items-center gap-3 rounded-2xl bg-gray-50 px-4 py-3"
