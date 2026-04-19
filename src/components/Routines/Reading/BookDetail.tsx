@@ -248,7 +248,7 @@ function AddReadingRecord({
   );
 }
 
-export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpdate, isEnglishBook }: BookDetailProps) {
+export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpdate, isEnglishBook, certificationPhotos }: BookDetailProps) {
   const isPercent = book.trackingType === "percent";
   const [showAddRecord, setShowAddRecord] = useState(false);
   const [records, setRecords] = useState<DailyReadingRecord[]>([]);
@@ -309,6 +309,7 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
       noteType: record.noteType,
       note: record.note,
       thoughts: record.thoughts,
+      certPhotos: certificationPhotos?.length ? certificationPhotos : undefined,
     };
 
     const { error } = await createRitualRecordAuto({

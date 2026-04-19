@@ -155,6 +155,7 @@ export default function BookManage({ onBackToTimer, onBackToHome, isEnglishBook,
           onDelete={handleBookDeleted}
           onUpdate={handleBookUpdated}
           isEnglishBook={isEnglishBook}
+          certificationPhotos={certificationPhotos}
         />
       </div>
     );

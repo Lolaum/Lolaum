@@ -87,4 +87,5 @@ export interface BookDetailProps {
     isCompleted?: boolean;
   }) => void | Promise<void>;
   isEnglishBook?: boolean;
+  certificationPhotos?: string[];
 }

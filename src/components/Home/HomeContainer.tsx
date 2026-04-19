@@ -30,6 +30,8 @@ const NEEDS_PHOTO_FLOW = [
   "독서리추얼",
   "제2외국어리추얼",
   "자산관리리추얼",
+  "원서읽기리추얼",
+  "기록리추얼",
 ];
 
 export default function HomeContainer() {
@@ -213,6 +215,7 @@ export default function HomeContainer() {
       if (selectedTask.title === "원서읽기리추얼") {
         return wrap(
           <ReadingContainer
+            certificationPhotos={certPhotos}
             onBackToTimer={handleCloseTimer}
             onBackToHome={handleCloseTimer}
             isEnglishBook
@@ -261,6 +264,7 @@ export default function HomeContainer() {
       if (selectedTask.title === "기록리추얼") {
         return wrap(
           <RecordingContainer
+            certificationPhotos={certPhotos}
             elapsedSeconds={elapsedSeconds}
             onBackToTimer={handleCloseTimer}
             onBackToHome={handleCloseTimer}

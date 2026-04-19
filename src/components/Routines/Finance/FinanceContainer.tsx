@@ -45,6 +45,7 @@ export default function FinanceContainer({
       dailyExpenses: formData.dailyExpenses,
       studyContent: formData.studyContent,
       practice: formData.practice,
+      certPhotos: certificationPhotos?.length ? certificationPhotos : undefined,
     };
     const { error } = await createRitualRecordAuto({
       routineType: "finance",

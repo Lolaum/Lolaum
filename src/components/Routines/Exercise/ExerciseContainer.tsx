@@ -54,6 +54,7 @@ export default function ExerciseContainer({
       duration: formData.duration,
       images: formData.images,
       achievement: formData.achievement,
+      certPhotos: certificationPhotos?.length ? certificationPhotos : undefined,
     };
     const { error } = await createRitualRecordAuto({
       routineType: "exercise",

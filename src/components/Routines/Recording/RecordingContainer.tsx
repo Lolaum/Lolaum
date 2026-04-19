@@ -7,6 +7,7 @@ import type { RecordingRecordData, Json } from "@/types/supabase";
 
 interface RecordingContainerProps {
   elapsedSeconds?: number;
+  certificationPhotos?: string[];
   onBackToTimer: () => void;
   onBackToHome: () => void;
 }
@@ -20,6 +21,7 @@ interface RecordingRecord {
 
 export default function RecordingContainer({
   elapsedSeconds = 0,
+  certificationPhotos,
   onBackToTimer,
   onBackToHome,
 }: RecordingContainerProps) {
@@ -62,6 +64,7 @@ export default function RecordingContainer({
     const recordData: RecordingRecordData = {
       content: content.trim(),
       link: link.trim() || undefined,
+      certPhotos: certificationPhotos?.length ? certificationPhotos : undefined,
     };
     const { error } = await createRitualRecordAuto({
       routineType: "recording",
