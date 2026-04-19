@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ChevronDown, Quote, FileText, Trash2 } from "lucide-react";
+import { ChevronDown, Quote, FileText, Trash2, Camera } from "lucide-react";
 import { BookDetailProps, DailyReadingRecord, NoteType } from "@/types/routines/reading";
 import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
 import type { ReadingRecordData, Json } from "@/types/supabase";
@@ -11,11 +11,13 @@ function AddReadingRecord({
   onCancel,
   onBackToHome,
   onSave,
+  isEnglishBook,
 }: {
   book: BookDetailProps["book"];
   onCancel: () => void;
   onBackToHome?: () => void;
   onSave: (record: Omit<DailyReadingRecord, "id">) => void;
+  isEnglishBook?: boolean;
 }) {
   const isPercent = book.trackingType === "percent";
   const [startValue, setStartValue] = useState(book.currentValue.toString());
@@ -23,13 +25,24 @@ function AddReadingRecord({
   const [noteType, setNoteType] = useState<NoteType>("sentence");
   const [note, setNote] = useState("");
   const [thoughts, setThoughts] = useState("");
+  const [screenshot, setScreenshot] = useState<string | null>(null);
+
+  const handleScreenshot = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setScreenshot(reader.result as string);
+    reader.readAsDataURL(file);
+  };
 
   const progressAmount =
     endValue && Number(endValue) > Number(startValue)
       ? Number(endValue) - Number(startValue)
       : 0;
 
-  const canSave = note.trim().length > 0;
+  const canSave = isEnglishBook
+    ? screenshot !== null
+    : note.trim().length > 0;
 
   const handleSave = () => {
     if (!canSave) return;
@@ -41,7 +54,7 @@ function AddReadingRecord({
       endValue: Number(endValue) || Number(startValue),
       progressAmount,
       noteType,
-      note: note.trim(),
+      note: isEnglishBook ? "(스크린샷 인증)" : note.trim(),
       thoughts: thoughts.trim() || undefined,
     });
   };
@@ -74,6 +87,35 @@ function AddReadingRecord({
       {/* 메인 카드 */}
       <div className="max-w-2xl bg-white rounded-2xl border border-gray-200 p-4 mx-auto">
         <h2 className="text-xl font-bold text-gray-900 mb-4">기록 추가</h2>
+
+        {/* 원서읽기: 스크린샷 업로드 */}
+        {isEnglishBook && (
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              인증 스크린샷
+            </label>
+            {screenshot ? (
+              <div className="relative rounded-xl overflow-hidden border border-gray-200">
+                <img src={screenshot} alt="인증 스크린샷" className="w-full h-48 object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setScreenshot(null)}
+                  className="absolute top-2 right-2 w-7 h-7 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center gap-2 w-full h-36 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 cursor-pointer hover:border-gray-300 hover:bg-gray-100 transition-colors">
+                <Camera size={24} className="text-gray-400" />
+                <span className="text-sm text-gray-400 font-medium">스크린샷 추가</span>
+                <input type="file" accept="image/*" className="hidden" onChange={handleScreenshot} />
+              </label>
+            )}
+          </div>
+        )}
 
         {/* 오늘 읽은 분량 */}
         <div className="mb-6">
@@ -129,64 +171,66 @@ function AddReadingRecord({
           )}
         </div>
 
-        {/* 오늘의 문장 / 오늘 읽은 내용 요약 */}
-        <div className="mb-8">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            오늘의 문장 / 내용 요약
-          </label>
-          {/* 탭 */}
-          <div className="flex gap-2 mb-3">
-            <button
-              type="button"
-              onClick={() => setNoteType("sentence")}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                noteType === "sentence"
-                  ? "bg-orange-500 text-white"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-              }`}
-            >
-              <Quote className="w-4 h-4" />
-              오늘의 문장
-            </button>
-            <button
-              type="button"
-              onClick={() => setNoteType("summary")}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                noteType === "summary"
-                  ? "bg-orange-500 text-white"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-              }`}
-            >
-              <FileText className="w-4 h-4" />
-              내용 요약
-            </button>
-          </div>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder={
-              noteType === "sentence"
-                ? "오늘 읽은 내용 중 마음에 남는 문장을 적어보세요..."
-                : "오늘 읽은 내용을 간단하게 요약해보세요..."
-            }
-            rows={4}
-            className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400 resize-none"
-          />
-        </div>
+        {/* 독서리추얼 전용: 오늘의 문장 / 내용 요약 + 나만의 생각 */}
+        {!isEnglishBook && (
+          <>
+            <div className="mb-8">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                오늘의 문장 / 내용 요약
+              </label>
+              <div className="flex gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setNoteType("sentence")}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                    noteType === "sentence"
+                      ? "bg-orange-500 text-white"
+                      : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  }`}
+                >
+                  <Quote className="w-4 h-4" />
+                  오늘의 문장
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNoteType("summary")}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                    noteType === "summary"
+                      ? "bg-orange-500 text-white"
+                      : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  }`}
+                >
+                  <FileText className="w-4 h-4" />
+                  내용 요약
+                </button>
+              </div>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder={
+                  noteType === "sentence"
+                    ? "오늘 읽은 내용 중 마음에 남는 문장을 적어보세요..."
+                    : "오늘 읽은 내용을 간단하게 요약해보세요..."
+                }
+                rows={4}
+                className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400 resize-none"
+              />
+            </div>
 
-        {/* 나만의 생각 */}
-        <div className="mb-8">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            나만의 생각
-          </label>
-          <textarea
-            value={thoughts}
-            onChange={(e) => setThoughts(e.target.value)}
-            placeholder="읽으면서 든 생각이나 느낀 점을 자유롭게 적어보세요..."
-            rows={4}
-            className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400 resize-none"
-          />
-        </div>
+            <div className="mb-8">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                나만의 생각
+              </label>
+              <textarea
+                value={thoughts}
+                onChange={(e) => setThoughts(e.target.value)}
+                placeholder="읽으면서 든 생각이나 느낀 점을 자유롭게 적어보세요..."
+                rows={4}
+                className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400 resize-none"
+              />
+            </div>
+          </>
+        )}
 
         {/* 저장 버튼 */}
         <div className="flex gap-3">
@@ -204,7 +248,7 @@ function AddReadingRecord({
   );
 }
 
-export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpdate }: BookDetailProps) {
+export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpdate, isEnglishBook }: BookDetailProps) {
   const isPercent = book.trackingType === "percent";
   const [showAddRecord, setShowAddRecord] = useState(false);
   const [records, setRecords] = useState<DailyReadingRecord[]>([]);
@@ -214,7 +258,7 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
 
   // DB에서 이 책의 기존 기록 불러오기
   const fetchRecords = useCallback(async () => {
-    const { data } = await getMyRitualRecords({ routineType: "reading" });
+    const { data } = await getMyRitualRecords({ routineType: isEnglishBook ? "english_book" : "reading" });
     if (data) {
       const bookRecords: DailyReadingRecord[] = data
         .filter((r) => {
@@ -238,7 +282,7 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
         .sort((a, b) => b.date.localeCompare(a.date));
       setRecords(bookRecords);
     }
-  }, [book.id]);
+  }, [book.id, isEnglishBook]);
 
   useEffect(() => {
     fetchRecords();
@@ -268,7 +312,7 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
     };
 
     const { error } = await createRitualRecordAuto({
-      routineType: "reading",
+      routineType: isEnglishBook ? "english_book" : "reading",
       recordDate: record.date,
       recordData: recordData as unknown as Json,
     });
@@ -311,6 +355,7 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
         onCancel={() => setShowAddRecord(false)}
         onBackToHome={onBackToHome}
         onSave={handleSave}
+        isEnglishBook={isEnglishBook}
       />
     );
   }
