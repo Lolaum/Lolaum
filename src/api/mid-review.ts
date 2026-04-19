@@ -167,7 +167,15 @@ export async function updateMidReview(
   const user = await getCurrentUser();
   if (!user) return { error: "인증이 필요합니다." };
 
-  const patch: Record<string, unknown> = {};
+  const patch: {
+    good_conditions?: string[];
+    good_condition_details?: Json;
+    hard_conditions?: string[];
+    hard_condition_details?: Json;
+    why_started?: string;
+    keep_doing?: string;
+    will_change?: string;
+  } = {};
   if (input.goodConditions !== undefined)
     patch.good_conditions = input.goodConditions;
   if (input.goodConditionDetails !== undefined)
