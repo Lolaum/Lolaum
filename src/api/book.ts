@@ -146,10 +146,17 @@ export async function updateBook(
 ): Promise<{ data?: Book; error?: string }> {
   const supabase = await createClient();
 
-  const updateData: Record<string, unknown> = {};
+  const updateData: {
+    title?: string;
+    author?: string;
+    current_value?: number;
+    total_value?: number;
+    cover_image_url?: string | null;
+    is_completed?: boolean;
+    updated_at?: string;
+  } = {};
   if (input.title !== undefined) updateData.title = input.title;
   if (input.author !== undefined) updateData.author = input.author;
-  if (input.trackingType !== undefined) updateData.tracking_type = input.trackingType;
   if (input.currentValue !== undefined) updateData.current_value = input.currentValue;
   if (input.totalValue !== undefined) updateData.total_value = input.totalValue;
   if (input.coverImageUrl !== undefined) updateData.cover_image_url = input.coverImageUrl;
