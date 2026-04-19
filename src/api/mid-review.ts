@@ -22,7 +22,7 @@ interface MidReviewRow {
   keep_doing: string;
   will_change: string;
   created_at: string;
-  profiles: { name: string; emoji: string | null } | null;
+  profiles: { name: string; emoji: string | null; avatar_url: string | null } | null;
 }
 
 function toMidReview(row: MidReviewRow): MidReview {
@@ -31,6 +31,7 @@ function toMidReview(row: MidReviewRow): MidReview {
     userId: row.user_id,
     userName: row.profiles?.name ?? "익명",
     userEmoji: row.profiles?.emoji ?? undefined,
+    avatarUrl: row.profiles?.avatar_url ?? undefined,
     routineType: ROUTINE_TYPE_LABEL[row.routine_type] as RoutineType,
     goodConditions: row.good_conditions as MidReviewCondition[],
     goodConditionDetails:
@@ -50,7 +51,7 @@ function toMidReview(row: MidReviewRow): MidReview {
 }
 
 const SELECT_COLUMNS =
-  "id, user_id, routine_type, good_conditions, good_condition_details, hard_conditions, hard_condition_details, why_started, keep_doing, will_change, created_at, profiles(name, emoji)";
+  "id, user_id, routine_type, good_conditions, good_condition_details, hard_conditions, hard_condition_details, why_started, keep_doing, will_change, created_at, profiles(name, emoji, avatar_url)";
 
 /** 중간 회고 작성 가능 기간 검증 (매월 10~13일) */
 function assertWritableWindow(): string | null {
@@ -107,6 +108,54 @@ export async function getChallengerMidReviews(): Promise<{
 
   if (error) return { error: error.message };
   return { data: (data as unknown as MidReviewRow[]).map(toMidReview) };
+}
+
+/** 모든 사람의 중간 회고 목록 조회 (본인 포함) */
+export async function getAllMidReviews(): Promise<{
+  data?: MidReview[];
+  currentUserId?: string;
+  error?: string;
+}> {
+  const [{ challengeId, error: cError }, user] = await Promise.all([
+    getCurrentChallengeId(),
+    getCurrentUser(),
+  ]);
+  if (!user) return { error: "인증이 필요합니다." };
+  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("mid_reviews")
+    .select(SELECT_COLUMNS)
+    .eq("challenge_id", challengeId)
+    .order("created_at", { ascending: false });
+
+  if (error) return { error: error.message };
+  return {
+    data: (data as unknown as MidReviewRow[]).map(toMidReview),
+    currentUserId: user.id,
+  };
+}
+
+/** 중간 회고 단건 조회 */
+export async function getMidReviewById(
+  id: string,
+): Promise<{ data?: MidReview; currentUserId?: string; error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "인증이 필요합니다." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("mid_reviews")
+    .select(SELECT_COLUMNS)
+    .eq("id", id)
+    .single();
+
+  if (error) return { error: error.message };
+  return {
+    data: toMidReview(data as unknown as MidReviewRow),
+    currentUserId: user.id,
+  };
 }
 
 /** 중간 회고 생성 */
