@@ -40,18 +40,25 @@ export default function FeedContainer() {
 
   const fetchFeeds = useCallback(async () => {
     setLoading(true);
-    const routineType: RoutineTypeDB | undefined =
-      selectedFilter !== "all" ? selectedFilter : undefined;
+    try {
+      const routineType: RoutineTypeDB | undefined =
+        selectedFilter !== "all" ? selectedFilter : undefined;
 
-    const { data, total } = await getAllRecordsForDisplay({
-      routineType,
-      limit: ITEMS_PER_PAGE,
-      offset: (currentPage - 1) * ITEMS_PER_PAGE,
-      searchName: searchQuery || undefined,
-    });
-    setFeedData(data);
-    setTotalCount(total);
-    setLoading(false);
+      const { data, total } = await getAllRecordsForDisplay({
+        routineType,
+        limit: ITEMS_PER_PAGE,
+        offset: (currentPage - 1) * ITEMS_PER_PAGE,
+        searchName: searchQuery || undefined,
+      });
+      setFeedData(data);
+      setTotalCount(total);
+    } catch (e) {
+      console.error("피드 조회 실패:", e);
+      setFeedData([]);
+      setTotalCount(0);
+    } finally {
+      setLoading(false);
+    }
   }, [selectedFilter, currentPage, searchQuery]);
 
   useEffect(() => {

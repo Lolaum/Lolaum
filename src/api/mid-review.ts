@@ -68,35 +68,45 @@ export async function getMyMidReviews(): Promise<{
   data?: MidReview[];
   error?: string;
 }> {
-  const [{ challengeId, error: cError }, user] = await Promise.all([
-    getCurrentChallengeId(),
-    getCurrentUser(),
-  ]);
-  if (!user) return { error: "인증이 필요합니다." };
-  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
+  try {
+    const [{ challengeId, error: cError }, user] = await Promise.all([
+      getCurrentChallengeId(),
+      getCurrentUser(),
+    ]);
+    if (!user) return { error: "인증이 필요합니다." };
+    if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("mid_reviews")
-    .select(SELECT_COLUMNS)
-    .eq("user_id", user.id)
-    .eq("challenge_id", challengeId)
-    .order("created_at", { ascending: true });
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("mid_reviews")
+      .select(SELECT_COLUMNS)
+      .eq("user_id", user.id)
+      .eq("challenge_id", challengeId)
+      .order("created_at", { ascending: true });
 
-  if (error) return { error: error.message };
-  return { data: (data as unknown as MidReviewRow[]).map(toMidReview) };
+    if (error) return { error: error.message };
+    return { data: (data as unknown as MidReviewRow[]).map(toMidReview) };
+  } catch (e) {
+    console.error("getMyMidReviews error:", e);
+    return { error: "중간 회고 조회 중 오류가 발생했습니다." };
+  }
 }
 
 /** 이번 달 모든 챌린지 ID 조회 */
 async function getCurrentMonthChallengeIds(): Promise<string[]> {
-  const admin = createAdminClient();
-  const now = new Date();
-  const { data } = await admin
-    .from("challenges")
-    .select("id")
-    .eq("year", now.getFullYear())
-    .eq("month", now.getMonth() + 1);
-  return (data ?? []).map((c) => c.id);
+  try {
+    const admin = createAdminClient();
+    const now = new Date();
+    const { data } = await admin
+      .from("challenges")
+      .select("id")
+      .eq("year", now.getFullYear())
+      .eq("month", now.getMonth() + 1);
+    return (data ?? []).map((c) => c.id);
+  } catch (e) {
+    console.error("getCurrentMonthChallengeIds error:", e);
+    return [];
+  }
 }
 
 /** 챌린저(같은 챌린지 팀원) 중간 회고 목록 조회 */
@@ -104,22 +114,27 @@ export async function getChallengerMidReviews(): Promise<{
   data?: MidReview[];
   error?: string;
 }> {
-  const user = await getCurrentUser();
-  if (!user) return { error: "인증이 필요합니다." };
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { error: "인증이 필요합니다." };
 
-  const challengeIds = await getCurrentMonthChallengeIds();
-  if (challengeIds.length === 0) return { error: "챌린지를 찾을 수 없습니다." };
+    const challengeIds = await getCurrentMonthChallengeIds();
+    if (challengeIds.length === 0) return { error: "챌린지를 찾을 수 없습니다." };
 
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("mid_reviews")
-    .select(SELECT_COLUMNS)
-    .in("challenge_id", challengeIds)
-    .neq("user_id", user.id)
-    .order("created_at", { ascending: false });
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("mid_reviews")
+      .select(SELECT_COLUMNS)
+      .in("challenge_id", challengeIds)
+      .neq("user_id", user.id)
+      .order("created_at", { ascending: false });
 
-  if (error) return { error: error.message };
-  return { data: (data as unknown as MidReviewRow[]).map(toMidReview) };
+    if (error) return { error: error.message };
+    return { data: (data as unknown as MidReviewRow[]).map(toMidReview) };
+  } catch (e) {
+    console.error("getChallengerMidReviews error:", e);
+    return { error: "중간 회고 조회 중 오류가 발생했습니다." };
+  }
 }
 
 /** 모든 사람의 중간 회고 목록 조회 (본인 포함) */
@@ -128,45 +143,55 @@ export async function getAllMidReviews(): Promise<{
   currentUserId?: string;
   error?: string;
 }> {
-  const user = await getCurrentUser();
-  if (!user) return { error: "인증이 필요합니다." };
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { error: "인증이 필요합니다." };
 
-  const challengeIds = await getCurrentMonthChallengeIds();
-  if (challengeIds.length === 0) return { error: "챌린지를 찾을 수 없습니다." };
+    const challengeIds = await getCurrentMonthChallengeIds();
+    if (challengeIds.length === 0) return { error: "챌린지를 찾을 수 없습니다." };
 
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("mid_reviews")
-    .select(SELECT_COLUMNS)
-    .in("challenge_id", challengeIds)
-    .order("created_at", { ascending: false });
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("mid_reviews")
+      .select(SELECT_COLUMNS)
+      .in("challenge_id", challengeIds)
+      .order("created_at", { ascending: false });
 
-  if (error) return { error: error.message };
-  return {
-    data: (data as unknown as MidReviewRow[]).map(toMidReview),
-    currentUserId: user.id,
-  };
+    if (error) return { error: error.message };
+    return {
+      data: (data as unknown as MidReviewRow[]).map(toMidReview),
+      currentUserId: user.id,
+    };
+  } catch (e) {
+    console.error("getAllMidReviews error:", e);
+    return { error: "중간 회고 조회 중 오류가 발생했습니다." };
+  }
 }
 
 /** 중간 회고 단건 조회 */
 export async function getMidReviewById(
   id: string,
 ): Promise<{ data?: MidReview; currentUserId?: string; error?: string }> {
-  const user = await getCurrentUser();
-  if (!user) return { error: "인증이 필요합니다." };
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { error: "인증이 필요합니다." };
 
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("mid_reviews")
-    .select(SELECT_COLUMNS)
-    .eq("id", id)
-    .single();
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("mid_reviews")
+      .select(SELECT_COLUMNS)
+      .eq("id", id)
+      .single();
 
-  if (error) return { error: error.message };
-  return {
-    data: toMidReview(data as unknown as MidReviewRow),
-    currentUserId: user.id,
-  };
+    if (error) return { error: error.message };
+    return {
+      data: toMidReview(data as unknown as MidReviewRow),
+      currentUserId: user.id,
+    };
+  } catch (e) {
+    console.error("getMidReviewById error:", e);
+    return { error: "중간 회고 조회 중 오류가 발생했습니다." };
+  }
 }
 
 /** 중간 회고 생성 */
@@ -180,32 +205,37 @@ export async function createMidReview(input: {
   keepDoing: string;
   willChange: string;
 }): Promise<{ error?: string }> {
-  const windowError = assertWritableWindow();
-  if (windowError) return { error: windowError };
+  try {
+    const windowError = assertWritableWindow();
+    if (windowError) return { error: windowError };
 
-  const [{ challengeId, error: cError }, user] = await Promise.all([
-    getCurrentChallengeId(),
-    getCurrentUser(),
-  ]);
-  if (!user) return { error: "인증이 필요합니다." };
-  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
+    const [{ challengeId, error: cError }, user] = await Promise.all([
+      getCurrentChallengeId(),
+      getCurrentUser(),
+    ]);
+    if (!user) return { error: "인증이 필요합니다." };
+    if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
-  const supabase = await createClient();
-  const { error } = await supabase.from("mid_reviews").insert({
-    user_id: user.id,
-    challenge_id: challengeId,
-    routine_type: input.routineType,
-    good_conditions: input.goodConditions,
-    good_condition_details: input.goodConditionDetails as unknown as Json,
-    hard_conditions: input.hardConditions,
-    hard_condition_details: input.hardConditionDetails as unknown as Json,
-    why_started: input.whyStarted,
-    keep_doing: input.keepDoing,
-    will_change: input.willChange,
-  });
+    const supabase = await createClient();
+    const { error } = await supabase.from("mid_reviews").insert({
+      user_id: user.id,
+      challenge_id: challengeId,
+      routine_type: input.routineType,
+      good_conditions: input.goodConditions,
+      good_condition_details: input.goodConditionDetails as unknown as Json,
+      hard_conditions: input.hardConditions,
+      hard_condition_details: input.hardConditionDetails as unknown as Json,
+      why_started: input.whyStarted,
+      keep_doing: input.keepDoing,
+      will_change: input.willChange,
+    });
 
-  if (error) return { error: error.message };
-  return {};
+    if (error) return { error: error.message };
+    return {};
+  } catch (e) {
+    console.error("createMidReview error:", e);
+    return { error: "중간 회고 작성 중 오류가 발생했습니다." };
+  }
 }
 
 /** 중간 회고 수정 */
@@ -221,61 +251,71 @@ export async function updateMidReview(
     willChange?: string;
   },
 ): Promise<{ error?: string }> {
-  const windowError = assertWritableWindow();
-  if (windowError) return { error: windowError };
+  try {
+    const windowError = assertWritableWindow();
+    if (windowError) return { error: windowError };
 
-  const user = await getCurrentUser();
-  if (!user) return { error: "인증이 필요합니다." };
+    const user = await getCurrentUser();
+    if (!user) return { error: "인증이 필요합니다." };
 
-  const patch: {
-    good_conditions?: string[];
-    good_condition_details?: Json;
-    hard_conditions?: string[];
-    hard_condition_details?: Json;
-    why_started?: string;
-    keep_doing?: string;
-    will_change?: string;
-  } = {};
-  if (input.goodConditions !== undefined)
-    patch.good_conditions = input.goodConditions;
-  if (input.goodConditionDetails !== undefined)
-    patch.good_condition_details = input.goodConditionDetails as unknown as Json;
-  if (input.hardConditions !== undefined)
-    patch.hard_conditions = input.hardConditions;
-  if (input.hardConditionDetails !== undefined)
-    patch.hard_condition_details = input.hardConditionDetails as unknown as Json;
-  if (input.whyStarted !== undefined) patch.why_started = input.whyStarted;
-  if (input.keepDoing !== undefined) patch.keep_doing = input.keepDoing;
-  if (input.willChange !== undefined) patch.will_change = input.willChange;
+    const patch: {
+      good_conditions?: string[];
+      good_condition_details?: Json;
+      hard_conditions?: string[];
+      hard_condition_details?: Json;
+      why_started?: string;
+      keep_doing?: string;
+      will_change?: string;
+    } = {};
+    if (input.goodConditions !== undefined)
+      patch.good_conditions = input.goodConditions;
+    if (input.goodConditionDetails !== undefined)
+      patch.good_condition_details = input.goodConditionDetails as unknown as Json;
+    if (input.hardConditions !== undefined)
+      patch.hard_conditions = input.hardConditions;
+    if (input.hardConditionDetails !== undefined)
+      patch.hard_condition_details = input.hardConditionDetails as unknown as Json;
+    if (input.whyStarted !== undefined) patch.why_started = input.whyStarted;
+    if (input.keepDoing !== undefined) patch.keep_doing = input.keepDoing;
+    if (input.willChange !== undefined) patch.will_change = input.willChange;
 
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("mid_reviews")
-    .update(patch)
-    .eq("id", id)
-    .eq("user_id", user.id);
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("mid_reviews")
+      .update(patch)
+      .eq("id", id)
+      .eq("user_id", user.id);
 
-  if (error) return { error: error.message };
-  return {};
+    if (error) return { error: error.message };
+    return {};
+  } catch (e) {
+    console.error("updateMidReview error:", e);
+    return { error: "중간 회고 수정 중 오류가 발생했습니다." };
+  }
 }
 
 /** 중간 회고 삭제 */
 export async function deleteMidReview(
   id: string,
 ): Promise<{ error?: string }> {
-  const windowError = assertWritableWindow();
-  if (windowError) return { error: windowError };
+  try {
+    const windowError = assertWritableWindow();
+    if (windowError) return { error: windowError };
 
-  const user = await getCurrentUser();
-  if (!user) return { error: "인증이 필요합니다." };
+    const user = await getCurrentUser();
+    if (!user) return { error: "인증이 필요합니다." };
 
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("mid_reviews")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("mid_reviews")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id);
 
-  if (error) return { error: error.message };
-  return {};
+    if (error) return { error: error.message };
+    return {};
+  } catch (e) {
+    console.error("deleteMidReview error:", e);
+    return { error: "중간 회고 삭제 중 오류가 발생했습니다." };
+  }
 }
