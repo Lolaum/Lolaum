@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus, X, Upload } from "lucide-react";
-import { fileToBase64 } from "@/lib/utils";
+import { applyTimestamp, fileToBase64 } from "@/lib/utils";
 import {
   AddNewLanguageProps,
   LanguageFormData,
@@ -50,8 +50,10 @@ export default function AddNewLanguage({
     if (!files) return;
 
     const newFiles = Array.from(files).slice(0, 2 - images.length);
-    const base64Images = await Promise.all(newFiles.map(fileToBase64));
-    setImages([...images, ...base64Images].slice(0, 2));
+    const stampedImages = await Promise.all(
+      newFiles.map((f) => applyTimestamp(f).catch(() => fileToBase64(f)))
+    );
+    setImages([...images, ...stampedImages].slice(0, 2));
   };
 
   const removeImage = (index: number) => {

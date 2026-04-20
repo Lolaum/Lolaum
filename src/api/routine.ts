@@ -22,7 +22,16 @@ export async function getRoutines(
     .order("registered_at", { ascending: true });
 
   if (error) return { error: error.message };
-  return { data: data ?? [] };
+
+  // routine_type 중복 제거 (먼저 등록된 것만 유지)
+  const seen = new Set<string>();
+  const unique = (data ?? []).filter((r) => {
+    if (seen.has(r.routine_type)) return false;
+    seen.add(r.routine_type);
+    return true;
+  });
+
+  return { data: unique };
 }
 
 export async function createRoutine(input: {
@@ -35,6 +44,19 @@ export async function createRoutine(input: {
   }
 
   const supabase = await createClient();
+
+  // 이미 등록된 루틴인지 확인
+  const { data: existing } = await supabase
+    .from("challenge_registrations")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("challenge_id", input.challengeId)
+    .eq("routine_type", input.routineType)
+    .maybeSingle();
+
+  if (existing) {
+    return { error: "이미 등록된 루틴입니다." };
+  }
 
   const { data, error } = await supabase
     .from("challenge_registrations")

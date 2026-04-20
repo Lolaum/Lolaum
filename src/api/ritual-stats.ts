@@ -706,17 +706,13 @@ export async function getHomeStats(): Promise<{
 
   const supabase = await createClient();
 
-  const [currentRes, allRes, registrationsRes, declarationsRes, midReviewsRes, todosRes] =
+  const [currentRes, registrationsRes, declarationsRes, midReviewsRes, todosRes] =
     await Promise.all([
       supabase
         .from("ritual_records")
         .select("routine_type, record_date")
         .eq("user_id", user.id)
         .eq("challenge_id", challengeId),
-      supabase
-        .from("ritual_records")
-        .select("record_date")
-        .eq("user_id", user.id),
       supabase
         .from("challenge_registrations")
         .select("routine_type")
@@ -740,16 +736,14 @@ export async function getHomeStats(): Promise<{
     ]);
 
   const currentRecords = currentRes.data ?? [];
-  const allRecords = allRes.data ?? [];
   const registrations = registrationsRes.data ?? [];
   const completedTodos = todosRes.data ?? [];
 
-  // myPage stats
+  // myPage stats (현재 챌린지 기준으로 스트릭 계산)
   const currentDates = [...new Set(currentRecords.map((r) => r.record_date))];
-  const allDates = allRecords.map((r) => r.record_date);
   const myPage: MyPageStats = {
     currentStreak: calcStreak(currentDates),
-    longestStreak: calcLongestStreak(allDates),
+    longestStreak: calcLongestStreak(currentDates),
     totalCompletions: currentRecords.length,
   };
 
