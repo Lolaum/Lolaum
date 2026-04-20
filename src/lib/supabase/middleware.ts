@@ -39,12 +39,15 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
+  // getUser()는 매 요청마다 Supabase Auth 서버 왕복(100~200ms)이 발생.
+  // getSession()은 로컬 쿠키만 읽어 ~0ms이고, 토큰 갱신도 자동 처리된다.
+  // RLS가 auth.uid()로 데이터 접근을 보호하므로 보안상 안전하다.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
   // 로그인하지 않은 유저는 /login으로 리다이렉트
-  if (!user) {
+  if (!session?.user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

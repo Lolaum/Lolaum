@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
 import FeedItem from "./FeedItem";
 import { FeedItem as FeedItemType } from "@/types/feed";
 import { getAllRecordsForDisplay } from "@/api/ritual-records-display";
@@ -30,10 +30,13 @@ export default function FeedContainer() {
 
   const selectedFilter = (searchParams.get("filter") ?? "all") as FilterKey;
   const currentPage = Number(searchParams.get("page") ?? "1");
+  const searchQuery = searchParams.get("search") ?? "";
 
   const [feedData, setFeedData] = useState<FeedItemType[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState(searchQuery);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchFeeds = useCallback(async () => {
     setLoading(true);
@@ -44,11 +47,12 @@ export default function FeedContainer() {
       routineType,
       limit: ITEMS_PER_PAGE,
       offset: (currentPage - 1) * ITEMS_PER_PAGE,
+      searchName: searchQuery || undefined,
     });
     setFeedData(data);
     setTotalCount(total);
     setLoading(false);
-  }, [selectedFilter, currentPage]);
+  }, [selectedFilter, currentPage, searchQuery]);
 
   useEffect(() => {
     fetchFeeds();
@@ -58,10 +62,12 @@ export default function FeedContainer() {
   const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
   const pagedFeeds = filteredFeeds;
 
-  const updateParams = (filter: FilterKey, page: number) => {
+  const updateParams = (filter: FilterKey, page: number, search?: string) => {
     const params = new URLSearchParams();
     if (filter !== "all") params.set("filter", filter);
     if (page !== 1) params.set("page", String(page));
+    const s = search ?? searchQuery;
+    if (s) params.set("search", s);
     const query = params.toString();
     router.replace(query ? `/feeds?${query}` : "/feeds");
   };
@@ -74,6 +80,19 @@ export default function FeedContainer() {
     updateParams(selectedFilter, page);
   };
 
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      updateParams(selectedFilter, 1, value);
+    }, 400);
+  };
+
+  const handleSearchClear = () => {
+    setSearchInput("");
+    updateParams(selectedFilter, 1, "");
+  };
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 pb-8">
       {/* 헤더 */}
@@ -82,6 +101,26 @@ export default function FeedContainer() {
           팀원들의 기록
         </p>
         <h1 className="text-xl font-bold text-gray-900">인증 피드</h1>
+      </div>
+
+      {/* 닉네임 검색 */}
+      <div className="relative mb-4">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          value={searchInput}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          placeholder="닉네임으로 검색"
+          className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-white border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[var(--gold-400)] focus:ring-1 focus:ring-[var(--gold-400)] transition-colors"
+        />
+        {searchInput && (
+          <button
+            onClick={handleSearchClear}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
 
       {/* 필터 칩 */}

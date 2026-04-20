@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { signup, checkUsername } from "@/api/auth";
+import { signup, login, checkUsername } from "@/api/auth";
 
 export default function Signup() {
   const router = useRouter();
@@ -69,7 +69,19 @@ export default function Signup() {
         return;
       }
 
-      router.push("/login?registered=true");
+      // 회원가입 후 자동 로그인
+      const loginResult = await login({
+        email: form.email.trim(),
+        password: form.password,
+      });
+
+      if (loginResult.error) {
+        // 로그인 실패 시 로그인 페이지로 이동
+        router.push("/login?registered=true");
+        return;
+      }
+
+      router.push("/home");
     } catch {
       setError("회원가입 중 오류가 발생했습니다. 다시 시도해주세요.");
     } finally {

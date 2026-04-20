@@ -17,6 +17,31 @@ export async function getMe(): Promise<Profile | null> {
   return data;
 }
 
+/** 프로필 업데이트 (이름, 아바타, 한줄소개) */
+export async function updateMe(input: {
+  name?: string;
+  avatarUrl?: string | null;
+  bio?: string;
+}): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "인증이 필요합니다." };
+
+  const supabase = await createClient();
+
+  const patch: { name?: string; avatar_url?: string | null; bio?: string } = {};
+  if (input.name !== undefined) patch.name = input.name;
+  if (input.avatarUrl !== undefined) patch.avatar_url = input.avatarUrl;
+  if (input.bio !== undefined) patch.bio = input.bio;
+
+  const { error } = await supabase
+    .from("profiles")
+    .update(patch)
+    .eq("id", user.id);
+
+  if (error) return { error: error.message };
+  return {};
+}
+
 export interface ChallengerSummary {
   id: string;
   name: string;
