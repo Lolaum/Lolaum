@@ -172,133 +172,143 @@ export async function getMyRecordsForDisplay(options?: {
   routineType?: RoutineTypeDB;
   limit?: number;
 }): Promise<{ data: FeedItem[]; error?: string }> {
-  const user = await getCurrentUser();
-  if (!user) {
-    return { data: [], error: "인증이 필요합니다." };
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return { data: [], error: "인증이 필요합니다." };
+    }
+
+    const supabase = await createClient();
+
+    // 프로필 + 기록 동시 조회
+    const profilePromise = supabase
+      .from("profiles")
+      .select("id, name, avatar_url")
+      .eq("id", user.id)
+      .single();
+
+    let query = supabase
+      .from("ritual_records")
+      .select("id, user_id, routine_type, record_date, record_data, challenge_id, created_at")
+      .eq("user_id", user.id)
+      .order("record_date", { ascending: false });
+
+    if (options?.routineType) {
+      query = query.eq("routine_type", options.routineType);
+    }
+    if (options?.limit) {
+      query = query.limit(options.limit);
+    }
+
+    const [{ data: profile }, { data: records, error }] = await Promise.all([
+      profilePromise,
+      query,
+    ]);
+
+    if (error) return { data: [], error: error.message };
+    if (!records?.length) return { data: [] };
+
+    // 필요한 모든 책을 한 번에 조회
+    const bookMap = await fetchBookMap(records as RitualRecord[], supabase);
+
+    const feedItems: FeedItem[] = [];
+    for (const record of records as RitualRecord[]) {
+      const item = recordToFeedItem(
+        record,
+        profile ? { id: profile.id, name: profile.name, avatar_url: profile.avatar_url } : null,
+        bookMap,
+      );
+      if (item) feedItems.push(item);
+    }
+
+    return { data: feedItems };
+  } catch (e) {
+    console.error("getMyRecordsForDisplay error:", e);
+    return { data: [], error: "기록 조회 중 오류가 발생했습니다." };
   }
-
-  const supabase = await createClient();
-
-  // 프로필 + 기록 동시 조회
-  const profilePromise = supabase
-    .from("profiles")
-    .select("id, name, avatar_url")
-    .eq("id", user.id)
-    .single();
-
-  let query = supabase
-    .from("ritual_records")
-    .select("id, user_id, routine_type, record_date, record_data, challenge_id, created_at")
-    .eq("user_id", user.id)
-    .order("record_date", { ascending: false });
-
-  if (options?.routineType) {
-    query = query.eq("routine_type", options.routineType);
-  }
-  if (options?.limit) {
-    query = query.limit(options.limit);
-  }
-
-  const [{ data: profile }, { data: records, error }] = await Promise.all([
-    profilePromise,
-    query,
-  ]);
-
-  if (error) return { data: [], error: error.message };
-  if (!records?.length) return { data: [] };
-
-  // 필요한 모든 책을 한 번에 조회
-  const bookMap = await fetchBookMap(records as RitualRecord[], supabase);
-
-  const feedItems: FeedItem[] = [];
-  for (const record of records as RitualRecord[]) {
-    const item = recordToFeedItem(
-      record,
-      profile ? { id: profile.id, name: profile.name, avatar_url: profile.avatar_url } : null,
-      bookMap,
-    );
-    if (item) feedItems.push(item);
-  }
-
-  return { data: feedItems };
 }
 
 /** 단일 리추얼 기록 가져오기 (피드 상세용) */
 export async function getRecordById(
   id: string,
 ): Promise<{ data: FeedItem | null; error?: string }> {
-  const user = await getCurrentUser();
-  if (!user) {
-    return { data: null, error: "인증이 필요합니다." };
-  }
-
-  // 다른 유저의 기록도 볼 수 있도록 admin 클라이언트 사용
-  const admin = createAdminClient();
-
-  const { data: record, error } = await admin
-    .from("ritual_records")
-    .select("id, user_id, routine_type, record_date, record_data, challenge_id, created_at")
-    .eq("id", id)
-    .single();
-
-  if (error || !record) {
-    return { data: null, error: error?.message ?? "기록을 찾을 수 없습니다." };
-  }
-
-  // 프로필 + 댓글용 feed 매핑 + 책정보 모두 병렬 조회
-  const profilePromise = admin
-    .from("profiles")
-    .select("id, name, avatar_url")
-    .eq("id", record.user_id)
-    .single();
-
-  const feedPromise = admin
-    .from("feeds")
-    .select("id")
-    .eq("ritual_record_id", id)
-    .maybeSingle();
-
-  const bookMapPromise = fetchBookMap([record as RitualRecord], admin);
-
-  const [{ data: profile }, { data: feed }, bookMap] = await Promise.all([
-    profilePromise,
-    feedPromise,
-    bookMapPromise,
-  ]);
-
-  const item = recordToFeedItem(record as RitualRecord, profile, bookMap);
-
-  // 댓글 조회
-  if (item && feed) {
-    const { data: rawComments } = await admin
-      .from("feed_comments")
-      .select("id, user_id, text, created_at")
-      .eq("feed_id", feed.id)
-      .order("created_at", { ascending: true });
-
-    if (rawComments?.length) {
-      const commentUserIds = [...new Set(rawComments.map((c) => c.user_id))];
-      const { data: commentProfiles } = await admin
-        .from("profiles")
-        .select("id, name")
-        .in("id", commentUserIds);
-
-      const nameMap = new Map(
-        (commentProfiles ?? []).map((p) => [p.id, p.name]),
-      );
-
-      item.comments = rawComments.map((c): Comment => ({
-        id: c.id as unknown as number,
-        odOriginalId: c.id,
-        userId: c.user_id as unknown as number,
-        userName: nameMap.get(c.user_id) ?? "알 수 없음",
-        text: c.text,
-        date: c.created_at,
-      }));
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return { data: null, error: "인증이 필요합니다." };
     }
-  }
 
-  return { data: item };
+    // 다른 유저의 기록도 볼 수 있도록 admin 클라이언트 사용
+    const admin = createAdminClient();
+
+    const { data: record, error } = await admin
+      .from("ritual_records")
+      .select("id, user_id, routine_type, record_date, record_data, challenge_id, created_at")
+      .eq("id", id)
+      .single();
+
+    if (error || !record) {
+      return { data: null, error: error?.message ?? "기록을 찾을 수 없습니다." };
+    }
+
+    // 프로필 + 댓글용 feed 매핑 + 책정보 모두 병렬 조회
+    const profilePromise = admin
+      .from("profiles")
+      .select("id, name, avatar_url")
+      .eq("id", record.user_id)
+      .single();
+
+    const feedPromise = admin
+      .from("feeds")
+      .select("id")
+      .eq("ritual_record_id", id)
+      .maybeSingle();
+
+    const bookMapPromise = fetchBookMap([record as RitualRecord], admin);
+
+    const [{ data: profile }, { data: feed }, bookMap] = await Promise.all([
+      profilePromise,
+      feedPromise,
+      bookMapPromise,
+    ]);
+
+    const item = recordToFeedItem(record as RitualRecord, profile, bookMap);
+
+    // 댓글 조회
+    if (item && feed) {
+      const { data: rawComments } = await admin
+        .from("feed_comments")
+        .select("id, user_id, text, created_at")
+        .eq("feed_id", feed.id)
+        .order("created_at", { ascending: true });
+
+      if (rawComments?.length) {
+        const commentUserIds = [...new Set(rawComments.map((c) => c.user_id))];
+        const { data: commentProfiles } = await admin
+          .from("profiles")
+          .select("id, name")
+          .in("id", commentUserIds);
+
+        const nameMap = new Map(
+          (commentProfiles ?? []).map((p) => [p.id, p.name]),
+        );
+
+        item.comments = rawComments.map((c): Comment => ({
+          id: c.id as unknown as number,
+          odOriginalId: c.id,
+          userId: c.user_id as unknown as number,
+          userName: nameMap.get(c.user_id) ?? "알 수 없음",
+          text: c.text,
+          date: c.created_at,
+        }));
+      }
+    }
+
+    return { data: item };
+  } catch (e) {
+    console.error("getRecordById error:", e);
+    return { data: null, error: "기록 조회 중 오류가 발생했습니다." };
+  }
 }
 
 /** 전체 유저 리추얼 기록 가져오기 (피드용) */
@@ -308,81 +318,86 @@ export async function getAllRecordsForDisplay(options?: {
   offset?: number;
   searchName?: string;
 }): Promise<{ data: FeedItem[]; total: number; error?: string }> {
-  const user = await getCurrentUser();
-  if (!user) {
-    return { data: [], total: 0, error: "인증이 필요합니다." };
-  }
-
-  // 피드는 모든 유저의 기록을 보여줘야 하므로 RLS를 우회하는 admin 클라이언트 사용
-  const admin = createAdminClient();
-
-  // 닉네임 검색 시 해당 유저 ID 먼저 조회
-  let searchUserIds: string[] | undefined;
-  if (options?.searchName) {
-    const { data: matchedProfiles } = await admin
-      .from("profiles")
-      .select("id")
-      .ilike("name", `%${options.searchName}%`);
-
-    searchUserIds = (matchedProfiles ?? []).map((p) => p.id);
-    if (searchUserIds.length === 0) {
-      return { data: [], total: 0 };
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return { data: [], total: 0, error: "인증이 필요합니다." };
     }
+
+    // 피드는 모든 유저의 기록을 보여줘야 하므로 RLS를 우회하는 admin 클라이언트 사용
+    const admin = createAdminClient();
+
+    // 닉네임 검색 시 해당 유저 ID 먼저 조회
+    let searchUserIds: string[] | undefined;
+    if (options?.searchName) {
+      const { data: matchedProfiles } = await admin
+        .from("profiles")
+        .select("id")
+        .ilike("name", `%${options.searchName}%`);
+
+      searchUserIds = (matchedProfiles ?? []).map((p) => p.id);
+      if (searchUserIds.length === 0) {
+        return { data: [], total: 0 };
+      }
+    }
+
+    // count + 데이터 쿼리
+    let countQuery = admin
+      .from("ritual_records")
+      .select("id", { count: "exact", head: true });
+
+    let query = admin
+      .from("ritual_records")
+      .select("id, user_id, routine_type, record_date, record_data, challenge_id, created_at")
+      .order("record_date", { ascending: false });
+
+    if (options?.routineType) {
+      countQuery = countQuery.eq("routine_type", options.routineType);
+      query = query.eq("routine_type", options.routineType);
+    }
+
+    if (searchUserIds) {
+      countQuery = countQuery.in("user_id", searchUserIds);
+      query = query.in("user_id", searchUserIds);
+    }
+
+    if (options?.limit) {
+      query = query.limit(options.limit);
+    }
+
+    if (options?.offset) {
+      query = query.range(options.offset, options.offset + (options?.limit ?? 8) - 1);
+    }
+
+    const [{ count }, { data: records, error }] = await Promise.all([
+      countQuery,
+      query,
+    ]);
+
+    if (error) return { data: [], total: 0, error: error.message };
+    if (!records?.length) return { data: [], total: 0 };
+
+    // 프로필 + 책정보 병렬 조회 (admin으로 전체 유저 프로필 접근)
+    const userIds = [...new Set(records.map((r) => r.user_id))];
+    const [profilesRes, bookMap] = await Promise.all([
+      admin.from("profiles").select("id, name, avatar_url").in("id", userIds),
+      fetchBookMap(records as RitualRecord[], admin),
+    ]);
+
+    const profileMap = new Map(
+      (profilesRes.data ?? []).map((p) => [p.id, p]),
+    );
+
+    const feedItems: FeedItem[] = [];
+    for (const record of records as RitualRecord[]) {
+      const profile = profileMap.get(record.user_id) ?? null;
+      const item = recordToFeedItem(record, profile, bookMap);
+      if (item) feedItems.push(item);
+    }
+
+    return { data: feedItems, total: count ?? 0 };
+  } catch (e) {
+    console.error("getAllRecordsForDisplay error:", e);
+    return { data: [], total: 0, error: "피드 조회 중 오류가 발생했습니다." };
   }
-
-  // count + 데이터 쿼리
-  let countQuery = admin
-    .from("ritual_records")
-    .select("id", { count: "exact", head: true });
-
-  let query = admin
-    .from("ritual_records")
-    .select("id, user_id, routine_type, record_date, record_data, challenge_id, created_at")
-    .order("record_date", { ascending: false });
-
-  if (options?.routineType) {
-    countQuery = countQuery.eq("routine_type", options.routineType);
-    query = query.eq("routine_type", options.routineType);
-  }
-
-  if (searchUserIds) {
-    countQuery = countQuery.in("user_id", searchUserIds);
-    query = query.in("user_id", searchUserIds);
-  }
-
-  if (options?.limit) {
-    query = query.limit(options.limit);
-  }
-
-  if (options?.offset) {
-    query = query.range(options.offset, options.offset + (options?.limit ?? 8) - 1);
-  }
-
-  const [{ count }, { data: records, error }] = await Promise.all([
-    countQuery,
-    query,
-  ]);
-
-  if (error) return { data: [], total: 0, error: error.message };
-  if (!records?.length) return { data: [], total: 0 };
-
-  // 프로필 + 책정보 병렬 조회 (admin으로 전체 유저 프로필 접근)
-  const userIds = [...new Set(records.map((r) => r.user_id))];
-  const [profilesRes, bookMap] = await Promise.all([
-    admin.from("profiles").select("id, name, avatar_url").in("id", userIds),
-    fetchBookMap(records as RitualRecord[], admin),
-  ]);
-
-  const profileMap = new Map(
-    (profilesRes.data ?? []).map((p) => [p.id, p]),
-  );
-
-  const feedItems: FeedItem[] = [];
-  for (const record of records as RitualRecord[]) {
-    const profile = profileMap.get(record.user_id) ?? null;
-    const item = recordToFeedItem(record, profile, bookMap);
-    if (item) feedItems.push(item);
-  }
-
-  return { data: feedItems, total: count ?? 0 };
 }
