@@ -7,7 +7,6 @@ import HomCalendar from "./HomeCalendar";
 import TaskTabs from "./Todo/TaskTabs";
 import MemberProfile from "./Profile/MemberProfile";
 import Profile from "./Profile/Profile";
-import Timer from "./Timer/Timer";
 
 const ReadingContainer = dynamic(() => import("@/components/Routines/Reading/ReadingContainer"), { ssr: false });
 const LanguageContainer = dynamic(() => import("@/components/Routines/Language/LanguageContainer"), { ssr: false });
@@ -15,29 +14,17 @@ const ExerciseContainer = dynamic(() => import("@/components/Routines/Exercise/E
 const MorningContainer = dynamic(() => import("@/components/Routines/Morning/MorningContainer"), { ssr: false });
 const FinanceContainer = dynamic(() => import("@/components/Routines/Finance/FinanceContainer"), { ssr: false });
 const RecordingContainer = dynamic(() => import("@/components/Routines/Recording/RecordingContainer"), { ssr: false });
-const PhotoCertification = dynamic(() => import("@/components/Ritual/PhotoCertification"), { ssr: false });
-import { getHomeStats, MyPageStats, CompletionRateStats, CalendarDayMarker } from "@/api/ritual-stats";
+import { type MyPageStats, type CompletionRateStats, type CalendarDayMarker } from "@/api/ritual-stats";
 
-type RitualStep = "pre_photo" | "timer" | "post_photo" | "record";
+interface HomeInitialData {
+  myPage?: MyPageStats;
+  completion?: CompletionRateStats;
+  calendarMarkers?: Record<string, CalendarDayMarker>;
+  routineCompletionMap?: Record<string, number>;
+  error?: string;
+}
 
-// 중간 회고 작성 기간 알림 — 숨김 처리
-// const CURRENT_DAY: number = 11;
-// const IS_MID_REVIEW_PERIOD = CURRENT_DAY >= 10 && CURRENT_DAY <= 13;
-// const IS_LAST_DAY = CURRENT_DAY === 13;
-// const DAYS_LEFT = 13 - CURRENT_DAY;
-
-// 시작/종료 인증 사진이 필요한 리추얼 목록
-const NEEDS_PHOTO_FLOW = [
-  "운동리추얼",
-  "영어리추얼",
-  "독서리추얼",
-  "제2외국어리추얼",
-  "자산관리리추얼",
-  "원서읽기리추얼",
-  "기록리추얼",
-];
-
-export default function HomeContainer() {
+export default function HomeContainer({ initialData }: { initialData: HomeInitialData }) {
   // const router = useRouter(); // 중간 회고 알림 숨김으로 미사용
   const [mounted, setMounted] = useState(false);
   const [today, setToday] = useState<Date | null>(null);
@@ -50,32 +37,16 @@ export default function HomeContainer() {
     color: string;
   } | null>(null);
 
-  // 리추얼 진행 단계 상태 머신
-  const [ritualStep, setRitualStep] = useState<RitualStep | null>(null);
-  const [startPhoto, setStartPhoto] = useState<string | null>(null);
-  const [endPhoto, setEndPhoto] = useState<string | null>(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [myPageStats, setMyPageStats] = useState<MyPageStats | null>(null);
-  const [completionRate, setCompletionRate] = useState<CompletionRateStats | null>(null);
-  const [calendarMarkers, setCalendarMarkers] = useState<Record<string, CalendarDayMarker>>({});
-  const [routineCompletionMap, setRoutineCompletionMap] = useState<Record<string, number>>({});
+  const [myPageStats, setMyPageStats] = useState<MyPageStats | null>(initialData.myPage ?? null);
+  const [completionRate, setCompletionRate] = useState<CompletionRateStats | null>(initialData.completion ?? null);
+  const [calendarMarkers, setCalendarMarkers] = useState<Record<string, CalendarDayMarker>>(initialData.calendarMarkers ?? {});
+  const [routineCompletionMap, setRoutineCompletionMap] = useState<Record<string, number>>(initialData.routineCompletionMap ?? {});
 
   useEffect(() => {
     const now = new Date();
     setToday(now);
     setSelectedDate(now);
     setMounted(true);
-  }, []);
-
-  // Profile + TaskTabs가 같은 데이터를 쓰므로 컨테이너에서 한 번만 호출
-  // (myPage stats + completion rate를 단일 server action으로 통합)
-  useEffect(() => {
-    getHomeStats().then((res) => {
-      if (res.myPage) setMyPageStats(res.myPage);
-      if (res.completion) setCompletionRate(res.completion);
-      if (res.calendarMarkers) setCalendarMarkers(res.calendarMarkers);
-      if (res.routineCompletionMap) setRoutineCompletionMap(res.routineCompletionMap);
-    });
   }, []);
 
   // 선택된 날짜가 오늘 이전인지 확인
@@ -86,24 +57,10 @@ export default function HomeContainer() {
   const handleTaskClick = (title: string, color: string) => {
     if (isPastDate) return; // 지난 날짜에서는 루틴 진행 불가
     setSelectedTask({ title, color });
-    if (title === "모닝리추얼" || title === "원서읽기리추얼") {
-      // 타이머 없이 바로 기록폼
-      setRitualStep("record");
-      return;
-    }
-    if (NEEDS_PHOTO_FLOW.includes(title)) {
-      setRitualStep("pre_photo");
-    } else {
-      setRitualStep("timer");
-    }
   };
 
-  const handleCloseTimer = () => {
+  const handleClose = () => {
     setSelectedTask(null);
-    setRitualStep(null);
-    setStartPhoto(null);
-    setEndPhoto(null);
-    setElapsedSeconds(0);
   };
 
   // 마운트 전에는 로딩 상태 표시
@@ -130,150 +87,82 @@ export default function HomeContainer() {
     );
   }
 
-  // 리추얼 진행 화면 렌더링
-  if (selectedTask && ritualStep) {
-    const certPhotos =
-      startPhoto && endPhoto ? [startPhoto, endPhoto] : [];
-
+  // 리추얼 기록 화면 렌더링
+  if (selectedTask) {
     const wrap = (children: React.ReactNode) => (
       <div className="w-full px-4 py-3 sm:px-6 md:px-8 lg:px-12">
         <div className="mx-auto max-w-7xl">{children}</div>
       </div>
     );
 
-    // STEP 1: 시작 인증 사진
-    if (ritualStep === "pre_photo") {
+    if (selectedTask.title === "모닝리추얼") {
       return wrap(
-        <PhotoCertification
-          mode="start"
-          taskTitle={selectedTask.title}
-          color={selectedTask.color}
-          onPhotoTaken={(photo) => {
-            setStartPhoto(photo);
-            setRitualStep("timer");
-          }}
-          onClose={handleCloseTimer}
+        <MorningContainer
+          onBackToTimer={handleClose}
+          onBackToHome={handleClose}
         />
       );
     }
 
-    // STEP 2: 타이머
-    if (ritualStep === "timer") {
+    if (selectedTask.title === "독서리추얼") {
       return wrap(
-        <Timer
-          taskTitle={selectedTask.title}
-          color={selectedTask.color}
-          startPhoto={startPhoto ?? undefined}
-          onClose={handleCloseTimer}
-          onNext={(seconds) => {
-            setElapsedSeconds(seconds);
-            if (NEEDS_PHOTO_FLOW.includes(selectedTask.title)) {
-              setRitualStep("post_photo");
-            } else {
-              setRitualStep("record");
-            }
-          }}
+        <ReadingContainer
+          onBackToTimer={handleClose}
+          onBackToHome={handleClose}
         />
       );
     }
 
-    // STEP 3: 종료 인증 사진
-    if (ritualStep === "post_photo") {
+    if (selectedTask.title === "원서읽기리추얼") {
       return wrap(
-        <PhotoCertification
-          mode="end"
-          taskTitle={selectedTask.title}
-          color={selectedTask.color}
-          elapsedSeconds={elapsedSeconds}
-          onPhotoTaken={(photo) => {
-            setEndPhoto(photo);
-            setRitualStep("record");
-          }}
-          onClose={handleCloseTimer}
+        <ReadingContainer
+          onBackToTimer={handleClose}
+          onBackToHome={handleClose}
+          isEnglishBook
         />
       );
     }
 
-    // STEP 4: 기록 추가 컨테이너
-    if (ritualStep === "record") {
-      if (selectedTask.title === "모닝리추얼") {
-        return wrap(
-          <MorningContainer
-            onBackToTimer={handleCloseTimer}
-            onBackToHome={handleCloseTimer}
-          />
-        );
-      }
+    if (
+      selectedTask.title === "영어리추얼" ||
+      selectedTask.title === "제2외국어리추얼"
+    ) {
+      return wrap(
+        <LanguageContainer
+          onBackToTimer={handleClose}
+          onBackToHome={handleClose}
+          languageType={
+            selectedTask.title === "영어리추얼" ? "영어" : "제2외국어"
+          }
+        />
+      );
+    }
 
-      if (selectedTask.title === "독서리추얼") {
-        return wrap(
-          <ReadingContainer
-            certificationPhotos={certPhotos}
-            onBackToTimer={handleCloseTimer}
-            onBackToHome={handleCloseTimer}
-          />
-        );
-      }
+    if (selectedTask.title === "운동리추얼") {
+      return wrap(
+        <ExerciseContainer
+          onBackToTimer={handleClose}
+          onBackToHome={handleClose}
+        />
+      );
+    }
 
-      if (selectedTask.title === "원서읽기리추얼") {
-        return wrap(
-          <ReadingContainer
-            certificationPhotos={certPhotos}
-            onBackToTimer={handleCloseTimer}
-            onBackToHome={handleCloseTimer}
-            isEnglishBook
-          />
-        );
-      }
+    if (selectedTask.title === "자산관리리추얼") {
+      return wrap(
+        <FinanceContainer
+          onBackToTimer={handleClose}
+          onBackToHome={handleClose}
+        />
+      );
+    }
 
-      if (
-        selectedTask.title === "영어리추얼" ||
-        selectedTask.title === "제2외국어리추얼"
-      ) {
-        return wrap(
-          <LanguageContainer
-            certificationPhotos={certPhotos}
-            elapsedSeconds={elapsedSeconds}
-            onBackToTimer={handleCloseTimer}
-            onBackToHome={handleCloseTimer}
-            languageType={
-              selectedTask.title === "영어리추얼" ? "영어" : "제2외국어"
-            }
-          />
-        );
-      }
-
-      if (selectedTask.title === "운동리추얼") {
-        return wrap(
-          <ExerciseContainer
-            certificationPhotos={certPhotos}
-            elapsedSeconds={elapsedSeconds}
-            onBackToTimer={handleCloseTimer}
-            onBackToHome={handleCloseTimer}
-          />
-        );
-      }
-
-      if (selectedTask.title === "자산관리리추얼") {
-        return wrap(
-          <FinanceContainer
-            certificationPhotos={certPhotos}
-            onBackToTimer={handleCloseTimer}
-            onBackToHome={handleCloseTimer}
-          />
-        );
-      }
-
-      if (selectedTask.title === "기록리추얼") {
-        return wrap(
-          <RecordingContainer
-            certificationPhotos={certPhotos}
-            elapsedSeconds={elapsedSeconds}
-            onBackToTimer={handleCloseTimer}
-            onBackToHome={handleCloseTimer}
-          />
-        );
-      }
+    if (selectedTask.title === "기록리추얼") {
+      return wrap(
+        <RecordingContainer
+          onBackToTimer={handleClose}
+          onBackToHome={handleClose}
+        />
+      );
     }
   }
 
