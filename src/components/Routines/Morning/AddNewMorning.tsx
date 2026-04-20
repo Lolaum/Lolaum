@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Upload, X } from "lucide-react";
-import { fileToBase64 } from "@/lib/utils";
+import { applyTimestamp, fileToBase64 } from "@/lib/utils";
 import {
   AddNewMorningProps,
   MorningFormData,
@@ -24,8 +24,8 @@ export default function AddNewMorning({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const base64 = await fileToBase64(files[0]);
-    setImage(base64);
+    const stamped = await applyTimestamp(files[0]).catch(() => fileToBase64(files[0]));
+    setImage(stamped);
   };
 
   const removeImage = () => {
