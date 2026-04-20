@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { logout } from "@/api/auth";
@@ -81,10 +82,13 @@ export default function Layout({ children }: LayoutProps) {
 
               {/* 로고 */}
               <Link href="/home" className="flex items-center gap-3">
-                <img
+                <Image
                   src="/images/common/LolaumLogo.png"
                   alt="Lolaum Logo"
+                  width={120}
+                  height={32}
                   className="mx-auto h-8 w-30"
+                  priority
                 />
               </Link>
             </div>
@@ -97,10 +101,13 @@ export default function Layout({ children }: LayoutProps) {
         <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
           {/* 로고 */}
           <Link href="/home" className="flex items-center gap-3">
-            <img
+            <Image
               src="/images/common/LolaumLogo.png"
               alt="Lolaum Logo"
+              width={120}
+              height={32}
               className="mx-auto h-8 w-30"
+              priority
             />
           </Link>
           {/* 로그아웃 */}
@@ -175,9 +182,11 @@ export default function Layout({ children }: LayoutProps) {
                 className="flex items-center gap-3"
                 onClick={() => setIsDrawerOpen(false)}
               >
-                <img
+                <Image
                   src="/images/common/LolaumLogo.png"
                   alt="Lolaum Logo"
+                  width={120}
+                  height={32}
                   className="h-8 w-30"
                 />
               </Link>
