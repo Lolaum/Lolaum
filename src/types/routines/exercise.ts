@@ -1,10 +1,14 @@
 // 운동 관련 타입 정의
 
+export type ExerciseRecordType = "exercise" | "diet";
+
 export interface ExerciseRecord {
   id: number;
   date: string;
+  recordType: ExerciseRecordType;
   exerciseName: string;
-  duration: number; // 분 단위
+  duration: number; // 분 단위 (운동일 때만 사용)
+  macros?: string; // 탄단지 비율 (식단일 때만 사용)
   images?: string[];
   achievement?: string;
 }
@@ -17,9 +21,11 @@ export interface ExerciseContainerProps {
 }
 
 export interface ExerciseFormData {
+  recordType: ExerciseRecordType;
   images: string[];
   exerciseName: string;
   duration: number;
+  macros?: string;
   achievement: string;
 }
 

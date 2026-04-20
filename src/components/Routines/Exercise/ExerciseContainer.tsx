@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Calendar, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import RecordExercise from "./RecordExercise";
 import AddNewExercise from "./AddNewExercise";
 import {
@@ -15,10 +15,8 @@ import type { ExerciseRecordData, Json } from "@/types/supabase";
 export default function ExerciseContainer({
   onBackToTimer,
   onBackToHome,
-  certificationPhotos,
-  elapsedSeconds = 0,
 }: ExerciseContainerProps) {
-  const [showAddRecord, setShowAddRecord] = useState(!!certificationPhotos?.length);
+  const [showAddRecord, setShowAddRecord] = useState(false);
   const [exerciseRecords, setExerciseRecords] = useState<ExerciseRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,8 +30,10 @@ export default function ExerciseContainer({
         return {
           id: r.id as unknown as number,
           date: `${date.getMonth() + 1}월 ${date.getDate()}일`,
+          recordType: d.recordType ?? "exercise",
           exerciseName: d.exerciseName,
           duration: d.duration,
+          macros: d.macros,
           images: d.images ?? [],
           achievement: d.achievement ?? "",
         };
@@ -50,11 +50,12 @@ export default function ExerciseContainer({
   const handleSubmit = async (formData: ExerciseFormData) => {
     const today = new Date().toISOString().split("T")[0];
     const recordData: ExerciseRecordData = {
+      recordType: formData.recordType,
       exerciseName: formData.exerciseName,
       duration: formData.duration,
+      macros: formData.macros,
       images: formData.images,
       achievement: formData.achievement,
-      certPhotos: certificationPhotos?.length ? certificationPhotos : undefined,
     };
     const { error } = await createRitualRecordAuto({
       routineType: "exercise",
@@ -69,28 +70,23 @@ export default function ExerciseContainer({
     fetchRecords();
   };
 
-  // 이번 달 통계 계산
-  const exerciseCount = exerciseRecords.length;
-  const totalMinutes = exerciseRecords.reduce(
-    (sum, record) => sum + record.duration,
-    0,
-  );
+  // 운동 기록만 합산 (식단 제외)
+  const exerciseOnly = exerciseRecords.filter((r) => r.recordType === "exercise");
+  const exerciseCount = exerciseOnly.length;
+  const totalMinutes = exerciseOnly.reduce((sum, r) => sum + r.duration, 0);
+  const dietCount = exerciseRecords.filter((r) => r.recordType === "diet").length;
 
   const renderContent = () => {
-    // 새 기록 추가하기 화면
     if (showAddRecord) {
       return (
         <AddNewExercise
           onCancel={() => setShowAddRecord(false)}
           onBackToHome={onBackToHome}
           onSubmit={handleSubmit}
-          initialImages={certificationPhotos}
-          initialDuration={elapsedSeconds > 0 ? Math.round(elapsedSeconds / 60) : undefined}
         />
       );
     }
 
-    // 메인 화면
     return (
       <>
         {/* 네비게이션 */}
@@ -103,7 +99,7 @@ export default function ExerciseContainer({
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            타이머로
+            홈으로
           </button>
           <button
             type="button"
@@ -120,14 +116,18 @@ export default function ExerciseContainer({
         <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-4">
           <p className="text-xs text-gray-400 font-medium mb-0.5">운동 리추얼</p>
           <h1 className="text-lg font-bold text-gray-900 mb-4">운동 기록 관리</h1>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="bg-orange-50 rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-gray-900">{exerciseCount}</p>
-              <p className="text-xs text-gray-400 mt-0.5">이번 달 횟수</p>
+              <p className="text-xs text-gray-400 mt-0.5">운동 횟수</p>
             </div>
             <div className="bg-orange-50 rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-gray-900">{totalMinutes}<span className="text-sm font-medium ml-0.5">분</span></p>
               <p className="text-xs text-gray-400 mt-0.5">총 운동 시간</p>
+            </div>
+            <div className="bg-green-50 rounded-xl p-3 text-center">
+              <p className="text-2xl font-bold text-gray-900">{dietCount}</p>
+              <p className="text-xs text-gray-400 mt-0.5">식단 기록</p>
             </div>
           </div>
         </div>
@@ -140,7 +140,7 @@ export default function ExerciseContainer({
             className="w-full py-3 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
             style={{ backgroundColor: "#ff8900" }}
           >
-            + 오늘 운동 기록하기
+            + 오늘 운동/식단 기록하기
           </button>
         </div>
 
