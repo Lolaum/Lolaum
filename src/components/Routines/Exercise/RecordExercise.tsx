@@ -1,18 +1,13 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ChevronDown, Clock } from "lucide-react";
+import { ChevronDown, Clock, Utensils } from "lucide-react";
 import { ExerciseRecord } from "@/types/routines/exercise";
 
 interface GroupedRecord {
   date: string;
-  exercises: {
-    exerciseName: string;
-    duration: number;
-    images?: string[];
-    achievement?: string;
-  }[];
-  totalDuration: number;
+  exercises: ExerciseRecord[];
+  totalDuration: number; // 운동만 합산
 }
 
 interface RecordExerciseProps {
@@ -24,7 +19,6 @@ export default function RecordExercise({
 }: RecordExerciseProps) {
   const [expandedDates, setExpandedDates] = useState<string[]>([]);
 
-  // 날짜별로 그룹화
   const groupedRecords = useMemo(() => {
     const grouped = exerciseRecords.reduce(
       (acc, record) => {
@@ -36,13 +30,10 @@ export default function RecordExercise({
           };
         }
 
-        acc[record.date].exercises.push({
-          exerciseName: record.exerciseName,
-          duration: record.duration,
-          images: record.images,
-          achievement: record.achievement,
-        });
-        acc[record.date].totalDuration += record.duration;
+        acc[record.date].exercises.push(record);
+        if (record.recordType === "exercise") {
+          acc[record.date].totalDuration += record.duration;
+        }
 
         return acc;
       },
@@ -60,12 +51,10 @@ export default function RecordExercise({
 
   return (
     <>
-      {/* 운동 기록 섹션 */}
       <div className="mb-4">
-        <h2 className="text-base font-semibold text-gray-900">운동 기록</h2>
+        <h2 className="text-base font-semibold text-gray-900">운동/식단 기록</h2>
       </div>
 
-      {/* Collapsible 리스트 */}
       <div className="space-y-2">
         {groupedRecords.map((group) => {
           const isExpanded = expandedDates.includes(group.date);
@@ -75,7 +64,6 @@ export default function RecordExercise({
               key={group.date}
               className="bg-white rounded-2xl border border-gray-200 overflow-hidden transition-all"
             >
-              {/* 헤더 (클릭 가능) */}
               <button
                 type="button"
                 onClick={() => toggleExpand(group.date)}
@@ -83,19 +71,19 @@ export default function RecordExercise({
               >
                 <div className="flex-1">
                   <h3 className="text-base font-bold text-gray-900 mb-1">
-                    {group.date} {group.exercises[0].exerciseName}
+                    {group.date}
                   </h3>
                   <p className="text-sm text-gray-600">
-                    {group.exercises
-                      .map((e) => `${e.exerciseName}`)
-                      .join(", ")}
+                    {group.exercises.map((e) => e.exerciseName).join(", ")}
                   </p>
                 </div>
                 <div className="flex items-center gap-3 ml-4">
-                  <span className="flex items-center gap-1 text-sm text-blue-600 font-medium">
-                    <Clock className="w-4 h-4" />
-                    {group.totalDuration}분
-                  </span>
+                  {group.totalDuration > 0 && (
+                    <span className="flex items-center gap-1 text-sm text-blue-600 font-medium">
+                      <Clock className="w-4 h-4" />
+                      {group.totalDuration}분
+                    </span>
+                  )}
                   <ChevronDown
                     className={`w-5 h-5 text-gray-400 transition-transform ${
                       isExpanded ? "rotate-180" : ""
@@ -104,26 +92,42 @@ export default function RecordExercise({
                 </div>
               </button>
 
-              {/* 확장된 내용 */}
               {isExpanded && (
                 <div className="px-4 pb-4 pt-2 border-t border-gray-100">
-                  {/* 운동 상세 정보 */}
                   <div className="space-y-3">
                     {group.exercises.map((exercise, index) => (
                       <div key={index}>
                         <div className="bg-gray-50 rounded-xl p-3 mb-2">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="font-semibold text-gray-900">
-                              {exercise.exerciseName}
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`text-xs font-bold px-2 py-0.5 rounded-md ${
+                                  exercise.recordType === "diet"
+                                    ? "bg-green-100 text-green-600"
+                                    : "bg-blue-100 text-blue-600"
+                                }`}
+                              >
+                                {exercise.recordType === "diet" ? "식단" : "운동"}
+                              </span>
+                              <span className="font-semibold text-gray-900">
+                                {exercise.exerciseName}
+                              </span>
                             </div>
-                            <div className="flex items-center gap-1 text-sm text-gray-600">
-                              <Clock className="w-4 h-4" />
-                              {exercise.duration}분
-                            </div>
+                            {exercise.recordType === "exercise" && exercise.duration > 0 && (
+                              <div className="flex items-center gap-1 text-sm text-gray-600">
+                                <Clock className="w-4 h-4" />
+                                {exercise.duration}분
+                              </div>
+                            )}
+                            {exercise.recordType === "diet" && exercise.macros && (
+                              <div className="flex items-center gap-1 text-sm text-gray-600">
+                                <Utensils className="w-4 h-4" />
+                                탄:단:지 {exercise.macros}
+                              </div>
+                            )}
                           </div>
                         </div>
 
-                        {/* 인증 사진 */}
                         {exercise.images && exercise.images.length > 0 && (
                           <div className="mb-3">
                             <h4 className="text-sm font-semibold text-gray-700 mb-2">
@@ -134,7 +138,7 @@ export default function RecordExercise({
                                 <img
                                   key={imgIndex}
                                   src={image}
-                                  alt={`운동 인증 ${imgIndex + 1}`}
+                                  alt={`인증 ${imgIndex + 1}`}
                                   className="w-full h-32 object-cover rounded-xl"
                                 />
                               ))}
@@ -142,7 +146,6 @@ export default function RecordExercise({
                           </div>
                         )}
 
-                        {/* 오늘의 작은 성취 */}
                         {exercise.achievement && (
                           <div className="mb-3">
                             <h4 className="text-sm font-semibold text-gray-700 mb-2">

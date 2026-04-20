@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentChallengeId } from "@/lib/current-challenge";
 import type { RoutineTypeDB, Json } from "@/types/supabase";
 import { ROUTINE_TYPE_LABEL } from "@/types/supabase";
@@ -86,23 +87,34 @@ export async function getMyMidReviews(): Promise<{
   return { data: (data as unknown as MidReviewRow[]).map(toMidReview) };
 }
 
+/** 이번 달 모든 챌린지 ID 조회 */
+async function getCurrentMonthChallengeIds(): Promise<string[]> {
+  const admin = createAdminClient();
+  const now = new Date();
+  const { data } = await admin
+    .from("challenges")
+    .select("id")
+    .eq("year", now.getFullYear())
+    .eq("month", now.getMonth() + 1);
+  return (data ?? []).map((c) => c.id);
+}
+
 /** 챌린저(같은 챌린지 팀원) 중간 회고 목록 조회 */
 export async function getChallengerMidReviews(): Promise<{
   data?: MidReview[];
   error?: string;
 }> {
-  const [{ challengeId, error: cError }, user] = await Promise.all([
-    getCurrentChallengeId(),
-    getCurrentUser(),
-  ]);
+  const user = await getCurrentUser();
   if (!user) return { error: "인증이 필요합니다." };
-  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const challengeIds = await getCurrentMonthChallengeIds();
+  if (challengeIds.length === 0) return { error: "챌린지를 찾을 수 없습니다." };
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
     .from("mid_reviews")
     .select(SELECT_COLUMNS)
-    .eq("challenge_id", challengeId)
+    .in("challenge_id", challengeIds)
     .neq("user_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -116,18 +128,17 @@ export async function getAllMidReviews(): Promise<{
   currentUserId?: string;
   error?: string;
 }> {
-  const [{ challengeId, error: cError }, user] = await Promise.all([
-    getCurrentChallengeId(),
-    getCurrentUser(),
-  ]);
+  const user = await getCurrentUser();
   if (!user) return { error: "인증이 필요합니다." };
-  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const challengeIds = await getCurrentMonthChallengeIds();
+  if (challengeIds.length === 0) return { error: "챌린지를 찾을 수 없습니다." };
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
     .from("mid_reviews")
     .select(SELECT_COLUMNS)
-    .eq("challenge_id", challengeId)
+    .in("challenge_id", challengeIds)
     .order("created_at", { ascending: false });
 
   if (error) return { error: error.message };
@@ -144,8 +155,8 @@ export async function getMidReviewById(
   const user = await getCurrentUser();
   if (!user) return { error: "인증이 필요합니다." };
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const admin = createAdminClient();
+  const { data, error } = await admin
     .from("mid_reviews")
     .select(SELECT_COLUMNS)
     .eq("id", id)

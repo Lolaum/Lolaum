@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { ProfileProps } from "@/types/home/profile";
 import { Flame, Trophy, CheckCircle2 } from "lucide-react";
-import { getMe } from "@/api/user";
+import { getMe, updateMe } from "@/api/user";
+import { createClient } from "@/lib/supabase/client";
 import { MyPageStats, CompletionRateStats } from "@/api/ritual-stats";
 
 interface Props extends ProfileProps {
@@ -29,21 +30,65 @@ export default function Profile({
   const stats = statsProp;
   const completionRate = completionRateProp;
 
+  const [userId, setUserId] = useState("");
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
     getMe().then((profile) => {
       if (profile) {
+        setUserId(profile.id);
         setUserName(profile.username);
         setSavedName(profile.name);
         setEditName(profile.name);
+        if (profile.avatar_url) {
+          setSavedPhoto(profile.avatar_url);
+          setEditPhoto(profile.avatar_url);
+        }
+        if (profile.bio) {
+          setSavedDescription(profile.bio);
+          setEditDescription(profile.bio);
+        }
       }
     });
   }, []);
 
-  const handleSave = () => {
-    setSavedName(editName);
-    setSavedDescription(editDescription);
-    setSavedPhoto(editPhoto);
-    setShowEditModal(false);
+  const handleSave = async () => {
+    setSaving(true);
+    let avatarUrl = savedPhoto;
+
+    // 새 사진이 data URL이면 Storage에 업로드
+    if (editPhoto && editPhoto.startsWith("data:")) {
+      const supabase = createClient();
+      const res = await fetch(editPhoto);
+      const blob = await res.blob();
+      const ext = blob.type.split("/")[1] || "jpg";
+      const path = `avatars/${userId}.${ext}`;
+
+      await supabase.storage.from("avatars").upload(path, blob, {
+        upsert: true,
+        contentType: blob.type,
+      });
+
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+      avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+    } else if (editPhoto !== savedPhoto) {
+      avatarUrl = editPhoto;
+    }
+
+    const { error } = await updateMe({
+      name: editName,
+      avatarUrl,
+      bio: editDescription,
+    });
+
+    setSaving(false);
+
+    if (!error) {
+      setSavedName(editName);
+      setSavedDescription(editDescription);
+      setSavedPhoto(avatarUrl);
+      setShowEditModal(false);
+    }
   };
 
   const handleOpen = () => {
@@ -121,10 +166,11 @@ export default function Profile({
             </button>
             <button
               onClick={handleSave}
-              className="flex-1 py-3 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md"
+              disabled={saving}
+              className="flex-1 py-3 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md disabled:opacity-50"
               style={{ backgroundColor: "#eab32e" }}
             >
-              저장
+              {saving ? "저장 중..." : "저장"}
             </button>
           </div>
         </div>

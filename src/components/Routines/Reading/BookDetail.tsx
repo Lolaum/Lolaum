@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ChevronDown, Quote, FileText, Trash2, Camera } from "lucide-react";
 import { BookDetailProps, DailyReadingRecord, NoteType } from "@/types/routines/reading";
 import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
+import { applyTimestamp } from "@/lib/utils";
 import type { ReadingRecordData, Json } from "@/types/supabase";
 
 function AddReadingRecord({
@@ -27,12 +28,17 @@ function AddReadingRecord({
   const [thoughts, setThoughts] = useState("");
   const [screenshot, setScreenshot] = useState<string | null>(null);
 
-  const handleScreenshot = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleScreenshot = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setScreenshot(reader.result as string);
-    reader.readAsDataURL(file);
+    const stamped = await applyTimestamp(file).catch(() => {
+      const reader = new FileReader();
+      return new Promise<string>((resolve) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+    });
+    setScreenshot(stamped);
   };
 
   const progressAmount =

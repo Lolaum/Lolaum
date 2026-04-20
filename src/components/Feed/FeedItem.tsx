@@ -210,8 +210,16 @@ export default function FeedItem({ item }: FeedItemProps) {
 
         {/* 유저 + 서브텍스트 */}
         <div className="flex items-center gap-2.5 mb-2.5">
-          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-            <User size={14} className="text-gray-400" />
+          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+            {item.userProfileImage ? (
+              <img
+                src={item.userProfileImage}
+                alt={item.userName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <User size={14} className="text-gray-400" />
+            )}
           </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-gray-900 leading-tight">{item.userName}</p>

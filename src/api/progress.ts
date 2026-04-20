@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export interface ChallengerProgress {
   userId: string;
@@ -77,14 +78,15 @@ export async function getProgressPageData(): Promise<{
   const user = await getCurrentUser();
   if (!user) return { error: "인증이 필요합니다." };
 
-  const supabase = await createClient();
+  // 진행표는 모든 챌린저의 데이터를 보여주므로 admin 클라이언트 사용
+  const admin = createAdminClient();
 
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
 
   // 1. 이번 달 모든 챌린지 + 프로필
-  const { data: challenges, error: cError } = await supabase
+  const { data: challenges, error: cError } = await admin
     .from("challenges")
     .select("id, user_id, profiles!inner(id, name, avatar_url, emoji)")
     .eq("year", year)
@@ -113,19 +115,19 @@ export async function getProgressPageData(): Promise<{
 
   // 2. 등록 루틴 + 기록 + 선언/회고를 한 번에 조회
   const [regRes, recRes, declRes, midRevRes] = await Promise.all([
-    supabase
+    admin
       .from("challenge_registrations")
       .select("user_id, routine_type, challenge_id")
       .in("challenge_id", challengeIds),
-    supabase
+    admin
       .from("ritual_records")
       .select("user_id, routine_type, record_date, challenge_id")
       .in("challenge_id", challengeIds),
-    supabase
+    admin
       .from("declarations")
       .select("user_id, routine_type, challenge_id")
       .in("challenge_id", challengeIds),
-    supabase
+    admin
       .from("mid_reviews")
       .select("user_id, routine_type, challenge_id")
       .in("challenge_id", challengeIds),

@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { RoutineTypeDB, RitualRecord } from "@/types/supabase";
 import type {
   FeedItem,
@@ -111,10 +112,13 @@ function transformRecordData(
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SupabaseAnyClient = { from: (...args: any[]) => any };
+
 // records에 등장하는 모든 bookId를 한 번의 쿼리로 일괄 조회
 async function fetchBookMap(
   records: RitualRecord[],
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: SupabaseAnyClient,
 ): Promise<Map<string, BookInfo>> {
   const bookIds = new Set<string>();
   for (const r of records) {
@@ -228,9 +232,10 @@ export async function getRecordById(
     return { data: null, error: "인증이 필요합니다." };
   }
 
-  const supabase = await createClient();
+  // 다른 유저의 기록도 볼 수 있도록 admin 클라이언트 사용
+  const admin = createAdminClient();
 
-  const { data: record, error } = await supabase
+  const { data: record, error } = await admin
     .from("ritual_records")
     .select("id, user_id, routine_type, record_date, record_data, challenge_id, created_at")
     .eq("id", id)
@@ -241,19 +246,19 @@ export async function getRecordById(
   }
 
   // 프로필 + 댓글용 feed 매핑 + 책정보 모두 병렬 조회
-  const profilePromise = supabase
+  const profilePromise = admin
     .from("profiles")
     .select("id, name, avatar_url")
     .eq("id", record.user_id)
     .single();
 
-  const feedPromise = supabase
+  const feedPromise = admin
     .from("feeds")
     .select("id")
     .eq("ritual_record_id", id)
     .maybeSingle();
 
-  const bookMapPromise = fetchBookMap([record as RitualRecord], supabase);
+  const bookMapPromise = fetchBookMap([record as RitualRecord], admin);
 
   const [{ data: profile }, { data: feed }, bookMap] = await Promise.all([
     profilePromise,
@@ -265,7 +270,7 @@ export async function getRecordById(
 
   // 댓글 조회
   if (item && feed) {
-    const { data: rawComments } = await supabase
+    const { data: rawComments } = await admin
       .from("feed_comments")
       .select("id, user_id, text, created_at")
       .eq("feed_id", feed.id)
@@ -273,7 +278,7 @@ export async function getRecordById(
 
     if (rawComments?.length) {
       const commentUserIds = [...new Set(rawComments.map((c) => c.user_id))];
-      const { data: commentProfiles } = await supabase
+      const { data: commentProfiles } = await admin
         .from("profiles")
         .select("id, name")
         .in("id", commentUserIds);
@@ -301,20 +306,36 @@ export async function getAllRecordsForDisplay(options?: {
   routineType?: RoutineTypeDB;
   limit?: number;
   offset?: number;
+  searchName?: string;
 }): Promise<{ data: FeedItem[]; total: number; error?: string }> {
   const user = await getCurrentUser();
   if (!user) {
     return { data: [], total: 0, error: "인증이 필요합니다." };
   }
 
-  const supabase = await createClient();
+  // 피드는 모든 유저의 기록을 보여줘야 하므로 RLS를 우회하는 admin 클라이언트 사용
+  const admin = createAdminClient();
+
+  // 닉네임 검색 시 해당 유저 ID 먼저 조회
+  let searchUserIds: string[] | undefined;
+  if (options?.searchName) {
+    const { data: matchedProfiles } = await admin
+      .from("profiles")
+      .select("id")
+      .ilike("name", `%${options.searchName}%`);
+
+    searchUserIds = (matchedProfiles ?? []).map((p) => p.id);
+    if (searchUserIds.length === 0) {
+      return { data: [], total: 0 };
+    }
+  }
 
   // count + 데이터 쿼리
-  let countQuery = supabase
+  let countQuery = admin
     .from("ritual_records")
     .select("id", { count: "exact", head: true });
 
-  let query = supabase
+  let query = admin
     .from("ritual_records")
     .select("id, user_id, routine_type, record_date, record_data, challenge_id, created_at")
     .order("record_date", { ascending: false });
@@ -322,6 +343,11 @@ export async function getAllRecordsForDisplay(options?: {
   if (options?.routineType) {
     countQuery = countQuery.eq("routine_type", options.routineType);
     query = query.eq("routine_type", options.routineType);
+  }
+
+  if (searchUserIds) {
+    countQuery = countQuery.in("user_id", searchUserIds);
+    query = query.in("user_id", searchUserIds);
   }
 
   if (options?.limit) {
@@ -340,11 +366,11 @@ export async function getAllRecordsForDisplay(options?: {
   if (error) return { data: [], total: 0, error: error.message };
   if (!records?.length) return { data: [], total: 0 };
 
-  // 프로필 + 책정보 병렬 조회
+  // 프로필 + 책정보 병렬 조회 (admin으로 전체 유저 프로필 접근)
   const userIds = [...new Set(records.map((r) => r.user_id))];
   const [profilesRes, bookMap] = await Promise.all([
-    supabase.from("profiles").select("id, name, avatar_url").in("id", userIds),
-    fetchBookMap(records as RitualRecord[], supabase),
+    admin.from("profiles").select("id, name, avatar_url").in("id", userIds),
+    fetchBookMap(records as RitualRecord[], admin),
   ]);
 
   const profileMap = new Map(
