@@ -12,10 +12,16 @@ export default function ProgressContainer() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getProgressPageData().then((res) => {
-      if (res.data) setData(res.data);
-      setLoading(false);
-    });
+    getProgressPageData()
+      .then((res) => {
+        if (res.data) setData(res.data);
+      })
+      .catch((e) => {
+        console.error("진행표 조회 실패:", e);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   if (loading) {

@@ -80,14 +80,19 @@ export async function createDeclaration(input: {
 
 /** 이번 달 모든 챌린지 ID 조회 (유저별로 challenge 행이 다르므로 전체 조회) */
 async function getCurrentMonthChallengeIds(): Promise<string[]> {
-  const admin = createAdminClient();
-  const now = new Date();
-  const { data } = await admin
-    .from("challenges")
-    .select("id")
-    .eq("year", now.getFullYear())
-    .eq("month", now.getMonth() + 1);
-  return (data ?? []).map((c) => c.id);
+  try {
+    const admin = createAdminClient();
+    const now = new Date();
+    const { data } = await admin
+      .from("challenges")
+      .select("id")
+      .eq("year", now.getFullYear())
+      .eq("month", now.getMonth() + 1);
+    return (data ?? []).map((c) => c.id);
+  } catch (e) {
+    console.error("getCurrentMonthChallengeIds error:", e);
+    return [];
+  }
 }
 
 /** 챌린저(같은 챌린지 팀원) 선언 목록 조회 */
@@ -95,43 +100,53 @@ export async function getChallengerDeclarations(): Promise<{
   data?: Declaration[];
   error?: string;
 }> {
-  const user = await getCurrentUser();
-  if (!user) return { error: "인증이 필요합니다." };
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { error: "인증이 필요합니다." };
 
-  const challengeIds = await getCurrentMonthChallengeIds();
-  if (challengeIds.length === 0) return { error: "챌린지를 찾을 수 없습니다." };
+    const challengeIds = await getCurrentMonthChallengeIds();
+    if (challengeIds.length === 0) return { error: "챌린지를 찾을 수 없습니다." };
 
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("declarations")
-    .select("id, user_id, routine_type, answers, created_at, profiles(name, emoji, avatar_url)")
-    .in("challenge_id", challengeIds)
-    .neq("user_id", user.id)
-    .order("created_at", { ascending: false });
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("declarations")
+      .select("id, user_id, routine_type, answers, created_at, profiles(name, emoji, avatar_url)")
+      .in("challenge_id", challengeIds)
+      .neq("user_id", user.id)
+      .order("created_at", { ascending: false });
 
-  if (error) return { error: error.message };
-  return { data: (data as unknown as DeclarationRow[]).map(toDeclaration) };
+    if (error) return { error: error.message };
+    return { data: (data as unknown as DeclarationRow[]).map(toDeclaration) };
+  } catch (e) {
+    console.error("getChallengerDeclarations error:", e);
+    return { error: "선언 목록 조회 중 오류가 발생했습니다." };
+  }
 }
 
 /** 선언 단건 조회 */
 export async function getDeclarationById(
   id: string,
 ): Promise<{ data?: Declaration; currentUserId?: string; error?: string }> {
-  const user = await getCurrentUser();
-  if (!user) return { error: "인증이 필요합니다." };
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { error: "인증이 필요합니다." };
 
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("declarations")
-    .select("id, user_id, routine_type, answers, created_at, profiles(name, emoji, avatar_url)")
-    .eq("id", id)
-    .single();
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("declarations")
+      .select("id, user_id, routine_type, answers, created_at, profiles(name, emoji, avatar_url)")
+      .eq("id", id)
+      .single();
 
-  if (error) return { error: error.message };
-  return {
-    data: toDeclaration(data as unknown as DeclarationRow),
-    currentUserId: user.id,
-  };
+    if (error) return { error: error.message };
+    return {
+      data: toDeclaration(data as unknown as DeclarationRow),
+      currentUserId: user.id,
+    };
+  } catch (e) {
+    console.error("getDeclarationById error:", e);
+    return { error: "선언 조회 중 오류가 발생했습니다." };
+  }
 }
 
 /** 모든 사람의 선언 목록 조회 (본인 포함) */
@@ -140,22 +155,27 @@ export async function getAllDeclarations(): Promise<{
   currentUserId?: string;
   error?: string;
 }> {
-  const user = await getCurrentUser();
-  if (!user) return { error: "인증이 필요합니다." };
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { error: "인증이 필요합니다." };
 
-  const challengeIds = await getCurrentMonthChallengeIds();
-  if (challengeIds.length === 0) return { error: "챌린지를 찾을 수 없습니다." };
+    const challengeIds = await getCurrentMonthChallengeIds();
+    if (challengeIds.length === 0) return { error: "챌린지를 찾을 수 없습니다." };
 
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("declarations")
-    .select("id, user_id, routine_type, answers, created_at, profiles(name, emoji, avatar_url)")
-    .in("challenge_id", challengeIds)
-    .order("created_at", { ascending: false });
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("declarations")
+      .select("id, user_id, routine_type, answers, created_at, profiles(name, emoji, avatar_url)")
+      .in("challenge_id", challengeIds)
+      .order("created_at", { ascending: false });
 
-  if (error) return { error: error.message };
-  return {
-    data: (data as unknown as DeclarationRow[]).map(toDeclaration),
-    currentUserId: user.id,
-  };
+    if (error) return { error: error.message };
+    return {
+      data: (data as unknown as DeclarationRow[]).map(toDeclaration),
+      currentUserId: user.id,
+    };
+  } catch (e) {
+    console.error("getAllDeclarations error:", e);
+    return { error: "선언 목록 조회 중 오류가 발생했습니다." };
+  }
 }

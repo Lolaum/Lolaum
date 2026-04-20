@@ -13,6 +13,8 @@ export default function DeclarationItem({ decl, isMine }: DeclarationItemProps) 
   const config = ROUTINE_CONFIG[decl.routineType];
   const questions = declarationQuestions[decl.routineType];
 
+  if (!config || !questions) return null;
+
   // 첫 번째 답변을 미리보기 텍스트로 사용
   const firstAnswer = questions
     .map((q) => decl.answers.find((a) => a.questionId === q.id))

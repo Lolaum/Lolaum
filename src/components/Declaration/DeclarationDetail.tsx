@@ -22,6 +22,8 @@ export default function DeclarationDetail({ decl, isMine }: DeclarationDetailPro
   const config = ROUTINE_CONFIG[decl.routineType];
   const questions = declarationQuestions[decl.routineType];
 
+  if (!config || !questions) return null;
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 pb-8">
       {/* 헤더 */}

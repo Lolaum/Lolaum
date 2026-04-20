@@ -22,10 +22,15 @@ export default function DeclarationContainer() {
   useEffect(() => {
     async function fetchDeclarations() {
       setLoading(true);
-      const res = await getAllDeclarations();
-      setAllDecls(res.data ?? []);
-      setCurrentUserId(res.currentUserId ?? "");
-      setLoading(false);
+      try {
+        const res = await getAllDeclarations();
+        setAllDecls(res.data ?? []);
+        setCurrentUserId(res.currentUserId ?? "");
+      } catch (e) {
+        console.error("선언 조회 실패:", e);
+      } finally {
+        setLoading(false);
+      }
     }
     fetchDeclarations();
   }, []);
