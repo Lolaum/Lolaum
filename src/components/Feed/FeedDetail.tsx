@@ -311,8 +311,16 @@ function ReadingContent({ data }: { data: ReadingFeedData }) {
     <div className="space-y-4">
       {/* 책 정보 */}
       <div className="flex items-start gap-4">
-        <div className="flex-shrink-0 w-16 h-20 bg-orange-100 rounded-lg flex items-center justify-center">
-          <BookText className="w-7 h-7 text-orange-300" />
+        <div className="flex-shrink-0 w-16 h-20 bg-orange-100 rounded-lg flex items-center justify-center overflow-hidden">
+          {data.bookCover ? (
+            <img
+              src={data.bookCover}
+              alt={data.bookTitle}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <BookText className="w-7 h-7 text-orange-300" />
+          )}
         </div>
         <div className="flex-1">
           <p className="text-base font-bold text-gray-900">{data.bookTitle}</p>
@@ -397,8 +405,16 @@ function EnglishBookContent({ data }: { data: ReadingFeedData }) {
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-4">
-        <div className="flex-shrink-0 w-16 h-20 bg-pink-100 rounded-lg flex items-center justify-center">
-          <BookOpen className="w-7 h-7 text-pink-300" />
+        <div className="flex-shrink-0 w-16 h-20 bg-pink-100 rounded-lg flex items-center justify-center overflow-hidden">
+          {data.bookCover ? (
+            <img
+              src={data.bookCover}
+              alt={data.bookTitle}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <BookOpen className="w-7 h-7 text-pink-300" />
+          )}
         </div>
         <div className="flex-1">
           <p className="text-base font-bold text-gray-900">{data.bookTitle}</p>
@@ -715,8 +731,16 @@ export default function FeedDetail({ item }: FeedDetailProps) {
         <div className="bg-white rounded-2xl shadow-md p-6">
           {/* 유저 정보 */}
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-              <User className="w-6 h-6 text-gray-400" />
+            <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              {item.userProfileImage ? (
+                <img
+                  src={item.userProfileImage}
+                  alt={item.userName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="w-6 h-6 text-gray-400" />
+              )}
             </div>
             <div>
               <p className="text-base font-bold text-gray-900">
