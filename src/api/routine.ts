@@ -58,6 +58,15 @@ export async function createRoutine(input: {
     return { error: "이미 등록된 루틴입니다." };
   }
 
+  // 이 챌린지에 대한 첫 루틴 등록인지 확인
+  const { count: priorCount } = await supabase
+    .from("challenge_registrations")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("challenge_id", input.challengeId);
+
+  const isFirstRegistration = (priorCount ?? 0) === 0;
+
   const { data, error } = await supabase
     .from("challenge_registrations")
     .insert({
@@ -69,6 +78,19 @@ export async function createRoutine(input: {
     .single();
 
   if (error) return { error: error.message };
+
+  // 첫 등록이면 챌린지 start_date 를 오늘(로컬 날짜)로 갱신
+  if (isFirstRegistration) {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, "0");
+    const d = String(today.getDate()).padStart(2, "0");
+    await supabase
+      .from("challenges")
+      .update({ start_date: `${y}-${m}-${d}` })
+      .eq("id", input.challengeId);
+  }
+
   return { data };
 }
 

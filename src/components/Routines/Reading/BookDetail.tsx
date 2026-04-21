@@ -62,6 +62,7 @@ function AddReadingRecord({
       noteType,
       note: isEnglishBook ? "(스크린샷 인증)" : note.trim(),
       thoughts: thoughts.trim() || undefined,
+      screenshot: isEnglishBook && screenshot ? screenshot : undefined,
     });
   };
 
@@ -305,6 +306,13 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
   };
 
   const handleSave = async (record: Omit<DailyReadingRecord, "id">) => {
+    // 원서읽기: 업로드된 스크린샷을 우선 사용. 그 외 루틴은 외부 certificationPhotos prop 사용
+    const certPhotos = record.screenshot
+      ? [record.screenshot]
+      : certificationPhotos?.length
+        ? certificationPhotos
+        : undefined;
+
     // DB에 ritual_record 저장
     const recordData: ReadingRecordData = {
       bookId: book.id,
@@ -315,7 +323,7 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
       noteType: record.noteType,
       note: record.note,
       thoughts: record.thoughts,
-      certPhotos: certificationPhotos?.length ? certificationPhotos : undefined,
+      certPhotos,
     };
 
     const { error } = await createRitualRecordAuto({

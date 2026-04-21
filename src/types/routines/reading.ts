@@ -73,6 +73,7 @@ export interface DailyReadingRecord {
   noteType: NoteType;
   note: string;
   thoughts?: string;      // 나만의 생각 (선택)
+  screenshot?: string;    // 원서읽기 인증 스크린샷 (base64)
 }
 
 export interface BookDetailProps {

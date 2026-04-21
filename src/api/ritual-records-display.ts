@@ -32,6 +32,7 @@ interface BookInfo {
   title: string;
   author: string;
   total_value: number | null;
+  cover_image_url: string | null;
 }
 
 // DB record_data → FeedRoutineData 변환 (책 정보는 사전 조회된 map에서 lookup)
@@ -70,6 +71,7 @@ function transformRecordData(
       return {
         bookTitle: book?.title ?? "책 제목 없음",
         author: book?.author ?? "",
+        bookCover: book?.cover_image_url ?? undefined,
         trackingType: (data.trackingType as "page" | "percent") ?? "page",
         pagesRead: data.endValue as number | undefined,
         totalPages: book?.total_value ?? undefined,
@@ -132,12 +134,17 @@ async function fetchBookMap(
 
   const { data: books } = await supabase
     .from("books")
-    .select("id, title, author, total_value")
+    .select("id, title, author, total_value, cover_image_url")
     .in("id", [...bookIds]);
 
   const map = new Map<string, BookInfo>();
   for (const b of books ?? []) {
-    map.set(b.id, { title: b.title, author: b.author, total_value: b.total_value });
+    map.set(b.id, {
+      title: b.title,
+      author: b.author,
+      total_value: b.total_value,
+      cover_image_url: b.cover_image_url,
+    });
   }
   return map;
 }
