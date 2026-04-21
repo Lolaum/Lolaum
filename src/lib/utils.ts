@@ -25,11 +25,19 @@ export async function applyTimestamp(file: File): Promise<string> {
 
   let photoDate: Date;
   try {
-    const exif = await exifr.parse(file, ["DateTimeOriginal", "CreateDate"]);
-    const exifDate = exif?.DateTimeOriginal ?? exif?.CreateDate;
-    photoDate = exifDate instanceof Date ? exifDate : new Date();
+    const exif = await exifr.parse(file, [
+      "DateTimeOriginal",
+      "CreateDate",
+      "ModifyDate",
+    ]);
+    const exifDate =
+      exif?.DateTimeOriginal ?? exif?.CreateDate ?? exif?.ModifyDate;
+    photoDate =
+      exifDate instanceof Date
+        ? exifDate
+        : new Date(file.lastModified || Date.now());
   } catch {
-    photoDate = new Date();
+    photoDate = new Date(file.lastModified || Date.now());
   }
 
   return new Promise((resolve, reject) => {

@@ -154,6 +154,11 @@ function getImages(item: FeedItemType): string[] {
       const d = item.routineData as LanguageFeedData;
       return d.images?.filter(Boolean) ?? [];
     }
+    case "독서": {
+      const d = item.routineData as ReadingFeedData;
+      return d.bookCover ? [d.bookCover] : [];
+    }
+    // 원서읽기는 인증 스크린샷(certPhotos)만 썸네일로 사용. 책 표지 폴백 없음.
     default:
       return [];
   }
