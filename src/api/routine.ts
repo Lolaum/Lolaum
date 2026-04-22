@@ -99,12 +99,30 @@ export async function deleteRoutine(
 ): Promise<{ success?: boolean; error?: string }> {
   const supabase = await createClient();
 
+  const { data: registration, error: fetchError } = await supabase
+    .from("challenge_registrations")
+    .select("user_id, challenge_id, routine_type")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (fetchError) return { error: fetchError.message };
+
   const { error } = await supabase
     .from("challenge_registrations")
     .delete()
     .eq("id", id);
 
   if (error) return { error: error.message };
+
+  if (registration) {
+    await supabase
+      .from("declarations")
+      .delete()
+      .eq("user_id", registration.user_id)
+      .eq("challenge_id", registration.challenge_id)
+      .eq("routine_type", registration.routine_type);
+  }
+
   return { success: true };
 }
 
