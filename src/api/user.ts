@@ -58,6 +58,7 @@ export async function getCurrentChallengers(): Promise<{
   error?: string;
 }> {
   const supabase = await createClient();
+  const currentUser = await getCurrentUser();
 
   const now = new Date();
   const year = now.getFullYear();
@@ -83,7 +84,7 @@ export async function getCurrentChallengers(): Promise<{
 
   const rows = (data ?? []) as unknown as Row[];
   const challengers: ChallengerSummary[] = rows
-    .filter((r) => r.profiles)
+    .filter((r) => r.profiles && r.profiles.id !== currentUser?.id)
     .map((r) => ({
       id: r.profiles!.id,
       name: r.profiles!.name,

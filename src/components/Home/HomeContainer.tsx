@@ -41,6 +41,7 @@ export default function HomeContainer({ initialData }: { initialData: HomeInitia
   const [completionRate, setCompletionRate] = useState<CompletionRateStats | null>(initialData.completion ?? null);
   const [calendarMarkers, setCalendarMarkers] = useState<Record<string, CalendarDayMarker>>(initialData.calendarMarkers ?? {});
   const [routineCompletionMap, setRoutineCompletionMap] = useState<Record<string, number>>(initialData.routineCompletionMap ?? {});
+  const [memberRefreshKey, setMemberRefreshKey] = useState(0);
 
   useEffect(() => {
     const now = new Date();
@@ -178,8 +179,13 @@ export default function HomeContainer({ initialData }: { initialData: HomeInitia
               onSelectMember={(id) =>
                 setSelectedMemberId((prev) => (prev === id ? undefined : id))
               }
+              refreshKey={memberRefreshKey}
             />
-            <Profile stats={myPageStats} completionRate={completionRate} />
+            <Profile
+              stats={myPageStats}
+              completionRate={completionRate}
+              onProfileUpdated={() => setMemberRefreshKey((k) => k + 1)}
+            />
             {/* 중간 회고 작성 기간 알림 — 숨김 처리
             {IS_MID_REVIEW_PERIOD && (
               <button

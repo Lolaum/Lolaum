@@ -28,6 +28,7 @@ export interface AddNewLanguageProps {
   onBackToHome?: () => void;
   onSubmit?: (recordData: LanguageFormData) => void | Promise<void>;
   initialImages?: string[]; // 인증 사진 자동 주입
+  languageType?: "영어" | "제2외국어";
 }
 
 export interface Expression {
