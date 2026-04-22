@@ -92,6 +92,7 @@ export default function LanguageContainer({
           onBackToHome={onBackToHome}
           onSubmit={handleSubmit}
           initialImages={certificationPhotos}
+          languageType={languageType}
         />
       );
     }
@@ -119,7 +120,7 @@ export default function LanguageContainer({
                 d="M15 19l-7-7 7-7"
               />
             </svg>
-            타이머로
+            돌아가기
           </button>
           <button
             type="button"

@@ -14,9 +14,10 @@ export default function AddNewLanguage({
   onBackToHome,
   onSubmit,
   initialImages,
+  languageType = "제2외국어",
 }: AddNewLanguageProps) {
+  const isEnglish = languageType === "영어";
   const [images, setImages] = useState<string[]>(initialImages ?? []);
-  const [achievement, setAchievement] = useState("");
   const [expressions, setExpressions] = useState<Expression[]>([
     { id: 1, word: "", meaning: "", example: "" },
   ]);
@@ -38,10 +39,10 @@ export default function AddNewLanguage({
   const updateExpression = (
     id: number,
     field: "word" | "meaning" | "example",
-    value: string
+    value: string,
   ) => {
     setExpressions(
-      expressions.map((e) => (e.id === id ? { ...e, [field]: value } : e))
+      expressions.map((e) => (e.id === id ? { ...e, [field]: value } : e)),
     );
   };
 
@@ -51,7 +52,7 @@ export default function AddNewLanguage({
 
     const newFiles = Array.from(files).slice(0, 2 - images.length);
     const stampedImages = await Promise.all(
-      newFiles.map((f) => applyTimestamp(f).catch(() => fileToBase64(f)))
+      newFiles.map((f) => applyTimestamp(f).catch(() => fileToBase64(f))),
     );
     setImages([...images, ...stampedImages].slice(0, 2));
   };
@@ -62,14 +63,14 @@ export default function AddNewLanguage({
 
   const handleSubmit = async () => {
     const validExpressions = expressions.filter(
-      (e) => e.word.trim() || e.meaning.trim() || e.example.trim()
+      (e) => e.word.trim() || e.meaning.trim() || e.example.trim(),
     );
 
     if (validExpressions.length === 0) return;
 
     const recordData: LanguageFormData = {
       images,
-      achievement: achievement.trim(),
+      achievement: "",
       expressions: validExpressions.map((e) => ({
         word: e.word.trim(),
         meaning: e.meaning.trim(),
@@ -106,7 +107,11 @@ export default function AddNewLanguage({
               d="M15 19l-7-7 7-7"
             />
           </svg>
-          <span className="text-sm">제2외국어 학습으로 돌아가기</span>
+          <span className="text-sm">
+            {isEnglish
+              ? "영어리추얼 관리로 돌아가기"
+              : "제2외국어리추얼 관리로 돌아가기"}
+          </span>
         </button>
         <button
           type="button"
@@ -132,12 +137,14 @@ export default function AddNewLanguage({
       {/* 메인 카드 */}
       <div className="max-w-2xl bg-white rounded-2xl border border-gray-200 p-4 mx-auto">
         {/* 헤더 */}
-        <h2 className="text-xl font-bold text-gray-900 mb-4">제2외국어 학습 기록</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">
+          {isEnglish ? "영어리추얼 기록 추가" : "제2외국어리추얼 기록 추가"}
+        </h2>
 
         {/* 인증 사진 */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            인증 사진 (최대 2장)
+            인증 사진 (10분 이상 텀이 있는 시작/종료 사진)
             {initialImages?.length ? (
               <span className="ml-2 text-xs font-normal text-orange-500">
                 시작·종료 인증 사진 자동 첨부됨
@@ -173,8 +180,8 @@ export default function AddNewLanguage({
                       ? index === 0
                         ? "시작"
                         : index === 1
-                        ? "종료"
-                        : null
+                          ? "종료"
+                          : null
                       : null;
                   return (
                     <div key={index} className="relative">
@@ -201,20 +208,6 @@ export default function AddNewLanguage({
               </div>
             )}
           </div>
-        </div>
-
-        {/* 오늘의 작은 성취 */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            오늘의 작은 성취
-          </label>
-          <input
-            type="text"
-            value={achievement}
-            onChange={(e) => setAchievement(e.target.value)}
-            placeholder="예: 20문, 5개 표현"
-            className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400"
-          />
         </div>
 
         {/* 오늘의 표현 */}
@@ -287,7 +280,7 @@ export default function AddNewLanguage({
             type="button"
             onClick={handleSubmit}
             disabled={expressions.every(
-              (e) => !e.word.trim() && !e.meaning.trim() && !e.example.trim()
+              (e) => !e.word.trim() && !e.meaning.trim() && !e.example.trim(),
             )}
             className="flex-1 py-4 px-4 rounded-xl bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
