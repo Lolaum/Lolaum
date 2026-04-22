@@ -401,29 +401,17 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
         </button>
       </div>
 
-      {/* 헤더: 책 제목 + 기록 추가 / 삭제 버튼 */}
+      {/* 헤더: 책 제목 + 삭제 버튼 */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-bold text-gray-900">{book.title}</h1>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowDeleteConfirm(true)}
-            className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-            삭제
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowAddRecord(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-orange-500 hover:text-orange-600 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            기록 추가
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setShowDeleteConfirm(true)}
+          className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+        >
+          <Trash2 className="w-4 h-4" />
+          삭제
+        </button>
       </div>
 
       {/* 삭제 확인 모달 */}
@@ -501,6 +489,17 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
             </div>
           </div>
         </div>
+      </div>
+
+      {/* 기록 추가 버튼 */}
+      <div className="mb-4">
+        <button
+          type="button"
+          onClick={() => setShowAddRecord(true)}
+          className="w-full py-3 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98] bg-orange-500 hover:bg-orange-600"
+        >
+          + 오늘 {isEnglishBook ? "원서" : "독서"} 기록하기
+        </button>
       </div>
 
       {/* 이번 달 통계 */}
