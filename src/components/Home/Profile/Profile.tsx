@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { ProfileProps } from "@/types/home/profile";
 import { Flame, Trophy, CheckCircle2 } from "lucide-react";
 import { getMe, updateMe } from "@/api/user";
@@ -10,12 +11,14 @@ import { MyPageStats, CompletionRateStats } from "@/api/ritual-stats";
 interface Props extends ProfileProps {
   stats?: MyPageStats | null;
   completionRate?: CompletionRateStats | null;
+  onProfileUpdated?: () => void;
 }
 
 export default function Profile({
   description = "매일 성장하는 습관 만들기",
   stats: statsProp,
   completionRate: completionRateProp,
+  onProfileUpdated,
 }: Props) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [userName, setUserName] = useState("");
@@ -32,6 +35,7 @@ export default function Profile({
 
   const [userId, setUserId] = useState("");
   const [saving, setSaving] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     getMe().then((profile) => {
@@ -62,7 +66,7 @@ export default function Profile({
       const res = await fetch(editPhoto);
       const blob = await res.blob();
       const ext = blob.type.split("/")[1] || "jpg";
-      const path = `avatars/${userId}.${ext}`;
+      const path = `${userId}.${ext}`;
 
       await supabase.storage.from("avatars").upload(path, blob, {
         upsert: true,
@@ -87,6 +91,8 @@ export default function Profile({
       setSavedName(editName);
       setSavedDescription(editDescription);
       setSavedPhoto(avatarUrl);
+      onProfileUpdated?.();
+      router.refresh();
       setShowEditModal(false);
     }
   };
