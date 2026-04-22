@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { RoutineType } from "@/types/routines/declaration";
 import { declarationQuestions } from "@/lib/declarationQuestions";
@@ -39,6 +40,7 @@ export default function GenerateRoutine({
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     // 마운트 시 애니메이션 트리거
@@ -109,6 +111,7 @@ export default function GenerateRoutine({
   };
 
   const handleSuccessClose = () => {
+    router.refresh();
     setShowSuccess(false);
     setVisible(false);
     setTimeout(() => onCreated?.(), 250);
