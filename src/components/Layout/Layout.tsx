@@ -45,6 +45,10 @@ export default function Layout({ children }: LayoutProps) {
     router.push("/login");
   };
 
+  const handleLogoClick = () => {
+    router.refresh();
+  };
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -81,7 +85,7 @@ export default function Layout({ children }: LayoutProps) {
               </button>
 
               {/* 로고 */}
-              <Link href="/home" className="flex items-center gap-3">
+              <Link href="/home" className="flex items-center gap-3" onClick={handleLogoClick}>
                 <Image
                   src="/images/common/LolaumLogo.png"
                   alt="Lolaum Logo"
@@ -100,7 +104,7 @@ export default function Layout({ children }: LayoutProps) {
       {!isDesktop && (
         <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
           {/* 로고 */}
-          <Link href="/home" className="flex items-center gap-3">
+          <Link href="/home" className="flex items-center gap-3" onClick={handleLogoClick}>
             <Image
               src="/images/common/LolaumLogo.png"
               alt="Lolaum Logo"
@@ -180,7 +184,10 @@ export default function Layout({ children }: LayoutProps) {
               <Link
                 href="/home"
                 className="flex items-center gap-3"
-                onClick={() => setIsDrawerOpen(false)}
+                onClick={() => {
+                  setIsDrawerOpen(false);
+                  handleLogoClick();
+                }}
               >
                 <Image
                   src="/images/common/LolaumLogo.png"

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Camera, X } from "lucide-react";
-import exifr from "exifr";
+import { applyTimestamp } from "@/lib/utils";
 
 interface PhotoCertificationProps {
   mode: "start" | "end";
@@ -11,53 +11,6 @@ interface PhotoCertificationProps {
   elapsedSeconds?: number;
   onPhotoTaken: (photoDataUrl: string) => void;
   onClose: () => void;
-}
-
-async function applyTimestamp(file: File): Promise<string> {
-  // EXIF 메타데이터에서 촬영 시간 추출 (없으면 현재 시간 사용)
-  let photoDate: Date;
-  try {
-    const exif = await exifr.parse(file, ["DateTimeOriginal", "CreateDate"]);
-    const exifDate = exif?.DateTimeOriginal ?? exif?.CreateDate;
-    photoDate = exifDate instanceof Date ? exifDate : new Date();
-  } catch {
-    photoDate = new Date();
-  }
-
-  return new Promise((resolve) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0);
-
-      const pad = (n: number) => String(n).padStart(2, "0");
-      const dateStr = `${photoDate.getFullYear()}. ${pad(photoDate.getMonth() + 1)}. ${pad(photoDate.getDate())}`;
-      const timeStr = `${pad(photoDate.getHours())}:${pad(photoDate.getMinutes())}:${pad(photoDate.getSeconds())}`;
-      const text = `${dateStr}  ${timeStr}`;
-
-      const fontSize = Math.max(40, Math.round(canvas.width * 0.07));
-      ctx.font = `bold ${fontSize}px Arial, sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-
-      ctx.strokeStyle = "rgba(0, 0, 0, 0.8)";
-      ctx.lineWidth = fontSize * 0.15;
-      ctx.lineJoin = "round";
-      ctx.strokeText(text, canvas.width / 2, canvas.height / 2);
-
-      ctx.fillStyle = "white";
-      ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-
-      URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL("image/jpeg", 0.92));
-    };
-    img.src = url;
-  });
 }
 
 export default function PhotoCertification({

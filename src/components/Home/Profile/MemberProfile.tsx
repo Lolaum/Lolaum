@@ -6,11 +6,13 @@ import { getCurrentChallengers, type ChallengerSummary } from "@/api/user";
 interface MemberProfileProps {
   selectedMemberId?: string;
   onSelectMember?: (memberId: string) => void;
+  refreshKey?: number;
 }
 
 export default function MemberProfile({
   selectedMemberId,
   onSelectMember,
+  refreshKey = 0,
 }: MemberProfileProps) {
   const [members, setMembers] = useState<ChallengerSummary[]>([]);
 
@@ -18,7 +20,7 @@ export default function MemberProfile({
     getCurrentChallengers().then((res) => {
       if (res.data) setMembers(res.data);
     });
-  }, []);
+  }, [refreshKey]);
 
   return (
     <div className="rounded-3xl bg-white shadow-sm border border-gray-100 p-4 mb-4">

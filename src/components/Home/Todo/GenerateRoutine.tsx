@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { RoutineType } from "@/types/routines/declaration";
 import { declarationQuestions } from "@/lib/declarationQuestions";
@@ -39,6 +40,8 @@ export default function GenerateRoutine({
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
+  const [alarmConfirmed, setAlarmConfirmed] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     // 마운트 시 애니메이션 트리거
@@ -58,7 +61,8 @@ export default function GenerateRoutine({
   const questions =
     selectedRoutine ? declarationQuestions[selectedRoutine] : [];
   const allAnswersFilled =
-    questions.length > 0 && questions.every((q) => answers[q.id]?.trim());
+    questions.length > 0 &&
+    questions.every((q) => q.readOnly || answers[q.id]?.trim());
 
   const handleAnswerChange = (questionId: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
@@ -90,7 +94,9 @@ export default function GenerateRoutine({
 
     const declarationAnswers = questions.map((q) => ({
       questionId: q.id,
-      answer: answers[q.id]?.trim() ?? "",
+      answer: q.readOnly
+        ? q.defaultValue ?? ""
+        : answers[q.id]?.trim() ?? "",
     }));
 
     const { error: declError } = await createDeclaration({
@@ -109,6 +115,7 @@ export default function GenerateRoutine({
   };
 
   const handleSuccessClose = () => {
+    router.refresh();
     setShowSuccess(false);
     setVisible(false);
     setTimeout(() => onCreated?.(), 250);
@@ -325,20 +332,47 @@ export default function GenerateRoutine({
                 <div className="flex flex-col gap-4 mb-5">
                   {questions.map((q) => (
                     <div key={q.id}>
-                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                      <label className="block text-sm font-bold text-gray-800 mb-0.5">
                         {q.label} <span className="text-red-400">*</span>
                       </label>
+                      {q.description && (
+                        <p className="text-xs text-gray-400 mb-2 leading-relaxed">
+                          {q.description}
+                        </p>
+                      )}
                       <textarea
-                        value={answers[q.id] ?? ""}
+                        value={
+                          q.readOnly
+                            ? q.defaultValue ?? ""
+                            : answers[q.id] ?? ""
+                        }
                         onChange={(e) =>
                           handleAnswerChange(q.id, e.target.value)
                         }
                         placeholder={q.placeholder}
-                        rows={3}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] focus:bg-white transition-all"
+                        rows={q.readOnly ? 6 : 3}
+                        disabled={q.readOnly}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] focus:bg-white transition-all disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
                       />
                     </div>
                   ))}
+                </div>
+
+                {/* 알람 설정 확인 */}
+                <div className="mb-5">
+                  <p className="block text-sm font-bold text-gray-800 mb-2">
+                    내가 설정한 리추얼 시간에 알람설정을 완료해주세요{" "}
+                    <span className="text-red-400">*</span>
+                  </p>
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={alarmConfirmed}
+                      onChange={(e) => setAlarmConfirmed(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 accent-[#eab32e] flex-shrink-0 cursor-pointer"
+                    />
+                    <span className="text-sm text-gray-700">네, 완료했습니다</span>
+                  </label>
                 </div>
 
                 {errorMsg && (
@@ -355,7 +389,7 @@ export default function GenerateRoutine({
                   </button>
                   <button
                     onClick={handleCreate}
-                    disabled={!allAnswersFilled || submitting}
+                    disabled={!allAnswersFilled || !alarmConfirmed || submitting}
                     className="flex-[2] py-3.5 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{ backgroundColor: "#eab32e" }}
                   >
