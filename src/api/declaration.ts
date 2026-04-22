@@ -67,12 +67,15 @@ export async function createDeclaration(input: {
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("declarations").insert({
-    user_id: user.id,
-    challenge_id: challengeId,
-    routine_type: input.routineType,
-    answers: input.answers as unknown as Json,
-  });
+  const { error } = await supabase.from("declarations").upsert(
+    {
+      user_id: user.id,
+      challenge_id: challengeId,
+      routine_type: input.routineType,
+      answers: input.answers as unknown as Json,
+    },
+    { onConflict: "user_id,challenge_id,routine_type" },
+  );
 
   if (error) return { error: error.message };
   return {};
