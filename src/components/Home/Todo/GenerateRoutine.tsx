@@ -12,7 +12,7 @@ import { ROUTINE_TYPE_MAP } from "@/types/supabase";
 interface GenerateRoutineProps {
   onClose: () => void;
   onCreated?: () => void;
-  existingTypes?: string[]; // 이미 등록된 루틴의 RoutineType 목록
+  existingTypes?: string[]; // 이미 등록된 리추얼의 RoutineType 목록
 }
 
 const routineOptions: { type: RoutineType; emoji: string }[] = [
@@ -79,7 +79,7 @@ export default function GenerateRoutine({
 
     const routineType = ROUTINE_TYPE_MAP[selectedRoutine];
     if (!routineType) {
-      setErrorMsg("잘못된 루틴 타입입니다.");
+      setErrorMsg("잘못된 리추얼 타입입니다.");
       setSubmitting(false);
       return;
     }
@@ -105,7 +105,7 @@ export default function GenerateRoutine({
     });
 
     if (declError) {
-      setErrorMsg(`루틴은 생성되었지만 선언 저장 실패: ${declError}`);
+      setErrorMsg(`리추얼은 생성되었지만 선언 저장 실패: ${declError}`);
       setSubmitting(false);
       return;
     }
@@ -121,7 +121,7 @@ export default function GenerateRoutine({
     setTimeout(() => onCreated?.(), 250);
   };
 
-  // 루틴 이름에서 "리추얼" 제거한 짧은 라벨
+  // 리추얼 이름에서 "리추얼" 제거한 짧은 라벨
   const shortLabel = (type: RoutineType) => type.replace("리추얼", "");
 
   return (
@@ -152,7 +152,7 @@ export default function GenerateRoutine({
 
         {/* 헤더 */}
         <div className="flex items-center justify-between px-5 pb-3 flex-shrink-0">
-          <h2 className="text-lg font-bold text-gray-800">새 루틴 만들기</h2>
+          <h2 className="text-lg font-bold text-gray-800">새 리추얼 만들기</h2>
           <div className="flex items-center gap-3">
             {/* 단계 인디케이터 */}
             <div className="flex items-center gap-1.5">
@@ -200,7 +200,7 @@ export default function GenerateRoutine({
               </svg>
             </div>
             <h3 className="text-base font-bold text-gray-800 mb-1">
-              루틴이 생성되었어요!
+              리추얼이 생성되었어요!
             </h3>
             <p className="text-sm text-gray-500 mb-1">{selectedRoutine}</p>
             {(startDate || endDate) && (
@@ -222,10 +222,10 @@ export default function GenerateRoutine({
           <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
             {step === 1 ? (
               <>
-                {/* 루틴 선택 - 칩 그리드 */}
+                {/* 리추얼 선택 - 칩 그리드 */}
                 <div className="mb-5">
                   <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2.5">
-                    루틴 선택 <span className="text-red-400">*</span>
+                    리추얼 선택 <span className="text-red-400">*</span>
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     {routineOptions.filter(({ type }) => {
@@ -393,7 +393,7 @@ export default function GenerateRoutine({
                     className="flex-[2] py-3.5 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{ backgroundColor: "#eab32e" }}
                   >
-                    {submitting ? "생성 중..." : "루틴 추가"}
+                    {submitting ? "생성 중..." : "리추얼 추가"}
                   </button>
                 </div>
               </>

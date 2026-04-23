@@ -167,7 +167,7 @@ export default function MidReviewWriteContainer() {
       {/* Step 1 */}
       {step === 1 && (
         <div>
-          {/* 루틴 선택 */}
+          {/* 리추얼 선택 */}
           <div className="mb-6">
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
               회고할 리추얼 <span className="text-red-400">*</span>

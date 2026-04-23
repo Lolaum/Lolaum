@@ -56,7 +56,7 @@ export default function HomeContainer({ initialData }: { initialData: HomeInitia
     : false;
 
   const handleTaskClick = (title: string, color: string) => {
-    if (isPastDate) return; // 지난 날짜에서는 루틴 진행 불가
+    if (isPastDate) return; // 지난 날짜에서는 리추얼 진행 불가
     setSelectedTask({ title, color });
   };
 
@@ -229,7 +229,7 @@ export default function HomeContainer({ initialData }: { initialData: HomeInitia
             </div>
           </div>
 
-          {/* 태스크 탭 섹션 (루틴/투두) */}
+          {/* 태스크 탭 섹션 (리추얼/투두) */}
           <div className="w-full md:w-1/2 lg:w-7/12">
             <TaskTabs
               selectedDate={selectedDate}

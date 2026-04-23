@@ -98,7 +98,7 @@ export default function TaskTabs({ selectedDate, onTaskClick, stats, completionR
         ))}
       </div>
 
-      {/* 루틴 카드 */}
+      {/* 리추얼 카드 */}
       <div className="rounded-3xl bg-white shadow-sm border border-gray-100 p-5">
         {/* 날짜 */}
         <div className="mb-5">

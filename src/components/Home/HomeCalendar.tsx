@@ -97,7 +97,7 @@ export default function HomCalendar({
   };
 
   /**
-   * 연속 루틴 배경을 위한 border-radius 계산
+   * 연속 리추얼 배경을 위한 border-radius 계산
    * dates: 7칸 배열 (Date | null), index: 현재 위치
    */
   const getStreakRadius = (dates: (Date | null)[], index: number) => {
@@ -138,7 +138,7 @@ export default function HomCalendar({
     const todayDate = isToday(date);
     const streakRadius = getStreakRadius(dates, index);
 
-    // 배경색 우선순위: 선택 > 루틴 > 오늘 > 기본
+    // 배경색 우선순위: 선택 > 리추얼 > 오늘 > 기본
     let bgClass = "";
     let textClass = otherMonth ? "text-gray-300" : "text-gray-700";
 
@@ -153,7 +153,7 @@ export default function HomCalendar({
       textClass = "text-gray-900 font-medium";
     }
 
-    // 루틴 streak 연결: 루틴이 있으면 streak radius 적용, 그 외 원형
+    // 리추얼 streak 연결: 리추얼이 있으면 streak radius 적용, 그 외 원형
     const radiusClass = routine && !selected ? streakRadius : "rounded-full";
 
     return (
