@@ -69,6 +69,7 @@ export interface FinanceInsight {
     total: number;
     necessary: number;
     emotional: number;
+    value: number;
     categories: { name: string; amount: number; color: string; percent: number }[];
   };
   weeklySpending: { week: string; amount: number }[];
@@ -622,7 +623,7 @@ export async function getFinanceInsight(): Promise<{
   if (!records || records.length === 0) {
     return {
       data: {
-        currentMonth: { total: 0, necessary: 0, emotional: 0, categories: [] },
+        currentMonth: { total: 0, necessary: 0, emotional: 0, value: 0, categories: [] },
         weeklySpending: [],
       },
     };
@@ -631,6 +632,7 @@ export async function getFinanceInsight(): Promise<{
   let total = 0;
   let necessary = 0;
   let emotional = 0;
+  let value = 0;
   const categoryMap: Record<string, number> = {};
   const weeklyMap: Record<string, number> = {};
 
@@ -641,6 +643,7 @@ export async function getFinanceInsight(): Promise<{
     for (const exp of allExpenses) {
       total += exp.amount;
       if (exp.type === "necessary") necessary += exp.amount;
+      else if (exp.type === "value") value += exp.amount;
       else emotional += exp.amount;
 
       const catName = exp.name || "기타";
@@ -673,7 +676,7 @@ export async function getFinanceInsight(): Promise<{
 
   return {
     data: {
-      currentMonth: { total, necessary, emotional, categories },
+      currentMonth: { total, necessary, emotional, value, categories },
       weeklySpending,
     },
   };
