@@ -30,7 +30,7 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
         id: "sleep_goal",
         label: "목표 취침 시간 & 전날 자기 전 준비할 것들",
         description:
-          "아침을 수월하게 시작하기 위해 전날 밤 챙길 일과 취침 시간을 적어주세요.",
+          "아침을 수월하게 시작하기 위해 전날 밤 챙길 일과 취침 시간을 적어주세요.\n'최소 7시간 수면 시간 확보 필수",
         placeholder: "예) 11시 취침, 전날 옷 미리 꺼내두기",
       },
       {
@@ -215,7 +215,7 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
       },
       {
         id: "ritual_method",
-        label: "리추얼 방법",
+        label: "자산 관리 공부 방법",
         description: "소비 항목 작성+자산관리 공부",
         placeholder: "예) 전날 소비 항목 작성 5분\n유튜브 김짠부 영상 5분",
       },
@@ -224,7 +224,8 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
         label: "이번 달 자산관리 목표",
         description:
           "*투자 수익률 00%과 같은 목표가 아닌,내 의지로 할 수있는 목표로 작성해주세요.",
-        placeholder: "예) 전날 소비 항목 작성 5분\n유튜브 김짠부 영상 5분 ",
+        placeholder:
+          "예) 내 주요 고정비 & 생활비 구조와 주로 후회가 남는 소비 파악하기",
       },
       {
         id: "cert_method",

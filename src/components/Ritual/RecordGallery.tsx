@@ -286,8 +286,15 @@ function FinanceCardContent({ data }: { data: FinanceFeedData }) {
   const emotional = allExpenses
     .filter((e) => e.type === "emotional")
     .reduce((s, e) => s + e.amount, 0);
+  const value = allExpenses
+    .filter((e) => e.type === "value")
+    .reduce((s, e) => s + e.amount, 0);
+  const necessaryPercent =
+    total > 0 ? Math.round((necessary / total) * 100) : 0;
   const emotionalPercent =
     total > 0 ? Math.round((emotional / total) * 100) : 0;
+  const valuePercent =
+    total > 0 ? Math.round((value / total) * 100) : 0;
 
   return (
     <div className="space-y-3">
@@ -295,7 +302,7 @@ function FinanceCardContent({ data }: { data: FinanceFeedData }) {
         <p className="text-lg font-bold text-gray-900">
           {total.toLocaleString()}원
         </p>
-        <div className="flex gap-3 mt-1">
+        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
           <span className="text-xs text-gray-400">
             필수{" "}
             <span className="text-gray-600 font-medium">
@@ -308,21 +315,41 @@ function FinanceCardContent({ data }: { data: FinanceFeedData }) {
               {emotional.toLocaleString()}
             </span>
           </span>
+          <span className="text-xs text-gray-400">
+            가치{" "}
+            <span style={{ color: "#8b5cf6" }} className="font-medium">
+              {value.toLocaleString()}
+            </span>
+          </span>
         </div>
       </div>
 
       <div>
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-2 bg-gray-100 rounded-full overflow-hidden flex">
           <div
-            className="h-full rounded-full"
+            className="h-full"
+            style={{
+              width: `${necessaryPercent}%`,
+              backgroundColor: "#9ca3af",
+            }}
+          />
+          <div
+            className="h-full"
             style={{
               width: `${emotionalPercent}%`,
               backgroundColor: "#f97316",
             }}
           />
+          <div
+            className="h-full"
+            style={{
+              width: `${valuePercent}%`,
+              backgroundColor: "#8b5cf6",
+            }}
+          />
         </div>
         <p className="text-[10px] text-gray-400 mt-1">
-          감성소비 {emotionalPercent}%
+          감성 {emotionalPercent}% · 가치 {valuePercent}%
         </p>
       </div>
 

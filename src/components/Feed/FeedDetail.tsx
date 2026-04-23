@@ -176,10 +176,14 @@ function FinanceContent({ data }: { data: FinanceFeedData }) {
     .flatMap((d) => d.expenses.filter((e) => e.type === "emotional"))
     .reduce((sum, e) => sum + e.amount, 0);
 
+  const totalValue = data.dailyExpenses
+    .flatMap((d) => d.expenses.filter((e) => e.type === "value"))
+    .reduce((sum, e) => sum + e.amount, 0);
+
   return (
     <div className="space-y-4">
       {/* 소비 요약 */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <div className="bg-blue-50 rounded-xl p-3">
           <p className="text-xs text-blue-400 font-medium mb-1">필요소비</p>
           <p className="text-sm font-bold text-blue-600">
@@ -190,6 +194,12 @@ function FinanceContent({ data }: { data: FinanceFeedData }) {
           <p className="text-xs text-red-400 font-medium mb-1">감정소비</p>
           <p className="text-sm font-bold text-red-500">
             {totalEmotional.toLocaleString()}원
+          </p>
+        </div>
+        <div className="bg-violet-50 rounded-xl p-3">
+          <p className="text-xs text-violet-400 font-medium mb-1">가치소비</p>
+          <p className="text-sm font-bold text-violet-600">
+            {totalValue.toLocaleString()}원
           </p>
         </div>
       </div>
@@ -216,7 +226,9 @@ function FinanceContent({ data }: { data: FinanceFeedData }) {
                       className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
                         expense.type === "necessary"
                           ? "bg-blue-400"
-                          : "bg-red-400"
+                          : expense.type === "emotional"
+                            ? "bg-red-400"
+                            : "bg-violet-400"
                       }`}
                     />
                     <span className="text-sm text-gray-700">

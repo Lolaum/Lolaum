@@ -460,7 +460,7 @@ export interface FinanceRecordData {
       id: string;
       name: string;
       amount: number;
-      type: "emotional" | "necessary";
+      type: "emotional" | "necessary" | "value";
     }[];
   }[];
   studyContent: string;

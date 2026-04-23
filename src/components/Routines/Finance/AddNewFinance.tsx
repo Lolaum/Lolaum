@@ -37,6 +37,11 @@ export default function AddNewFinance({
     Record<string, { name: string; amount: string }>
   >({});
 
+  // 각 날짜별 임시 입력 상태 (가치소비)
+  const [valueInputs, setValueInputs] = useState<
+    Record<string, { name: string; amount: string }>
+  >({});
+
   // 캘린더 외부 클릭 감지
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -150,10 +155,13 @@ export default function AddNewFinance({
     // 해당 날짜의 입력 상태도 제거
     const newNecessary = { ...necessaryInputs };
     const newEmotional = { ...emotionalInputs };
+    const newValue = { ...valueInputs };
     delete newNecessary[dailyId];
     delete newEmotional[dailyId];
+    delete newValue[dailyId];
     setNecessaryInputs(newNecessary);
     setEmotionalInputs(newEmotional);
+    setValueInputs(newValue);
   };
 
   // 필요소비 추가
@@ -202,6 +210,30 @@ export default function AddNewFinance({
 
     // 입력 초기화
     setEmotionalInputs({ ...emotionalInputs, [dailyId]: { name: "", amount: "" } });
+  };
+
+  // 가치소비 추가
+  const addValueExpense = (dailyId: string) => {
+    const input = valueInputs[dailyId];
+    if (!input || !input.name.trim() || !input.amount) return;
+
+    const newExpense: ExpenseItem = {
+      id: Date.now().toString(),
+      name: input.name.trim(),
+      amount: parseInt(input.amount),
+      type: "value",
+    };
+
+    setDailyExpenses((prev) =>
+      prev.map((daily) =>
+        daily.id === dailyId
+          ? { ...daily, expenses: [...daily.expenses, newExpense] }
+          : daily,
+      ),
+    );
+
+    // 입력 초기화
+    setValueInputs({ ...valueInputs, [dailyId]: { name: "", amount: "" } });
   };
 
   // 소비 항목 제거
@@ -308,6 +340,9 @@ export default function AddNewFinance({
             );
             const emotionalExpenses = daily.expenses.filter(
               (e) => e.type === "emotional",
+            );
+            const valueExpenses = daily.expenses.filter(
+              (e) => e.type === "value",
             );
             const dailyTotal = daily.expenses.reduce(
               (sum, e) => sum + e.amount,
@@ -467,9 +502,12 @@ export default function AddNewFinance({
 
                 {/* 필요소비 */}
                 <div className="mb-4">
-                  <h4 className="text-sm font-semibold text-blue-700 mb-2">
+                  <h4 className="text-sm font-semibold text-blue-700 mb-1">
                     필요소비
                   </h4>
+                  <p className="text-xs text-gray-500 mb-2 leading-relaxed">
+                    일상 유지를 위해 반드시 필요한 것을 구매하는 소비
+                  </p>
                   <div className="flex gap-2 mb-2">
                     <input
                       type="text"
@@ -544,9 +582,12 @@ export default function AddNewFinance({
 
                 {/* 감정소비 */}
                 <div className="mb-4">
-                  <h4 className="text-sm font-semibold text-red-700 mb-2">
+                  <h4 className="text-sm font-semibold text-red-700 mb-1">
                     감정소비
                   </h4>
+                  <p className="text-xs text-gray-500 mb-2 leading-relaxed">
+                    충동 소비, 과소비, 모방 소비, 과시 소비
+                  </p>
                   <div className="flex gap-2 mb-2">
                     <input
                       type="text"
@@ -603,6 +644,86 @@ export default function AddNewFinance({
                           <span className="text-gray-700">{exp.name}</span>
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-red-600">
+                              {exp.amount.toLocaleString()}원
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeExpense(daily.id, exp.id)}
+                              className="w-5 h-5 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors flex items-center justify-center"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 가치소비 */}
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-violet-700 mb-1">
+                    가치소비
+                  </h4>
+                  <p className="text-xs text-gray-500 mb-2 leading-relaxed">
+                    경험 소비, 돌봄 소비, 배움 소비, 관계 소비, 취향 소비
+                  </p>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={valueInputs[daily.id]?.name || ""}
+                      onChange={(e) =>
+                        setValueInputs({
+                          ...valueInputs,
+                          [daily.id]: {
+                            ...valueInputs[daily.id],
+                            name: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="품목명"
+                      className="flex-1 px-3 py-2 bg-white border border-violet-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 text-sm"
+                      onKeyPress={(e) =>
+                        e.key === "Enter" && addValueExpense(daily.id)
+                      }
+                    />
+                    <input
+                      type="number"
+                      value={valueInputs[daily.id]?.amount || ""}
+                      onChange={(e) =>
+                        setValueInputs({
+                          ...valueInputs,
+                          [daily.id]: {
+                            ...valueInputs[daily.id],
+                            amount: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="금액"
+                      className="w-24 px-3 py-2 bg-white border border-violet-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 text-sm"
+                      onKeyPress={(e) =>
+                        e.key === "Enter" && addValueExpense(daily.id)
+                      }
+                    />
+                    <button
+                      type="button"
+                      onClick={() => addValueExpense(daily.id)}
+                      className="w-10 h-10 bg-violet-500 text-white rounded-lg hover:bg-violet-600 transition-colors flex items-center justify-center"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {valueExpenses.length > 0 && (
+                    <div className="space-y-1">
+                      {valueExpenses.map((exp) => (
+                        <div
+                          key={exp.id}
+                          className="flex items-center justify-between bg-white rounded-lg p-2 text-sm"
+                        >
+                          <span className="text-gray-700">{exp.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-violet-600">
                               {exp.amount.toLocaleString()}원
                             </span>
                             <button
