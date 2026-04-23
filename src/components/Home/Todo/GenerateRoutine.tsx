@@ -336,7 +336,7 @@ export default function GenerateRoutine({
                         {q.label} <span className="text-red-400">*</span>
                       </label>
                       {q.description && (
-                        <p className="text-xs text-gray-400 mb-2 leading-relaxed">
+                        <p className="text-xs text-gray-400 mb-2 leading-relaxed whitespace-pre-line">
                           {q.description}
                         </p>
                       )}
