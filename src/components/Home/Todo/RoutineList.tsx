@@ -41,6 +41,7 @@ export default function RoutineList({
   const [routines, setRoutines] = useState<ChallengeRegistration[]>([]);
   const [loading, setLoading] = useState(false);
   const [showGenerateRoutine, setShowGenerateRoutine] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ChallengeRegistration | null>(null);
 
   const fetchRoutines = useCallback(async () => {
     setLoading(true);
@@ -53,8 +54,15 @@ export default function RoutineList({
     fetchRoutines();
   }, [fetchRoutines]);
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
+  const handleDeleteClick = (e: React.MouseEvent, routine: ChallengeRegistration) => {
     e.stopPropagation();
+    setDeleteTarget(routine);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
+    setDeleteTarget(null);
     setRoutines((prev) => prev.filter((r) => r.id !== id));
     const { error } = await deleteRoutine(id);
     if (error) {
@@ -149,7 +157,7 @@ export default function RoutineList({
                   {/* 삭제 + 화살표 */}
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     <button
-                      onClick={(e) => handleDelete(e, routine.id)}
+                      onClick={(e) => handleDeleteClick(e, routine)}
                       className="text-gray-300 hover:text-red-400 transition-colors p-1"
                       aria-label="삭제"
                     >
@@ -161,6 +169,42 @@ export default function RoutineList({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* 삭제 확인 모달 */}
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6"
+          onClick={() => setDeleteTarget(null)}
+        >
+          <div
+            className="w-full max-w-xs rounded-2xl bg-white p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-semibold text-gray-900">
+              루틴을 삭제하시겠습니까?
+            </h3>
+            <p className="mt-2 text-sm text-gray-500">
+              {ROUTINE_TYPE_LABEL[deleteTarget.routine_type]} 루틴이 삭제됩니다.
+              이 작업은 되돌릴 수 없습니다.
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="flex-1 rounded-xl py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                style={{ backgroundColor: "#eab32e" }}
+              >
+                삭제
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

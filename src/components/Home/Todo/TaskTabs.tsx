@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Flame,
@@ -10,15 +9,12 @@ import {
   ClipboardCheck,
   Trophy,
 } from "lucide-react";
-import TodoList from "./TodoList";
 import RoutineList from "./RoutineList";
 import {
   formatDateDisplay,
   getWeekRangeText,
 } from "@/lib/date";
 import { MyPageStats, CompletionRateStats } from "@/api/ritual-stats";
-
-type TabType = "routine" | "todo";
 
 interface TaskTabsProps {
   selectedDate: Date;
@@ -30,7 +26,6 @@ interface TaskTabsProps {
 }
 
 export default function TaskTabs({ selectedDate, onTaskClick, stats, completionRate, isPastDate, routineCompletionMap }: TaskTabsProps) {
-  const [activeTab, setActiveTab] = useState<TabType>("routine");
   const router = useRouter();
 
   const handleTaskClick = (title: string, color: string) => {
@@ -103,64 +98,26 @@ export default function TaskTabs({ selectedDate, onTaskClick, stats, completionR
         ))}
       </div>
 
-      {/* 루틴/투두 카드 */}
+      {/* 루틴 카드 */}
       <div className="rounded-3xl bg-white shadow-sm border border-gray-100 p-5">
-        {/* 날짜 + 세그먼트 컨트롤 */}
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <p className="text-xs text-gray-400 font-medium mb-0.5">
-              {formatDateDisplay(selectedDate)}
-            </p>
-            <h2 className="text-base font-bold text-gray-800">
-              {getWeekRangeText(selectedDate)}
-            </h2>
-          </div>
-
-          {/* 세그먼트 컨트롤 — 슬라이딩 pill */}
-          <div className="relative flex bg-gray-100 rounded-2xl p-1 w-36">
-            {/* 슬라이딩 active 배경 */}
-            <div
-              className="absolute inset-y-1 rounded-xl"
-              style={{
-                width: "calc(50% - 4px)",
-                left: activeTab === "routine" ? 4 : "calc(50%)",
-                backgroundColor: "#eab32e",
-                boxShadow: "0 2px 8px rgba(234,179,46,0.35)",
-                transition: "left 0.22s cubic-bezier(0.4, 0, 0.2, 1)",
-              }}
-            />
-            {(["routine", "todo"] as const).map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveTab(tab)}
-                className="relative z-10 flex-1 py-2.5 text-sm font-semibold flex items-center justify-center"
-                style={{
-                  color: activeTab === tab ? "#fff" : "#9ca3af",
-                  transition: "color 0.18s ease",
-                }}
-              >
-                {tab === "routine" ? "루틴" : "투두"}
-              </button>
-            ))}
-          </div>
+        {/* 날짜 */}
+        <div className="mb-5">
+          <p className="text-xs text-gray-400 font-medium mb-0.5">
+            {formatDateDisplay(selectedDate)}
+          </p>
+          <h2 className="text-base font-bold text-gray-800">
+            {getWeekRangeText(selectedDate)}
+          </h2>
         </div>
 
         {/* 콘텐츠 */}
         <div className="overflow-y-auto max-h-[calc(100vh-400px)]">
-          {activeTab === "routine" ? (
-            <RoutineList
-              selectedDate={selectedDate}
-              onTaskClick={handleTaskClick}
-              routineCompletionMap={routineCompletionMap}
-              isPastDate={isPastDate}
-            />
-          ) : (
-            <TodoList
-              selectedDate={selectedDate}
-              onTaskClick={handleTaskClick}
-            />
-          )}
+          <RoutineList
+            selectedDate={selectedDate}
+            onTaskClick={handleTaskClick}
+            routineCompletionMap={routineCompletionMap}
+            isPastDate={isPastDate}
+          />
         </div>
       </div>
     </div>
