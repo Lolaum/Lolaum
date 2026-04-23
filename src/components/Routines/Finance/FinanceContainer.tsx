@@ -4,8 +4,15 @@ import { useState, useEffect, useCallback } from "react";
 import { Wallet, Loader2 } from "lucide-react";
 import RecordFinance from "./RecordFinance";
 import AddNewFinance from "./AddNewFinance";
-import { FinanceRecord, FinanceContainerProps, FinanceFormData } from "@/types/routines/finance";
-import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
+import {
+  FinanceRecord,
+  FinanceContainerProps,
+  FinanceFormData,
+} from "@/types/routines/finance";
+import {
+  createRitualRecordAuto,
+  getMyRitualRecords,
+} from "@/api/ritual-record";
 import type { FinanceRecordData, Json } from "@/types/supabase";
 
 export default function FinanceContainer({
@@ -13,7 +20,9 @@ export default function FinanceContainer({
   onBackToHome,
   certificationPhotos,
 }: FinanceContainerProps) {
-  const [showAddRecord, setShowAddRecord] = useState(!!certificationPhotos?.length);
+  const [showAddRecord, setShowAddRecord] = useState(
+    !!certificationPhotos?.length,
+  );
   const [financeRecords, setFinanceRecords] = useState<FinanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -100,6 +109,19 @@ export default function FinanceContainer({
     return sum + emotionalTotal;
   }, 0);
 
+  // 가치소비 총합
+  const totalValueExpense = financeRecords.reduce((sum, record) => {
+    const valueTotal = record.dailyExpenses.reduce((dailySum, daily) => {
+      return (
+        dailySum +
+        daily.expenses
+          .filter((e) => e.type === "value")
+          .reduce((expSum, exp) => expSum + exp.amount, 0)
+      );
+    }, 0);
+    return sum + valueTotal;
+  }, 0);
+
   const renderContent = () => {
     // 새 기록 추가하기 화면
     if (showAddRecord) {
@@ -113,10 +135,18 @@ export default function FinanceContainer({
     }
 
     // 메인 화면
-    const necessaryPct = totalMonthlyExpense > 0
-      ? Math.round((totalNecessaryExpense / totalMonthlyExpense) * 100) : 0;
-    const emotionalPct = totalMonthlyExpense > 0
-      ? Math.round((totalEmotionalExpense / totalMonthlyExpense) * 100) : 0;
+    const necessaryPct =
+      totalMonthlyExpense > 0
+        ? Math.round((totalNecessaryExpense / totalMonthlyExpense) * 100)
+        : 0;
+    const emotionalPct =
+      totalMonthlyExpense > 0
+        ? Math.round((totalEmotionalExpense / totalMonthlyExpense) * 100)
+        : 0;
+    const valuePct =
+      totalMonthlyExpense > 0
+        ? Math.round((totalValueExpense / totalMonthlyExpense) * 100)
+        : 0;
 
     return (
       <>
@@ -127,23 +157,39 @@ export default function FinanceContainer({
             onClick={onBackToHome}
             className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
           >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
 
         {/* 헤더 */}
         <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-4">
-          <p className="text-xs text-gray-400 font-medium mb-0.5">자산관리 리추얼</p>
+          <p className="text-xs text-gray-400 font-medium mb-0.5">
+            자산관리 리추얼
+          </p>
           <div className="flex items-baseline gap-1.5 mb-4">
-            <h1 className="text-lg font-bold text-gray-900">이번 달 소비 현황</h1>
+            <h1 className="text-lg font-bold text-gray-900">
+              이번 달 소비 현황
+            </h1>
             <span className="text-base font-bold text-gray-900 ml-auto">
               {totalMonthlyExpense.toLocaleString()}
-              <span className="text-sm font-medium text-gray-400 ml-0.5">원</span>
+              <span className="text-sm font-medium text-gray-400 ml-0.5">
+                원
+              </span>
             </span>
           </div>
-          <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="grid grid-cols-2 gap-2 mb-2">
             <div className="bg-emerald-50 rounded-xl p-3 text-center">
               <p className="text-lg font-bold text-gray-900">{recordCount}</p>
               <p className="text-xs text-gray-400 mt-0.5">기록한 날</p>
@@ -152,16 +198,32 @@ export default function FinanceContainer({
               <p className="text-lg font-bold text-gray-900">{necessaryPct}%</p>
               <p className="text-xs text-gray-400 mt-0.5">필요소비</p>
             </div>
-            <div className="bg-emerald-50 rounded-xl p-3 text-center">
+          </div>
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="bg-red-50 rounded-xl p-3 text-center">
               <p className="text-lg font-bold text-gray-900">{emotionalPct}%</p>
-              <p className="text-xs text-gray-400 mt-0.5">감성소비</p>
+              <p className="text-xs text-gray-400 mt-0.5">감정소비</p>
+            </div>
+            <div className="bg-violet-50 rounded-xl p-3 text-center">
+              <p className="text-lg font-bold text-gray-900">{valuePct}%</p>
+              <p className="text-xs text-gray-400 mt-0.5">가치소비</p>
             </div>
           </div>
           {/* 비율 바 */}
           {totalMonthlyExpense > 0 && (
             <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden flex">
-              <div className="h-full bg-emerald-400 transition-all" style={{ width: `${necessaryPct}%` }} />
-              <div className="h-full bg-orange-300 transition-all" style={{ width: `${emotionalPct}%` }} />
+              <div
+                className="h-full bg-emerald-400 transition-all"
+                style={{ width: `${necessaryPct}%` }}
+              />
+              <div
+                className="h-full bg-orange-300 transition-all"
+                style={{ width: `${emotionalPct}%` }}
+              />
+              <div
+                className="h-full bg-violet-400 transition-all"
+                style={{ width: `${valuePct}%` }}
+              />
             </div>
           )}
         </div>
@@ -192,8 +254,6 @@ export default function FinanceContainer({
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 py-4">
-      {renderContent()}
-    </div>
+    <div className="w-full max-w-2xl mx-auto px-4 py-4">{renderContent()}</div>
   );
 }

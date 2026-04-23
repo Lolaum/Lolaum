@@ -457,7 +457,7 @@ function LanguageInsightView({ routines, routineType, tabName, color, refreshKey
 // ─────────────────────────────
 function FinanceInsightView({ routines, refreshKey = 0 }: { routines: RoutineCardStats[]; refreshKey?: number }) {
   const [data, setData] = useState<{
-    currentMonth: { total: number; necessary: number; emotional: number; categories: { name: string; amount: number; color: string; percent: number }[] };
+    currentMonth: { total: number; necessary: number; emotional: number; value: number; categories: { name: string; amount: number; color: string; percent: number }[] };
     weeklySpending: { week: string; amount: number }[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -475,8 +475,11 @@ function FinanceInsightView({ routines, refreshKey = 0 }: { routines: RoutineCar
   if (loading || !data) return <InsightLoading name="자산관리" color="#10b981" routines={routines} />;
 
   const { currentMonth, weeklySpending } = data;
+  const necessaryPercent = currentMonth.total > 0 ? Math.round((currentMonth.necessary / currentMonth.total) * 100) : 0;
   const emotionalPercent = currentMonth.total > 0 ? Math.round((currentMonth.emotional / currentMonth.total) * 100) : 0;
-  const necessaryPercent = 100 - emotionalPercent;
+  const valuePercent = currentMonth.total > 0
+    ? Math.max(0, 100 - necessaryPercent - emotionalPercent)
+    : 0;
   const maxWeekly = Math.max(...weeklySpending.map((w) => w.amount), 1);
 
   return (
@@ -495,17 +498,20 @@ function FinanceInsightView({ routines, refreshKey = 0 }: { routines: RoutineCar
             <p className="text-2xl font-bold text-gray-900 mb-1">
               {currentMonth.total.toLocaleString()}<span className="text-base font-medium text-gray-400 ml-1">원</span>
             </p>
-            <div className="flex gap-4 text-xs text-gray-500 mb-4">
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500 mb-4">
               <span>필수 소비 <span className="font-semibold text-gray-700">{currentMonth.necessary.toLocaleString()}원</span></span>
               <span>감성 소비 <span className="font-semibold" style={{ color: "#f97316" }}>{currentMonth.emotional.toLocaleString()}원</span></span>
+              <span>가치 소비 <span className="font-semibold" style={{ color: "#8b5cf6" }}>{currentMonth.value.toLocaleString()}원</span></span>
             </div>
             <div className="h-3 rounded-full overflow-hidden flex">
               <div className="h-full" style={{ width: `${necessaryPercent}%`, backgroundColor: "#10b981" }} />
               <div className="h-full" style={{ width: `${emotionalPercent}%`, backgroundColor: "#f97316" }} />
+              <div className="h-full" style={{ width: `${valuePercent}%`, backgroundColor: "#8b5cf6" }} />
             </div>
             <div className="flex justify-between text-[10px] mt-1 text-gray-400">
               <span>필수 {necessaryPercent}%</span>
               <span>감성 {emotionalPercent}%</span>
+              <span>가치 {valuePercent}%</span>
             </div>
           </>
         )}

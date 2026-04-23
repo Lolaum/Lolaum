@@ -96,6 +96,9 @@ export default function RecordFinance({
                         const emotionalExpenses = daily.expenses.filter(
                           (e) => e.type === "emotional",
                         );
+                        const valueExpenses = daily.expenses.filter(
+                          (e) => e.type === "value",
+                        );
 
                         const totalNecessary = necessaryExpenses.reduce(
                           (sum, e) => sum + e.amount,
@@ -105,7 +108,12 @@ export default function RecordFinance({
                           (sum, e) => sum + e.amount,
                           0,
                         );
-                        const dailyTotal = totalNecessary + totalEmotional;
+                        const totalValue = valueExpenses.reduce(
+                          (sum, e) => sum + e.amount,
+                          0,
+                        );
+                        const dailyTotal =
+                          totalNecessary + totalEmotional + totalValue;
 
                         return (
                           <div
@@ -174,6 +182,35 @@ export default function RecordFinance({
                               </div>
                             )}
 
+                            {/* 가치소비 */}
+                            {valueExpenses.length > 0 && (
+                              <div className="mb-3">
+                                <h6 className="text-xs font-semibold text-violet-700 mb-2">
+                                  가치소비
+                                </h6>
+                                <div className="bg-violet-50 rounded-lg p-2 border border-violet-100 space-y-1">
+                                  {valueExpenses.map((expense) => (
+                                    <div
+                                      key={expense.id}
+                                      className="flex items-center justify-between text-sm"
+                                    >
+                                      <span className="text-gray-700">
+                                        {expense.name}
+                                      </span>
+                                      <span className="font-semibold text-violet-600">
+                                        {expense.amount.toLocaleString()}원
+                                      </span>
+                                    </div>
+                                  ))}
+                                  <div className="flex justify-end pt-1 border-t border-violet-200 mt-1">
+                                    <span className="text-xs font-bold text-violet-700">
+                                      소계: {totalValue.toLocaleString()}원
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
                             {/* 일일 합계 */}
                             <div className="bg-white rounded-lg p-2 border border-green-200">
                               <div className="flex items-center justify-between">
@@ -205,6 +242,14 @@ export default function RecordFinance({
                                         }}
                                       />
                                     )}
+                                    {totalValue > 0 && (
+                                      <div
+                                        className="h-full bg-violet-400 transition-all duration-300"
+                                        style={{
+                                          width: `${(totalValue / dailyTotal) * 100}%`,
+                                        }}
+                                      />
+                                    )}
                                   </div>
                                   <div className="flex items-center justify-between text-xs mt-1">
                                     <span className="text-blue-600">
@@ -218,6 +263,13 @@ export default function RecordFinance({
                                       감정{" "}
                                       {Math.round(
                                         (totalEmotional / dailyTotal) * 100,
+                                      )}
+                                      %
+                                    </span>
+                                    <span className="text-violet-600">
+                                      가치{" "}
+                                      {Math.round(
+                                        (totalValue / dailyTotal) * 100,
                                       )}
                                       %
                                     </span>

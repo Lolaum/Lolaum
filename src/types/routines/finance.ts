@@ -1,7 +1,7 @@
 // 자산관리 리추얼 관련 타입 정의
 
 // 소비 유형
-export type ExpenseType = "emotional" | "necessary";
+export type ExpenseType = "emotional" | "necessary" | "value";
 
 // 소비 항목
 export interface ExpenseItem {
