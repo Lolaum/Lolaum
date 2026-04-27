@@ -87,9 +87,13 @@ function getSubText(item: FeedItemType): string | null {
     case "독서": {
       const d = data as ReadingFeedData;
       if (d.bookTitle) {
-        const progress = d.pagesRead && d.totalPages
-          ? ` · ${d.pagesRead}/${d.totalPages}p`
-          : "";
+        const isPercent = d.trackingType === "percent";
+        const progress =
+          d.pagesRead != null && d.totalPages
+            ? isPercent
+              ? ` · ${d.pagesRead}%`
+              : ` · ${d.pagesRead}/${d.totalPages}p`
+            : "";
         return `${d.bookTitle}${progress}`;
       }
       return null;
@@ -119,9 +123,13 @@ function getSubText(item: FeedItemType): string | null {
     case "원서읽기": {
       const d = data as ReadingFeedData;
       if (d.bookTitle) {
-        const progress = d.pagesRead && d.totalPages
-          ? ` · ${d.pagesRead}/${d.totalPages}p`
-          : "";
+        const isPercent = d.trackingType === "percent";
+        const progress =
+          d.pagesRead != null && d.totalPages
+            ? isPercent
+              ? ` · ${d.pagesRead}%`
+              : ` · ${d.pagesRead}/${d.totalPages}p`
+            : "";
         return `${d.bookTitle}${progress}`;
       }
       return null;
