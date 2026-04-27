@@ -50,12 +50,20 @@ export default function MidReviewWriteContainer() {
   );
 
   // Step 1
-  const [goodConditions, setGoodConditions] = useState<MidReviewCondition[]>([]);
-  const [goodDetails, setGoodDetails] = useState<Partial<Record<MidReviewCondition, string>>>({});
+  const [goodConditions, setGoodConditions] = useState<MidReviewCondition[]>(
+    [],
+  );
+  const [goodDetails, setGoodDetails] = useState<
+    Partial<Record<MidReviewCondition, string>>
+  >({});
 
   // Step 2
-  const [hardConditions, setHardConditions] = useState<MidReviewCondition[]>([]);
-  const [hardDetails, setHardDetails] = useState<Partial<Record<MidReviewCondition, string>>>({});
+  const [hardConditions, setHardConditions] = useState<MidReviewCondition[]>(
+    [],
+  );
+  const [hardDetails, setHardDetails] = useState<
+    Partial<Record<MidReviewCondition, string>>
+  >({});
 
   // Step 3
   const [whyStarted, setWhyStarted] = useState("");
@@ -68,7 +76,7 @@ export default function MidReviewWriteContainer() {
     setSelected: (v: MidReviewCondition[]) => void,
     setDetails: (v: Partial<Record<MidReviewCondition, string>>) => void,
     details: Partial<Record<MidReviewCondition, string>>,
-    max: number
+    max: number,
   ) => {
     if (selected.includes(condition)) {
       setSelected(selected.filter((c) => c !== condition));
@@ -84,7 +92,9 @@ export default function MidReviewWriteContainer() {
     !!selectedRoutine &&
     goodConditions.length >= 2 &&
     goodConditions.every((c) => goodDetails[c]?.trim());
-  const canNext2 = hardConditions.length >= 1 && hardConditions.every((c) => hardDetails[c]?.trim());
+  const canNext2 =
+    hardConditions.length >= 1 &&
+    hardConditions.every((c) => hardDetails[c]?.trim());
   const canSubmit =
     !!selectedRoutine &&
     !!whyStarted.trim() &&
@@ -130,8 +140,12 @@ export default function MidReviewWriteContainer() {
         >
           ✅
         </div>
-        <h2 className="text-xl font-bold text-gray-800 mb-2">중간 회고 완료!</h2>
-        <p className="text-sm text-gray-400">다른 챌린저들의 회고를 확인해보세요</p>
+        <h2 className="text-xl font-bold text-gray-800 mb-2">
+          중간 회고 완료!
+        </h2>
+        <p className="text-sm text-gray-400">
+          다른 챌린저들의 회고를 확인해보세요
+        </p>
       </div>
     );
   }
@@ -144,8 +158,18 @@ export default function MidReviewWriteContainer() {
           onClick={() => (step > 1 ? setStep(step - 1) : router.back())}
           className="p-2 rounded-xl hover:bg-gray-100 transition-colors text-gray-500"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
         </button>
         <h1 className="text-lg font-bold text-gray-800">중간 회고</h1>
@@ -161,13 +185,15 @@ export default function MidReviewWriteContainer() {
             />
           </div>
         ))}
-        <span className="text-xs text-gray-400 font-medium flex-shrink-0">{step}/3</span>
+        <span className="text-xs text-gray-400 font-medium flex-shrink-0">
+          {step}/3
+        </span>
       </div>
 
       {/* Step 1 */}
       {step === 1 && (
         <div>
-          {/* 루틴 선택 */}
+          {/* 리추얼 선택 */}
           <div className="mb-6">
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
               회고할 리추얼 <span className="text-red-400">*</span>
@@ -227,17 +253,28 @@ export default function MidReviewWriteContainer() {
                 <button
                   key={c}
                   onClick={() =>
-                    toggleCondition(c, goodConditions, setGoodConditions, setGoodDetails, goodDetails, 3)
+                    toggleCondition(
+                      c,
+                      goodConditions,
+                      setGoodConditions,
+                      setGoodDetails,
+                      goodDetails,
+                      3,
+                    )
                   }
                   disabled={disabled}
                   className={`px-4 py-2 rounded-2xl text-sm font-semibold transition-colors border ${
                     selected
                       ? "text-white border-transparent"
                       : disabled
-                      ? "bg-gray-50 border-gray-100 text-gray-300"
-                      : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                        ? "bg-gray-50 border-gray-100 text-gray-300"
+                        : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
                   }`}
-                  style={selected ? { backgroundColor: "#eab32e", borderColor: "#eab32e" } : {}}
+                  style={
+                    selected
+                      ? { backgroundColor: "#eab32e", borderColor: "#eab32e" }
+                      : {}
+                  }
                 >
                   {c}
                 </button>
@@ -254,7 +291,9 @@ export default function MidReviewWriteContainer() {
                   </label>
                   <textarea
                     value={goodDetails[c] ?? ""}
-                    onChange={(e) => setGoodDetails({ ...goodDetails, [c]: e.target.value })}
+                    onChange={(e) =>
+                      setGoodDetails({ ...goodDetails, [c]: e.target.value })
+                    }
                     placeholder="구체적으로 적어주세요"
                     rows={2}
                     className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 resize-none focus:outline-none focus:border-yellow-300 bg-white"
@@ -305,17 +344,28 @@ export default function MidReviewWriteContainer() {
                 <button
                   key={c}
                   onClick={() =>
-                    toggleCondition(c, hardConditions, setHardConditions, setHardDetails, hardDetails, 2)
+                    toggleCondition(
+                      c,
+                      hardConditions,
+                      setHardConditions,
+                      setHardDetails,
+                      hardDetails,
+                      2,
+                    )
                   }
                   disabled={disabled}
                   className={`px-4 py-2 rounded-2xl text-sm font-semibold transition-colors border ${
                     selected
                       ? "text-white border-transparent"
                       : disabled
-                      ? "bg-gray-50 border-gray-100 text-gray-300"
-                      : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                        ? "bg-gray-50 border-gray-100 text-gray-300"
+                        : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
                   }`}
-                  style={selected ? { backgroundColor: "#eab32e", borderColor: "#eab32e" } : {}}
+                  style={
+                    selected
+                      ? { backgroundColor: "#eab32e", borderColor: "#eab32e" }
+                      : {}
+                  }
                 >
                   {c}
                 </button>
@@ -332,7 +382,9 @@ export default function MidReviewWriteContainer() {
                   </label>
                   <textarea
                     value={hardDetails[c] ?? ""}
-                    onChange={(e) => setHardDetails({ ...hardDetails, [c]: e.target.value })}
+                    onChange={(e) =>
+                      setHardDetails({ ...hardDetails, [c]: e.target.value })
+                    }
                     placeholder="구체적으로 적어주세요"
                     rows={2}
                     className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 resize-none focus:outline-none focus:border-yellow-300 bg-white"

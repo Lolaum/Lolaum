@@ -41,7 +41,8 @@ export default function RoutineList({
   const [routines, setRoutines] = useState<ChallengeRegistration[]>([]);
   const [loading, setLoading] = useState(false);
   const [showGenerateRoutine, setShowGenerateRoutine] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<ChallengeRegistration | null>(null);
+  const [deleteTarget, setDeleteTarget] =
+    useState<ChallengeRegistration | null>(null);
 
   const fetchRoutines = useCallback(async () => {
     setLoading(true);
@@ -54,7 +55,10 @@ export default function RoutineList({
     fetchRoutines();
   }, [fetchRoutines]);
 
-  const handleDeleteClick = (e: React.MouseEvent, routine: ChallengeRegistration) => {
+  const handleDeleteClick = (
+    e: React.MouseEvent,
+    routine: ChallengeRegistration,
+  ) => {
     e.stopPropagation();
     setDeleteTarget(routine);
   };
@@ -81,7 +85,7 @@ export default function RoutineList({
       <div className="flex items-center justify-between mb-4 px-1">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-gray-700">
-            진행 중인 루틴
+            진행 중인 리추얼
           </span>
           <span className="text-xs text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">
             {routines.length}
@@ -96,7 +100,7 @@ export default function RoutineList({
         </button>
       </div>
 
-      {/* 루틴 생성 바텀시트 */}
+      {/* 리추얼 생성 바텀시트 */}
       {showGenerateRoutine && (
         <GenerateRoutine
           onClose={() => setShowGenerateRoutine(false)}
@@ -105,12 +109,12 @@ export default function RoutineList({
         />
       )}
 
-      {/* 루틴 리스트 */}
+      {/* 리추얼 리스트 */}
       {loading ? (
         <p className="text-sm text-gray-300 text-center py-4">불러오는 중...</p>
       ) : routines.length === 0 ? (
         <p className="text-sm text-gray-200 text-center py-4">
-          등록된 루틴이 없습니다
+          등록된 리추얼이 없습니다
         </p>
       ) : (
         <div className="space-y-2.5">
@@ -119,8 +123,12 @@ export default function RoutineList({
             const title = ROUTINE_TYPE_LABEL[routine.routine_type];
             const colors = TAG_COLORS[tag] || DEFAULT_COLOR;
 
-            const completedDays = routineCompletionMap[routine.routine_type] ?? 0;
-            const fillPercent = Math.min(Math.round((completedDays / 18) * 100), 100);
+            const completedDays =
+              routineCompletionMap[routine.routine_type] ?? 0;
+            const fillPercent = Math.min(
+              Math.round((completedDays / 18) * 100),
+              100,
+            );
 
             return (
               <div
@@ -145,7 +153,7 @@ export default function RoutineList({
                   }}
                 />
                 <div className="flex items-center gap-3 relative z-10">
-                  {/* 루틴 정보 */}
+                  {/* 리추얼 정보 */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-gray-800">
@@ -183,11 +191,11 @@ export default function RoutineList({
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-base font-semibold text-gray-900">
-              루틴을 삭제하시겠습니까?
+              리추얼을 삭제하시겠습니까?
             </h3>
             <p className="mt-2 text-sm text-gray-500">
-              {ROUTINE_TYPE_LABEL[deleteTarget.routine_type]} 루틴이 삭제됩니다.
-              이 작업은 되돌릴 수 없습니다.
+              {ROUTINE_TYPE_LABEL[deleteTarget.routine_type]} 리추얼이
+              삭제됩니다. 이 작업은 되돌릴 수 없습니다.
             </p>
             <div className="mt-5 flex gap-2">
               <button

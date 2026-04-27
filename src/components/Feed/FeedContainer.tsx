@@ -65,9 +65,7 @@ export default function FeedContainer() {
     fetchFeeds();
   }, [fetchFeeds]);
 
-  const filteredFeeds = feedData;
   const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
-  const pagedFeeds = filteredFeeds;
 
   const updateParams = (filter: FilterKey, page: number, search?: string) => {
     const params = new URLSearchParams();
@@ -154,12 +152,12 @@ export default function FeedContainer() {
             <Loader2 size={24} className="animate-spin mx-auto mb-3" />
             <p className="text-sm">피드를 불러오는 중...</p>
           </div>
-        ) : filteredFeeds.length === 0 ? (
+        ) : feedData.length === 0 ? (
           <div className="col-span-2 text-center py-16 text-gray-400 bg-white rounded-2xl shadow-sm border border-gray-100">
             <p className="text-sm">아직 피드가 없습니다.</p>
           </div>
         ) : (
-          pagedFeeds.map((feed) => (
+          feedData.map((feed) => (
             <FeedItem key={String(feed.id)} item={feed} />
           ))
         )}

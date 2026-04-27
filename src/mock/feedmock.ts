@@ -26,7 +26,8 @@ export const feed_mock: FeedItem[] = [
       progressAmount: 24,
       noteType: "sentence",
       note: "한 가지에 집중하는 것이 얼마나 강력한지, 그것이 모든 위대한 성취의 비밀이다.",
-      thoughts: "집중이 가져오는 힘에 대한 내용이 인상 깊었다. 나도 매일 하나의 가장 중요한 일에 집중해봐야겠다.",
+      thoughts:
+        "집중이 가져오는 힘에 대한 내용이 인상 깊었다. 나도 매일 하나의 가장 중요한 일에 집중해봐야겠다.",
     },
     comments: [
       {
@@ -57,7 +58,8 @@ export const feed_mock: FeedItem[] = [
       images: [],
       exerciseName: "필라테스",
       duration: 50,
-      achievement: "코어 근육이 많이 강해진 것 같다. 처음보다 자세가 훨씬 안정적으로 잡혀서 뿌듯하다!",
+      achievement:
+        "코어 근육이 많이 강해진 것 같다. 처음보다 자세가 훨씬 안정적으로 잡혀서 뿌듯하다!",
     },
     comments: [
       {
@@ -127,7 +129,8 @@ export const feed_mock: FeedItem[] = [
       images: [],
       exerciseName: "달리기",
       duration: 30,
-      achievement: "5km 완주! 처음으로 쉬지 않고 끝까지 뛰었다. 다음엔 6km 도전해볼 것.",
+      achievement:
+        "5km 완주! 처음으로 쉬지 않고 끝까지 뛰었다. 다음엔 6km 도전해볼 것.",
     },
     comments: [],
   },
@@ -177,7 +180,7 @@ export const feed_mock: FeedItem[] = [
       sleepHours: 7,
       condition: "상",
       successAndReflection:
-        "오늘 아침 5시 30분에 일어났다. 미루지 않고 바로 일어난 것이 오늘의 작은 성공. 아침 루틴을 지키면 하루가 훨씬 활기차다.",
+        "오늘 아침 5시 30분에 일어났다. 미루지 않고 바로 일어난 것이 오늘의 작은 성공. 아침 리추얼을 지키면 하루가 훨씬 활기차다.",
       gift: "좋아하는 카페에서 아메리카노 한 잔 ☕",
     },
     comments: [
@@ -244,7 +247,8 @@ export const feed_mock: FeedItem[] = [
       ],
       studyContent:
         "ETF 투자의 기본 개념을 공부했다. 인덱스 펀드와의 차이점, 수수료 구조에 대해 학습.",
-      practice: "오늘부터 커피 1잔으로 줄이기. 불필요한 충동 구매 전 10분 생각하기.",
+      practice:
+        "오늘부터 커피 1잔으로 줄이기. 불필요한 충동 구매 전 10분 생각하기.",
     },
     comments: [
       {
@@ -268,9 +272,21 @@ export const feed_mock: FeedItem[] = [
       images: [],
       achievement: "비즈니스 영어 20문장, 5개 표현 학습",
       expressions: [
-        { word: "pull through", meaning: "어려움을 극복하다", example: "We'll pull through this together." },
-        { word: "hit the ground running", meaning: "출발부터 전속력으로", example: "She hit the ground running on her first day." },
-        { word: "on the same page", meaning: "같은 의견을 공유하다", example: "Let's make sure we're all on the same page." },
+        {
+          word: "pull through",
+          meaning: "어려움을 극복하다",
+          example: "We'll pull through this together.",
+        },
+        {
+          word: "hit the ground running",
+          meaning: "출발부터 전속력으로",
+          example: "She hit the ground running on her first day.",
+        },
+        {
+          word: "on the same page",
+          meaning: "같은 의견을 공유하다",
+          example: "Let's make sure we're all on the same page.",
+        },
       ],
     },
     comments: [],
@@ -292,7 +308,8 @@ export const feed_mock: FeedItem[] = [
       progressAmount: 32,
       noteType: "sentence",
       note: "매일 1%씩 나아진다면, 일 년이 지나면 37배 더 나은 자신이 되어 있을 것이다.",
-      thoughts: "작은 습관이 쌓여서 큰 변화를 만든다는 것을 다시 깨달았다. 오늘도 작은 한 걸음.",
+      thoughts:
+        "작은 습관이 쌓여서 큰 변화를 만든다는 것을 다시 깨달았다. 오늘도 작은 한 걸음.",
     },
     comments: [],
   },
@@ -307,7 +324,8 @@ export const feed_mock: FeedItem[] = [
     routineData: {
       sleepHours: 5.5,
       condition: "하",
-      successAndReflection: "어제 늦게 잠들었지만 알람에 바로 일어났다. 의지력이 조금씩 강해지고 있다는 걸 느낀다.",
+      successAndReflection:
+        "어제 늦게 잠들었지만 알람에 바로 일어났다. 의지력이 조금씩 강해지고 있다는 걸 느낀다.",
       gift: "좋아하는 팟캐스트 30분 듣기 🎧",
     },
     comments: [],
@@ -324,8 +342,16 @@ export const feed_mock: FeedItem[] = [
       images: [],
       achievement: "비즈니스 영어 표현 8개 학습, 쉐도잉 15분",
       expressions: [
-        { word: "take the initiative", meaning: "주도적으로 행동하다", example: "Don't wait to be asked—take the initiative." },
-        { word: "circle back", meaning: "나중에 다시 돌아오다", example: "Let's circle back to this topic later." },
+        {
+          word: "take the initiative",
+          meaning: "주도적으로 행동하다",
+          example: "Don't wait to be asked—take the initiative.",
+        },
+        {
+          word: "circle back",
+          meaning: "나중에 다시 돌아오다",
+          example: "Let's circle back to this topic later.",
+        },
       ],
     },
     comments: [],
@@ -347,7 +373,8 @@ export const feed_mock: FeedItem[] = [
       progressAmount: 18,
       noteType: "summary",
       note: "성공한 사람들은 한 가지 일에 집중하는 공통점이 있다. 멀티태스킹은 신화다.",
-      thoughts: "오늘은 집중력에 대한 챕터를 읽었다. 딴 생각 없이 하나에만 몰입하는 연습이 필요하다.",
+      thoughts:
+        "오늘은 집중력에 대한 챕터를 읽었다. 딴 생각 없이 하나에만 몰입하는 연습이 필요하다.",
     },
     comments: [],
   },
@@ -363,7 +390,8 @@ export const feed_mock: FeedItem[] = [
       images: [],
       exerciseName: "요가",
       duration: 60,
-      achievement: "오늘은 몸이 평소보다 훨씬 유연하게 느껴졌다. 꾸준히 하니까 분명히 달라지고 있다.",
+      achievement:
+        "오늘은 몸이 평소보다 훨씬 유연하게 느껴졌다. 꾸준히 하니까 분명히 달라지고 있다.",
     },
     comments: [],
   },
@@ -378,7 +406,8 @@ export const feed_mock: FeedItem[] = [
     routineData: {
       sleepHours: 8,
       condition: "상",
-      successAndReflection: "오늘은 정말 상쾌한 아침이었다. 알람보다 5분 먼저 깼고, 스트레칭까지 했다. 이런 날이 계속됐으면.",
+      successAndReflection:
+        "오늘은 정말 상쾌한 아침이었다. 알람보다 5분 먼저 깼고, 스트레칭까지 했다. 이런 날이 계속됐으면.",
       gift: "산책 30분 + 좋아하는 노래 듣기 🎵",
     },
     comments: [],

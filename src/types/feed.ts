@@ -12,7 +12,7 @@ export type RoutineCategory =
   | "자산관리"
   | "원서읽기";
 
-// 루틴별 피드 데이터 타입
+// 리추얼별 피드 데이터 타입
 export interface ExerciseFeedData {
   images: string[];
   exerciseName: string;
@@ -55,13 +55,13 @@ export interface ReadingFeedData {
   author: string;
   bookCover?: string;
   trackingType?: "page" | "percent";
-  pagesRead?: number;       // page: 현재 페이지 / percent: 현재 %
-  totalPages?: number;      // page: 전체 페이지 / percent: 100
-  progressAmount?: number;  // 오늘 읽은 페이지 수 or % 진행량
+  pagesRead?: number; // page: 현재 페이지 / percent: 현재 %
+  totalPages?: number; // page: 전체 페이지 / percent: 100
+  progressAmount?: number; // 오늘 읽은 페이지 수 or % 진행량
   noteType?: "sentence" | "summary";
-  note?: string;            // 오늘의 문장 or 내용 요약
-  thoughts?: string;        // 나만의 생각
-  notes?: string;           // 기존 필드 (하위 호환)
+  note?: string; // 오늘의 문장 or 내용 요약
+  thoughts?: string; // 나만의 생각
+  notes?: string; // 기존 필드 (하위 호환)
   certPhotos?: string[];
 }
 

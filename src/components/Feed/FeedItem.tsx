@@ -1,7 +1,17 @@
 /* eslint-disable @next/next/no-img-element */
 import React from "react";
 import Link from "next/link";
-import { User, BookText, Dumbbell, BookA, Sun, Languages, CircleDollarSign, Pen, BookOpen } from "lucide-react";
+import {
+  User,
+  BookText,
+  Dumbbell,
+  BookA,
+  Sun,
+  Languages,
+  CircleDollarSign,
+  Pen,
+  BookOpen,
+} from "lucide-react";
 import {
   FeedItem as FeedItemType,
   RoutineCategory,
@@ -21,14 +31,26 @@ const CATEGORY_CONFIG: Record<
   RoutineCategory,
   { color: string; bgColor: string; icon: React.ReactNode }
 > = {
-  독서:      { color: "#6366f1", bgColor: "#eef2ff", icon: <BookText size={13} /> },
-  운동:      { color: "#ff8900", bgColor: "#fff4e5", icon: <Dumbbell size={13} /> },
-  영어:      { color: "#0ea5e9", bgColor: "#f0f9ff", icon: <BookA size={13} /> },
-  모닝:      { color: "#eab32e", bgColor: "#fefce8", icon: <Sun size={13} /> },
-  제2외국어: { color: "#8b5cf6", bgColor: "#f5f3ff", icon: <Languages size={13} /> },
-  기록:      { color: "#8b5cf6", bgColor: "#f5f3ff", icon: <Pen size={13} /> },
-  자산관리:  { color: "#10b981", bgColor: "#ecfdf5", icon: <CircleDollarSign size={13} /> },
-  원서읽기:  { color: "#ec4899", bgColor: "#fdf2f8", icon: <BookOpen size={13} /> },
+  독서: { color: "#6366f1", bgColor: "#eef2ff", icon: <BookText size={13} /> },
+  운동: { color: "#ff8900", bgColor: "#fff4e5", icon: <Dumbbell size={13} /> },
+  영어: { color: "#0ea5e9", bgColor: "#f0f9ff", icon: <BookA size={13} /> },
+  모닝: { color: "#eab32e", bgColor: "#fefce8", icon: <Sun size={13} /> },
+  제2외국어: {
+    color: "#8b5cf6",
+    bgColor: "#f5f3ff",
+    icon: <Languages size={13} />,
+  },
+  기록: { color: "#8b5cf6", bgColor: "#f5f3ff", icon: <Pen size={13} /> },
+  자산관리: {
+    color: "#10b981",
+    bgColor: "#ecfdf5",
+    icon: <CircleDollarSign size={13} />,
+  },
+  원서읽기: {
+    color: "#ec4899",
+    bgColor: "#fdf2f8",
+    icon: <BookOpen size={13} />,
+  },
 };
 
 const formatDate = (dateString: string) => {
@@ -38,7 +60,7 @@ const formatDate = (dateString: string) => {
   return `${month}.${day}`;
 };
 
-// 각 루틴 타입별 미리보기 텍스트 추출
+// 각 리추얼 타입별 미리보기 텍스트 추출
 function getPreviewText(item: FeedItemType): string | null {
   if (!item.routineData) return null;
   const data = item.routineData;
@@ -78,7 +100,7 @@ function getPreviewText(item: FeedItemType): string | null {
   }
 }
 
-// 루틴별 서브텍스트 (종목, 책 제목 등)
+// 리추얼별 서브텍스트 (종목, 책 제목 등)
 function getSubText(item: FeedItemType): string | null {
   if (!item.routineData) return null;
   const data = item.routineData;
@@ -104,16 +126,22 @@ function getSubText(item: FeedItemType): string | null {
     }
     case "모닝": {
       const d = data as MorningFeedData;
-      return d.sleepHours != null ? `수면 ${d.sleepHours}h · 컨디션 ${d.condition}` : null;
+      return d.sleepHours != null
+        ? `수면 ${d.sleepHours}h · 컨디션 ${d.condition}`
+        : null;
     }
     case "영어":
     case "제2외국어": {
       const d = data as LanguageFeedData;
-      return d.expressions?.length ? `표현 ${d.expressions.length}개 학습` : null;
+      return d.expressions?.length
+        ? `표현 ${d.expressions.length}개 학습`
+        : null;
     }
     case "자산관리": {
       const d = data as FinanceFeedData;
-      const total = d.dailyExpenses.flatMap((e) => e.expenses).reduce((s, e) => s + e.amount, 0);
+      const total = d.dailyExpenses
+        .flatMap((e) => e.expenses)
+        .reduce((s, e) => s + e.amount, 0);
       return total > 0 ? `오늘 지출 ${total.toLocaleString()}원` : null;
     }
     case "기록": {
@@ -144,10 +172,11 @@ function getImages(item: FeedItemType): string[] {
   if (!item.routineData) return [];
 
   // 공통 인증 사진 (certPhotos) - 모든 FeedData 타입에 존재
-  const certPhotos = (item.routineData as ExerciseFeedData).certPhotos?.filter(Boolean) ?? [];
+  const certPhotos =
+    (item.routineData as ExerciseFeedData).certPhotos?.filter(Boolean) ?? [];
   if (certPhotos.length > 0) return certPhotos;
 
-  // 루틴별 기존 이미지 필드 (certPhotos가 없는 과거 데이터 대응)
+  // 리추얼별 기존 이미지 필드 (certPhotos가 없는 과거 데이터 대응)
   switch (item.routineCategory) {
     case "운동": {
       const d = item.routineData as ExerciseFeedData;
@@ -235,9 +264,14 @@ export default function FeedItem({ item }: FeedItemProps) {
             )}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-gray-900 leading-tight">{item.userName}</p>
+            <p className="text-sm font-semibold text-gray-900 leading-tight">
+              {item.userName}
+            </p>
             {subText && (
-              <p className="text-xs font-medium mt-0.5" style={{ color: config.color }}>
+              <p
+                className="text-xs font-medium mt-0.5"
+                style={{ color: config.color }}
+              >
                 {subText}
               </p>
             )}
@@ -254,7 +288,14 @@ export default function FeedItem({ item }: FeedItemProps) {
         {/* 댓글 수 */}
         {item.comments && item.comments.length > 0 && (
           <div className="mt-2.5 flex items-center gap-1 text-xs text-gray-300">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
             <span>댓글 {item.comments.length}개</span>

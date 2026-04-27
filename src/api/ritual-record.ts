@@ -65,7 +65,7 @@ export async function createRitualRecord(input: {
 
   if (error) return { error: error.message };
 
-  // daily_completions 갱신: 등록된 루틴 수 vs 해당 날짜 완료된 루틴 수 비교
+  // daily_completions 갱신: 등록된 리추얼 수 vs 해당 날짜 완료된 리추얼 수 비교
   const [registrationsRes, recordsRes] = await Promise.all([
     supabase
       .from("challenge_registrations")
@@ -110,8 +110,7 @@ export async function createRitualRecordAuto(input: {
   recordDate: string;
   recordData: Json;
 }): Promise<{ data?: RitualRecord; error?: string }> {
-  const { challengeId, error: challengeError } =
-    await getCurrentChallengeId();
+  const { challengeId, error: challengeError } = await getCurrentChallengeId();
 
   if (!challengeId) {
     return { error: challengeError ?? "챌린지를 찾을 수 없습니다." };
@@ -130,8 +129,7 @@ export async function getMyRitualRecords(input: {
   routineType?: RoutineTypeDB;
   date?: string;
 }): Promise<{ data?: RitualRecord[]; error?: string }> {
-  const { challengeId, error: challengeError } =
-    await getCurrentChallengeId();
+  const { challengeId, error: challengeError } = await getCurrentChallengeId();
 
   if (!challengeId) {
     return { error: challengeError ?? "챌린지를 찾을 수 없습니다." };

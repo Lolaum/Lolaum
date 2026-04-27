@@ -10,10 +10,7 @@ import {
   Trophy,
 } from "lucide-react";
 import RoutineList from "./RoutineList";
-import {
-  formatDateDisplay,
-  getWeekRangeText,
-} from "@/lib/date";
+import { formatDateDisplay, getWeekRangeText } from "@/lib/date";
 import { MyPageStats, CompletionRateStats } from "@/api/ritual-stats";
 
 interface TaskTabsProps {
@@ -25,7 +22,14 @@ interface TaskTabsProps {
   routineCompletionMap?: Record<string, number>;
 }
 
-export default function TaskTabs({ selectedDate, onTaskClick, stats, completionRate, isPastDate, routineCompletionMap }: TaskTabsProps) {
+export default function TaskTabs({
+  selectedDate,
+  onTaskClick,
+  stats,
+  completionRate,
+  isPastDate,
+  routineCompletionMap,
+}: TaskTabsProps) {
   const router = useRouter();
 
   const handleTaskClick = (title: string, color: string) => {
@@ -98,7 +102,7 @@ export default function TaskTabs({ selectedDate, onTaskClick, stats, completionR
         ))}
       </div>
 
-      {/* 루틴 카드 */}
+      {/* 리추얼 카드 */}
       <div className="rounded-3xl bg-white shadow-sm border border-gray-100 p-5">
         {/* 날짜 */}
         <div className="mb-5">

@@ -7,9 +7,28 @@ import type { RitualOverallStats, RoutineCardStats } from "@/api/ritual-stats";
 import RecordGallery from "./RecordGallery";
 import RoutineInsights from "./RoutineInsights";
 
-type TabId = "아카이빙" | "독서" | "운동" | "모닝" | "영어" | "제2외국어" | "기록" | "자산관리" | "원서읽기";
+type TabId =
+  | "아카이빙"
+  | "독서"
+  | "운동"
+  | "모닝"
+  | "영어"
+  | "제2외국어"
+  | "기록"
+  | "자산관리"
+  | "원서읽기";
 
-const TABS: TabId[] = ["아카이빙", "독서", "운동", "모닝", "영어", "제2외국어", "기록", "자산관리", "원서읽기"];
+const TABS: TabId[] = [
+  "아카이빙",
+  "독서",
+  "운동",
+  "모닝",
+  "영어",
+  "제2외국어",
+  "기록",
+  "자산관리",
+  "원서읽기",
+];
 
 const TAB_COLORS: Record<TabId, string> = {
   아카이빙: "#eab32e",
@@ -41,7 +60,8 @@ export default function RitualContainer() {
       }
     };
     document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
   useEffect(() => {
@@ -51,7 +71,8 @@ export default function RitualContainer() {
       if (result.overall) {
         setOverall({
           ...result.overall,
-          completionRate: result.completion?.rate ?? result.overall.completionRate,
+          completionRate:
+            result.completion?.rate ?? result.overall.completionRate,
         });
       }
       if (result.routines) setRoutines(result.routines);
@@ -115,11 +136,11 @@ export default function RitualContainer() {
         )}
       </div>
 
-      {/* ── 루틴별 카드 ── */}
+      {/* ── 리추얼별 카드 ── */}
       {routines.length > 0 && (
         <div className="mb-6">
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 px-1">
-            루틴 현황
+            리추얼 현황
           </h2>
           <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
             {routines.map((routine) => (
@@ -201,7 +222,11 @@ export default function RitualContainer() {
       {activeTab === "아카이빙" ? (
         <RecordGallery refreshKey={refreshKey} />
       ) : (
-        <RoutineInsights activeTab={activeTab} routines={routines} refreshKey={refreshKey} />
+        <RoutineInsights
+          activeTab={activeTab}
+          routines={routines}
+          refreshKey={refreshKey}
+        />
       )}
     </div>
   );

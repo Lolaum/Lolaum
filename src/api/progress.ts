@@ -24,7 +24,7 @@ export interface ProgressPageData {
 }
 
 const TOTAL_ROUTINE_DAYS = 15;
-const TOTAL_DAYS = 18; // 15일(루틴) + 3(선언/중간회고/최종회고)
+const TOTAL_DAYS = 18; // 15일(리추얼) + 3(선언/중간회고/최종회고)
 
 function parseLocalDate(s: string): Date {
   const [y, m, d] = s.split("-").map(Number);
@@ -53,7 +53,7 @@ function getWeekKey(d: Date): string {
  * 진행률 계산 규칙:
  * - 집계 범위: 챌린지 start_date ~ 어제 (오늘 제외)
  * - 평일(월~금)에 등록한 모든 리추얼을 완료해야 1일 달성
- * - 평일에 못한 루틴을 "같은 주(월~일)의 주말"에 수행하면 그 평일은 보충 완료로 인정
+ * - 평일에 못한 리추얼을 "같은 주(월~일)의 주말"에 수행하면 그 평일은 보충 완료로 인정
  * - 보충되지 않은 미완료 평일 최초 1회 → 행복찬스 (면제)
  * - 보충되지 않은 미완료 평일 2회째부터 → 기부금 1,000원씩 누적
  * - 모든 미완료가 주말로 보충되면 행복찬스도 소모되지 않음
@@ -102,7 +102,7 @@ export async function getProgressPageData(): Promise<{
     const rows = challenges as unknown as ChallengeRow[];
     const challengeIds = rows.map((r) => r.id);
 
-    // 2. 등록 루틴 + 기록 + 선언/회고를 한 번에 조회
+    // 2. 등록 리추얼 + 기록 + 선언/회고를 한 번에 조회
     const [regRes, recRes, declRes, midRevRes] = await Promise.all([
       admin
         .from("challenge_registrations")
@@ -125,7 +125,7 @@ export async function getProgressPageData(): Promise<{
     if (regRes.error) return { error: regRes.error.message };
     if (recRes.error) return { error: recRes.error.message };
 
-    // 3. 유저별 등록 루틴 세트 + 최초 등록일
+    // 3. 유저별 등록 리추얼 세트 + 최초 등록일
     const userRegistrations = new Map<string, Set<string>>();
     const userFirstRegDate = new Map<string, string>(); // challenge_id:user_id → "YYYY-MM-DD"
     for (const r of regRes.data ?? []) {
@@ -160,19 +160,21 @@ export async function getProgressPageData(): Promise<{
       await Promise.allSettled(backfillTasks);
     }
 
-    // 3-1. 유저별 선언/회고 루틴 세트
+    // 3-1. 유저별 선언/회고 리추얼 세트
     const userDeclarations = new Map<string, Set<string>>();
     for (const r of declRes.data ?? []) {
-      if (!userDeclarations.has(r.user_id)) userDeclarations.set(r.user_id, new Set());
+      if (!userDeclarations.has(r.user_id))
+        userDeclarations.set(r.user_id, new Set());
       userDeclarations.get(r.user_id)!.add(r.routine_type);
     }
     const userMidReviews = new Map<string, Set<string>>();
     for (const r of midRevRes.data ?? []) {
-      if (!userMidReviews.has(r.user_id)) userMidReviews.set(r.user_id, new Set());
+      if (!userMidReviews.has(r.user_id))
+        userMidReviews.set(r.user_id, new Set());
       userMidReviews.get(r.user_id)!.add(r.routine_type);
     }
 
-    // 4. 유저별 날짜별 완료 루틴 세트
+    // 4. 유저별 날짜별 완료 리추얼 세트
     const userDateRecords = new Map<string, Map<string, Set<string>>>();
     for (const r of recRes.data ?? []) {
       if (!userDateRecords.has(r.user_id)) {
@@ -194,7 +196,7 @@ export async function getProgressPageData(): Promise<{
     // 6. 유저별 진행률 계산
     const allChallengers: ChallengerProgress[] = rows.map((r) => {
       const registered = userRegistrations.get(r.user_id);
-      // 루틴 등록이 없으면 미완료/벌금 없음
+      // 리추얼 등록이 없으면 미완료/벌금 없음
       if (!registered || registered.size === 0) {
         return {
           userId: r.user_id,
@@ -245,7 +247,7 @@ export async function getProgressPageData(): Promise<{
       let weekdayMissed = 0;
 
       for (const { weekdays, weekends } of weekData.values()) {
-        // 이 주의 주말에 수행된 루틴들 합집합
+        // 이 주의 주말에 수행된 리추얼들 합집합
         const weekendRoutines = new Set<string>();
         for (const we of weekends) {
           const done = dateMap.get(we);
@@ -282,11 +284,13 @@ export async function getProgressPageData(): Promise<{
         TOTAL_ROUTINE_DAYS,
       );
 
-      // 선언/회고 보너스 (등록한 모든 루틴에 대해 작성해야 +1)
+      // 선언/회고 보너스 (등록한 모든 리추얼에 대해 작성해야 +1)
       const declSet = userDeclarations.get(r.user_id);
-      const hasDeclaration = !!declSet && [...registered].every((rt) => declSet.has(rt));
+      const hasDeclaration =
+        !!declSet && [...registered].every((rt) => declSet.has(rt));
       const midRevSet = userMidReviews.get(r.user_id);
-      const hasMidReview = !!midRevSet && [...registered].every((rt) => midRevSet.has(rt));
+      const hasMidReview =
+        !!midRevSet && [...registered].every((rt) => midRevSet.has(rt));
       const hasFinalReview = false; // TODO: 최종회고 테이블 연동
 
       const totalAchieved =

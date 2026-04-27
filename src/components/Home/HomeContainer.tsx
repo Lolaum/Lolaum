@@ -8,13 +8,35 @@ import TaskTabs from "./Todo/TaskTabs";
 import MemberProfile from "./Profile/MemberProfile";
 import Profile from "./Profile/Profile";
 
-const ReadingContainer = dynamic(() => import("@/components/Routines/Reading/ReadingContainer"), { ssr: false });
-const LanguageContainer = dynamic(() => import("@/components/Routines/Language/LanguageContainer"), { ssr: false });
-const ExerciseContainer = dynamic(() => import("@/components/Routines/Exercise/ExerciseContainer"), { ssr: false });
-const MorningContainer = dynamic(() => import("@/components/Routines/Morning/MorningContainer"), { ssr: false });
-const FinanceContainer = dynamic(() => import("@/components/Routines/Finance/FinanceContainer"), { ssr: false });
-const RecordingContainer = dynamic(() => import("@/components/Routines/Recording/RecordingContainer"), { ssr: false });
-import { type MyPageStats, type CompletionRateStats, type CalendarDayMarker } from "@/api/ritual-stats";
+const ReadingContainer = dynamic(
+  () => import("@/components/Routines/Reading/ReadingContainer"),
+  { ssr: false },
+);
+const LanguageContainer = dynamic(
+  () => import("@/components/Routines/Language/LanguageContainer"),
+  { ssr: false },
+);
+const ExerciseContainer = dynamic(
+  () => import("@/components/Routines/Exercise/ExerciseContainer"),
+  { ssr: false },
+);
+const MorningContainer = dynamic(
+  () => import("@/components/Routines/Morning/MorningContainer"),
+  { ssr: false },
+);
+const FinanceContainer = dynamic(
+  () => import("@/components/Routines/Finance/FinanceContainer"),
+  { ssr: false },
+);
+const RecordingContainer = dynamic(
+  () => import("@/components/Routines/Recording/RecordingContainer"),
+  { ssr: false },
+);
+import {
+  type MyPageStats,
+  type CompletionRateStats,
+  type CalendarDayMarker,
+} from "@/api/ritual-stats";
 
 interface HomeInitialData {
   myPage?: MyPageStats;
@@ -24,7 +46,11 @@ interface HomeInitialData {
   error?: string;
 }
 
-export default function HomeContainer({ initialData }: { initialData: HomeInitialData }) {
+export default function HomeContainer({
+  initialData,
+}: {
+  initialData: HomeInitialData;
+}) {
   // const router = useRouter(); // 중간 회고 알림 숨김으로 미사용
   const [mounted, setMounted] = useState(false);
   const [today, setToday] = useState<Date | null>(null);
@@ -37,10 +63,17 @@ export default function HomeContainer({ initialData }: { initialData: HomeInitia
     color: string;
   } | null>(null);
 
-  const [myPageStats, setMyPageStats] = useState<MyPageStats | null>(initialData.myPage ?? null);
-  const [completionRate, setCompletionRate] = useState<CompletionRateStats | null>(initialData.completion ?? null);
-  const [calendarMarkers, setCalendarMarkers] = useState<Record<string, CalendarDayMarker>>(initialData.calendarMarkers ?? {});
-  const [routineCompletionMap, setRoutineCompletionMap] = useState<Record<string, number>>(initialData.routineCompletionMap ?? {});
+  const [myPageStats, setMyPageStats] = useState<MyPageStats | null>(
+    initialData.myPage ?? null,
+  );
+  const [completionRate, setCompletionRate] =
+    useState<CompletionRateStats | null>(initialData.completion ?? null);
+  const [calendarMarkers, setCalendarMarkers] = useState<
+    Record<string, CalendarDayMarker>
+  >(initialData.calendarMarkers ?? {});
+  const [routineCompletionMap, setRoutineCompletionMap] = useState<
+    Record<string, number>
+  >(initialData.routineCompletionMap ?? {});
   const [memberRefreshKey, setMemberRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -51,12 +84,14 @@ export default function HomeContainer({ initialData }: { initialData: HomeInitia
   }, []);
 
   // 선택된 날짜가 오늘 이전인지 확인
-  const isPastDate = selectedDate && today
-    ? selectedDate.toDateString() !== today.toDateString() && selectedDate < today
-    : false;
+  const isPastDate =
+    selectedDate && today
+      ? selectedDate.toDateString() !== today.toDateString() &&
+        selectedDate < today
+      : false;
 
   const handleTaskClick = (title: string, color: string) => {
-    if (isPastDate) return; // 지난 날짜에서는 루틴 진행 불가
+    if (isPastDate) return; // 지난 날짜에서는 리추얼 진행 불가
     setSelectedTask({ title, color });
   };
 
@@ -101,7 +136,7 @@ export default function HomeContainer({ initialData }: { initialData: HomeInitia
         <MorningContainer
           onBackToTimer={handleClose}
           onBackToHome={handleClose}
-        />
+        />,
       );
     }
 
@@ -110,7 +145,7 @@ export default function HomeContainer({ initialData }: { initialData: HomeInitia
         <ReadingContainer
           onBackToTimer={handleClose}
           onBackToHome={handleClose}
-        />
+        />,
       );
     }
 
@@ -120,7 +155,7 @@ export default function HomeContainer({ initialData }: { initialData: HomeInitia
           onBackToTimer={handleClose}
           onBackToHome={handleClose}
           isEnglishBook
-        />
+        />,
       );
     }
 
@@ -135,7 +170,7 @@ export default function HomeContainer({ initialData }: { initialData: HomeInitia
           languageType={
             selectedTask.title === "영어리추얼" ? "영어" : "제2외국어"
           }
-        />
+        />,
       );
     }
 
@@ -144,7 +179,7 @@ export default function HomeContainer({ initialData }: { initialData: HomeInitia
         <ExerciseContainer
           onBackToTimer={handleClose}
           onBackToHome={handleClose}
-        />
+        />,
       );
     }
 
@@ -153,7 +188,7 @@ export default function HomeContainer({ initialData }: { initialData: HomeInitia
         <FinanceContainer
           onBackToTimer={handleClose}
           onBackToHome={handleClose}
-        />
+        />,
       );
     }
 
@@ -162,7 +197,7 @@ export default function HomeContainer({ initialData }: { initialData: HomeInitia
         <RecordingContainer
           onBackToTimer={handleClose}
           onBackToHome={handleClose}
-        />
+        />,
       );
     }
   }
@@ -229,7 +264,7 @@ export default function HomeContainer({ initialData }: { initialData: HomeInitia
             </div>
           </div>
 
-          {/* 태스크 탭 섹션 (루틴/투두) */}
+          {/* 태스크 탭 섹션 (리추얼/투두) */}
           <div className="w-full md:w-1/2 lg:w-7/12">
             <TaskTabs
               selectedDate={selectedDate}
