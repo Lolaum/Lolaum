@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Upload, X, FileText, Percent } from "lucide-react";
+import { Upload, X, BookOpen, Tablet } from "lucide-react";
 import { AddNewBookProps, BookFormData } from "@/types/routines/reading";
 
 export default function AddNewBook({ onCancel, onBackToHome, onSubmit }: AddNewBookProps) {
@@ -179,10 +179,10 @@ export default function AddNewBook({ onCancel, onBackToHome, onSubmit }: AddNewB
           />
         </div>
 
-        {/* 진행도 측정 방식 */}
+        {/* 책 종류 */}
         <div className="mb-2">
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            진행도 측정 방식
+            책 종류
           </label>
           <div className="flex gap-4">
             <button
@@ -194,8 +194,8 @@ export default function AddNewBook({ onCancel, onBackToHome, onSubmit }: AddNewB
                   : "border-gray-200 bg-white text-gray-500"
               }`}
             >
-              <FileText className="w-5 h-5" />
-              <span className="font-medium">페이지</span>
+              <BookOpen className="w-5 h-5" />
+              <span className="font-medium">종이책</span>
             </button>
             <button
               type="button"
@@ -206,13 +206,12 @@ export default function AddNewBook({ onCancel, onBackToHome, onSubmit }: AddNewB
                   : "border-gray-200 bg-white text-gray-500"
               }`}
             >
-              <Percent className="w-5 h-5" />
-              <span className="font-medium">퍼센트</span>
+              <Tablet className="w-5 h-5" />
+              <span className="font-medium">전자책</span>
             </button>
           </div>
           <p className="text-sm text-gray-500 mt-3">
-            총 페이지 수를 입력하면 현재 읽은 페이지를 진행률로 전환될
-            측정합니다
+            종이책은 페이지(p), 전자책은 퍼센트(%)로 진행도를 기록합니다
           </p>
         </div>
 
