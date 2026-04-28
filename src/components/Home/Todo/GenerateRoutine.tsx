@@ -341,7 +341,7 @@ export default function GenerateRoutine({
                 <div className="flex flex-col gap-4 mb-5">
                   {questions.map((q) => (
                     <div key={q.id}>
-                      <label className="block text-sm font-bold text-gray-800 mb-0.5">
+                      <label className="block text-sm font-bold text-gray-800 mb-0.5 whitespace-pre-line leading-relaxed">
                         {q.label} <span className="text-red-400">*</span>
                       </label>
                       {q.description && (
