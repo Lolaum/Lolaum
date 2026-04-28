@@ -152,19 +152,27 @@ function MorningContent({ data }: { data: MorningFeedData }) {
           <p className="text-2xl font-bold text-gray-800">{data.condition}</p>
         </div>
       </div>
+      {data.sleepImprovement && (
+        <div className="bg-orange-50 rounded-xl p-4">
+          <p className="text-xs text-orange-500 font-medium mb-1">
+            수면 부족 원인 & 개선 방법
+          </p>
+          <p className="text-sm text-gray-700 leading-relaxed">
+            {data.sleepImprovement}
+          </p>
+        </div>
+      )}
       <div className="bg-gray-50 rounded-xl p-4">
         <p className="text-xs text-gray-400 font-medium mb-1">
-          오늘의 성공 & 한 줄 회고
+          오늘의 작은 성공 (오늘 한 일)
         </p>
-        <p className="text-sm text-gray-700 leading-relaxed">
-          {data.successAndReflection}
-        </p>
+        <p className="text-sm text-gray-700 leading-relaxed">{data.success}</p>
       </div>
       <div className="bg-gray-50 rounded-xl p-4">
-        <p className="text-xs text-gray-400 font-medium mb-1">
-          오늘 나에게 주는 선물
+        <p className="text-xs text-gray-400 font-medium mb-1">한 줄 회고</p>
+        <p className="text-sm text-gray-700 leading-relaxed">
+          {data.reflection}
         </p>
-        <p className="text-sm text-gray-700 leading-relaxed">{data.gift}</p>
       </div>
     </div>
   );

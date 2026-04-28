@@ -29,9 +29,10 @@ export default function MorningContainer({
           date: `${date.getMonth() + 1}월 ${date.getDate()}일`,
           image: d.image ?? "",
           sleepHours: d.sleepHours,
+          sleepImprovement: d.sleepImprovement,
           condition: d.condition,
-          successAndReflection: d.successAndReflection,
-          gift: d.gift,
+          success: d.success,
+          reflection: d.reflection,
         };
       });
       setMorningRecords(records);
@@ -48,9 +49,10 @@ export default function MorningContainer({
     const today = new Date().toISOString().split("T")[0];
     const recordData: MorningRecordData = {
       sleepHours: formData.sleepHours,
+      sleepImprovement: formData.sleepImprovement,
       condition: formData.condition,
-      successAndReflection: formData.successAndReflection,
-      gift: formData.gift,
+      success: formData.success,
+      reflection: formData.reflection,
       image: formData.image || undefined,
     };
     const { error } = await createRitualRecordAuto({

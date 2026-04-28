@@ -8,9 +8,10 @@ interface GroupedRecord {
   date: string;
   image?: string;
   sleepHours: number;
+  sleepImprovement?: string;
   condition: ConditionLevel;
-  successAndReflection: string;
-  gift: string;
+  success: string;
+  reflection: string;
 }
 
 interface RecordMorningProps {
@@ -31,9 +32,10 @@ export default function RecordMorning({
             date: record.date,
             image: record.image,
             sleepHours: record.sleepHours,
+            sleepImprovement: record.sleepImprovement,
             condition: record.condition,
-            successAndReflection: record.successAndReflection,
-            gift: record.gift,
+            success: record.success,
+            reflection: record.reflection,
           };
         }
 
@@ -79,7 +81,7 @@ export default function RecordMorning({
                     {group.date}
                   </h3>
                   <p className="text-sm text-gray-600">
-                    {group.successAndReflection}
+                    {group.reflection || group.success}
                   </p>
                 </div>
                 <div className="flex items-center gap-3 ml-4">
@@ -126,19 +128,29 @@ export default function RecordMorning({
                       </div>
                     </div>
 
-                    {/* 오늘의 작은 성공 & 한 줄 회고 */}
+                    {/* 수면 부족 원인 & 개선 방법 */}
+                    {group.sleepImprovement && (
+                      <div className="bg-orange-50 rounded-xl p-4">
+                        <p className="text-xs text-orange-500 font-medium mb-1">수면 부족 원인 & 개선 방법</p>
+                        <p className="text-sm text-gray-700 leading-relaxed">
+                          {group.sleepImprovement}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* 오늘의 작은 성공 */}
                     <div className="bg-gray-50 rounded-xl p-4">
-                      <p className="text-xs text-gray-400 font-medium mb-1">오늘의 성공 & 한 줄 회고</p>
+                      <p className="text-xs text-gray-400 font-medium mb-1">오늘의 작은 성공 (오늘 한 일)</p>
                       <p className="text-sm text-gray-700 leading-relaxed">
-                        {group.successAndReflection}
+                        {group.success}
                       </p>
                     </div>
 
-                    {/* 오늘 나에게 주는 선물 */}
+                    {/* 한 줄 회고 */}
                     <div className="bg-gray-50 rounded-xl p-4">
-                      <p className="text-xs text-gray-400 font-medium mb-1">오늘 나에게 주는 선물</p>
+                      <p className="text-xs text-gray-400 font-medium mb-1">한 줄 회고</p>
                       <p className="text-sm text-gray-700 leading-relaxed">
-                        {group.gift}
+                        {group.reflection}
                       </p>
                     </div>
                   </div>

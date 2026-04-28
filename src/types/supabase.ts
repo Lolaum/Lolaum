@@ -412,9 +412,10 @@ export type Todo = Database["public"]["Tables"]["todos"]["Row"];
 // record_data JSONB 타입들
 export interface MorningRecordData {
   sleepHours: number;
+  sleepImprovement?: string;
   condition: "상" | "중" | "하";
-  successAndReflection: string;
-  gift: string;
+  success: string;
+  reflection: string;
   image?: string;
   certPhotos?: string[];
 }

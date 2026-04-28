@@ -24,9 +24,10 @@ export interface ExerciseFeedData {
 export interface MorningFeedData {
   image?: string;
   sleepHours: number;
+  sleepImprovement?: string;
   condition: "상" | "중" | "하";
-  successAndReflection: string;
-  gift: string;
+  success: string;
+  reflection: string;
   certPhotos?: string[];
 }
 

@@ -76,7 +76,7 @@ function getPreviewText(item: FeedItemType): string | null {
     }
     case "모닝": {
       const d = data as MorningFeedData;
-      return d.successAndReflection || null;
+      return d.reflection || d.success || null;
     }
     case "영어":
     case "제2외국어": {

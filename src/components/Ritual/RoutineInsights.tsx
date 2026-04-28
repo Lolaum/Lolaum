@@ -666,7 +666,7 @@ function RecordPreviewCard({ item }: { item: FeedItem }) {
               <span className="text-xs text-gray-400">수면 {d.sleepHours}h</span>
               <span className="text-xs text-gray-400">컨디션 {d.condition}</span>
             </div>
-            <p className="text-xs text-gray-500 line-clamp-2">{d.successAndReflection}</p>
+            <p className="text-xs text-gray-500 line-clamp-2">{d.reflection || d.success}</p>
           </div>
         );
       }

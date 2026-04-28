@@ -57,9 +57,10 @@ function transformRecordData(
       return {
         image: data.image as string | undefined,
         sleepHours: (data.sleepHours as number) ?? 0,
+        sleepImprovement: (data.sleepImprovement as string) ?? undefined,
         condition: (data.condition as "상" | "중" | "하") ?? "중",
-        successAndReflection: (data.successAndReflection as string) ?? "",
-        gift: (data.gift as string) ?? "",
+        success: (data.success as string) ?? "",
+        reflection: (data.reflection as string) ?? "",
         certPhotos: (data.certPhotos as string[]) ?? undefined,
       } satisfies MorningFeedData;
 
