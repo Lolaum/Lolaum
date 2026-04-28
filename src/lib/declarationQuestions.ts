@@ -7,6 +7,7 @@ export interface DeclarationQuestion {
   placeholder?: string;
   readOnly?: boolean;
   defaultValue?: string;
+  isConfirmation?: boolean;
 }
 
 export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
@@ -35,9 +36,10 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
       },
       {
         id: "cert_method",
-        label: "인증 방법",
+        label: "리추얼 인증 방법을 확인해주세요",
         description: "*챌린저 모두 동일",
         readOnly: true,
+        isConfirmation: true,
         defaultValue: `1. 시작인증: 리더가 정각에 한번에 사진촬영 (출석체크)
 2. 종료인증: 오늘의 모닝리추얼 완료 사진 (내가 아침 시간을 계획한대로 보낼 수 있는 종료 인증 사진 생각해보기)`,
       },
@@ -66,10 +68,11 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
       },
       {
         id: "cert_method",
-        label: "인증 방법",
+        label: "리추얼 인증 방법을 확인해주세요",
         description: "*챌린저 모두 동일",
         readOnly: true,
-        defaultValue: `1. 시작인증: 운동 시작 인증샷 
+        isConfirmation: true,
+        defaultValue: `1. 시작인증: 운동 시작 인증샷
 2. 종료인증: 운동 종료 인증샷 (내가 운동을 할 수밖에 없는 시작/종료 인증 사진 생각해보기)`,
       },
     ],
@@ -95,9 +98,10 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
       },
       {
         id: "cert_method",
-        label: "인증 방법",
+        label: "리추얼 인증 방법을 확인해주세요",
         description: "*챌린저 모두 동일",
         readOnly: true,
+        isConfirmation: true,
         defaultValue: `1. 시작인증: 독서 시작 첫 페이지 사진(쪽수 보이게)
 2. 종료인증: 독서 종료 페이지 사진(쪽수 보이게)`,
       },
@@ -123,9 +127,10 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
       },
       {
         id: "cert_method",
-        label: "인증 방법",
+        label: "리추얼 인증 방법을 확인해주세요",
         description: "*챌린저 모두 동일",
         readOnly: true,
+        isConfirmation: true,
         defaultValue: `1. 시작인증: 영어 학습 시작 화면/노트/교재 등
 2. 종료인증: 오늘 공부한 내용이 보이는 화면/노트/교재 사진`,
       },
@@ -155,9 +160,10 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
       },
       {
         id: "cert_method",
-        label: "인증 방법",
+        label: "리추얼 인증 방법을 확인해주세요",
         description: "*챌린저 모두 동일",
         readOnly: true,
+        isConfirmation: true,
         defaultValue: `1. 시작인증: 제2외국어 학습 시작 화면/노트/교재 등
 2. 종료인증: 오늘 공부한 내용이 보이는 화면/노트/교재 사진`,
       },
@@ -192,11 +198,12 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
       },
       {
         id: "cert_method",
-        label: "인증 방법",
+        label: "리추얼 인증 방법을 확인해주세요",
         description: "*챌린저 모두 동일",
         readOnly: true,
+        isConfirmation: true,
         defaultValue: `1. 시작인증 없음
-2. 종료인증: 작성한 글 캡쳐 혹은 링크 첨부`,
+2. 종료인증: 작성한 글 링크 첨부`,
       },
     ],
     자산관리리추얼: [
@@ -229,9 +236,10 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
       },
       {
         id: "cert_method",
-        label: "인증 방법",
+        label: "리추얼 인증 방법을 확인해주세요",
         description: "*챌린저 모두 동일",
         readOnly: true,
+        isConfirmation: true,
         defaultValue: `1. 시작인증: 오늘의 자산관리 공부 시작 화면/노트/책 등 사진
 2. 종료인증: 오늘의 자산관리 공부 완료 사진`,
       },
@@ -259,9 +267,10 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
       },
       {
         id: "cert_method",
-        label: "인증 방법",
+        label: "리추얼 인증 방법을 확인해주세요",
         description: "*챌린저 모두 동일",
         readOnly: true,
+        isConfirmation: true,
         defaultValue: `1. 시작인증 없음
 2. 종료인증: 구글 클래스룸 오늘의 질문에 답변 후 '제출 완료' 화면 캡쳐`,
       },

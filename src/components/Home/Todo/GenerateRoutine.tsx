@@ -41,6 +41,7 @@ export default function GenerateRoutine({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
   const [alarmConfirmed, setAlarmConfirmed] = useState(false);
+  const [certConfirmed, setCertConfirmed] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -63,7 +64,11 @@ export default function GenerateRoutine({
     : [];
   const allAnswersFilled =
     questions.length > 0 &&
-    questions.every((q) => q.readOnly || answers[q.id]?.trim());
+    questions.every((q) =>
+      q.isConfirmation
+        ? certConfirmed
+        : q.readOnly || answers[q.id]?.trim(),
+    );
 
   const handleAnswerChange = (questionId: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
@@ -344,20 +349,41 @@ export default function GenerateRoutine({
                           {q.description}
                         </p>
                       )}
-                      <textarea
-                        value={
-                          q.readOnly
-                            ? (q.defaultValue ?? "")
-                            : (answers[q.id] ?? "")
-                        }
-                        onChange={(e) =>
-                          handleAnswerChange(q.id, e.target.value)
-                        }
-                        placeholder={q.placeholder}
-                        rows={q.readOnly ? 6 : 3}
-                        disabled={q.readOnly}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] focus:bg-white transition-all disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
-                      />
+                      {q.isConfirmation ? (
+                        <>
+                          <div className="px-4 py-3 bg-amber-50 border border-amber-100 rounded-2xl text-sm text-gray-700 whitespace-pre-line leading-relaxed mb-2.5">
+                            {q.defaultValue}
+                          </div>
+                          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={certConfirmed}
+                              onChange={(e) =>
+                                setCertConfirmed(e.target.checked)
+                              }
+                              className="w-4 h-4 rounded border-gray-300 accent-[#eab32e] flex-shrink-0 cursor-pointer"
+                            />
+                            <span className="text-sm text-gray-700">
+                              네, 확인했습니다
+                            </span>
+                          </label>
+                        </>
+                      ) : (
+                        <textarea
+                          value={
+                            q.readOnly
+                              ? (q.defaultValue ?? "")
+                              : (answers[q.id] ?? "")
+                          }
+                          onChange={(e) =>
+                            handleAnswerChange(q.id, e.target.value)
+                          }
+                          placeholder={q.placeholder}
+                          rows={q.readOnly ? 6 : 3}
+                          disabled={q.readOnly}
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] focus:bg-white transition-all disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+                        />
+                      )}
                     </div>
                   ))}
                 </div>
