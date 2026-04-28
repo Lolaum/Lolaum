@@ -19,6 +19,7 @@ interface TaskTabsProps {
   stats?: MyPageStats | null;
   completionRate?: CompletionRateStats | null;
   isPastDate?: boolean;
+  isOutsidePeriod?: boolean;
   routineCompletionMap?: Record<string, number>;
 }
 
@@ -28,6 +29,7 @@ export default function TaskTabs({
   stats,
   completionRate,
   isPastDate,
+  isOutsidePeriod,
   routineCompletionMap,
 }: TaskTabsProps) {
   const router = useRouter();
@@ -121,6 +123,7 @@ export default function TaskTabs({
             onTaskClick={handleTaskClick}
             routineCompletionMap={routineCompletionMap}
             isPastDate={isPastDate}
+            isOutsidePeriod={isOutsidePeriod}
           />
         </div>
       </div>

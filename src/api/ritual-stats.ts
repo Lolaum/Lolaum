@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
-import { getCurrentChallengeId } from "@/lib/current-challenge";
+import { getCurrentChallengeId, getActivePeriod } from "@/lib/current-challenge";
 import type {
   RoutineTypeDB,
   RitualRecord,
@@ -27,11 +27,12 @@ export interface MyPageStats {
 
 export interface CompletionRateStats {
   rate: number; // 달성률 (%)
-  completedDays: number; // 리추얼 완전 달성 일수 (최대 15)
+  completedDays: number; // 리추얼 완전 달성 일수 (최대 = 기간 내 평일 수)
   hasDeclaration: boolean; // 리추얼 선언 작성 여부
   hasMidReview: boolean; // 중간회고 작성 여부
   hasFinalReview: boolean; // 최종회고 작성 여부
-  totalAchieved: number; // 달성 합계 (최대 18)
+  totalAchieved: number; // 달성 합계 (최대 = 평일 수 + 3 보너스)
+  totalDays: number; // 만점 일수 (평일 수 + 3 보너스)
 }
 
 export interface RoutineCardStats {
@@ -98,27 +99,65 @@ const ROUTINE_CONFIG: Record<
 
 // ── 유틸 ──────────────────────────────────────────────
 
-/** 이번 달 1일부터 오늘까지의 평일(월~금) 날짜 목록 */
-function getPastWeekdayDates(year: number, month: number): Set<string> {
+function parseLocalDate(s: string): Date {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function formatLocalDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** 활성 기간 [start, end] 내 모든 평일(월~금) 수 (기간 만점 산정용) */
+function countWeekdaysInRange(startDate: string, endDate: string): number {
+  const start = parseLocalDate(startDate);
+  const end = parseLocalDate(endDate);
+  let count = 0;
+  const cur = new Date(start);
+  while (cur <= end) {
+    const dow = cur.getDay();
+    if (dow !== 0 && dow !== 6) count++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
+}
+
+/** 활성 기간 시작 ~ min(오늘, 기간 종료일)의 평일(월~금) 날짜 목록 */
+function getPeriodPastWeekdays(
+  startDate: string,
+  endDate: string,
+): Set<string> {
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const periodEnd = parseLocalDate(endDate);
+  const upper = today < periodEnd ? today : periodEnd;
   const dates = new Set<string>();
-  const d = new Date(year, month - 1, 1);
-  while (d <= today && d.getMonth() === month - 1) {
+  const d = parseLocalDate(startDate);
+  while (d <= upper) {
     const day = d.getDay();
-    if (day >= 1 && day <= 5) dates.add(d.toISOString().split("T")[0]);
+    if (day >= 1 && day <= 5) dates.add(formatLocalDate(d));
     d.setDate(d.getDate() + 1);
   }
   return dates;
 }
 
-/** 이번 달 1일부터 오늘까지의 주말(토, 일) 날짜 목록 */
-function getPastWeekendDates(year: number, month: number): Set<string> {
+/** 활성 기간 시작 ~ min(오늘, 기간 종료일)의 주말(토, 일) 날짜 목록 */
+function getPeriodPastWeekends(
+  startDate: string,
+  endDate: string,
+): Set<string> {
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const periodEnd = parseLocalDate(endDate);
+  const upper = today < periodEnd ? today : periodEnd;
   const dates = new Set<string>();
-  const d = new Date(year, month - 1, 1);
-  while (d <= today && d.getMonth() === month - 1) {
+  const d = parseLocalDate(startDate);
+  while (d <= upper) {
     const day = d.getDay();
-    if (day === 0 || day === 6) dates.add(d.toISOString().split("T")[0]);
+    if (day === 0 || day === 6) dates.add(formatLocalDate(d));
     d.setDate(d.getDate() + 1);
   }
   return dates;
@@ -132,12 +171,12 @@ function getPastWeekendDates(year: number, month: number): Set<string> {
 function calcCompletedDays(
   dateMap: Map<string, Set<string>>,
   registeredTypes: Set<string>,
+  periodStart: string,
+  periodEnd: string,
+  totalRoutineDays: number,
 ): number {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
-  const pastWeekdays = getPastWeekdayDates(year, month);
-  const pastWeekends = getPastWeekendDates(year, month);
+  const pastWeekdays = getPeriodPastWeekdays(periodStart, periodEnd);
+  const pastWeekends = getPeriodPastWeekends(periodStart, periodEnd);
 
   const isFullyComplete = (date: string): boolean => {
     const done = dateMap.get(date);
@@ -158,7 +197,7 @@ function calcCompletedDays(
     if (isFullyComplete(we)) weekendMakeup++;
   }
 
-  return Math.min(weekdayComplete + weekendMakeup, 15);
+  return Math.min(weekdayComplete + weekendMakeup, totalRoutineDays);
 }
 
 function calcStreak(dates: string[]): number {
@@ -247,12 +286,21 @@ export async function getRitualPageData(): Promise<{
   completion?: CompletionRateStats;
   error?: string;
 }> {
-  const [{ challengeId, error: cError }, user] = await Promise.all([
-    getCurrentChallengeId(),
-    getCurrentUser(),
-  ]);
+  const [{ challengeId, error: cError }, user, { period, error: pError }] =
+    await Promise.all([
+      getCurrentChallengeId(),
+      getCurrentUser(),
+      getActivePeriod(),
+    ]);
   if (!user) return { error: "인증이 필요합니다." };
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
+  if (!period) return { error: pError ?? "활성 챌린지 기간이 없습니다." };
+
+  const totalRoutineDays = countWeekdaysInRange(
+    period.start_date,
+    period.end_date,
+  );
+  const totalDays = totalRoutineDays + 3;
 
   const supabase = await createClient();
 
@@ -337,10 +385,10 @@ export async function getRitualPageData(): Promise<{
       };
     });
 
-  // completion stats (전체 18일 기준)
+  // completion stats (활성 기간 기반)
   // 선언은 "신청한 모든 리추얼에 대해 작성"되어야 +1
   // 중간 회고는 유저당 1개라도 작성했으면 +1
-  const completedDays = Math.min(fullyCompleteDays, 15);
+  const completedDays = Math.min(fullyCompleteDays, totalRoutineDays);
   const hasDeclaration = isAllRoutinesCovered(
     registeredTypes,
     declarationsRes.data,
@@ -352,7 +400,7 @@ export async function getRitualPageData(): Promise<{
     (hasDeclaration ? 1 : 0) +
     (hasMidReview ? 1 : 0) +
     (hasFinalReview ? 1 : 0);
-  const rate = Math.round((totalAchieved / TOTAL_DAYS) * 100);
+  const rate = Math.round((totalAchieved / totalDays) * 100);
 
   const completion: CompletionRateStats = {
     rate,
@@ -361,6 +409,7 @@ export async function getRitualPageData(): Promise<{
     hasMidReview,
     hasFinalReview,
     totalAchieved,
+    totalDays,
   };
 
   return { overall, routines, completion };
@@ -734,12 +783,21 @@ export async function getHomeStats(): Promise<{
   routineCompletionMap?: Record<string, number>; // routine_type → 완료 일수
   error?: string;
 }> {
-  const [{ challengeId, error: cError }, user] = await Promise.all([
-    getCurrentChallengeId(),
-    getCurrentUser(),
-  ]);
+  const [{ challengeId, error: cError }, user, { period, error: pError }] =
+    await Promise.all([
+      getCurrentChallengeId(),
+      getCurrentUser(),
+      getActivePeriod(),
+    ]);
   if (!user) return { error: "인증이 필요합니다." };
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
+  if (!period) return { error: pError ?? "활성 챌린지 기간이 없습니다." };
+
+  const totalRoutineDays = countWeekdaysInRange(
+    period.start_date,
+    period.end_date,
+  );
+  const totalDays = totalRoutineDays + 3;
 
   const supabase = await createClient();
 
@@ -796,7 +854,13 @@ export async function getHomeStats(): Promise<{
     if (!dateMap.has(r.record_date)) dateMap.set(r.record_date, new Set());
     dateMap.get(r.record_date)!.add(r.routine_type);
   }
-  const completedDays = calcCompletedDays(dateMap, registeredTypes);
+  const completedDays = calcCompletedDays(
+    dateMap,
+    registeredTypes,
+    period.start_date,
+    period.end_date,
+    totalRoutineDays,
+  );
   const hasDeclaration = isAllRoutinesCovered(
     registeredTypes,
     declarationsRes.data,
@@ -809,12 +873,13 @@ export async function getHomeStats(): Promise<{
     (hasMidReview ? 1 : 0) +
     (hasFinalReview ? 1 : 0);
   const completion: CompletionRateStats = {
-    rate: Math.round((totalAchieved / TOTAL_DAYS) * 100),
+    rate: Math.round((totalAchieved / totalDays) * 100),
     completedDays,
     hasDeclaration,
     hasMidReview,
     hasFinalReview,
     totalAchieved,
+    totalDays,
   };
 
   // calendar markers (날짜별 리추얼/투두 완료 마커)
@@ -916,18 +981,25 @@ export async function getMyPageStats(): Promise<{
 
 // ── API: 달성률 ────────────────────────────────────────
 
-const TOTAL_DAYS = 18; // 15일(리추얼) + 3일(선언/중간회고/최종회고)
-
 export async function getCompletionRate(): Promise<{
   data?: CompletionRateStats;
   error?: string;
 }> {
-  const [{ challengeId, error: cError }, user] = await Promise.all([
-    getCurrentChallengeId(),
-    getCurrentUser(),
-  ]);
+  const [{ challengeId, error: cError }, user, { period, error: pError }] =
+    await Promise.all([
+      getCurrentChallengeId(),
+      getCurrentUser(),
+      getActivePeriod(),
+    ]);
   if (!user) return { error: "인증이 필요합니다." };
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
+  if (!period) return { error: pError ?? "활성 챌린지 기간이 없습니다." };
+
+  const totalRoutineDays = countWeekdaysInRange(
+    period.start_date,
+    period.end_date,
+  );
+  const totalDays = totalRoutineDays + 3;
 
   const supabase = await createClient();
 
@@ -965,7 +1037,13 @@ export async function getCompletionRate(): Promise<{
     if (!dateMap.has(r.record_date)) dateMap.set(r.record_date, new Set());
     dateMap.get(r.record_date)!.add(r.routine_type);
   }
-  const completedDays = calcCompletedDays(dateMap, registeredTypes);
+  const completedDays = calcCompletedDays(
+    dateMap,
+    registeredTypes,
+    period.start_date,
+    period.end_date,
+    totalRoutineDays,
+  );
   const hasDeclaration = isAllRoutinesCovered(
     registeredTypes,
     declarationsRes.data,
@@ -979,7 +1057,7 @@ export async function getCompletionRate(): Promise<{
     (hasMidReview ? 1 : 0) +
     (hasFinalReview ? 1 : 0);
 
-  const rate = Math.round((totalAchieved / TOTAL_DAYS) * 100);
+  const rate = Math.round((totalAchieved / totalDays) * 100);
 
   return {
     data: {
@@ -989,6 +1067,7 @@ export async function getCompletionRate(): Promise<{
       hasMidReview,
       hasFinalReview,
       totalAchieved,
+      totalDays,
     },
   };
 }

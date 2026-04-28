@@ -11,12 +11,18 @@ import { MyPageStats, CompletionRateStats } from "@/api/ritual-stats";
 interface Props extends ProfileProps {
   stats?: MyPageStats | null;
   completionRate?: CompletionRateStats | null;
+  period?: {
+    start_date: string;
+    end_date: string;
+    label: string | null;
+  } | null;
   onProfileUpdated?: () => void;
 }
 
 export default function Profile({
   stats: statsProp,
   completionRate: completionRateProp,
+  period,
   onProfileUpdated,
 }: Props) {
   const [showEditModal, setShowEditModal] = useState(false);
@@ -203,12 +209,31 @@ export default function Profile({
         </div>
       </div>
 
+      {/* 이번 챌린지 기간 */}
+      {period && (
+        <div className="mb-3 px-3 py-2 rounded-xl bg-yellow-50 border border-yellow-100">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-semibold text-yellow-700 uppercase tracking-wider">
+              이번 챌린지 기간
+            </span>
+            {period.label && (
+              <span className="text-[11px] text-yellow-600 truncate max-w-[60%] text-right">
+                {period.label}
+              </span>
+            )}
+          </div>
+          <p className="text-sm font-bold text-gray-800 mt-0.5">
+            {period.start_date} ~ {period.end_date}
+          </p>
+        </div>
+      )}
+
       {/* 달성률 */}
       <div>
         <div className="flex justify-between items-center mb-1.5">
           <span className="text-xs text-gray-400 font-medium">달성률</span>
           <span className="text-xs font-semibold text-gray-500">
-            {completionRate?.totalAchieved ?? 0}/18
+            {completionRate?.totalAchieved ?? 0}/{completionRate?.totalDays ?? 0}
           </span>
         </div>
         <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">

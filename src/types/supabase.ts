@@ -95,11 +95,37 @@ export interface Database {
         };
         Relationships: [];
       };
+      challenge_periods: {
+        Row: {
+          id: string;
+          start_date: string;
+          end_date: string;
+          label: string | null;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          start_date: string;
+          end_date: string;
+          label?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          start_date?: string;
+          end_date?: string;
+          label?: string | null;
+          is_active?: boolean;
+        };
+        Relationships: [];
+      };
       challenges: {
         Row: {
           id: string;
           team_id: string | null;
           user_id: string | null;
+          period_id: string;
           year: number;
           month: number;
           start_date: string;
@@ -112,6 +138,7 @@ export interface Database {
           id?: string;
           team_id?: string | null;
           user_id?: string | null;
+          period_id: string;
           year: number;
           month: number;
           start_date: string;
@@ -121,6 +148,7 @@ export interface Database {
           created_at?: string;
         };
         Update: {
+          period_id?: string;
           start_date?: string;
           end_date?: string;
           weekly_target?: number;

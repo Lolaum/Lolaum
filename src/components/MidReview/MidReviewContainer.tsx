@@ -47,7 +47,6 @@ export default function MidReviewContainer() {
             </svg>
           </button>
           <div className="flex-1">
-            <p className="text-xs text-gray-400 font-medium mb-0.5">10~13일차 중간 점검</p>
             <h1 className="text-xl font-bold text-gray-900">중간 회고</h1>
           </div>
           <button

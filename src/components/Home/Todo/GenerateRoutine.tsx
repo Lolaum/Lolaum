@@ -7,6 +7,7 @@ import { RoutineType } from "@/types/routines/declaration";
 import { declarationQuestions } from "@/lib/declarationQuestions";
 import { createRoutineAuto } from "@/api/routine";
 import { createDeclaration } from "@/api/declaration";
+import { getCurrentPeriod } from "@/api/challenge";
 import { ROUTINE_TYPE_MAP } from "@/types/supabase";
 
 interface GenerateRoutineProps {
@@ -33,8 +34,11 @@ export default function GenerateRoutine({
 }: GenerateRoutineProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedRoutine, setSelectedRoutine] = useState<RoutineType | "">("");
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
+  const [period, setPeriod] = useState<{
+    start_date: string;
+    end_date: string;
+    label: string | null;
+  } | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -51,6 +55,24 @@ export default function GenerateRoutine({
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = "";
+    };
+  }, []);
+
+  // 활성 챌린지 기간 조회 (사용자 입력 대신 어드민이 정한 기간 표시)
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentPeriod().then((res) => {
+      if (cancelled) return;
+      if (res.period) {
+        setPeriod({
+          start_date: res.period.start_date,
+          end_date: res.period.end_date,
+          label: res.period.label,
+        });
+      }
+    });
+    return () => {
+      cancelled = true;
     };
   }, []);
 
@@ -209,12 +231,13 @@ export default function GenerateRoutine({
               리추얼이 생성되었어요!
             </h3>
             <p className="text-sm text-gray-500 mb-1">{selectedRoutine}</p>
-            {(startDate || endDate) && (
+            {period ? (
               <p className="text-xs text-gray-300 mb-6">
-                {startDate || "—"} ~ {endDate || "계속"}
+                {period.start_date} ~ {period.end_date}
               </p>
+            ) : (
+              <div className="mb-6" />
             )}
-            {!(startDate || endDate) && <div className="mb-6" />}
             <button
               onClick={handleSuccessClose}
               className="w-full py-3.5 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
@@ -273,40 +296,28 @@ export default function GenerateRoutine({
                   </p>
                 </div>
 
-                {/* 기간 설정 - 가로 배치 */}
+                {/* 챌린지 기간 안내 (읽기 전용 - 어드민이 정함) */}
                 <div className="mb-6">
                   <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    기간 설정
+                    챌린지 기간
                   </label>
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] focus:bg-white transition-all"
-                        placeholder="시작일"
-                      />
-                      <span className="block text-[10px] text-gray-300 mt-1 pl-1">
-                        시작일
-                      </span>
-                    </div>
-                    <div className="flex items-start pt-3 text-gray-300 text-sm">
-                      ~
-                    </div>
-                    <div className="flex-1">
-                      <input
-                        type="date"
-                        value={endDate}
-                        min={startDate || undefined}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] focus:bg-white transition-all"
-                        placeholder="종료일"
-                      />
-                      <span className="block text-[10px] text-gray-300 mt-1 pl-1">
-                        종료일 (미설정 시 계속)
-                      </span>
-                    </div>
+                  <div className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl">
+                    {period ? (
+                      <>
+                        <p className="text-sm font-semibold text-gray-700">
+                          {period.start_date} ~ {period.end_date}
+                        </p>
+                        {period.label && (
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {period.label}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-gray-400">
+                        기간 정보를 불러오는 중...
+                      </p>
+                    )}
                   </div>
                 </div>
 

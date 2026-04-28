@@ -2,7 +2,7 @@
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentChallengeId } from "@/lib/current-challenge";
+import { getCurrentChallengeId, getActivePeriod } from "@/lib/current-challenge";
 import type { Json } from "@/types/supabase";
 import type { MidReview, MidReviewCondition } from "@/types/routines/midReview";
 
@@ -47,15 +47,6 @@ function toMidReview(row: MidReviewRow): MidReview {
 const SELECT_COLUMNS =
   "id, user_id, good_conditions, good_condition_details, hard_conditions, hard_condition_details, why_started, keep_doing, will_change, created_at, profiles(name, emoji, avatar_url)";
 
-/** 중간 회고 작성 가능 기간 검증 (매월 10~13일) */
-function assertWritableWindow(): string | null {
-  const day = new Date().getDate();
-  if (day < 10 || day > 13) {
-    return "중간 회고는 매월 10~13일에만 작성/수정할 수 있습니다.";
-  }
-  return null;
-}
-
 /** 내 중간 회고 목록 조회 */
 export async function getMyMidReviews(): Promise<{
   data?: MidReview[];
@@ -85,19 +76,19 @@ export async function getMyMidReviews(): Promise<{
   }
 }
 
-/** 이번 달 모든 챌린지 ID 조회 */
-async function getCurrentMonthChallengeIds(): Promise<string[]> {
+/** 활성 기간의 모든 챌린지 ID 조회 */
+async function getCurrentPeriodChallengeIds(): Promise<string[]> {
   try {
+    const { period } = await getActivePeriod();
+    if (!period) return [];
     const admin = createAdminClient();
-    const now = new Date();
     const { data } = await admin
       .from("challenges")
       .select("id")
-      .eq("year", now.getFullYear())
-      .eq("month", now.getMonth() + 1);
+      .eq("period_id", period.id);
     return (data ?? []).map((c) => c.id);
   } catch (e) {
-    console.error("getCurrentMonthChallengeIds error:", e);
+    console.error("getCurrentPeriodChallengeIds error:", e);
     return [];
   }
 }
@@ -111,7 +102,7 @@ export async function getChallengerMidReviews(): Promise<{
     const user = await getCurrentUser();
     if (!user) return { error: "인증이 필요합니다." };
 
-    const challengeIds = await getCurrentMonthChallengeIds();
+    const challengeIds = await getCurrentPeriodChallengeIds();
     if (challengeIds.length === 0) return { error: "챌린지를 찾을 수 없습니다." };
 
     const admin = createAdminClient();
@@ -140,7 +131,7 @@ export async function getAllMidReviews(): Promise<{
     const user = await getCurrentUser();
     if (!user) return { error: "인증이 필요합니다." };
 
-    const challengeIds = await getCurrentMonthChallengeIds();
+    const challengeIds = await getCurrentPeriodChallengeIds();
     if (challengeIds.length === 0) return { error: "챌린지를 찾을 수 없습니다." };
 
     const admin = createAdminClient();
@@ -198,9 +189,6 @@ export async function createMidReview(input: {
   willChange: string;
 }): Promise<{ error?: string }> {
   try {
-    const windowError = assertWritableWindow();
-    if (windowError) return { error: windowError };
-
     const [{ challengeId, error: cError }, user] = await Promise.all([
       getCurrentChallengeId(),
       getCurrentUser(),
@@ -243,9 +231,6 @@ export async function updateMidReview(
   },
 ): Promise<{ error?: string }> {
   try {
-    const windowError = assertWritableWindow();
-    if (windowError) return { error: windowError };
-
     const user = await getCurrentUser();
     if (!user) return { error: "인증이 필요합니다." };
 
@@ -290,9 +275,6 @@ export async function deleteMidReview(
   id: string,
 ): Promise<{ error?: string }> {
   try {
-    const windowError = assertWritableWindow();
-    if (windowError) return { error: windowError };
-
     const user = await getCurrentUser();
     if (!user) return { error: "인증이 필요합니다." };
 

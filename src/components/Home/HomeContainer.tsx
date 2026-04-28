@@ -46,10 +46,18 @@ interface HomeInitialData {
   error?: string;
 }
 
+interface ActivePeriod {
+  start_date: string;
+  end_date: string;
+  label: string | null;
+}
+
 export default function HomeContainer({
   initialData,
+  period,
 }: {
   initialData: HomeInitialData;
+  period: ActivePeriod | null;
 }) {
   // const router = useRouter(); // 중간 회고 알림 숨김으로 미사용
   const [mounted, setMounted] = useState(false);
@@ -90,8 +98,16 @@ export default function HomeContainer({
         selectedDate < today
       : false;
 
+  // 선택된 날짜가 챌린지 기간 외인지 확인
+  const isOutsidePeriod = (() => {
+    if (!period || !selectedDate) return false;
+    const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
+    return dateStr < period.start_date || dateStr > period.end_date;
+  })();
+
   const handleTaskClick = (title: string, color: string) => {
     if (isPastDate) return; // 지난 날짜에서는 리추얼 진행 불가
+    if (isOutsidePeriod) return; // 챌린지 기간 외에는 리추얼 진행 불가
     setSelectedTask({ title, color });
   };
 
@@ -219,6 +235,7 @@ export default function HomeContainer({
             <Profile
               stats={myPageStats}
               completionRate={completionRate}
+              period={period}
               onProfileUpdated={() => setMemberRefreshKey((k) => k + 1)}
             />
             {/* 중간 회고 작성 기간 알림 — 숨김 처리
@@ -272,6 +289,7 @@ export default function HomeContainer({
               stats={myPageStats}
               completionRate={completionRate}
               isPastDate={isPastDate}
+              isOutsidePeriod={isOutsidePeriod}
               routineCompletionMap={routineCompletionMap}
             />
           </div>

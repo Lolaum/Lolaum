@@ -37,7 +37,9 @@ export default function RoutineList({
   onTaskClick,
   routineCompletionMap = {},
   isPastDate = false,
+  isOutsidePeriod = false,
 }: RoutineListProps) {
+  const isDisabled = isPastDate || isOutsidePeriod;
   const [routines, setRoutines] = useState<ChallengeRegistration[]>([]);
   const [loading, setLoading] = useState(false);
   const [showGenerateRoutine, setShowGenerateRoutine] = useState(false);
@@ -133,9 +135,9 @@ export default function RoutineList({
             return (
               <div
                 key={routine.id}
-                onClick={() => !isPastDate && onTaskClick(title, colors.color)}
+                onClick={() => !isDisabled && onTaskClick(title, colors.color)}
                 className={`relative overflow-hidden rounded-2xl p-4 shadow-sm border border-gray-100 transition-all duration-200 ${
-                  isPastDate
+                  isDisabled
                     ? "opacity-50 cursor-not-allowed"
                     : "cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]"
                 }`}
