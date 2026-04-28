@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { List, Plus, LayoutGrid, Calendar as CalendarIcon } from "lucide-react";
+import { List, Plus, LayoutGrid } from "lucide-react";
 import AddNewBook from "./AddNewBook";
-import BookCalendar from "./BookCalendar";
 import BookDetail from "./BookDetail";
-import { Book, ViewMode, BookManageProps, CompletedBook } from "@/types/routines/reading";
-import { getBooksAuto, createBookAuto, deleteBook, uploadBookCover, updateBook } from "@/api/book";
+import { Book, ViewMode, BookManageProps } from "@/types/routines/reading";
+import { getBooksAuto, createBookAuto, deleteBook, updateBook } from "@/api/book";
 import type { Book as BookDB } from "@/types/supabase";
 
 /** DB Row → 프론트엔드 Book 변환 */
@@ -27,7 +26,6 @@ function toBook(row: BookDB): Book {
 export default function BookManage({ onBackToTimer, onBackToHome, isEnglishBook, certificationPhotos }: BookManageProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [showAddBook, setShowAddBook] = useState(false);
-  const [showCalendar, setShowCalendar] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,26 +56,13 @@ export default function BookManage({ onBackToTimer, onBackToHome, isEnglishBook,
     author: string;
     trackingType: "page" | "percent";
     totalPages: number;
-    coverImage?: File;
   }) => {
-    let coverImageUrl: string | undefined;
-
-    if (bookData.coverImage) {
-      const formData = new FormData();
-      formData.append("file", bookData.coverImage);
-      const uploadResult = await uploadBookCover(formData);
-      if (uploadResult.url) {
-        coverImageUrl = uploadResult.url;
-      }
-    }
-
     const result = await createBookAuto({
       routineType: isEnglishBook ? "english_book" : "reading",
       title: bookData.title,
       author: bookData.author,
       trackingType: bookData.trackingType,
       totalValue: bookData.trackingType === "percent" ? 100 : bookData.totalPages,
-      coverImageUrl,
     });
 
     if (result.data) {
@@ -115,30 +100,7 @@ export default function BookManage({ onBackToTimer, onBackToHome, isEnglishBook,
           onCancel={() => setShowAddBook(false)}
           onBackToHome={onBackToHome}
           onSubmit={handleBookCreated}
-        />
-      </div>
-    );
-  }
-
-  // 독서 달력 화면
-  if (showCalendar) {
-    return (
-      <div className="w-full">
-        <BookCalendar
-          onBack={() => setShowCalendar(false)}
-          onBookSelect={(bookTitle) => {
-            const found = books.find((b) => b.title === bookTitle);
-            if (found) {
-              setShowCalendar(false);
-              setSelectedBook(found);
-            }
-          }}
-          completedBooks={books.filter((b) => b.isCompleted).map((b) => ({
-            id: b.id,
-            title: b.title,
-            coverImageUrl: b.coverImageUrl,
-            completedDate: b.updatedAt.split("T")[0],
-          }))}
+          isEnglishBook={isEnglishBook}
         />
       </div>
     );
@@ -279,25 +241,8 @@ export default function BookManage({ onBackToTimer, onBackToHome, isEnglishBook,
               <div
                 key={book.id}
                 onClick={() => setSelectedBook(book)}
-                className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer border border-gray-100 w-[320px] h-[200px] flex-shrink-0 flex p-4 gap-4"
+                className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer border border-gray-100 w-[280px] h-[200px] flex-shrink-0 flex p-4 gap-4"
               >
-                {/* 책 표지 */}
-                <div className="w-[120px] h-full bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                  {book.coverImageUrl ? (
-                    <img
-                      src={book.coverImageUrl}
-                      alt={book.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                      <span className="text-gray-400 text-xs font-medium">
-                        책 표지
-                      </span>
-                    </div>
-                  )}
-                </div>
-
                 {/* 책 정보 */}
                 <div className="flex-1 flex flex-col justify-between py-1">
                   <div>
@@ -364,19 +309,6 @@ export default function BookManage({ onBackToTimer, onBackToHome, isEnglishBook,
                 className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow cursor-pointer"
               >
                 <div className="flex gap-3">
-                  {/* 책 표지 썸네일 */}
-                  <div className="w-14 h-18 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden flex items-center justify-center">
-                    {book.coverImageUrl ? (
-                      <img
-                        src={book.coverImageUrl}
-                        alt={book.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-gray-400 text-xs">표지</span>
-                    )}
-                  </div>
-
                   {/* 책 정보 */}
                   <div className="flex-1 min-w-0">
                     <h3 className="text-base font-bold text-gray-900 mb-0.5 truncate">
@@ -409,23 +341,6 @@ export default function BookManage({ onBackToTimer, onBackToHome, isEnglishBook,
         </div>
       )}
 
-      {/* 독서 달력 보기 */}
-      <button
-        type="button"
-        onClick={() => setShowCalendar(true)}
-        className="w-full flex items-center gap-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mt-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 text-left"
-      >
-        <div className="w-10 h-10 bg-yellow-50 rounded-xl flex items-center justify-center flex-shrink-0">
-          <CalendarIcon className="w-5 h-5 text-yellow-500" />
-        </div>
-        <div className="flex flex-col justify-center gap-0.5">
-          <span className="text-sm font-semibold text-gray-900">독서 달력 보기</span>
-          <span className="text-xs text-gray-400">매일의 독서 기록을 확인하세요</span>
-        </div>
-        <svg className="w-4 h-4 text-gray-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
     </div>
   );
 }

@@ -463,7 +463,9 @@ export default function BookDetail({
               d="M15 19l-7-7 7-7"
             />
           </svg>
-          <span className="text-sm">독서 관리로 돌아가기</span>
+          <span className="text-sm">
+            {isEnglishBook ? "원서읽기 리추얼 관리로 돌아가기" : "독서 관리로 돌아가기"}
+          </span>
         </button>
         <button
           type="button"
@@ -534,18 +536,7 @@ export default function BookDetail({
       {/* 책 정보 카드 */}
       <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
         <div className="flex gap-4">
-          <div className="w-[72px] h-[100px] bg-gradient-to-br from-orange-300 to-orange-500 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
-            {book.coverImageUrl ? (
-              <img
-                src={book.coverImageUrl}
-                alt={book.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="text-white text-xs font-medium">책 표지</span>
-            )}
-          </div>
-          <div className="flex-1 flex flex-col justify-between py-1">
+          <div className="flex-1 flex flex-col justify-between py-1 gap-3">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-500">{book.author}</p>
               <button
