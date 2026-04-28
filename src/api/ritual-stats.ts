@@ -20,14 +20,14 @@ export interface RitualOverallStats {
 }
 
 export interface MyPageStats {
-  currentStreak: number;   // 연속 실천 (하루에 루틴 1개라도 완료한 연속 일수)
+  currentStreak: number;   // 연속 실천 (하루에 리추얼 1개라도 완료한 연속 일수)
   longestStreak: number;   // 최장 기록 (가장 긴 연속 실천 기간)
-  totalCompletions: number; // 총 완료 (루틴 완료 수 합산)
+  totalCompletions: number; // 총 완료 (리추얼 완료 수 합산)
 }
 
 export interface CompletionRateStats {
   rate: number;             // 달성률 (%)
-  completedDays: number;    // 루틴 완전 달성 일수 (최대 15)
+  completedDays: number;    // 리추얼 완전 달성 일수 (최대 15)
   hasDeclaration: boolean;  // 리추얼 선언 작성 여부
   hasMidReview: boolean;    // 중간회고 작성 여부
   hasFinalReview: boolean;  // 최종회고 작성 여부
@@ -75,7 +75,7 @@ export interface FinanceInsight {
   weeklySpending: { week: string; amount: number }[];
 }
 
-// ── 루틴 설정 ──────────────────────────────────────────
+// ── 리추얼 설정 ──────────────────────────────────────────
 
 const ROUTINE_CONFIG: Record<
   string,
@@ -121,8 +121,8 @@ function getPastWeekendDates(year: number, month: number): Set<string> {
 
 /**
  * 평일 완료 + 주말 보충 기반 달성 일수 계산 (진행표와 동일 로직)
- * dateMap: 날짜 → 완료한 루틴 Set
- * registeredTypes: 등록된 루틴 Set
+ * dateMap: 날짜 → 완료한 리추얼 Set
+ * registeredTypes: 등록된 리추얼 Set
  */
 function calcCompletedDays(
   dateMap: Map<string, Set<string>>,
@@ -202,8 +202,8 @@ function calcLongestStreak(dates: string[]): number {
 }
 
 /**
- * 신청한 모든 루틴(registeredTypes)에 대해 항목(rows)이 작성되었는지 검사.
- * 선언/중간회고/최종회고가 "신청한 루틴 수만큼 채워졌을 때"만 달성으로 인정한다.
+ * 신청한 모든 리추얼(registeredTypes)에 대해 항목(rows)이 작성되었는지 검사.
+ * 선언/중간회고/최종회고가 "신청한 리추얼 수만큼 채워졌을 때"만 달성으로 인정한다.
  */
 function isAllRoutinesCovered(
   registeredTypes: Set<string>,
@@ -282,7 +282,7 @@ export async function getRitualPageData(): Promise<{
   const allDates = [...new Set(records.map((r) => r.record_date))].sort();
   const currentStreak = calcStreak(allDates);
 
-  // 날짜별 완료 루틴 set
+  // 날짜별 완료 리추얼 set
   const registeredTypes = new Set(registrations.map((r) => r.routine_type));
   const dateMap = new Map<string, Set<string>>();
   for (const r of records) {
@@ -330,7 +330,7 @@ export async function getRitualPageData(): Promise<{
     });
 
   // completion stats (전체 18일 기준)
-  // 회고/선언은 "신청한 모든 루틴에 대해 작성"되어야 +1
+  // 회고/선언은 "신청한 모든 리추얼에 대해 작성"되어야 +1
   const completedDays = Math.min(fullyCompleteDays, 15);
   const hasDeclaration = isAllRoutinesCovered(
     registeredTypes,
@@ -360,7 +360,7 @@ export async function getRitualPageData(): Promise<{
   return { overall, routines, completion };
 }
 
-// ── API: 전체 통계 + 루틴별 카드 ──────────────────────
+// ── API: 전체 통계 + 리추얼별 카드 ──────────────────────
 
 export async function getRitualStats(): Promise<{
   overall?: RitualOverallStats;
@@ -376,7 +376,7 @@ export async function getRitualStats(): Promise<{
 
   const supabase = await createClient();
 
-  // 기록 + 등록 루틴 동시 조회
+  // 기록 + 등록 리추얼 동시 조회
   const [recordsRes, registrationsRes] = await Promise.all([
     supabase
       .from("ritual_records")
@@ -398,7 +398,7 @@ export async function getRitualStats(): Promise<{
   const allDates = [...new Set(records.map((r) => r.record_date))].sort();
   const currentStreak = calcStreak(allDates);
 
-  // 달성률: 날짜별로 등록된 루틴을 모두 완료했는지 계산
+  // 달성률: 날짜별로 등록된 리추얼을 모두 완료했는지 계산
   const registeredTypes = new Set(registrations.map((r) => r.routine_type));
   const dateMap = new Map<string, Set<string>>();
   for (const r of records) {
@@ -415,7 +415,7 @@ export async function getRitualStats(): Promise<{
 
   const overall: RitualOverallStats = { totalRecords, currentStreak, completionRate };
 
-  // 루틴별 카드 (등록된 루틴만)
+  // 리추얼별 카드 (등록된 리추얼만)
   const registeredTypesList = registrations.map((r) => r.routine_type as RoutineTypeDB);
   const routines: RoutineCardStats[] = registeredTypesList
     .filter((rt) => ROUTINE_CONFIG[rt])
@@ -684,9 +684,9 @@ export async function getFinanceInsight(): Promise<{
 
 // ── 타입: 날짜별 달력 마커 ────────────────────────────────
 export interface CalendarDayMarker {
-  hasRoutine: boolean;   // 루틴 기록이 있는 날
+  hasRoutine: boolean;   // 리추얼 기록이 있는 날
   hasTodo: boolean;      // 완료된 투두가 있는 날
-  isFullyComplete: boolean; // 등록된 루틴을 모두 완료한 날
+  isFullyComplete: boolean; // 등록된 리추얼을 모두 완료한 날
 }
 
 // ── API: Home 화면 통합 통계 ───────────────────────────
@@ -781,11 +781,11 @@ export async function getHomeStats(): Promise<{
     totalAchieved,
   };
 
-  // calendar markers (날짜별 루틴/투두 완료 마커)
+  // calendar markers (날짜별 리추얼/투두 완료 마커)
   const todoDateSet = new Set(completedTodos.map((t) => t.todo_date));
   const calendarMarkers: Record<string, CalendarDayMarker> = {};
 
-  // 루틴 기록이 있는 날짜
+  // 리추얼 기록이 있는 날짜
   for (const [date, completedTypes] of dateMap) {
     const allDone = [...registeredTypes].every((rt) => completedTypes.has(rt));
     calendarMarkers[date] = {
@@ -795,7 +795,7 @@ export async function getHomeStats(): Promise<{
     };
   }
 
-  // 투두만 완료된 날짜 (루틴 기록은 없는 경우)
+  // 투두만 완료된 날짜 (리추얼 기록은 없는 경우)
   for (const date of todoDateSet) {
     if (!calendarMarkers[date]) {
       calendarMarkers[date] = {
@@ -806,7 +806,7 @@ export async function getHomeStats(): Promise<{
     }
   }
 
-  // 루틴별 완료 횟수 (완료 일수 + 리추얼선언 + 중간회고 + 최종회고)
+  // 리추얼별 완료 횟수 (완료 일수 + 리추얼선언 + 중간회고 + 최종회고)
   const routineCompletionMap: Record<string, number> = {};
   const routineDateSets = new Map<string, Set<string>>();
   for (const r of currentRecords) {
@@ -877,7 +877,7 @@ export async function getMyPageStats(): Promise<{
 
 // ── API: 달성률 ────────────────────────────────────────
 
-const TOTAL_DAYS = 18; // 15일(루틴) + 3일(선언/중간회고/최종회고)
+const TOTAL_DAYS = 18; // 15일(리추얼) + 3일(선언/중간회고/최종회고)
 
 export async function getCompletionRate(): Promise<{
   data?: CompletionRateStats;

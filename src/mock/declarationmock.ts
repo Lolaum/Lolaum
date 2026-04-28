@@ -82,7 +82,7 @@ export const challengerDeclarations: Declaration[] = [
     userEmoji: "🧑",
     routineType: "모닝리추얼",
     answers: [
-      { questionId: "expected_change", answer: "아침 루틴으로 멘탈을 강화하고 싶어요." },
+      { questionId: "expected_change", answer: "아침 리추얼으로 멘탈을 강화하고 싶어요." },
       { questionId: "timetable", answer: "6:00 기상 → 6:05 따뜻한 물 → 6:10 저널링 10분 → 6:20 샤워" },
       { questionId: "sleep_goal", answer: "10시 취침, 자기 전 내일 옷 준비" },
       { questionId: "cert_method", answer: "저널 페이지 사진 인증" },
@@ -169,7 +169,7 @@ export const challengerDeclarations: Declaration[] = [
     answers: [
       { questionId: "expected_change", answer: "앉아있는 시간이 많아서 허리와 체력을 개선하고 싶어요." },
       { questionId: "ritual_time", answer: "매일 점심 12시, 15분간" },
-      { questionId: "this_month_exercise", answer: "스트레칭 루틴 + 걷기 30분" },
+      { questionId: "this_month_exercise", answer: "스트레칭 리추얼 + 걷기 30분" },
       { questionId: "cert_method", answer: "만보기 앱 걸음 수 캡처" },
     ],
     createdAt: "2026-03-01",
@@ -416,7 +416,7 @@ export const challengerDeclarations: Declaration[] = [
       { questionId: "expected_change", answer: "글쓰기를 통해 생각을 정리하고 나만의 콘텐츠를 만들고 싶어요." },
       { questionId: "ritual_time", answer: "매일 밤 11시, 20분간" },
       { questionId: "this_month_goal", answer: "매일 일기 + 주 2회 브런치 포스팅" },
-      { questionId: "topic_list", answer: "1. 나의 모닝루틴\n2. 독서 후기: 채식주의자\n3. 영어 공부법\n4. 여행 에세이\n5. 좋아하는 카페 소개\n6. 이달의 목표 회고\n7. 친구에게 쓰는 편지\n8. 요즘 듣는 음악\n9. 내가 좋아하는 계절" },
+      { questionId: "topic_list", answer: "1. 나의 모닝리추얼\n2. 독서 후기: 채식주의자\n3. 영어 공부법\n4. 여행 에세이\n5. 좋아하는 카페 소개\n6. 이달의 목표 회고\n7. 친구에게 쓰는 편지\n8. 요즘 듣는 음악\n9. 내가 좋아하는 계절" },
       { questionId: "cert_method", answer: "작성한 글 링크 또는 캡처 공유" },
     ],
     createdAt: "2026-03-01",

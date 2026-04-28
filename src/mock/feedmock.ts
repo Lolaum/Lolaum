@@ -177,7 +177,7 @@ export const feed_mock: FeedItem[] = [
       sleepHours: 7,
       condition: "상",
       successAndReflection:
-        "오늘 아침 5시 30분에 일어났다. 미루지 않고 바로 일어난 것이 오늘의 작은 성공. 아침 루틴을 지키면 하루가 훨씬 활기차다.",
+        "오늘 아침 5시 30분에 일어났다. 미루지 않고 바로 일어난 것이 오늘의 작은 성공. 아침 리추얼을 지키면 하루가 훨씬 활기차다.",
       gift: "좋아하는 카페에서 아메리카노 한 잔 ☕",
     },
     comments: [

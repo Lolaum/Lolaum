@@ -65,7 +65,7 @@ export async function createRitualRecord(input: {
 
   if (error) return { error: error.message };
 
-  // daily_completions 갱신: 등록된 루틴 수 vs 해당 날짜 완료된 루틴 수 비교
+  // daily_completions 갱신: 등록된 리추얼 수 vs 해당 날짜 완료된 리추얼 수 비교
   const [registrationsRes, recordsRes] = await Promise.all([
     supabase
       .from("challenge_registrations")

@@ -115,11 +115,11 @@ export default function RitualContainer() {
         )}
       </div>
 
-      {/* ── 루틴별 카드 ── */}
+      {/* ── 리추얼별 카드 ── */}
       {routines.length > 0 && (
         <div className="mb-6">
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 px-1">
-            루틴 현황
+            리추얼 현황
           </h2>
           <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
             {routines.map((routine) => (

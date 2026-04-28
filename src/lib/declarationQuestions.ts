@@ -188,7 +188,7 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
         label: "3주치 목차 / 주제 리스트업 (최소 9개)",
         description:
           "3주 동안 매일 작성할 주제를 최소 9개 이상 미리 준비해주세요.",
-        placeholder: "1. 나의 아침 루틴\n2. 독서 후기\n3. ...",
+        placeholder: "1. 나의 아침 리추얼\n2. 독서 후기\n3. ...",
       },
       {
         id: "cert_method",

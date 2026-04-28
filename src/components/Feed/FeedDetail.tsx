@@ -57,7 +57,7 @@ const CATEGORY_META: Record<
   },
   모닝: {
     icon: <Sun className="w-5 h-5" />,
-    label: "모닝 루틴",
+    label: "모닝 리추얼",
     hexColor: "#eab32e",
     bgColor: "#fefce8",
   },
@@ -104,7 +104,7 @@ const formatFullDate = (dateString: string) => {
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
 };
 
-// --- 루틴별 콘텐츠 컴포넌트 ---
+// --- 리추얼별 콘텐츠 컴포넌트 ---
 
 function ExerciseContent({ data }: { data: ExerciseFeedData }) {
   return (
@@ -548,7 +548,7 @@ function getAllPhotos(routineData: FeedItem["routineData"], category: RoutineCat
   const certPhotos = (routineData as ExerciseFeedData).certPhotos?.filter(Boolean) ?? [];
   if (certPhotos.length > 0) return certPhotos;
 
-  // 루틴별 기존 이미지 필드 (certPhotos가 없는 과거 데이터 대응)
+  // 리추얼별 기존 이미지 필드 (certPhotos가 없는 과거 데이터 대응)
   switch (category) {
     case "운동": {
       const d = routineData as ExerciseFeedData;
@@ -767,7 +767,7 @@ export default function FeedDetail({ item }: FeedDetailProps) {
           {/* 인증 사진 */}
           <CertPhotoGrid routineData={item.routineData} category={item.routineCategory} />
 
-          {/* 루틴 콘텐츠 */}
+          {/* 리추얼 콘텐츠 */}
           {item.routineData ? (
             <>
               {isExerciseData(item.routineData, item.routineCategory) && (

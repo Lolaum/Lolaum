@@ -12,7 +12,7 @@ export type RoutineCategory =
   | "자산관리"
   | "원서읽기";
 
-// 루틴별 피드 데이터 타입
+// 리추얼별 피드 데이터 타입
 export interface ExerciseFeedData {
   images: string[];
   exerciseName: string;

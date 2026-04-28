@@ -38,7 +38,7 @@ const formatDate = (dateString: string) => {
   return `${month}.${day}`;
 };
 
-// 각 루틴 타입별 미리보기 텍스트 추출
+// 각 리추얼 타입별 미리보기 텍스트 추출
 function getPreviewText(item: FeedItemType): string | null {
   if (!item.routineData) return null;
   const data = item.routineData;
@@ -78,7 +78,7 @@ function getPreviewText(item: FeedItemType): string | null {
   }
 }
 
-// 루틴별 서브텍스트 (종목, 책 제목 등)
+// 리추얼별 서브텍스트 (종목, 책 제목 등)
 function getSubText(item: FeedItemType): string | null {
   if (!item.routineData) return null;
   const data = item.routineData;
@@ -139,7 +139,7 @@ function getImages(item: FeedItemType): string[] {
   const certPhotos = (item.routineData as ExerciseFeedData).certPhotos?.filter(Boolean) ?? [];
   if (certPhotos.length > 0) return certPhotos;
 
-  // 루틴별 기존 이미지 필드 (certPhotos가 없는 과거 데이터 대응)
+  // 리추얼별 기존 이미지 필드 (certPhotos가 없는 과거 데이터 대응)
   switch (item.routineCategory) {
     case "운동": {
       const d = item.routineData as ExerciseFeedData;

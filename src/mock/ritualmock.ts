@@ -9,7 +9,7 @@ export const myRitualStats = {
   startDate: "2025-10-01",
 };
 
-// 루틴별 개요 통계
+// 리추얼별 개요 통계
 export const myRoutineStats = [
   {
     id: "reading",
@@ -253,7 +253,7 @@ export const myGalleryRecords: FeedItem[] = [
       sleepHours: 7,
       condition: "상" as const,
       successAndReflection:
-        "오늘 아침 5시 30분에 일어났다. 미루지 않고 바로 일어난 것이 오늘의 작은 성공. 아침 루틴을 지키면 하루가 훨씬 활기차다.",
+        "오늘 아침 5시 30분에 일어났다. 미루지 않고 바로 일어난 것이 오늘의 작은 성공. 아침 리추얼을 지키면 하루가 훨씬 활기차다.",
       gift: "좋아하는 카페에서 아메리카노 한 잔 ☕",
     },
     comments: [],

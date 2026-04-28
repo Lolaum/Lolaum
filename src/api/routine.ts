@@ -45,7 +45,7 @@ export async function createRoutine(input: {
 
   const supabase = await createClient();
 
-  // 이미 등록된 루틴인지 확인
+  // 이미 등록된 리추얼인지 확인
   const { data: existing } = await supabase
     .from("challenge_registrations")
     .select("id")
@@ -55,10 +55,10 @@ export async function createRoutine(input: {
     .maybeSingle();
 
   if (existing) {
-    return { error: "이미 등록된 루틴입니다." };
+    return { error: "이미 등록된 리추얼입니다." };
   }
 
-  // 이 챌린지에 대한 첫 루틴 등록인지 확인
+  // 이 챌린지에 대한 첫 리추얼 등록인지 확인
   const { count: priorCount } = await supabase
     .from("challenge_registrations")
     .select("id", { count: "exact", head: true })
@@ -126,7 +126,7 @@ export async function deleteRoutine(
   return { success: true };
 }
 
-/** 내 루틴 목록 가져오기 (challengeId 자동) */
+/** 내 리추얼 목록 가져오기 (challengeId 자동) */
 export async function getMyRoutines(): Promise<{
   data?: ChallengeRegistration[];
   error?: string;
@@ -141,7 +141,7 @@ export async function getMyRoutines(): Promise<{
   return getRoutines(challengeId);
 }
 
-/** 루틴 등록 (challengeId 자동) */
+/** 리추얼 등록 (challengeId 자동) */
 export async function createRoutineAuto(
   routineType: RoutineTypeDB,
 ): Promise<{ data?: ChallengeRegistration; error?: string }> {
