@@ -30,7 +30,6 @@ export const challengerMidReviews: MidReview[] = [
     userId: "2",
     userName: "김지수",
     userEmoji: "🔥",
-    routineType: "운동리추얼",
     createdAt: "2025-01-11",
     goodConditions: ["시간대", "습관"],
     goodConditionDetails: {
@@ -41,7 +40,8 @@ export const challengerMidReviews: MidReview[] = [
     hardConditionDetails: {
       컨디션: "수면 부족이나 두통이 있는 날은 동기 자체가 사라짐",
     },
-    whyStarted: "작년에 체력이 너무 떨어진 게 느껴졌고, 더 이상 미루면 안 될 것 같았어요.",
+    whyStarted:
+      "작년에 체력이 너무 떨어진 게 느껴졌고, 더 이상 미루면 안 될 것 같았어요.",
     keepDoing: "퇴근 직행 리추얼",
     willChange: "주 5일 → 주 4일로 조정해서 과부하 방지",
   },
@@ -50,7 +50,6 @@ export const challengerMidReviews: MidReview[] = [
     userId: "3",
     userName: "이민준",
     userEmoji: "📚",
-    routineType: "독서리추얼",
     createdAt: "2025-01-10",
     goodConditions: ["장소", "감정"],
     goodConditionDetails: {
@@ -61,7 +60,8 @@ export const challengerMidReviews: MidReview[] = [
     hardConditionDetails: {
       "전날 행동": "전날 유튜브를 2시간 이상 봤으면 다음 날 책이 안 읽힘",
     },
-    whyStarted: "매년 독서 목표를 세우고 매년 실패했어요. 이번엔 꼭 습관으로 만들고 싶었습니다.",
+    whyStarted:
+      "매년 독서 목표를 세우고 매년 실패했어요. 이번엔 꼭 습관으로 만들고 싶었습니다.",
     keepDoing: "도서관 정기 방문 (주 3회)",
     willChange: "자기 전 유튜브 시간 30분 제한",
   },
@@ -70,7 +70,6 @@ export const challengerMidReviews: MidReview[] = [
     userId: "4",
     userName: "박서연",
     userEmoji: "🇺🇸",
-    routineType: "영어리추얼",
     createdAt: "2025-01-12",
     goodConditions: ["시간대", "장소"],
     goodConditionDetails: {
@@ -90,7 +89,6 @@ export const challengerMidReviews: MidReview[] = [
     userId: "5",
     userName: "최도윤",
     userEmoji: "💰",
-    routineType: "자산관리리추얼",
     createdAt: "2025-01-11",
     goodConditions: ["습관", "컨디션"],
     goodConditionDetails: {
@@ -110,12 +108,12 @@ export const challengerMidReviews: MidReview[] = [
     userId: "6",
     userName: "한예린",
     userEmoji: "🌍",
-    routineType: "제2외국어리추얼",
     createdAt: "2025-01-10",
     goodConditions: ["감정", "전날 행동"],
     goodConditionDetails: {
       감정: "스페인어로 뭔가 표현됐을 때의 쾌감이 동기를 유지시킴",
-      "전날 행동": "전날 스페인 드라마 보고 자면 다음 날 공부가 자연스럽게 이어짐",
+      "전날 행동":
+        "전날 스페인 드라마 보고 자면 다음 날 공부가 자연스럽게 이어짐",
     },
     hardConditions: ["컨디션"],
     hardConditionDetails: {
@@ -130,7 +128,6 @@ export const challengerMidReviews: MidReview[] = [
     userId: "7",
     userName: "정현우",
     userEmoji: "✍️",
-    routineType: "기록리추얼",
     createdAt: "2025-01-12",
     goodConditions: ["장소", "시간대"],
     goodConditionDetails: {
@@ -141,7 +138,8 @@ export const challengerMidReviews: MidReview[] = [
     hardConditionDetails: {
       습관: "다른 앱 먼저 열면 기록 앱까지 못 오는 경우가 많음",
     },
-    whyStarted: "기억이 너무 빨리 흐릿해지는 게 아쉬웠고, 나만의 아카이브를 갖고 싶었어요.",
+    whyStarted:
+      "기억이 너무 빨리 흐릿해지는 게 아쉬웠고, 나만의 아카이브를 갖고 싶었어요.",
     keepDoing: "취침 전 10분 기록 타임",
     willChange: "스마트폰 먼저 충전기에 꽂고 노트 먼저 열기",
   },
@@ -150,7 +148,6 @@ export const challengerMidReviews: MidReview[] = [
     userId: "8",
     userName: "오지은",
     userEmoji: "📖",
-    routineType: "원서읽기리추얼",
     createdAt: "2025-01-11",
     goodConditions: ["컨디션", "감정"],
     goodConditionDetails: {
@@ -161,7 +158,8 @@ export const challengerMidReviews: MidReview[] = [
     hardConditionDetails: {
       장소: "지하철에서 읽으려 했는데 흔들려서 집중이 안 됨",
     },
-    whyStarted: "번역본으로는 뉘앙스가 사라지는 느낌이 싫었고, 원작을 즐기고 싶었어요.",
+    whyStarted:
+      "번역본으로는 뉘앙스가 사라지는 느낌이 싫었고, 원작을 즐기고 싶었어요.",
     keepDoing: "오전 독서 리추얼",
     willChange: "지하철 대신 팟캐스트 전환, 원서는 집에서만",
   },

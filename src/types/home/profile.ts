@@ -2,7 +2,6 @@
 
 export interface ProfileProps {
   name?: string;
-  description?: string;
   completedCount?: number;
   totalCount?: number;
 }

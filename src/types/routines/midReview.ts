@@ -1,7 +1,3 @@
-import { RoutineType } from "./declaration";
-
-export type { RoutineType };
-
 export type MidReviewCondition =
   | "시간대"
   | "장소"
@@ -16,7 +12,6 @@ export interface MidReview {
   userName: string;
   userEmoji?: string;
   avatarUrl?: string;
-  routineType: RoutineType;
   createdAt: string;
   // Step 1: 잘 됐던 날 패턴
   goodConditions: MidReviewCondition[];

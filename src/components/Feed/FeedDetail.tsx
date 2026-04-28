@@ -142,26 +142,37 @@ function MorningContent({ data }: { data: MorningFeedData }) {
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-yellow-50 rounded-xl p-4">
           <p className="text-xs text-yellow-500 font-medium mb-1">수면 시간</p>
-          <p className="text-2xl font-bold text-gray-800">{data.sleepHours}<span className="text-sm font-medium text-gray-500">h</span></p>
+          <p className="text-2xl font-bold text-gray-800">
+            {data.sleepHours}
+            <span className="text-sm font-medium text-gray-500">h</span>
+          </p>
         </div>
         <div className="bg-yellow-50 rounded-xl p-4">
           <p className="text-xs text-yellow-500 font-medium mb-1">컨디션</p>
           <p className="text-2xl font-bold text-gray-800">{data.condition}</p>
         </div>
       </div>
+      {data.sleepImprovement && (
+        <div className="bg-orange-50 rounded-xl p-4">
+          <p className="text-xs text-orange-500 font-medium mb-1">
+            수면 부족 원인 & 개선 방법
+          </p>
+          <p className="text-sm text-gray-700 leading-relaxed">
+            {data.sleepImprovement}
+          </p>
+        </div>
+      )}
       <div className="bg-gray-50 rounded-xl p-4">
         <p className="text-xs text-gray-400 font-medium mb-1">
-          오늘의 성공 & 한 줄 회고
+          오늘의 작은 성공 (오늘 한 일)
         </p>
-        <p className="text-sm text-gray-700 leading-relaxed">
-          {data.successAndReflection}
-        </p>
+        <p className="text-sm text-gray-700 leading-relaxed">{data.success}</p>
       </div>
       <div className="bg-gray-50 rounded-xl p-4">
-        <p className="text-xs text-gray-400 font-medium mb-1">
-          오늘 나에게 주는 선물
+        <p className="text-xs text-gray-400 font-medium mb-1">한 줄 회고</p>
+        <p className="text-sm text-gray-700 leading-relaxed">
+          {data.reflection}
         </p>
-        <p className="text-sm text-gray-700 leading-relaxed">{data.gift}</p>
       </div>
     </div>
   );
@@ -541,11 +552,15 @@ function isRecordingData(
 }
 
 /** routineData에서 인증 사진 URL 배열 추출 (certPhotos + 레거시 필드) */
-function getAllPhotos(routineData: FeedItem["routineData"], category: RoutineCategory): string[] {
+function getAllPhotos(
+  routineData: FeedItem["routineData"],
+  category: RoutineCategory,
+): string[] {
   if (!routineData) return [];
 
   // 공통 인증 사진 (certPhotos)
-  const certPhotos = (routineData as ExerciseFeedData).certPhotos?.filter(Boolean) ?? [];
+  const certPhotos =
+    (routineData as ExerciseFeedData).certPhotos?.filter(Boolean) ?? [];
   if (certPhotos.length > 0) return certPhotos;
 
   // 리추얼별 기존 이미지 필드 (certPhotos가 없는 과거 데이터 대응)
@@ -569,11 +584,22 @@ function getAllPhotos(routineData: FeedItem["routineData"], category: RoutineCat
 }
 
 /** 사진 전체화면 뷰어 (좌우 넘기기 지원) */
-function PhotoViewer({ photos, initialIndex, onClose }: { photos: string[]; initialIndex: number; onClose: () => void }) {
+function PhotoViewer({
+  photos,
+  initialIndex,
+  onClose,
+}: {
+  photos: string[];
+  initialIndex: number;
+  onClose: () => void;
+}) {
   const [current, setCurrent] = useState(initialIndex);
   const total = photos.length;
 
-  const goPrev = useCallback(() => setCurrent((c) => (c - 1 + total) % total), [total]);
+  const goPrev = useCallback(
+    () => setCurrent((c) => (c - 1 + total) % total),
+    [total],
+  );
   const goNext = useCallback(() => setCurrent((c) => (c + 1) % total), [total]);
 
   useEffect(() => {
@@ -597,11 +623,15 @@ function PhotoViewer({ photos, initialIndex, onClose }: { photos: string[]; init
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
       onClick={onClose}
-      onTouchStart={(e) => { touchRef.current = e.touches[0].clientX; }}
+      onTouchStart={(e) => {
+        touchRef.current = e.touches[0].clientX;
+      }}
       onTouchEnd={(e) => {
         if (touchRef.current === null) return;
         const diff = e.changedTouches[0].clientX - touchRef.current;
-        if (Math.abs(diff) > 50) { diff > 0 ? goPrev() : goNext(); }
+        if (Math.abs(diff) > 50) {
+          diff > 0 ? goPrev() : goNext();
+        }
         touchRef.current = null;
       }}
     >
@@ -616,7 +646,10 @@ function PhotoViewer({ photos, initialIndex, onClose }: { photos: string[]; init
       {/* 좌측 화살표 */}
       {total > 1 && (
         <button
-          onClick={(e) => { e.stopPropagation(); goPrev(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            goPrev();
+          }}
           className="absolute left-3 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors z-10"
         >
           <ChevronLeft className="w-6 h-6" />
@@ -634,7 +667,10 @@ function PhotoViewer({ photos, initialIndex, onClose }: { photos: string[]; init
       {/* 우측 화살표 */}
       {total > 1 && (
         <button
-          onClick={(e) => { e.stopPropagation(); goNext(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            goNext();
+          }}
           className="absolute right-3 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors z-10"
         >
           <ChevronRight className="w-6 h-6" />
@@ -657,7 +693,13 @@ function PhotoViewer({ photos, initialIndex, onClose }: { photos: string[]; init
 }
 
 /** 인증 사진 그리드 (깨진 이미지 자동 숨김 + 클릭 확대) */
-function CertPhotoGrid({ routineData, category }: { routineData?: FeedItem["routineData"]; category: RoutineCategory }) {
+function CertPhotoGrid({
+  routineData,
+  category,
+}: {
+  routineData?: FeedItem["routineData"];
+  category: RoutineCategory;
+}) {
   const [failedSet, setFailedSet] = React.useState<Set<number>>(new Set());
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const photos = getAllPhotos(routineData, category);
@@ -680,7 +722,11 @@ function CertPhotoGrid({ routineData, category }: { routineData?: FeedItem["rout
         )}
       </div>
       {viewerIndex !== null && (
-        <PhotoViewer photos={visible} initialIndex={viewerIndex} onClose={() => setViewerIndex(null)} />
+        <PhotoViewer
+          photos={visible}
+          initialIndex={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+        />
       )}
     </>
   );
@@ -696,27 +742,42 @@ export default function FeedDetail({ item }: FeedDetailProps) {
     if (!recordId) return;
     try {
       const { data, error } = await addComment(recordId, text);
-      if (error) { console.error("댓글 추가 실패:", error); return; }
+      if (error) {
+        console.error("댓글 추가 실패:", error);
+        return;
+      }
       if (data) setComments((prev) => [...prev, data]);
-    } catch (e) { console.error("댓글 추가 예외:", e); }
+    } catch (e) {
+      console.error("댓글 추가 예외:", e);
+    }
   };
 
   const handleDeleteComment = async (commentId: string) => {
     try {
       const { error } = await deleteComment(commentId);
-      if (error) { console.error("댓글 삭제 실패:", error); return; }
+      if (error) {
+        console.error("댓글 삭제 실패:", error);
+        return;
+      }
       setComments((prev) => prev.filter((c) => c.odOriginalId !== commentId));
-    } catch (e) { console.error("댓글 삭제 예외:", e); }
+    } catch (e) {
+      console.error("댓글 삭제 예외:", e);
+    }
   };
 
   const handleUpdateComment = async (commentId: string, text: string) => {
     try {
       const { error } = await updateComment(commentId, text);
-      if (error) { console.error("댓글 수정 실패:", error); return; }
+      if (error) {
+        console.error("댓글 수정 실패:", error);
+        return;
+      }
       setComments((prev) =>
-        prev.map((c) => c.odOriginalId === commentId ? { ...c, text } : c),
+        prev.map((c) => (c.odOriginalId === commentId ? { ...c, text } : c)),
       );
-    } catch (e) { console.error("댓글 수정 예외:", e); }
+    } catch (e) {
+      console.error("댓글 수정 예외:", e);
+    }
   };
 
   return (
@@ -765,7 +826,10 @@ export default function FeedDetail({ item }: FeedDetailProps) {
           </div>
 
           {/* 인증 사진 */}
-          <CertPhotoGrid routineData={item.routineData} category={item.routineCategory} />
+          <CertPhotoGrid
+            routineData={item.routineData}
+            category={item.routineCategory}
+          />
 
           {/* 리추얼 콘텐츠 */}
           {item.routineData ? (

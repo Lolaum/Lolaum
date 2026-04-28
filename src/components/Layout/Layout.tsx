@@ -45,8 +45,11 @@ export default function Layout({ children }: LayoutProps) {
     router.push("/login");
   };
 
-  const handleLogoClick = () => {
-    router.refresh();
+  const handleLogoClick = (e: React.MouseEvent) => {
+    if (pathname === "/home") {
+      e.preventDefault();
+      window.location.reload();
+    }
   };
 
   useEffect(() => {
@@ -184,9 +187,9 @@ export default function Layout({ children }: LayoutProps) {
               <Link
                 href="/home"
                 className="flex items-center gap-3"
-                onClick={() => {
+                onClick={(e) => {
                   setIsDrawerOpen(false);
-                  handleLogoClick();
+                  handleLogoClick(e);
                 }}
               >
                 <Image

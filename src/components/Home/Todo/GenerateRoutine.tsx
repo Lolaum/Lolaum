@@ -7,6 +7,7 @@ import { RoutineType } from "@/types/routines/declaration";
 import { declarationQuestions } from "@/lib/declarationQuestions";
 import { createRoutineAuto } from "@/api/routine";
 import { createDeclaration } from "@/api/declaration";
+import { getCurrentPeriod } from "@/api/challenge";
 import { ROUTINE_TYPE_MAP } from "@/types/supabase";
 
 interface GenerateRoutineProps {
@@ -33,14 +34,18 @@ export default function GenerateRoutine({
 }: GenerateRoutineProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedRoutine, setSelectedRoutine] = useState<RoutineType | "">("");
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
+  const [period, setPeriod] = useState<{
+    start_date: string;
+    end_date: string;
+    label: string | null;
+  } | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
   const [alarmConfirmed, setAlarmConfirmed] = useState(false);
+  const [certConfirmed, setCertConfirmed] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -53,16 +58,39 @@ export default function GenerateRoutine({
     };
   }, []);
 
+  // 활성 챌린지 기간 조회 (사용자 입력 대신 어드민이 정한 기간 표시)
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentPeriod().then((res) => {
+      if (cancelled) return;
+      if (res.period) {
+        setPeriod({
+          start_date: res.period.start_date,
+          end_date: res.period.end_date,
+          label: res.period.label,
+        });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const handleClose = () => {
     setVisible(false);
     setTimeout(() => onClose(), 250);
   };
 
-  const questions =
-    selectedRoutine ? declarationQuestions[selectedRoutine] : [];
+  const questions = selectedRoutine
+    ? declarationQuestions[selectedRoutine]
+    : [];
   const allAnswersFilled =
     questions.length > 0 &&
-    questions.every((q) => q.readOnly || answers[q.id]?.trim());
+    questions.every((q) =>
+      q.isConfirmation
+        ? certConfirmed
+        : q.readOnly || answers[q.id]?.trim(),
+    );
 
   const handleAnswerChange = (questionId: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
@@ -95,8 +123,8 @@ export default function GenerateRoutine({
     const declarationAnswers = questions.map((q) => ({
       questionId: q.id,
       answer: q.readOnly
-        ? q.defaultValue ?? ""
-        : answers[q.id]?.trim() ?? "",
+        ? (q.defaultValue ?? "")
+        : (answers[q.id]?.trim() ?? ""),
     }));
 
     const { error: declError } = await createDeclaration({
@@ -203,12 +231,13 @@ export default function GenerateRoutine({
               리추얼이 생성되었어요!
             </h3>
             <p className="text-sm text-gray-500 mb-1">{selectedRoutine}</p>
-            {(startDate || endDate) && (
+            {period ? (
               <p className="text-xs text-gray-300 mb-6">
-                {startDate || "—"} ~ {endDate || "계속"}
+                {period.start_date} ~ {period.end_date}
               </p>
+            ) : (
+              <div className="mb-6" />
             )}
-            {!(startDate || endDate) && <div className="mb-6" />}
             <button
               onClick={handleSuccessClose}
               className="w-full py-3.5 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
@@ -228,73 +257,67 @@ export default function GenerateRoutine({
                     리추얼 선택 <span className="text-red-400">*</span>
                   </label>
                   <div className="grid grid-cols-2 gap-2">
-                    {routineOptions.filter(({ type }) => {
-                      const dbType = ROUTINE_TYPE_MAP[type];
-                      return !existingTypes.includes(dbType);
-                    }).map(({ type, emoji }) => {
-                      const isSelected = selectedRoutine === type;
-                      return (
-                        <button
-                          key={type}
-                          onClick={() => setSelectedRoutine(type)}
-                          className="flex items-center gap-2 px-3 py-3 rounded-2xl border-2 text-left transition-all active:scale-[0.97]"
-                          style={{
-                            borderColor: isSelected ? "#eab32e" : "#f3f4f6",
-                            backgroundColor: isSelected ? "#fefce8" : "#fafafa",
-                          }}
-                        >
-                          <span className="text-lg flex-shrink-0">{emoji}</span>
-                          <span
-                            className="text-sm font-medium truncate"
+                    {routineOptions
+                      .filter(({ type }) => {
+                        const dbType = ROUTINE_TYPE_MAP[type];
+                        return !existingTypes.includes(dbType);
+                      })
+                      .map(({ type, emoji }) => {
+                        const isSelected = selectedRoutine === type;
+                        return (
+                          <button
+                            key={type}
+                            onClick={() => setSelectedRoutine(type)}
+                            className="flex items-center gap-2 px-3 py-3 rounded-2xl border-2 text-left transition-all active:scale-[0.97]"
                             style={{
-                              color: isSelected ? "#92700c" : "#6b7280",
+                              borderColor: isSelected ? "#eab32e" : "#f3f4f6",
+                              backgroundColor: isSelected
+                                ? "#fefce8"
+                                : "#fafafa",
                             }}
                           >
-                            {shortLabel(type)}
-                          </span>
-                        </button>
-                      );
-                    })}
+                            <span className="text-lg flex-shrink-0">
+                              {emoji}
+                            </span>
+                            <span
+                              className="text-sm font-medium truncate"
+                              style={{
+                                color: isSelected ? "#92700c" : "#6b7280",
+                              }}
+                            >
+                              {shortLabel(type)}
+                            </span>
+                          </button>
+                        );
+                      })}
                   </div>
                   <p className="mt-2 text-xs text-gray-300">
                     매일 반복할 습관을 선택해주세요
                   </p>
                 </div>
 
-                {/* 기간 설정 - 가로 배치 */}
+                {/* 챌린지 기간 안내 (읽기 전용 - 어드민이 정함) */}
                 <div className="mb-6">
                   <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    기간 설정
+                    챌린지 기간
                   </label>
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] focus:bg-white transition-all"
-                        placeholder="시작일"
-                      />
-                      <span className="block text-[10px] text-gray-300 mt-1 pl-1">
-                        시작일
-                      </span>
-                    </div>
-                    <div className="flex items-start pt-3 text-gray-300 text-sm">
-                      ~
-                    </div>
-                    <div className="flex-1">
-                      <input
-                        type="date"
-                        value={endDate}
-                        min={startDate || undefined}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] focus:bg-white transition-all"
-                        placeholder="종료일"
-                      />
-                      <span className="block text-[10px] text-gray-300 mt-1 pl-1">
-                        종료일 (미설정 시 계속)
-                      </span>
-                    </div>
+                  <div className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl">
+                    {period ? (
+                      <>
+                        <p className="text-sm font-semibold text-gray-700">
+                          {period.start_date} ~ {period.end_date}
+                        </p>
+                        {period.label && (
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {period.label}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-gray-400">
+                        기간 정보를 불러오는 중...
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -320,10 +343,7 @@ export default function GenerateRoutine({
               <>
                 {/* 2단계: 선언 폼 */}
                 <p className="text-sm text-gray-400 mb-4">
-                  <span
-                    className="font-semibold"
-                    style={{ color: "#eab32e" }}
-                  >
+                  <span className="font-semibold" style={{ color: "#eab32e" }}>
                     {selectedRoutine}
                   </span>{" "}
                   선언을 작성해주세요
@@ -332,7 +352,7 @@ export default function GenerateRoutine({
                 <div className="flex flex-col gap-4 mb-5">
                   {questions.map((q) => (
                     <div key={q.id}>
-                      <label className="block text-sm font-bold text-gray-800 mb-0.5">
+                      <label className="block text-sm font-bold text-gray-800 mb-0.5 whitespace-pre-line leading-relaxed">
                         {q.label} <span className="text-red-400">*</span>
                       </label>
                       {q.description && (
@@ -340,20 +360,41 @@ export default function GenerateRoutine({
                           {q.description}
                         </p>
                       )}
-                      <textarea
-                        value={
-                          q.readOnly
-                            ? q.defaultValue ?? ""
-                            : answers[q.id] ?? ""
-                        }
-                        onChange={(e) =>
-                          handleAnswerChange(q.id, e.target.value)
-                        }
-                        placeholder={q.placeholder}
-                        rows={q.readOnly ? 6 : 3}
-                        disabled={q.readOnly}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] focus:bg-white transition-all disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
-                      />
+                      {q.isConfirmation ? (
+                        <>
+                          <div className="px-4 py-3 bg-amber-50 border border-amber-100 rounded-2xl text-sm text-gray-700 whitespace-pre-line leading-relaxed mb-2.5">
+                            {q.defaultValue}
+                          </div>
+                          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={certConfirmed}
+                              onChange={(e) =>
+                                setCertConfirmed(e.target.checked)
+                              }
+                              className="w-4 h-4 rounded border-gray-300 accent-[#eab32e] flex-shrink-0 cursor-pointer"
+                            />
+                            <span className="text-sm text-gray-700">
+                              네, 확인했습니다
+                            </span>
+                          </label>
+                        </>
+                      ) : (
+                        <textarea
+                          value={
+                            q.readOnly
+                              ? (q.defaultValue ?? "")
+                              : (answers[q.id] ?? "")
+                          }
+                          onChange={(e) =>
+                            handleAnswerChange(q.id, e.target.value)
+                          }
+                          placeholder={q.placeholder}
+                          rows={q.readOnly ? 6 : 3}
+                          disabled={q.readOnly}
+                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] focus:bg-white transition-all disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+                        />
+                      )}
                     </div>
                   ))}
                 </div>
@@ -371,7 +412,9 @@ export default function GenerateRoutine({
                       onChange={(e) => setAlarmConfirmed(e.target.checked)}
                       className="w-4 h-4 rounded border-gray-300 accent-[#eab32e] flex-shrink-0 cursor-pointer"
                     />
-                    <span className="text-sm text-gray-700">네, 완료했습니다</span>
+                    <span className="text-sm text-gray-700">
+                      네, 완료했습니다
+                    </span>
                   </label>
                 </div>
 
@@ -389,7 +432,9 @@ export default function GenerateRoutine({
                   </button>
                   <button
                     onClick={handleCreate}
-                    disabled={!allAnswersFilled || !alarmConfirmed || submitting}
+                    disabled={
+                      !allAnswersFilled || !alarmConfirmed || submitting
+                    }
                     className="flex-[2] py-3.5 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{ backgroundColor: "#eab32e" }}
                   >

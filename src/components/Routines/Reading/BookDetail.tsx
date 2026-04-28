@@ -2,8 +2,15 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ChevronDown, Quote, FileText, Trash2, Camera } from "lucide-react";
-import { BookDetailProps, DailyReadingRecord, NoteType } from "@/types/routines/reading";
-import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
+import {
+  BookDetailProps,
+  DailyReadingRecord,
+  NoteType,
+} from "@/types/routines/reading";
+import {
+  createRitualRecordAuto,
+  getMyRitualRecords,
+} from "@/api/ritual-record";
 import { applyTimestamp } from "@/lib/utils";
 import type { ReadingRecordData, Json } from "@/types/supabase";
 
@@ -46,9 +53,7 @@ function AddReadingRecord({
       ? Number(endValue) - Number(startValue)
       : 0;
 
-  const canSave = isEnglishBook
-    ? screenshot !== null
-    : note.trim().length > 0;
+  const canSave = isEnglishBook ? screenshot !== null : note.trim().length > 0;
 
   const handleSave = () => {
     if (!canSave) return;
@@ -75,8 +80,18 @@ function AddReadingRecord({
           onClick={onCancel}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
         >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
           <span className="text-sm">돌아가기</span>
         </button>
@@ -85,8 +100,18 @@ function AddReadingRecord({
           onClick={onBackToHome}
           className="flex items-center justify-center w-8 h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
         >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
@@ -103,22 +128,43 @@ function AddReadingRecord({
             </label>
             {screenshot ? (
               <div className="relative rounded-xl overflow-hidden border border-gray-200">
-                <img src={screenshot} alt="인증 스크린샷" className="w-full h-48 object-cover" />
+                <img
+                  src={screenshot}
+                  alt="인증 스크린샷"
+                  className="w-full h-48 object-cover"
+                />
                 <button
                   type="button"
                   onClick={() => setScreenshot(null)}
                   className="absolute top-2 right-2 w-7 h-7 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
             ) : (
               <label className="flex flex-col items-center justify-center gap-2 w-full h-36 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 cursor-pointer hover:border-gray-300 hover:bg-gray-100 transition-colors">
                 <Camera size={24} className="text-gray-400" />
-                <span className="text-sm text-gray-400 font-medium">스크린샷 추가</span>
-                <input type="file" accept="image/*" className="hidden" onChange={handleScreenshot} />
+                <span className="text-sm text-gray-400 font-medium">
+                  스크린샷 추가
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleScreenshot}
+                />
               </label>
             )}
           </div>
@@ -144,7 +190,9 @@ function AddReadingRecord({
                   className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400 pr-8"
                 />
                 {isPercent && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                    %
+                  </span>
                 )}
               </div>
             </div>
@@ -158,13 +206,17 @@ function AddReadingRecord({
                   type="number"
                   value={endValue}
                   onChange={(e) => setEndValue(e.target.value)}
-                  placeholder={isPercent ? "최대 100" : `최대 ${book.totalValue}`}
+                  placeholder={
+                    isPercent ? "최대 100" : `최대 ${book.totalValue}`
+                  }
                   min={0}
                   max={isPercent ? 100 : book.totalValue}
                   className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400 pr-8"
                 />
                 {isPercent && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                    %
+                  </span>
                 )}
               </div>
             </div>
@@ -255,7 +307,15 @@ function AddReadingRecord({
   );
 }
 
-export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpdate, isEnglishBook, certificationPhotos }: BookDetailProps) {
+export default function BookDetail({
+  book,
+  onBack,
+  onBackToHome,
+  onDelete,
+  onUpdate,
+  isEnglishBook,
+  certificationPhotos,
+}: BookDetailProps) {
   const isPercent = book.trackingType === "percent";
   const [showAddRecord, setShowAddRecord] = useState(false);
   const [records, setRecords] = useState<DailyReadingRecord[]>([]);
@@ -265,7 +325,9 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
 
   // DB에서 이 책의 기존 기록 불러오기
   const fetchRecords = useCallback(async () => {
-    const { data } = await getMyRitualRecords({ routineType: isEnglishBook ? "english_book" : "reading" });
+    const { data } = await getMyRitualRecords({
+      routineType: isEnglishBook ? "english_book" : "reading",
+    });
     if (data) {
       const bookRecords: DailyReadingRecord[] = data
         .filter((r) => {
@@ -295,13 +357,16 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
     fetchRecords();
   }, [fetchRecords]);
 
-  const progress = book.totalValue > 0 ? Math.round((book.currentValue / book.totalValue) * 100) : 0;
+  const progress =
+    book.totalValue > 0
+      ? Math.round((book.currentValue / book.totalValue) * 100)
+      : 0;
   const totalProgress = records.reduce((sum, r) => sum + r.progressAmount, 0);
   const uniqueDaysCount = new Set(records.map((r) => r.date)).size;
 
   const toggleExpand = (id: number) => {
     setExpandedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   };
 
@@ -385,18 +450,40 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
           onClick={onBack}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
         >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
-          <span className="text-sm">독서 관리로 돌아가기</span>
+          <span className="text-sm">
+            {isEnglishBook ? "원서읽기 리추얼 관리로 돌아가기" : "독서 관리로 돌아가기"}
+          </span>
         </button>
         <button
           type="button"
           onClick={onBackToHome}
           className="flex items-center justify-center w-8 h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
         >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
@@ -418,9 +505,12 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">책을 삭제할까요?</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              책을 삭제할까요?
+            </h3>
             <p className="text-sm text-gray-500 mb-6">
-              &ldquo;{book.title}&rdquo;을(를) 삭제하면 독서 기록도 함께 사라집니다.
+              &ldquo;{book.title}&rdquo;을(를) 삭제하면 독서 기록도 함께
+              사라집니다.
             </p>
             <div className="flex gap-3">
               <button
@@ -446,14 +536,7 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
       {/* 책 정보 카드 */}
       <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
         <div className="flex gap-4">
-          <div className="w-[72px] h-[100px] bg-gradient-to-br from-orange-300 to-orange-500 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
-            {book.coverImageUrl ? (
-              <img src={book.coverImageUrl} alt={book.title} className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-white text-xs font-medium">책 표지</span>
-            )}
-          </div>
-          <div className="flex-1 flex flex-col justify-between py-1">
+          <div className="flex-1 flex flex-col justify-between py-1 gap-3">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-500">{book.author}</p>
               <button
@@ -476,9 +559,13 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
                 {isPercent ? (
                   <span>{book.currentValue}% 진행</span>
                 ) : (
-                  <span>{book.currentValue} / {book.totalValue} 페이지</span>
+                  <span>
+                    {book.currentValue} / {book.totalValue} 페이지
+                  </span>
                 )}
-                <span className="font-semibold text-orange-500">{progress}%</span>
+                <span className="font-semibold text-orange-500">
+                  {progress}%
+                </span>
               </div>
               <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
                 <div
@@ -505,7 +592,12 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
       {/* 이번 달 통계 */}
       <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
         <div className="flex items-center gap-2 text-gray-600 mb-2">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
             <line x1="16" y1="2" x2="16" y2="6" />
             <line x1="8" y1="2" x2="8" y2="6" />
@@ -515,12 +607,15 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
         </div>
         <div className="flex items-baseline gap-6">
           <div>
-            <div className="text-4xl font-bold text-gray-900">{uniqueDaysCount}</div>
+            <div className="text-4xl font-bold text-gray-900">
+              {uniqueDaysCount}
+            </div>
             <div className="text-sm text-gray-500">읽은 날</div>
           </div>
           <div>
             <div className="text-4xl font-bold text-gray-900">
-              {totalProgress}{isPercent ? "%" : "p"}
+              {totalProgress}
+              {isPercent ? "%" : "p"}
             </div>
             <div className="text-sm text-gray-500">
               {isPercent ? "진행한 %" : "총 읽은 페이지"}
@@ -531,7 +626,9 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
 
       {/* 나만의 독서기록 */}
       <div className="mb-4">
-        <h2 className="text-base font-semibold text-gray-900 mb-3">나만의 독서기록</h2>
+        <h2 className="text-base font-semibold text-gray-900 mb-3">
+          나만의 독서기록
+        </h2>
 
         {records.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-200 p-6 text-center">
@@ -560,10 +657,13 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
                         {formatDate(record.date)}
                       </span>
                       <span className="text-xs text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full font-medium">
-                        +{record.progressAmount}{unit}
+                        +{record.progressAmount}
+                        {unit}
                       </span>
                       <span className="text-xs text-gray-400">
-                        {record.noteType === "sentence" ? "오늘의 문장" : "내용 요약"}
+                        {record.noteType === "sentence"
+                          ? "오늘의 문장"
+                          : "내용 요약"}
                       </span>
                     </div>
                     <ChevronDown
@@ -576,7 +676,9 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
                   {isExpanded && (
                     <div className="px-4 pb-4 pt-1 border-t border-gray-100 space-y-2">
                       <div className="text-xs text-gray-400">
-                        {record.startValue}{unit} → {record.endValue}{unit}
+                        {record.startValue}
+                        {unit} → {record.endValue}
+                        {unit}
                       </div>
                       <div
                         className={`text-sm text-gray-700 rounded-xl p-3 ${
@@ -592,8 +694,12 @@ export default function BookDetail({ book, onBack, onBackToHome, onDelete, onUpd
                       </div>
                       {record.thoughts && (
                         <div className="bg-gray-50 rounded-xl p-3">
-                          <p className="text-xs text-gray-400 font-medium mb-1">나만의 생각</p>
-                          <p className="text-sm text-gray-700 leading-relaxed">{record.thoughts}</p>
+                          <p className="text-xs text-gray-400 font-medium mb-1">
+                            나만의 생각
+                          </p>
+                          <p className="text-sm text-gray-700 leading-relaxed">
+                            {record.thoughts}
+                          </p>
                         </div>
                       )}
                     </div>

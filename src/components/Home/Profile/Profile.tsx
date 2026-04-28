@@ -11,21 +11,24 @@ import { MyPageStats, CompletionRateStats } from "@/api/ritual-stats";
 interface Props extends ProfileProps {
   stats?: MyPageStats | null;
   completionRate?: CompletionRateStats | null;
+  period?: {
+    start_date: string;
+    end_date: string;
+    label: string | null;
+  } | null;
   onProfileUpdated?: () => void;
 }
 
 export default function Profile({
-  description = "매일 성장하는 습관 만들기",
   stats: statsProp,
   completionRate: completionRateProp,
+  period,
   onProfileUpdated,
 }: Props) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [userName, setUserName] = useState("");
   const [editName, setEditName] = useState("");
-  const [editDescription, setEditDescription] = useState(description);
   const [savedName, setSavedName] = useState("");
-  const [savedDescription, setSavedDescription] = useState(description);
   const [savedPhoto, setSavedPhoto] = useState<string | null>(null);
   const [editPhoto, setEditPhoto] = useState<string | null>(null);
 
@@ -47,10 +50,6 @@ export default function Profile({
         if (profile.avatar_url) {
           setSavedPhoto(profile.avatar_url);
           setEditPhoto(profile.avatar_url);
-        }
-        if (profile.bio) {
-          setSavedDescription(profile.bio);
-          setEditDescription(profile.bio);
         }
       }
     });
@@ -82,14 +81,12 @@ export default function Profile({
     const { error } = await updateMe({
       name: editName,
       avatarUrl,
-      bio: editDescription,
     });
 
     setSaving(false);
 
     if (!error) {
       setSavedName(editName);
-      setSavedDescription(editDescription);
       setSavedPhoto(avatarUrl);
       onProfileUpdated?.();
       router.refresh();
@@ -99,7 +96,6 @@ export default function Profile({
 
   const handleOpen = () => {
     setEditName(savedName);
-    setEditDescription(savedDescription);
     setEditPhoto(savedPhoto);
     setShowEditModal(true);
   };
@@ -141,23 +137,12 @@ export default function Profile({
           </div>
 
           {/* 이름 */}
-          <div className="mb-4">
+          <div className="mb-6">
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">이름</label>
             <input
               type="text"
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] focus:bg-white transition-all"
-            />
-          </div>
-
-          {/* 한줄 소개 */}
-          <div className="mb-6">
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">한줄 소개</label>
-            <input
-              type="text"
-              value={editDescription}
-              onChange={(e) => setEditDescription(e.target.value)}
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] focus:bg-white transition-all"
             />
           </div>
@@ -196,7 +181,6 @@ export default function Profile({
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-gray-900 truncate">{userName || savedName}</p>
-          <p className="text-xs text-gray-400 truncate">{savedDescription}</p>
         </div>
         <div className="flex items-center gap-1 bg-yellow-50 rounded-full px-2.5 py-1 flex-shrink-0">
           <Flame size={12} className="text-yellow-500" />
@@ -225,12 +209,31 @@ export default function Profile({
         </div>
       </div>
 
+      {/* 이번 챌린지 기간 */}
+      {period && (
+        <div className="mb-3 px-3 py-2 rounded-xl bg-yellow-50 border border-yellow-100">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-semibold text-yellow-700 uppercase tracking-wider">
+              이번 챌린지 기간
+            </span>
+            {period.label && (
+              <span className="text-[11px] text-yellow-600 truncate max-w-[60%] text-right">
+                {period.label}
+              </span>
+            )}
+          </div>
+          <p className="text-sm font-bold text-gray-800 mt-0.5">
+            {period.start_date} ~ {period.end_date}
+          </p>
+        </div>
+      )}
+
       {/* 달성률 */}
       <div>
         <div className="flex justify-between items-center mb-1.5">
           <span className="text-xs text-gray-400 font-medium">달성률</span>
           <span className="text-xs font-semibold text-gray-500">
-            {completionRate?.totalAchieved ?? 0}/18
+            {completionRate?.totalAchieved ?? 0}/{completionRate?.totalDays ?? 0}
           </span>
         </div>
         <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">

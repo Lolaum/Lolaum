@@ -234,15 +234,16 @@ function MorningCardContent({ data }: { data: MorningFeedData }) {
         </div>
       </div>
 
-      <p className="text-xs text-gray-600 leading-relaxed line-clamp-3">
-        {data.successAndReflection}
-      </p>
+      {data.success && (
+        <p className="text-xs text-gray-600 leading-relaxed line-clamp-2">
+          {data.success}
+        </p>
+      )}
 
-      {data.gift && (
-        <div className="flex items-start gap-1.5 bg-amber-50 rounded-xl p-2.5">
-          <span className="text-sm">🎁</span>
-          <p className="text-xs text-amber-700 leading-relaxed">{data.gift}</p>
-        </div>
+      {data.reflection && (
+        <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 italic">
+          “{data.reflection}”
+        </p>
       )}
     </div>
   );

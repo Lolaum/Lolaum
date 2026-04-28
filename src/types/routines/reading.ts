@@ -17,13 +17,13 @@ export interface BookFormData {
   author: string;
   trackingType: "page" | "percent";
   totalPages: number;
-  coverImage?: File;
 }
 
 export interface AddNewBookProps {
   onCancel: () => void;
   onBackToHome?: () => void;
   onSubmit?: (bookData: BookFormData) => void | Promise<void>;
+  isEnglishBook?: boolean;
 }
 
 export interface BookManageProps {

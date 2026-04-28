@@ -37,11 +37,14 @@ export default function RoutineList({
   onTaskClick,
   routineCompletionMap = {},
   isPastDate = false,
+  isOutsidePeriod = false,
 }: RoutineListProps) {
+  const isDisabled = isPastDate || isOutsidePeriod;
   const [routines, setRoutines] = useState<ChallengeRegistration[]>([]);
   const [loading, setLoading] = useState(false);
   const [showGenerateRoutine, setShowGenerateRoutine] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<ChallengeRegistration | null>(null);
+  const [deleteTarget, setDeleteTarget] =
+    useState<ChallengeRegistration | null>(null);
 
   const fetchRoutines = useCallback(async () => {
     setLoading(true);
@@ -54,7 +57,10 @@ export default function RoutineList({
     fetchRoutines();
   }, [fetchRoutines]);
 
-  const handleDeleteClick = (e: React.MouseEvent, routine: ChallengeRegistration) => {
+  const handleDeleteClick = (
+    e: React.MouseEvent,
+    routine: ChallengeRegistration,
+  ) => {
     e.stopPropagation();
     setDeleteTarget(routine);
   };
@@ -119,15 +125,19 @@ export default function RoutineList({
             const title = ROUTINE_TYPE_LABEL[routine.routine_type];
             const colors = TAG_COLORS[tag] || DEFAULT_COLOR;
 
-            const completedDays = routineCompletionMap[routine.routine_type] ?? 0;
-            const fillPercent = Math.min(Math.round((completedDays / 18) * 100), 100);
+            const completedDays =
+              routineCompletionMap[routine.routine_type] ?? 0;
+            const fillPercent = Math.min(
+              Math.round((completedDays / 18) * 100),
+              100,
+            );
 
             return (
               <div
                 key={routine.id}
-                onClick={() => !isPastDate && onTaskClick(title, colors.color)}
+                onClick={() => !isDisabled && onTaskClick(title, colors.color)}
                 className={`relative overflow-hidden rounded-2xl p-4 shadow-sm border border-gray-100 transition-all duration-200 ${
-                  isPastDate
+                  isDisabled
                     ? "opacity-50 cursor-not-allowed"
                     : "cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]"
                 }`}
@@ -186,8 +196,8 @@ export default function RoutineList({
               리추얼을 삭제하시겠습니까?
             </h3>
             <p className="mt-2 text-sm text-gray-500">
-              {ROUTINE_TYPE_LABEL[deleteTarget.routine_type]} 리추얼이 삭제됩니다.
-              이 작업은 되돌릴 수 없습니다.
+              {ROUTINE_TYPE_LABEL[deleteTarget.routine_type]} 리추얼이
+              삭제됩니다. 이 작업은 되돌릴 수 없습니다.
             </p>
             <div className="mt-5 flex gap-2">
               <button

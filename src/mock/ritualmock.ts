@@ -252,9 +252,9 @@ export const myGalleryRecords: FeedItem[] = [
     routineData: {
       sleepHours: 7,
       condition: "상" as const,
-      successAndReflection:
-        "오늘 아침 5시 30분에 일어났다. 미루지 않고 바로 일어난 것이 오늘의 작은 성공. 아침 리추얼을 지키면 하루가 훨씬 활기차다.",
-      gift: "좋아하는 카페에서 아메리카노 한 잔 ☕",
+      success:
+        "오늘 아침 5시 30분에 일어났다. 미루지 않고 바로 일어난 것이 오늘의 작은 성공.",
+      reflection: "아침 리추얼을 지키면 하루가 훨씬 활기차다.",
     },
     comments: [],
   },
@@ -366,10 +366,11 @@ export const myGalleryRecords: FeedItem[] = [
     recordId: 11,
     routineData: {
       sleepHours: 5,
+      sleepImprovement:
+        "늦게까지 휴대폰을 본 것이 원인. 잠자기 1시간 전에는 화면을 보지 않기.",
       condition: "중" as const,
-      successAndReflection:
-        "어제 늦게 잠들었지만 알람에 바로 일어났다. 의지력이 조금씩 강해지고 있다는 걸 느낀다.",
-      gift: "좋아하는 팟캐스트 30분 듣기 🎧",
+      success: "어제 늦게 잠들었지만 알람에 바로 일어났다.",
+      reflection: "의지력이 조금씩 강해지고 있다는 걸 느낀다.",
     },
     comments: [],
   },
@@ -449,9 +450,8 @@ export const myGalleryRecords: FeedItem[] = [
     routineData: {
       sleepHours: 8,
       condition: "상" as const,
-      successAndReflection:
-        "오늘은 정말 상쾌한 아침이었다. 알람보다 5분 먼저 깼고, 스트레칭까지 했다. 이런 날이 계속됐으면.",
-      gift: "산책 30분 + 좋아하는 노래 듣기 🎵",
+      success: "알람보다 5분 먼저 깼고, 스트레칭까지 했다.",
+      reflection: "이런 상쾌한 아침이 계속됐으면.",
     },
     comments: [],
   },

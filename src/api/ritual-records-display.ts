@@ -2,6 +2,7 @@
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getActivePeriod } from "@/lib/current-challenge";
 import type { RoutineTypeDB, RitualRecord } from "@/types/supabase";
 import type {
   FeedItem,
@@ -57,9 +58,10 @@ function transformRecordData(
       return {
         image: data.image as string | undefined,
         sleepHours: (data.sleepHours as number) ?? 0,
+        sleepImprovement: (data.sleepImprovement as string) ?? undefined,
         condition: (data.condition as "상" | "중" | "하") ?? "중",
-        successAndReflection: (data.successAndReflection as string) ?? "",
-        gift: (data.gift as string) ?? "",
+        success: (data.success as string) ?? "",
+        reflection: (data.reflection as string) ?? "",
         certPhotos: (data.certPhotos as string[]) ?? undefined,
       } satisfies MorningFeedData;
 
@@ -348,14 +350,35 @@ export async function getAllRecordsForDisplay(options?: {
       }
     }
 
+    // 활성 기간의 challenge_id 목록 (이전 기간 인증 게시글은 피드에서 자동으로 사라짐)
+    const { period } = await getActivePeriod();
+    if (!period) {
+      return { data: [], total: 0 };
+    }
+    const { data: periodChallenges } = await admin
+      .from("challenges")
+      .select("id")
+      .eq("period_id", period.id);
+    const periodChallengeIds = (periodChallenges ?? []).map((c) => c.id);
+    if (periodChallengeIds.length === 0) {
+      return { data: [], total: 0 };
+    }
+
     // count + 데이터 쿼리
+    // 챌린지 기간 안에 record_date가 있는 것만 (옛 챌린지가 마이그레이션으로 현재 period에 묶인 케이스 방지)
     let countQuery = admin
       .from("ritual_records")
-      .select("id", { count: "exact", head: true });
+      .select("id", { count: "exact", head: true })
+      .in("challenge_id", periodChallengeIds)
+      .gte("record_date", period.start_date)
+      .lte("record_date", period.end_date);
 
     let query = admin
       .from("ritual_records")
       .select("id, user_id, routine_type, record_date, record_data, challenge_id, created_at")
+      .in("challenge_id", periodChallengeIds)
+      .gte("record_date", period.start_date)
+      .lte("record_date", period.end_date)
       .order("record_date", { ascending: false });
 
     if (options?.routineType) {

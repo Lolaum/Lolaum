@@ -131,8 +131,7 @@ export async function getMyRoutines(): Promise<{
   data?: ChallengeRegistration[];
   error?: string;
 }> {
-  const { challengeId, error: challengeError } =
-    await getCurrentChallengeId();
+  const { challengeId, error: challengeError } = await getCurrentChallengeId();
 
   if (!challengeId) {
     return { error: challengeError ?? "챌린지를 찾을 수 없습니다." };
@@ -145,8 +144,7 @@ export async function getMyRoutines(): Promise<{
 export async function createRoutineAuto(
   routineType: RoutineTypeDB,
 ): Promise<{ data?: ChallengeRegistration; error?: string }> {
-  const { challengeId, error: challengeError } =
-    await getCurrentChallengeId();
+  const { challengeId, error: challengeError } = await getCurrentChallengeId();
 
   if (!challengeId) {
     return { error: challengeError ?? "챌린지를 찾을 수 없습니다." };

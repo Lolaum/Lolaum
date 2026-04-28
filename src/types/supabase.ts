@@ -32,7 +32,6 @@ export interface Database {
           email: string;
           avatar_url: string | null;
           emoji: string | null;
-          bio: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -43,7 +42,6 @@ export interface Database {
           email: string;
           avatar_url?: string | null;
           emoji?: string | null;
-          bio?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -54,7 +52,6 @@ export interface Database {
           email?: string;
           avatar_url?: string | null;
           emoji?: string | null;
-          bio?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -98,11 +95,37 @@ export interface Database {
         };
         Relationships: [];
       };
+      challenge_periods: {
+        Row: {
+          id: string;
+          start_date: string;
+          end_date: string;
+          label: string | null;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          start_date: string;
+          end_date: string;
+          label?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          start_date?: string;
+          end_date?: string;
+          label?: string | null;
+          is_active?: boolean;
+        };
+        Relationships: [];
+      };
       challenges: {
         Row: {
           id: string;
           team_id: string | null;
           user_id: string | null;
+          period_id: string;
           year: number;
           month: number;
           start_date: string;
@@ -115,6 +138,7 @@ export interface Database {
           id?: string;
           team_id?: string | null;
           user_id?: string | null;
+          period_id: string;
           year: number;
           month: number;
           start_date: string;
@@ -124,6 +148,7 @@ export interface Database {
           created_at?: string;
         };
         Update: {
+          period_id?: string;
           start_date?: string;
           end_date?: string;
           weekly_target?: number;
@@ -293,7 +318,6 @@ export interface Database {
           id: string;
           user_id: string;
           challenge_id: string;
-          routine_type: RoutineTypeDB;
           good_conditions: string[];
           good_condition_details: Json;
           hard_conditions: string[];
@@ -307,7 +331,6 @@ export interface Database {
           id?: string;
           user_id: string;
           challenge_id: string;
-          routine_type: RoutineTypeDB;
           good_conditions?: string[];
           good_condition_details?: Json;
           hard_conditions?: string[];
@@ -417,9 +440,10 @@ export type Todo = Database["public"]["Tables"]["todos"]["Row"];
 // record_data JSONB 타입들
 export interface MorningRecordData {
   sleepHours: number;
+  sleepImprovement?: string;
   condition: "상" | "중" | "하";
-  successAndReflection: string;
-  gift: string;
+  success: string;
+  reflection: string;
   image?: string;
   certPhotos?: string[];
 }

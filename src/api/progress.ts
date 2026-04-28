@@ -2,14 +2,15 @@
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getActivePeriod } from "@/lib/current-challenge";
 
 export interface ChallengerProgress {
   userId: string;
   name: string;
   avatarUrl: string | null;
   emoji: string | null;
-  completedDays: number; // 평일 완료 + 주말 보충 일수 (최대 15)
-  totalAchieved: number; // 달성 합계 (최대 18: 15일 + 선언/중간회고/최종회고)
+  completedDays: number; // 평일 완료 + 주말 보충 일수 (최대 = 활성 기간의 평일 수)
+  totalAchieved: number; // 달성 합계 (최대 = 평일 수 + 3 보너스)
   penaltyAmount: number; // 기부금 (원)
   happyChanceUsed: boolean; // 행복찬스 사용됨 (평일 1회 이상 미완료)
   hasDeclaration: boolean;
@@ -20,11 +21,24 @@ export interface ChallengerProgress {
 export interface ProgressPageData {
   me: ChallengerProgress | null;
   challengers: ChallengerProgress[];
-  totalDays: number; // 18 (15일 + 3 보너스)
+  totalDays: number; // 활성 기간 평일 수 + 3 보너스
 }
 
-const TOTAL_ROUTINE_DAYS = 15;
-const TOTAL_DAYS = 18; // 15일(리추얼) + 3(선언/중간회고/최종회고)
+const BONUS_SLOTS = 3; // 선언/중간회고/최종회고
+
+/** 활성 기간 [start, end] 내 평일(월~금) 수 */
+function countWeekdaysInRange(startDate: string, endDate: string): number {
+  const start = parseLocalDate(startDate);
+  const end = parseLocalDate(endDate);
+  let count = 0;
+  const cur = new Date(start);
+  while (cur <= end) {
+    const dow = cur.getDay();
+    if (dow !== 0 && dow !== 6) count++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
+}
 
 function parseLocalDate(s: string): Date {
   const [y, m, d] = s.split("-").map(Number);
@@ -69,22 +83,30 @@ export async function getProgressPageData(): Promise<{
     // 진행표는 모든 챌린저의 데이터를 보여주므로 admin 클라이언트 사용
     const admin = createAdminClient();
 
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
+    const { period, error: periodError } = await getActivePeriod();
+    if (!period) {
+      return { error: periodError ?? "활성 챌린지 기간이 없습니다." };
+    }
 
-    // 1. 이번 달 모든 챌린지 + 프로필
+    const totalRoutineDays = countWeekdaysInRange(
+      period.start_date,
+      period.end_date,
+    );
+    const totalDaysWithBonus = totalRoutineDays + BONUS_SLOTS;
+
+    // 1. 활성 기간의 모든 챌린지 + 프로필
     const { data: challenges, error: cError } = await admin
       .from("challenges")
       .select(
         "id, user_id, start_date, profiles!inner(id, name, avatar_url, emoji)",
       )
-      .eq("year", year)
-      .eq("month", month);
+      .eq("period_id", period.id);
 
     if (cError) return { error: cError.message };
     if (!challenges || challenges.length === 0) {
-      return { data: { me: null, challengers: [], totalDays: TOTAL_DAYS } };
+      return {
+        data: { me: null, challengers: [], totalDays: totalDaysWithBonus },
+      };
     }
 
     type ChallengeRow = {
@@ -118,7 +140,7 @@ export async function getProgressPageData(): Promise<{
         .in("challenge_id", challengeIds),
       admin
         .from("mid_reviews")
-        .select("user_id, routine_type, challenge_id")
+        .select("user_id, challenge_id")
         .in("challenge_id", challengeIds),
     ]);
 
@@ -163,13 +185,13 @@ export async function getProgressPageData(): Promise<{
     // 3-1. 유저별 선언/회고 리추얼 세트
     const userDeclarations = new Map<string, Set<string>>();
     for (const r of declRes.data ?? []) {
-      if (!userDeclarations.has(r.user_id)) userDeclarations.set(r.user_id, new Set());
+      if (!userDeclarations.has(r.user_id))
+        userDeclarations.set(r.user_id, new Set());
       userDeclarations.get(r.user_id)!.add(r.routine_type);
     }
-    const userMidReviews = new Map<string, Set<string>>();
+    const userMidReviewed = new Set<string>();
     for (const r of midRevRes.data ?? []) {
-      if (!userMidReviews.has(r.user_id)) userMidReviews.set(r.user_id, new Set());
-      userMidReviews.get(r.user_id)!.add(r.routine_type);
+      userMidReviewed.add(r.user_id);
     }
 
     // 4. 유저별 날짜별 완료 리추얼 세트
@@ -185,11 +207,14 @@ export async function getProgressPageData(): Promise<{
       dateMap.get(r.record_date)!.add(r.routine_type);
     }
 
-    // 5. 집계 범위 끝 = 어제
+    // 5. 집계 범위 끝 = min(어제, period.end_date)
+    //    기간이 이미 종료된 경우 종료일 이후는 집계하지 않는다
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const rangeEnd = new Date(today);
-    rangeEnd.setDate(rangeEnd.getDate() - 1);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const periodEnd = parseLocalDate(period.end_date);
+    const rangeEnd = yesterday < periodEnd ? yesterday : periodEnd;
 
     // 6. 유저별 진행률 계산
     const allChallengers: ChallengerProgress[] = rows.map((r) => {
@@ -276,17 +301,18 @@ export async function getProgressPageData(): Promise<{
         }
       }
 
-      // 진행률: 평일 완료 + 주말 보충으로 채운 평일 (최대 15)
+      // 진행률: 평일 완료 + 주말 보충으로 채운 평일 (최대 = 기간 내 평일 수)
       const completedDays = Math.min(
         weekdayComplete + weekdayMadeUp,
-        TOTAL_ROUTINE_DAYS,
+        totalRoutineDays,
       );
 
-      // 선언/회고 보너스 (등록한 모든 리추얼에 대해 작성해야 +1)
+      // 선언 보너스: 등록한 모든 리추얼에 대해 작성해야 +1
       const declSet = userDeclarations.get(r.user_id);
-      const hasDeclaration = !!declSet && [...registered].every((rt) => declSet.has(rt));
-      const midRevSet = userMidReviews.get(r.user_id);
-      const hasMidReview = !!midRevSet && [...registered].every((rt) => midRevSet.has(rt));
+      const hasDeclaration =
+        !!declSet && [...registered].every((rt) => declSet.has(rt));
+      // 중간 회고 보너스: 유저당 1개라도 작성했으면 +1
+      const hasMidReview = userMidReviewed.has(r.user_id);
       const hasFinalReview = false; // TODO: 최종회고 테이블 연동
 
       const totalAchieved =
@@ -324,7 +350,7 @@ export async function getProgressPageData(): Promise<{
       .sort((a, b) => b.totalAchieved - a.totalAchieved);
 
     return {
-      data: { me, challengers, totalDays: TOTAL_DAYS },
+      data: { me, challengers, totalDays: totalDaysWithBonus },
     };
   } catch (e) {
     console.error("getProgressPageData error:", e);

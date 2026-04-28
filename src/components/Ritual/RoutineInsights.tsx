@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Dumbbell, BookA, BookText, Sun, CircleDollarSign, Languages, Pen, BookOpen, Flame, Loader2 } from "lucide-react";
 import { getMyRecordsForDisplay } from "@/api/ritual-records-display";
 import { getBooksAuto } from "@/api/book";
@@ -100,7 +101,20 @@ function InsightLoading({ name, color, routines }: { name: string; color: string
 // ─────────────────────────────
 // 독서 인사이트
 // ─────────────────────────────
-function ReadingInsight({ routines, refreshKey = 0 }: { routines: RoutineCardStats[]; refreshKey?: number }) {
+function ReadingInsight({
+  routines,
+  refreshKey = 0,
+  routineType = "reading",
+  tabName = "독서",
+  color = "#6366f1",
+}: {
+  routines: RoutineCardStats[];
+  refreshKey?: number;
+  routineType?: "reading" | "english_book";
+  tabName?: string;
+  color?: string;
+}) {
+  const router = useRouter();
   const [books, setBooks] = useState<{ id: string; title: string; author: string; currentValue: number; totalValue: number; trackingType: string; coverImageUrl: string | null; isCompleted: boolean }[]>([]);
   const [totalSentences, setTotalSentences] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -109,8 +123,8 @@ function ReadingInsight({ routines, refreshKey = 0 }: { routines: RoutineCardSta
     async function fetchData() {
       setLoading(true);
       const [booksResult, recordsResult] = await Promise.all([
-        getBooksAuto("reading"),
-        getMyRecordsForDisplay({ routineType: "reading" }),
+        getBooksAuto(routineType),
+        getMyRecordsForDisplay({ routineType }),
       ]);
 
       if (booksResult.data) {
@@ -130,19 +144,19 @@ function ReadingInsight({ routines, refreshKey = 0 }: { routines: RoutineCardSta
       setLoading(false);
     }
     fetchData();
-  }, [refreshKey]);
+  }, [refreshKey, routineType]);
 
   const completedCount = books.filter((b) => b.isCompleted).length;
   const currentBooks = books.filter((b) => !b.isCompleted);
 
-  if (loading) return <InsightLoading name="독서" color="#6366f1" routines={routines} />;
+  if (loading) return <InsightLoading name={tabName} color={color} routines={routines} />;
 
   return (
     <div className="space-y-4">
-      <AchievementCard name="독서" color="#6366f1" routines={routines} />
+      <AchievementCard name={tabName} color={color} routines={routines} />
       <div className="grid grid-cols-2 gap-3">
         {[
-          { label: "완독", value: `${completedCount}권`, color: "#6366f1" },
+          { label: "완독", value: `${completedCount}권`, color },
           { label: "기록 문장", value: `${totalSentences}개`, color: "#a78bfa" },
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 text-center">
@@ -161,12 +175,20 @@ function ReadingInsight({ routines, refreshKey = 0 }: { routines: RoutineCardSta
             {currentBooks.map((book) => {
               const percent = book.totalValue > 0 ? Math.round((book.currentValue / book.totalValue) * 100) : 0;
               return (
-                <div key={book.id} className="flex gap-3">
+                <button
+                  key={book.id}
+                  type="button"
+                  onClick={() => router.push(`/books/${book.id}`)}
+                  className="w-full flex gap-3 text-left hover:opacity-80 transition-opacity"
+                >
                   <div className="w-10 h-14 rounded overflow-hidden flex-shrink-0 bg-gray-100">
                     {book.coverImageUrl ? (
                       <img src={book.coverImageUrl} alt={book.title} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-indigo-300 to-indigo-500 flex items-center justify-center">
+                      <div
+                        className="w-full h-full flex items-center justify-center"
+                        style={{ backgroundColor: color }}
+                      >
                         <span className="text-white text-[7px]">표지</span>
                       </div>
                     )}
@@ -177,16 +199,16 @@ function ReadingInsight({ routines, refreshKey = 0 }: { routines: RoutineCardSta
                         <p className="text-sm font-semibold text-gray-800 truncate">{book.title}</p>
                         <p className="text-xs text-gray-400">{book.author}</p>
                       </div>
-                      <span className="text-sm font-bold text-indigo-500 flex-shrink-0 ml-2">{percent}%</span>
+                      <span className="text-sm font-bold flex-shrink-0 ml-2" style={{ color }}>{percent}%</span>
                     </div>
                     <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all bg-indigo-500" style={{ width: `${percent}%` }} />
+                      <div className="h-full rounded-full transition-all" style={{ width: `${percent}%`, backgroundColor: color }} />
                     </div>
                     <p className="text-[10px] text-gray-400 mt-1">
                       {book.trackingType === "percent" ? `${book.currentValue}% 진행` : `${book.currentValue}p / ${book.totalValue}p`}
                     </p>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -198,18 +220,26 @@ function ReadingInsight({ routines, refreshKey = 0 }: { routines: RoutineCardSta
           <h3 className="text-sm font-semibold text-gray-700 mb-3">완독한 책</h3>
           <div className="flex gap-3 overflow-x-auto scrollbar-hide">
             {books.filter((b) => b.isCompleted).map((book) => (
-              <div key={book.id} className="flex-shrink-0 flex flex-col items-center gap-1.5">
+              <button
+                key={book.id}
+                type="button"
+                onClick={() => router.push(`/books/${book.id}`)}
+                className="flex-shrink-0 flex flex-col items-center gap-1.5 hover:opacity-80 transition-opacity"
+              >
                 <div className="w-12 h-16 rounded-lg overflow-hidden shadow-sm">
                   {book.coverImageUrl ? (
                     <img src={book.coverImageUrl} alt={book.title} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-indigo-300 to-indigo-500 flex items-center justify-center">
+                    <div
+                      className="w-full h-full flex items-center justify-center"
+                      style={{ backgroundColor: color }}
+                    >
                       <span className="text-white text-[7px]">완독</span>
                     </div>
                   )}
                 </div>
                 <span className="text-[10px] text-gray-600 max-w-[60px] truncate">{book.title}</span>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -636,7 +666,7 @@ function RecordPreviewCard({ item }: { item: FeedItem }) {
               <span className="text-xs text-gray-400">수면 {d.sleepHours}h</span>
               <span className="text-xs text-gray-400">컨디션 {d.condition}</span>
             </div>
-            <p className="text-xs text-gray-500 line-clamp-2">{d.successAndReflection}</p>
+            <p className="text-xs text-gray-500 line-clamp-2">{d.reflection || d.success}</p>
           </div>
         );
       }
@@ -767,6 +797,16 @@ export default function RoutineInsights({ activeTab, routines, refreshKey = 0 }:
     switch (activeTab) {
       case "독서":
         return <ReadingInsight routines={routines} refreshKey={refreshKey} />;
+      case "원서읽기":
+        return (
+          <ReadingInsight
+            routines={routines}
+            refreshKey={refreshKey}
+            routineType="english_book"
+            tabName="원서읽기"
+            color="#ec4899"
+          />
+        );
       case "운동":
         return <ExerciseInsightView routines={routines} refreshKey={refreshKey} />;
       case "모닝":
