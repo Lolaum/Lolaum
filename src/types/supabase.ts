@@ -32,7 +32,6 @@ export interface Database {
           email: string;
           avatar_url: string | null;
           emoji: string | null;
-          bio: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -43,7 +42,6 @@ export interface Database {
           email: string;
           avatar_url?: string | null;
           emoji?: string | null;
-          bio?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -54,7 +52,6 @@ export interface Database {
           email?: string;
           avatar_url?: string | null;
           emoji?: string | null;
-          bio?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -293,7 +290,6 @@ export interface Database {
           id: string;
           user_id: string;
           challenge_id: string;
-          routine_type: RoutineTypeDB;
           good_conditions: string[];
           good_condition_details: Json;
           hard_conditions: string[];
@@ -307,7 +303,6 @@ export interface Database {
           id?: string;
           user_id: string;
           challenge_id: string;
-          routine_type: RoutineTypeDB;
           good_conditions?: string[];
           good_condition_details?: Json;
           hard_conditions?: string[];

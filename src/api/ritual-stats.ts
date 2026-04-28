@@ -276,7 +276,7 @@ export async function getRitualPageData(): Promise<{
         .eq("challenge_id", challengeId),
       supabase
         .from("mid_reviews")
-        .select("routine_type")
+        .select("id")
         .eq("user_id", user.id)
         .eq("challenge_id", challengeId),
     ]);
@@ -338,16 +338,14 @@ export async function getRitualPageData(): Promise<{
     });
 
   // completion stats (전체 18일 기준)
-  // 회고/선언은 "신청한 모든 리추얼에 대해 작성"되어야 +1
+  // 선언은 "신청한 모든 리추얼에 대해 작성"되어야 +1
+  // 중간 회고는 유저당 1개라도 작성했으면 +1
   const completedDays = Math.min(fullyCompleteDays, 15);
   const hasDeclaration = isAllRoutinesCovered(
     registeredTypes,
     declarationsRes.data,
   );
-  const hasMidReview = isAllRoutinesCovered(
-    registeredTypes,
-    midReviewsRes.data,
-  );
+  const hasMidReview = (midReviewsRes.data ?? []).length > 0;
   const hasFinalReview = false; // TODO: 최종회고 테이블 생성 후 동일 로직 적용
   const totalAchieved =
     completedDays +
@@ -769,7 +767,7 @@ export async function getHomeStats(): Promise<{
       .eq("challenge_id", challengeId),
     supabase
       .from("mid_reviews")
-      .select("routine_type")
+      .select("id")
       .eq("user_id", user.id)
       .eq("challenge_id", challengeId),
     supabase
@@ -803,10 +801,7 @@ export async function getHomeStats(): Promise<{
     registeredTypes,
     declarationsRes.data,
   );
-  const hasMidReview = isAllRoutinesCovered(
-    registeredTypes,
-    midReviewsRes.data,
-  );
+  const hasMidReview = (midReviewsRes.data ?? []).length > 0;
   const hasFinalReview = false; // TODO: 최종회고 테이블 생성 후 동일 로직 적용
   const totalAchieved =
     completedDays +
@@ -858,18 +853,16 @@ export async function getHomeStats(): Promise<{
   const declaredTypes = new Set(
     (declarationsRes.data ?? []).map((r) => r.routine_type),
   );
-  const midReviewedTypes = new Set(
-    (midReviewsRes.data ?? []).map((r) => r.routine_type),
-  );
+  // 중간 회고는 유저당 1개라도 있으면 등록한 모든 리추얼에 +1
+  const midReviewBonus = (midReviewsRes.data ?? []).length > 0 ? 1 : 0;
   // TODO: 최종회고 테이블 생성 후 동일 로직 적용
   const finalReviewedTypes = new Set<string>();
 
   for (const rt of registeredTypes) {
     const days = routineDateSets.get(rt)?.size ?? 0;
     const decl = declaredTypes.has(rt) ? 1 : 0;
-    const mid = midReviewedTypes.has(rt) ? 1 : 0;
     const final = finalReviewedTypes.has(rt) ? 1 : 0;
-    routineCompletionMap[rt] = days + decl + mid + final;
+    routineCompletionMap[rt] = days + decl + midReviewBonus + final;
   }
 
   return { myPage, completion, calendarMarkers, routineCompletionMap };
@@ -957,7 +950,7 @@ export async function getCompletionRate(): Promise<{
         .eq("challenge_id", challengeId),
       supabase
         .from("mid_reviews")
-        .select("routine_type")
+        .select("id")
         .eq("user_id", user.id)
         .eq("challenge_id", challengeId),
       // TODO: 최종회고 테이블 생성 후 여기에 추가
@@ -977,10 +970,7 @@ export async function getCompletionRate(): Promise<{
     registeredTypes,
     declarationsRes.data,
   );
-  const hasMidReview = isAllRoutinesCovered(
-    registeredTypes,
-    midReviewsRes.data,
-  );
+  const hasMidReview = (midReviewsRes.data ?? []).length > 0;
   const hasFinalReview = false; // TODO: 최종회고 테이블 연동
 
   const totalAchieved =

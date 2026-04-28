@@ -4,8 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MidReviewCondition } from "@/types/routines/midReview";
 import { createMidReview } from "@/api/mid-review";
-import { ROUTINE_TYPE_LABEL, type RoutineTypeDB } from "@/types/supabase";
-import type { RoutineType } from "@/types/routines/declaration";
 
 const CONDITIONS: MidReviewCondition[] = [
   "시간대",
@@ -14,18 +12,6 @@ const CONDITIONS: MidReviewCondition[] = [
   "컨디션",
   "감정",
   "전날 행동",
-];
-
-// 8개 리추얼 모두 중간 회고 작성 가능
-const ALL_ROUTINE_TYPES: RoutineTypeDB[] = [
-  "morning",
-  "exercise",
-  "reading",
-  "english",
-  "second_language",
-  "recording",
-  "finance",
-  "english_book",
 ];
 
 const CONDITION_PROMPTS: Record<MidReviewCondition, string> = {
@@ -43,11 +29,6 @@ export default function MidReviewWriteContainer() {
   const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  // 8개 리추얼 모두 작성 가능
-  const [selectedRoutine, setSelectedRoutine] = useState<RoutineTypeDB | "">(
-    ALL_ROUTINE_TYPES[0],
-  );
 
   // Step 1
   const [goodConditions, setGoodConditions] = useState<MidReviewCondition[]>(
@@ -76,39 +57,34 @@ export default function MidReviewWriteContainer() {
     setSelected: (v: MidReviewCondition[]) => void,
     setDetails: (v: Partial<Record<MidReviewCondition, string>>) => void,
     details: Partial<Record<MidReviewCondition, string>>,
-    max: number,
   ) => {
     if (selected.includes(condition)) {
       setSelected(selected.filter((c) => c !== condition));
       const next = { ...details };
       delete next[condition];
       setDetails(next);
-    } else if (selected.length < max) {
+    } else {
       setSelected([...selected, condition]);
     }
   };
 
   const canNext1 =
-    !!selectedRoutine &&
     goodConditions.length >= 2 &&
     goodConditions.every((c) => goodDetails[c]?.trim());
   const canNext2 =
     hardConditions.length >= 1 &&
     hardConditions.every((c) => hardDetails[c]?.trim());
   const canSubmit =
-    !!selectedRoutine &&
     !!whyStarted.trim() &&
     !!keepDoing.trim() &&
     !!willChange.trim() &&
     !submitting;
 
   const handleSubmit = async () => {
-    if (!selectedRoutine) return;
     setSubmitting(true);
     setErrorMsg(null);
 
     const { error } = await createMidReview({
-      routineType: selectedRoutine,
       goodConditions,
       goodConditionDetails: goodDetails,
       hardConditions,
@@ -193,43 +169,6 @@ export default function MidReviewWriteContainer() {
       {/* Step 1 */}
       {step === 1 && (
         <div>
-          {/* 리추얼 선택 */}
-          <div className="mb-6">
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-              회고할 리추얼 <span className="text-red-400">*</span>
-            </label>
-            <div className="relative">
-              <select
-                value={selectedRoutine}
-                onChange={(e) =>
-                  setSelectedRoutine(e.target.value as RoutineTypeDB | "")
-                }
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-800 appearance-none cursor-pointer focus:outline-none focus:border-yellow-400 focus:bg-white transition-all"
-              >
-                {ALL_ROUTINE_TYPES.map((rt) => (
-                  <option key={rt} value={rt}>
-                    {ROUTINE_TYPE_LABEL[rt] as RoutineType}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-                <svg
-                  className="w-4 h-4 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-
           <div className="mb-6">
             <span
               className="inline-block text-xs font-bold px-2.5 py-1 rounded-full mb-3"
@@ -248,7 +187,6 @@ export default function MidReviewWriteContainer() {
           <div className="flex flex-wrap gap-2 mb-6">
             {CONDITIONS.map((c) => {
               const selected = goodConditions.includes(c);
-              const disabled = !selected && goodConditions.length >= 3;
               return (
                 <button
                   key={c}
@@ -259,16 +197,12 @@ export default function MidReviewWriteContainer() {
                       setGoodConditions,
                       setGoodDetails,
                       goodDetails,
-                      3,
                     )
                   }
-                  disabled={disabled}
                   className={`px-4 py-2 rounded-2xl text-sm font-semibold transition-colors border ${
                     selected
                       ? "text-white border-transparent"
-                      : disabled
-                        ? "bg-gray-50 border-gray-100 text-gray-300"
-                        : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                      : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
                   }`}
                   style={
                     selected
@@ -339,7 +273,6 @@ export default function MidReviewWriteContainer() {
           <div className="flex flex-wrap gap-2 mb-6">
             {CONDITIONS.map((c) => {
               const selected = hardConditions.includes(c);
-              const disabled = !selected && hardConditions.length >= 2;
               return (
                 <button
                   key={c}
@@ -350,16 +283,12 @@ export default function MidReviewWriteContainer() {
                       setHardConditions,
                       setHardDetails,
                       hardDetails,
-                      2,
                     )
                   }
-                  disabled={disabled}
                   className={`px-4 py-2 rounded-2xl text-sm font-semibold transition-colors border ${
                     selected
                       ? "text-white border-transparent"
-                      : disabled
-                        ? "bg-gray-50 border-gray-100 text-gray-300"
-                        : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                      : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
                   }`}
                   style={
                     selected

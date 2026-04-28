@@ -118,7 +118,7 @@ export async function getProgressPageData(): Promise<{
         .in("challenge_id", challengeIds),
       admin
         .from("mid_reviews")
-        .select("user_id, routine_type, challenge_id")
+        .select("user_id, challenge_id")
         .in("challenge_id", challengeIds),
     ]);
 
@@ -167,11 +167,9 @@ export async function getProgressPageData(): Promise<{
         userDeclarations.set(r.user_id, new Set());
       userDeclarations.get(r.user_id)!.add(r.routine_type);
     }
-    const userMidReviews = new Map<string, Set<string>>();
+    const userMidReviewed = new Set<string>();
     for (const r of midRevRes.data ?? []) {
-      if (!userMidReviews.has(r.user_id))
-        userMidReviews.set(r.user_id, new Set());
-      userMidReviews.get(r.user_id)!.add(r.routine_type);
+      userMidReviewed.add(r.user_id);
     }
 
     // 4. 유저별 날짜별 완료 리추얼 세트
@@ -284,13 +282,12 @@ export async function getProgressPageData(): Promise<{
         TOTAL_ROUTINE_DAYS,
       );
 
-      // 선언/회고 보너스 (등록한 모든 리추얼에 대해 작성해야 +1)
+      // 선언 보너스: 등록한 모든 리추얼에 대해 작성해야 +1
       const declSet = userDeclarations.get(r.user_id);
       const hasDeclaration =
         !!declSet && [...registered].every((rt) => declSet.has(rt));
-      const midRevSet = userMidReviews.get(r.user_id);
-      const hasMidReview =
-        !!midRevSet && [...registered].every((rt) => midRevSet.has(rt));
+      // 중간 회고 보너스: 유저당 1개라도 작성했으면 +1
+      const hasMidReview = userMidReviewed.has(r.user_id);
       const hasFinalReview = false; // TODO: 최종회고 테이블 연동
 
       const totalAchieved =

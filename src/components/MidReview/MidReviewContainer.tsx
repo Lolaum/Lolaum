@@ -4,16 +4,13 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { MidReview } from "@/types/routines/midReview";
-import { RoutineType } from "@/types/routines/declaration";
 import { getAllMidReviews } from "@/api/mid-review";
-import { ROUTINE_CONFIG, ALL_ROUTINE_TYPES } from "@/lib/routineConfig";
 import MidReviewItem from "./MidReviewItem";
 
 const PAGE_SIZE = 10;
 
 export default function MidReviewContainer() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<RoutineType | "전체">("전체");
   const [currentPage, setCurrentPage] = useState(1);
   const [allReviews, setAllReviews] = useState<MidReview[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string>("");
@@ -30,24 +27,11 @@ export default function MidReviewContainer() {
     fetchReviews();
   }, []);
 
-  const availableTypes = ALL_ROUTINE_TYPES.filter((type) =>
-    allReviews.some((r) => r.routineType === type)
-  );
-
-  const filtered =
-    activeTab === "전체"
-      ? allReviews
-      : allReviews.filter((r) => r.routineType === activeTab);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const visible = filtered.slice(
+  const totalPages = Math.max(1, Math.ceil(allReviews.length / PAGE_SIZE));
+  const visible = allReviews.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE
   );
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [activeTab]);
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 pb-8">
@@ -77,36 +61,6 @@ export default function MidReviewContainer() {
             작성하기
           </button>
         </div>
-      </div>
-
-      {/* 탭 필터 */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 mb-5 scrollbar-hide">
-        <button
-          onClick={() => setActiveTab("전체")}
-          className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
-            activeTab === "전체"
-              ? "bg-[var(--gold-400)] text-white shadow-sm"
-              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-          }`}
-        >
-          전체
-        </button>
-        {availableTypes.map((type) => {
-          const cfg = ROUTINE_CONFIG[type];
-          return (
-            <button
-              key={type}
-              onClick={() => setActiveTab(type)}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 ${
-                activeTab === type
-                  ? "bg-[var(--gold-400)] text-white shadow-sm"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-              }`}
-            >
-              {cfg.icon(13)} {cfg.label}
-            </button>
-          );
-        })}
       </div>
 
       {loading && (

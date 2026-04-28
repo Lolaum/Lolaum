@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { MidReview, MidReviewCondition } from "@/types/routines/midReview";
-import { ROUTINE_CONFIG } from "@/lib/routineConfig";
 import UserAvatar from "@/components/common/UserAvatar";
 
 interface MidReviewDetailProps {
@@ -53,7 +52,6 @@ function ConditionSection({
 
 export default function MidReviewDetail({ review, isMine }: MidReviewDetailProps) {
   const router = useRouter();
-  const config = ROUTINE_CONFIG[review.routineType];
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 pb-8">
@@ -65,13 +63,7 @@ export default function MidReviewDetail({ review, isMine }: MidReviewDetailProps
         >
           <ArrowLeft className="w-5 h-5 text-gray-600" />
         </button>
-        <span
-          className="flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold"
-          style={{ backgroundColor: config.bgColor, color: config.color }}
-        >
-          {config.icon(16)}
-          {review.routineType}
-        </span>
+        <h1 className="text-lg font-bold text-gray-800">중간 회고</h1>
       </div>
 
       {/* 본문 카드 */}
@@ -120,8 +112,8 @@ export default function MidReviewDetail({ review, isMine }: MidReviewDetailProps
             <p className="text-xs font-semibold text-gray-400 mb-2">초심 점검</p>
             <div className="space-y-2">
               {review.whyStarted && (
-                <div className="rounded-xl p-4" style={{ backgroundColor: config.bgColor }}>
-                  <p className="text-xs font-semibold mb-1" style={{ color: config.color }}>
+                <div className="rounded-xl p-4" style={{ backgroundColor: "#fef3c7" }}>
+                  <p className="text-xs font-semibold mb-1" style={{ color: "#d97706" }}>
                     시작한 이유
                   </p>
                   <p className="text-sm text-gray-700 leading-relaxed">{review.whyStarted}</p>

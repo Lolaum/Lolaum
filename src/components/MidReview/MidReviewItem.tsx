@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { MidReview } from "@/types/routines/midReview";
-import { ROUTINE_CONFIG } from "@/lib/routineConfig";
 import UserAvatar from "@/components/common/UserAvatar";
 
 interface MidReviewItemProps {
@@ -9,8 +8,6 @@ interface MidReviewItemProps {
 }
 
 export default function MidReviewItem({ review, isMine }: MidReviewItemProps) {
-  const config = ROUTINE_CONFIG[review.routineType];
-
   // 미리보기: 잘 됐던 조건 칩 + keepDoing 텍스트
   const previewText = review.keepDoing || review.whyStarted;
 
@@ -18,22 +15,8 @@ export default function MidReviewItem({ review, isMine }: MidReviewItemProps) {
     <Link
       href={`/mid-review/${review.id}`}
       className="block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
-      style={{ borderTop: `3px solid ${config.color}` }}
+      style={{ borderTop: "3px solid #eab32e" }}
     >
-      {/* 컬러 배경 헤더 */}
-      <div
-        className="px-4 py-3 flex items-center gap-2"
-        style={{ backgroundColor: config.bgColor }}
-      >
-        <span style={{ color: config.color }}>{config.icon(16)}</span>
-        <span
-          className="text-xs font-semibold px-2 py-0.5 rounded-full text-white"
-          style={{ backgroundColor: config.color }}
-        >
-          {config.label}
-        </span>
-      </div>
-
       <div className="p-4">
         {/* 유저 정보 */}
         <div className="flex items-center gap-2.5 mb-2.5">

@@ -30,7 +30,6 @@ export const challengerMidReviews: MidReview[] = [
     userId: "2",
     userName: "김지수",
     userEmoji: "🔥",
-    routineType: "운동리추얼",
     createdAt: "2025-01-11",
     goodConditions: ["시간대", "습관"],
     goodConditionDetails: {
@@ -51,7 +50,6 @@ export const challengerMidReviews: MidReview[] = [
     userId: "3",
     userName: "이민준",
     userEmoji: "📚",
-    routineType: "독서리추얼",
     createdAt: "2025-01-10",
     goodConditions: ["장소", "감정"],
     goodConditionDetails: {
@@ -72,7 +70,6 @@ export const challengerMidReviews: MidReview[] = [
     userId: "4",
     userName: "박서연",
     userEmoji: "🇺🇸",
-    routineType: "영어리추얼",
     createdAt: "2025-01-12",
     goodConditions: ["시간대", "장소"],
     goodConditionDetails: {
@@ -92,7 +89,6 @@ export const challengerMidReviews: MidReview[] = [
     userId: "5",
     userName: "최도윤",
     userEmoji: "💰",
-    routineType: "자산관리리추얼",
     createdAt: "2025-01-11",
     goodConditions: ["습관", "컨디션"],
     goodConditionDetails: {
@@ -112,7 +108,6 @@ export const challengerMidReviews: MidReview[] = [
     userId: "6",
     userName: "한예린",
     userEmoji: "🌍",
-    routineType: "제2외국어리추얼",
     createdAt: "2025-01-10",
     goodConditions: ["감정", "전날 행동"],
     goodConditionDetails: {
@@ -133,7 +128,6 @@ export const challengerMidReviews: MidReview[] = [
     userId: "7",
     userName: "정현우",
     userEmoji: "✍️",
-    routineType: "기록리추얼",
     createdAt: "2025-01-12",
     goodConditions: ["장소", "시간대"],
     goodConditionDetails: {
@@ -154,7 +148,6 @@ export const challengerMidReviews: MidReview[] = [
     userId: "8",
     userName: "오지은",
     userEmoji: "📖",
-    routineType: "원서읽기리추얼",
     createdAt: "2025-01-11",
     goodConditions: ["컨디션", "감정"],
     goodConditionDetails: {

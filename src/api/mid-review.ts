@@ -3,18 +3,12 @@
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentChallengeId } from "@/lib/current-challenge";
-import type { RoutineTypeDB, Json } from "@/types/supabase";
-import { ROUTINE_TYPE_LABEL } from "@/types/supabase";
-import type {
-  MidReview,
-  MidReviewCondition,
-  RoutineType,
-} from "@/types/routines/midReview";
+import type { Json } from "@/types/supabase";
+import type { MidReview, MidReviewCondition } from "@/types/routines/midReview";
 
 interface MidReviewRow {
   id: string;
   user_id: string;
-  routine_type: RoutineTypeDB;
   good_conditions: string[];
   good_condition_details: unknown;
   hard_conditions: string[];
@@ -33,7 +27,6 @@ function toMidReview(row: MidReviewRow): MidReview {
     userName: row.profiles?.name ?? "익명",
     userEmoji: row.profiles?.emoji ?? undefined,
     avatarUrl: row.profiles?.avatar_url ?? undefined,
-    routineType: ROUTINE_TYPE_LABEL[row.routine_type] as RoutineType,
     goodConditions: row.good_conditions as MidReviewCondition[],
     goodConditionDetails:
       (row.good_condition_details as Partial<
@@ -52,7 +45,7 @@ function toMidReview(row: MidReviewRow): MidReview {
 }
 
 const SELECT_COLUMNS =
-  "id, user_id, routine_type, good_conditions, good_condition_details, hard_conditions, hard_condition_details, why_started, keep_doing, will_change, created_at, profiles(name, emoji, avatar_url)";
+  "id, user_id, good_conditions, good_condition_details, hard_conditions, hard_condition_details, why_started, keep_doing, will_change, created_at, profiles(name, emoji, avatar_url)";
 
 /** 중간 회고 작성 가능 기간 검증 (매월 10~13일) */
 function assertWritableWindow(): string | null {
@@ -196,7 +189,6 @@ export async function getMidReviewById(
 
 /** 중간 회고 생성 */
 export async function createMidReview(input: {
-  routineType: RoutineTypeDB;
   goodConditions: MidReviewCondition[];
   goodConditionDetails: Partial<Record<MidReviewCondition, string>>;
   hardConditions: MidReviewCondition[];
@@ -220,7 +212,6 @@ export async function createMidReview(input: {
     const { error } = await supabase.from("mid_reviews").insert({
       user_id: user.id,
       challenge_id: challengeId,
-      routine_type: input.routineType,
       good_conditions: input.goodConditions,
       good_condition_details: input.goodConditionDetails as unknown as Json,
       hard_conditions: input.hardConditions,
