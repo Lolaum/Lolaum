@@ -311,7 +311,9 @@ export async function getRitualPageData(): Promise<{
         .from("ritual_records")
         .select("routine_type, record_date")
         .eq("user_id", user.id)
-        .eq("challenge_id", challengeId),
+        .eq("challenge_id", challengeId)
+        .gte("record_date", period.start_date)
+        .lte("record_date", period.end_date),
       supabase
         .from("challenge_registrations")
         .select("routine_type")
@@ -422,22 +424,27 @@ export async function getRitualStats(): Promise<{
   routines?: RoutineCardStats[];
   error?: string;
 }> {
-  const [{ challengeId, error: cError }, user] = await Promise.all([
-    getCurrentChallengeId(),
-    getCurrentUser(),
-  ]);
+  const [{ challengeId, error: cError }, user, { period, error: pError }] =
+    await Promise.all([
+      getCurrentChallengeId(),
+      getCurrentUser(),
+      getActivePeriod(),
+    ]);
   if (!user) return { error: "인증이 필요합니다." };
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
+  if (!period) return { error: pError ?? "활성 챌린지 기간이 없습니다." };
 
   const supabase = await createClient();
 
-  // 기록 + 등록 리추얼 동시 조회
+  // 기록 + 등록 리추얼 동시 조회 (활성 기간 내 record_date만)
   const [recordsRes, registrationsRes] = await Promise.all([
     supabase
       .from("ritual_records")
       .select("routine_type, record_date")
       .eq("user_id", user.id)
-      .eq("challenge_id", challengeId),
+      .eq("challenge_id", challengeId)
+      .gte("record_date", period.start_date)
+      .lte("record_date", period.end_date),
     supabase
       .from("challenge_registrations")
       .select("routine_type")
@@ -812,7 +819,9 @@ export async function getHomeStats(): Promise<{
       .from("ritual_records")
       .select("routine_type, record_date")
       .eq("user_id", user.id)
-      .eq("challenge_id", challengeId),
+      .eq("challenge_id", challengeId)
+      .gte("record_date", period.start_date)
+      .lte("record_date", period.end_date),
     supabase
       .from("challenge_registrations")
       .select("routine_type")
@@ -939,42 +948,37 @@ export async function getMyPageStats(): Promise<{
   data?: MyPageStats;
   error?: string;
 }> {
-  const [{ challengeId, error: cError }, user] = await Promise.all([
-    getCurrentChallengeId(),
-    getCurrentUser(),
-  ]);
+  const [{ challengeId, error: cError }, user, { period, error: pError }] =
+    await Promise.all([
+      getCurrentChallengeId(),
+      getCurrentUser(),
+      getActivePeriod(),
+    ]);
   if (!user) return { error: "인증이 필요합니다." };
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
+  if (!period) return { error: pError ?? "활성 챌린지 기간이 없습니다." };
 
   const supabase = await createClient();
 
-  // 이번 달 기록 (연속 실천, 총 완료) + 전체 기록 (최장 기록) 동시 조회
-  const [currentRes, allRes] = await Promise.all([
-    supabase
-      .from("ritual_records")
-      .select("record_date")
-      .eq("user_id", user.id)
-      .eq("challenge_id", challengeId),
-    supabase
-      .from("ritual_records")
-      .select("record_date")
-      .eq("user_id", user.id),
-  ]);
+  // 활성 기간 안의 기록만 조회 (연속 실천, 최장 기록, 총 완료 모두 기간 단위 리셋)
+  const { data, error } = await supabase
+    .from("ritual_records")
+    .select("record_date")
+    .eq("user_id", user.id)
+    .eq("challenge_id", challengeId)
+    .gte("record_date", period.start_date)
+    .lte("record_date", period.end_date);
 
-  if (currentRes.error) return { error: currentRes.error.message };
-  if (allRes.error) return { error: allRes.error.message };
+  if (error) return { error: error.message };
 
-  const currentRecords = currentRes.data ?? [];
-  const allRecords = allRes.data ?? [];
-
-  const currentDates = [...new Set(currentRecords.map((r) => r.record_date))];
-  const allDates = allRecords.map((r) => r.record_date);
+  const records = data ?? [];
+  const dates = [...new Set(records.map((r) => r.record_date))];
 
   return {
     data: {
-      currentStreak: calcStreak(currentDates),
-      longestStreak: calcLongestStreak(allDates),
-      totalCompletions: currentRecords.length,
+      currentStreak: calcStreak(dates),
+      longestStreak: calcLongestStreak(dates),
+      totalCompletions: records.length,
     },
   };
 }
@@ -1009,7 +1013,9 @@ export async function getCompletionRate(): Promise<{
         .from("ritual_records")
         .select("routine_type, record_date")
         .eq("user_id", user.id)
-        .eq("challenge_id", challengeId),
+        .eq("challenge_id", challengeId)
+        .gte("record_date", period.start_date)
+        .lte("record_date", period.end_date),
       supabase
         .from("challenge_registrations")
         .select("routine_type")
