@@ -82,13 +82,19 @@ export async function getCurrentChallengers(): Promise<{
 
   const rows = (data ?? []) as unknown as Row[];
   const challengers: ChallengerSummary[] = rows
-    .filter((r) => r.profiles && r.profiles.id !== currentUser?.id)
+    .filter((r) => r.profiles)
     .map((r) => ({
       id: r.profiles!.id,
       name: r.profiles!.name,
       avatarUrl: r.profiles!.avatar_url,
       emoji: r.profiles!.emoji,
-    }));
+    }))
+    .sort((a, b) => {
+      // 본인을 맨 앞으로
+      if (a.id === currentUser?.id) return -1;
+      if (b.id === currentUser?.id) return 1;
+      return 0;
+    });
 
   return { data: challengers };
 }
