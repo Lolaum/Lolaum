@@ -271,6 +271,8 @@ export async function getRecordById(
       .from("feeds")
       .select("id")
       .eq("ritual_record_id", id)
+      .order("created_at", { ascending: true })
+      .limit(1)
       .maybeSingle();
 
     const bookMapPromise = fetchBookMap([record as RitualRecord], admin);
