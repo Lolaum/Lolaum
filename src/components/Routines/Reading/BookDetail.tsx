@@ -24,7 +24,7 @@ function AddReadingRecord({
   book: BookDetailProps["book"];
   onCancel: () => void;
   onBackToHome?: () => void;
-  onSave: (record: Omit<DailyReadingRecord, "id">) => void;
+  onSave: (record: Omit<DailyReadingRecord, "id">) => void | Promise<void>;
   isEnglishBook?: boolean;
 }) {
   const isPercent = book.trackingType === "percent";
@@ -34,6 +34,7 @@ function AddReadingRecord({
   const [note, setNote] = useState("");
   const [thoughts, setThoughts] = useState("");
   const [screenshot, setScreenshot] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleScreenshot = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -55,20 +56,25 @@ function AddReadingRecord({
 
   const canSave = isEnglishBook ? screenshot !== null : note.trim().length > 0;
 
-  const handleSave = () => {
-    if (!canSave) return;
+  const handleSave = async () => {
+    if (submitting || !canSave) return;
+    setSubmitting(true);
     const today = new Date().toISOString().split("T")[0];
-    onSave({
-      date: today,
-      trackingType: book.trackingType,
-      startValue: Number(startValue),
-      endValue: Number(endValue) || Number(startValue),
-      progressAmount,
-      noteType,
-      note: isEnglishBook ? "(스크린샷 인증)" : note.trim(),
-      thoughts: thoughts.trim() || undefined,
-      screenshot: isEnglishBook && screenshot ? screenshot : undefined,
-    });
+    try {
+      await onSave({
+        date: today,
+        trackingType: book.trackingType,
+        startValue: Number(startValue),
+        endValue: Number(endValue) || Number(startValue),
+        progressAmount,
+        noteType,
+        note: isEnglishBook ? "(스크린샷 인증)" : note.trim(),
+        thoughts: thoughts.trim() || undefined,
+        screenshot: isEnglishBook && screenshot ? screenshot : undefined,
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -296,10 +302,10 @@ function AddReadingRecord({
           <button
             type="button"
             onClick={handleSave}
-            disabled={!canSave}
+            disabled={!canSave || submitting}
             className="flex-1 py-4 px-4 rounded-xl bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
-            기록 추가하기
+            {submitting ? "저장 중..." : "기록 추가하기"}
           </button>
         </div>
       </div>
@@ -624,7 +630,8 @@ export default function BookDetail({
         </div>
       </div>
 
-      {/* 나만의 독서기록 */}
+      {/* 나만의 독서기록 (원서읽기는 스크린샷 인증 방식이라 텍스트 기록 섹션 숨김) */}
+      {!isEnglishBook && (
       <div className="mb-4">
         <h2 className="text-base font-semibold text-gray-900 mb-3">
           나만의 독서기록
@@ -710,6 +717,7 @@ export default function BookDetail({
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }
