@@ -1,4 +1,4 @@
-// 인증 피드 관련 타입 정의
+// 인증 게시글 관련 타입 정의
 
 import { DailyExpense } from "./routines/finance";
 
@@ -12,7 +12,7 @@ export type RoutineCategory =
   | "자산관리"
   | "원서읽기";
 
-// 리추얼별 피드 데이터 타입
+// 리추얼별 게시글 데이터 타입
 export interface ExerciseFeedData {
   images: string[];
   exerciseName: string;

@@ -23,6 +23,8 @@ export default function AddNewFinance({
   ]);
   const [studyContent, setStudyContent] = useState("");
   const [practice, setPractice] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [showCalendar, setShowCalendar] = useState<string | null>(null); // 어떤 날짜 섹션의 캘린더를 보여줄지
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const calendarRef = useRef<HTMLDivElement>(null);
@@ -252,6 +254,7 @@ export default function AddNewFinance({
 
   // 제출
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
     // 유효성 검사
     const hasEmptyDate = dailyExpenses.some((d) => !d.date);
     const hasNoExpenses = dailyExpenses.every((d) => d.expenses.length === 0);
@@ -259,6 +262,8 @@ export default function AddNewFinance({
     if (hasEmptyDate || hasNoExpenses || !studyContent.trim() || !practice.trim()) {
       return;
     }
+    submittingRef.current = true;
+    setSubmitting(true);
 
     const formData: FinanceFormData = {
       dailyExpenses: dailyExpenses.map(({ id, ...rest }) => rest),
@@ -266,10 +271,15 @@ export default function AddNewFinance({
       practice: practice.trim(),
     };
 
-    if (onSubmit) {
-      await onSubmit(formData);
-    } else {
-      onCancel();
+    try {
+      if (onSubmit) {
+        await onSubmit(formData);
+      } else {
+        onCancel();
+      }
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
     }
   };
 
@@ -815,6 +825,7 @@ export default function AddNewFinance({
             type="button"
             onClick={handleSubmit}
             disabled={
+              submitting ||
               dailyExpenses.some((d) => !d.date) ||
               dailyExpenses.every((d) => d.expenses.length === 0) ||
               !studyContent.trim() ||
@@ -822,7 +833,7 @@ export default function AddNewFinance({
             }
             className="flex-1 py-4 px-4 rounded-xl bg-green-500 text-white font-medium hover:bg-green-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
-            기록 추가하기
+            {submitting ? "저장 중..." : "기록 추가하기"}
           </button>
         </div>
       </div>

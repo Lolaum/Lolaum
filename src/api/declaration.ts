@@ -81,6 +81,25 @@ export async function createDeclaration(input: {
   return {};
 }
 
+/** 선언 수정 (본인만) */
+export async function updateDeclaration(
+  id: string,
+  answers: { questionId: string; answer: string }[],
+): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "인증이 필요합니다." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("declarations")
+    .update({ answers: answers as unknown as Json })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) return { error: error.message };
+  return {};
+}
+
 /** 활성 기간의 모든 챌린지 ID 조회 (유저별로 challenge 행이 다르므로 전체 조회) */
 async function getCurrentPeriodChallengeIds(): Promise<string[]> {
   try {

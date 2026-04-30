@@ -154,8 +154,10 @@ export default function BookManage({ onBackToTimer, onBackToHome, isEnglishBook,
 
       {/* 영어원서: 외부 링크 */}
       {isEnglishBook && (
-        <button
-          type="button"
+        <a
+          href="https://classroom.google.com/c/ODU3MDM0NzMxMzcx"
+          target="_blank"
+          rel="noopener noreferrer"
           className="w-full flex items-center gap-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
         >
           <div className="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -170,7 +172,7 @@ export default function BookManage({ onBackToTimer, onBackToHome, isEnglishBook,
           <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
-        </button>
+        </a>
       )}
 
       {/* 헤더 */}

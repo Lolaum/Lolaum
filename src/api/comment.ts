@@ -1,27 +1,33 @@
 "use server";
 
-import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Comment } from "@/types/feed";
 
 /**
  * ritual_record_id에 대응하는 feed를 찾거나 생성한다.
  * feed_comments는 feeds(id)를 FK로 참조하므로 이 매핑이 필요.
+ *
+ * 일반 RLS 클라이언트로는 다른 유저의 ritual_record / feed에 접근할 수 없으므로
+ * admin 클라이언트로 매핑만 처리한다(댓글 자체는 user_id = auth.uid() 검증을 받음).
  */
 async function getOrCreateFeedId(
   recordId: string,
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  admin: ReturnType<typeof createAdminClient>,
 ): Promise<string | null> {
-  // 이미 있는 feed 찾기
-  const { data: existingFeed } = await supabase
+  // 이미 있는 feed 찾기 (중복 row가 있어도 가장 오래된 것 1개만 사용)
+  const { data: existingFeed } = await admin
     .from("feeds")
     .select("id")
     .eq("ritual_record_id", recordId)
-    .single();
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
 
   if (existingFeed) return existingFeed.id;
 
-  // 없으면 ritual_record 정보로 feed 생성
-  const { data: record } = await supabase
+  // 없으면 ritual_record 정보로 feed 생성 (record owner 명의)
+  const { data: record } = await admin
     .from("ritual_records")
     .select("user_id, challenge_id, routine_type, record_date, record_data")
     .eq("id", recordId)
@@ -29,7 +35,7 @@ async function getOrCreateFeedId(
 
   if (!record) return null;
 
-  const { data: newFeed } = await supabase
+  const { data: newFeed } = await admin
     .from("feeds")
     .insert({
       user_id: record.user_id,
@@ -53,18 +59,20 @@ export async function getComments(
     const user = await getCurrentUser();
     if (!user) return { data: [], error: "인증이 필요합니다." };
 
-    const supabase = await createClient();
+    const admin = createAdminClient();
 
-    // feed 찾기 (없으면 댓글도 없음)
-    const { data: feed } = await supabase
+    // feed 찾기 (없으면 댓글도 없음). 중복 대비 가장 오래된 1개 사용.
+    const { data: feed } = await admin
       .from("feeds")
       .select("id")
       .eq("ritual_record_id", recordId)
-      .single();
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
 
     if (!feed) return { data: [] };
 
-    const { data: comments, error } = await supabase
+    const { data: comments, error } = await admin
       .from("feed_comments")
       .select("id, user_id, text, created_at")
       .eq("feed_id", feed.id)
@@ -75,7 +83,7 @@ export async function getComments(
 
     // 프로필 이름 일괄 조회
     const userIds = [...new Set(comments.map((c) => c.user_id))];
-    const { data: profiles } = await supabase
+    const { data: profiles } = await admin
       .from("profiles")
       .select("id, name")
       .in("id", userIds);
@@ -107,12 +115,12 @@ export async function addComment(
     const user = await getCurrentUser();
     if (!user) return { error: "인증이 필요합니다." };
 
-    const supabase = await createClient();
+    const admin = createAdminClient();
 
-    const feedId = await getOrCreateFeedId(recordId, supabase);
+    const feedId = await getOrCreateFeedId(recordId, admin);
     if (!feedId) return { error: "피드를 찾을 수 없습니다." };
 
-    const { data: comment, error } = await supabase
+    const { data: comment, error } = await admin
       .from("feed_comments")
       .insert({
         feed_id: feedId,
@@ -125,7 +133,7 @@ export async function addComment(
     if (error) return { error: error.message };
 
     // 프로필 이름 가져오기
-    const { data: profile } = await supabase
+    const { data: profile } = await admin
       .from("profiles")
       .select("name")
       .eq("id", user.id)
@@ -156,9 +164,9 @@ export async function updateComment(
     const user = await getCurrentUser();
     if (!user) return { error: "인증이 필요합니다." };
 
-    const supabase = await createClient();
+    const admin = createAdminClient();
 
-    const { error } = await supabase
+    const { error } = await admin
       .from("feed_comments")
       .update({ text })
       .eq("id", commentId)
@@ -180,9 +188,9 @@ export async function deleteComment(
     const user = await getCurrentUser();
     if (!user) return { error: "인증이 필요합니다." };
 
-    const supabase = await createClient();
+    const admin = createAdminClient();
 
-    const { error } = await supabase
+    const { error } = await admin
       .from("feed_comments")
       .delete()
       .eq("id", commentId)

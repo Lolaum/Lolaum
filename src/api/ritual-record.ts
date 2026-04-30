@@ -124,6 +124,28 @@ export async function createRitualRecordAuto(input: {
   });
 }
 
+/**
+ * 기존 ritual_record 수정.
+ * record_data만 갱신. 사진(certPhotos/images/image)은 호출 측에서 기존 값을 합쳐 보내야 한다.
+ */
+export async function updateRitualRecord(
+  id: string,
+  recordData: Json,
+): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "인증이 필요합니다." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("ritual_records")
+    .update({ record_data: recordData })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) return { error: error.message };
+  return {};
+}
+
 /** 내 기록 가져오기 (challengeId 자동) */
 export async function getMyRitualRecords(input: {
   routineType?: RoutineTypeDB;

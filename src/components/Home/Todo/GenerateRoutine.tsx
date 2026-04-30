@@ -9,6 +9,7 @@ import { createRoutineAuto } from "@/api/routine";
 import { createDeclaration } from "@/api/declaration";
 import { getCurrentPeriod } from "@/api/challenge";
 import { ROUTINE_TYPE_MAP } from "@/types/supabase";
+import ExampleTooltip from "@/components/common/ExampleTooltip";
 
 interface GenerateRoutineProps {
   onClose: () => void;
@@ -350,10 +351,26 @@ export default function GenerateRoutine({
                 </p>
 
                 <div className="flex flex-col gap-4 mb-5">
-                  {questions.map((q) => (
+                  {questions.map((q) => {
+                    const labelLines = q.label.split("\n");
+                    const tipIdx =
+                      q.exampleLineIndex ?? labelLines.length - 1;
+                    return (
                     <div key={q.id}>
-                      <label className="block text-sm font-bold text-gray-800 mb-0.5 whitespace-pre-line leading-relaxed">
-                        {q.label} <span className="text-red-400">*</span>
+                      <label className="block text-sm font-bold text-gray-800 mb-0.5 leading-relaxed">
+                        {labelLines.map((line, i) => (
+                          <span key={i} className="block">
+                            {line}
+                            {q.example && i === tipIdx && (
+                              <span className="ml-1 align-middle">
+                                <ExampleTooltip content={q.example} />
+                              </span>
+                            )}
+                            {i === labelLines.length - 1 && (
+                              <span className="text-red-400 ml-1">*</span>
+                            )}
+                          </span>
+                        ))}
                       </label>
                       {q.description && (
                         <p className="text-xs text-gray-400 mb-2 leading-relaxed whitespace-pre-line">
@@ -396,7 +413,8 @@ export default function GenerateRoutine({
                         />
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* 알람 설정 확인 */}

@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, User, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, User, X, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import {
   BookText,
   Dumbbell,
@@ -27,9 +27,11 @@ import {
 } from "@/types/feed";
 import { addComment, deleteComment, updateComment } from "@/api/comment";
 import CommentSection from "./CommentSection";
+import EditFeedRecord from "./EditFeedRecord";
 
 interface FeedDetailProps {
   item: FeedItem;
+  isMine?: boolean;
 }
 
 // 디자인 시스템 기반 카테고리 메타
@@ -732,9 +734,10 @@ function CertPhotoGrid({
   );
 }
 
-export default function FeedDetail({ item }: FeedDetailProps) {
+export default function FeedDetail({ item, isMine = false }: FeedDetailProps) {
   const router = useRouter();
   const [comments, setComments] = useState<Comment[]>(item.comments ?? []);
+  const [editing, setEditing] = useState(false);
   const meta = getCategoryMeta(item.routineCategory);
   const recordId = item.odOriginalId;
 
@@ -798,6 +801,16 @@ export default function FeedDetail({ item }: FeedDetailProps) {
             {meta.icon}
             {meta.label}
           </span>
+          {isMine && !editing && item.routineData && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              수정
+            </button>
+          )}
         </div>
 
         {/* 본문 카드 */}
@@ -825,14 +838,16 @@ export default function FeedDetail({ item }: FeedDetailProps) {
             </div>
           </div>
 
-          {/* 인증 사진 */}
+          {/* 인증 사진 (수정 모드에서도 표시 — 사진은 수정 불가, 참고용) */}
           <CertPhotoGrid
             routineData={item.routineData}
             category={item.routineCategory}
           />
 
-          {/* 리추얼 콘텐츠 */}
-          {item.routineData ? (
+          {/* 리추얼 콘텐츠 — 수정 모드에서는 EditFeedRecord */}
+          {editing ? (
+            <EditFeedRecord item={item} onCancel={() => setEditing(false)} />
+          ) : item.routineData ? (
             <>
               {isExerciseData(item.routineData, item.routineCategory) && (
                 <ExerciseContent data={item.routineData} />

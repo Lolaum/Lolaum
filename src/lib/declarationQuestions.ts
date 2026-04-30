@@ -5,6 +5,10 @@ export interface DeclarationQuestion {
   label: string;
   description?: string;
   placeholder?: string;
+  /** 라벨 옆 (i) 아이콘을 눌렀을 때 보여줄 예시 본문 */
+  example?: string;
+  /** 라벨이 여러 줄일 때, 툴팁 (i) 아이콘을 어느 줄 옆에 붙일지(0-based). 미지정 시 마지막 줄 */
+  exampleLineIndex?: number;
   readOnly?: boolean;
   defaultValue?: string;
   isConfirmation?: boolean;
@@ -186,10 +190,25 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
         id: "this_month_goal",
         label:
           "이번 달 기록 목표!\n3주치 목차/주제 리스트업\n(최소 9개 완성)",
+        exampleLineIndex: 1,
         description:
-          "*미리 목차 리스트업을 해두면 3주간 글쓰기에 대한 부담이 훨씬 줄어듭니다. 추후 주제가 변경되어도 괜찮습니다.\n*일기 형식으로 쓰시는 분들은 주제를 모두 작성해두지 않으셔도 됩니다.\n*둘 중 하나만 작성하셔도 괜찮습니다.",
-        placeholder:
-          "예) 매일 일기 쓰기\n또는\n1. 나의 아침 리추얼\n2. 독서 후기\n3. ...",
+          "*미리 목차 리스트업을 해두면 3주간 글쓰기에 대한 부담이 훨씬 줄어듭니다. 추후 주제가 변경되어도 괜찮습니다.\n*일기 형식으로 쓰시는 분들은 주제를 모두 작성해두지 않으셔도 됩니다.",
+        placeholder: "이번 달 작성할 글의 목차/주제를 적어주세요",
+        example: `ex) [일 관련(주2회)]
+1. 개별 컨설팅- 제주대
+2. 경주 강의&컨설팅&심사
+3. 대구 컨설팅
+4. 강동구 컨설팅
+5. 개별 컨설팅- 사업계획서
+6. 청년마을 컨설팅
+
+[독서기록(주2회)]
+1. 무인양품은 90%가 구조다
+2. 옷을 사지 않기로 했습니다
+3. 커뮤니티 빌더들
+4. 페르세폴리스
+5. 누구나 혼자 서는 순간이 온다
+6. 사업일기`,
       },
       {
         id: "cert_method",

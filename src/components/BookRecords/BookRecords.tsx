@@ -27,6 +27,7 @@ export default function BookRecords({ book }: BookRecordsProps) {
   const [records, setRecords] = useState<RecordItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
+  const isEnglishBook = book.routine_type === "english_book";
 
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) =>
@@ -100,7 +101,9 @@ export default function BookRecords({ book }: BookRecordsProps) {
         <p className="text-sm text-gray-500 mt-0.5">{book.author}</p>
       </div>
 
-      {/* 독서 기록 */}
+      {/* 독서 기록 (원서읽기는 스크린샷 인증 방식이라 텍스트 기록 섹션 숨김) */}
+      {!isEnglishBook && (
+        <>
       <h2 className="text-sm font-semibold text-gray-700 mb-3">나만의 독서기록</h2>
       {loading ? (
         <div className="text-center py-12 text-gray-400">
@@ -182,6 +185,8 @@ export default function BookRecords({ book }: BookRecordsProps) {
             );
           })}
         </div>
+      )}
+        </>
       )}
     </div>
   );
