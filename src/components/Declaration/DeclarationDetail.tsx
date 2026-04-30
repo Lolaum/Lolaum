@@ -7,6 +7,7 @@ import { Declaration } from "@/types/routines/declaration";
 import { declarationQuestions } from "@/lib/declarationQuestions";
 import { ROUTINE_CONFIG } from "@/lib/routineConfig";
 import UserAvatar from "@/components/common/UserAvatar";
+import ExampleTooltip from "@/components/common/ExampleTooltip";
 import { updateDeclaration } from "@/api/declaration";
 
 interface DeclarationDetailProps {
@@ -111,8 +112,24 @@ export default function DeclarationDetail({ decl, isMine }: DeclarationDetailPro
             const isReadOnly = q.id === "cert_method";
             return (
               <div key={q.id} className="rounded-xl p-4" style={{ backgroundColor: config.bgColor }}>
-                <p className="text-xs font-semibold mb-1.5" style={{ color: config.color }}>
-                  {q.label}
+                <p
+                  className="text-xs font-semibold mb-1.5"
+                  style={{ color: config.color }}
+                >
+                  {(() => {
+                    const lines = q.label.split("\n");
+                    const tipIdx = q.exampleLineIndex ?? lines.length - 1;
+                    return lines.map((line, i) => (
+                      <span key={i} className="block">
+                        {line}
+                        {q.example && i === tipIdx && (
+                          <span className="ml-1 align-middle">
+                            <ExampleTooltip content={q.example} />
+                          </span>
+                        )}
+                      </span>
+                    ));
+                  })()}
                 </p>
                 {editing && !isReadOnly ? (
                   <textarea

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Upload, X, Info } from "lucide-react";
 import { applyTimestamp, fileToBase64 } from "@/lib/utils";
 import {
@@ -28,6 +28,23 @@ export default function AddNewExercise({
   const [achievement, setAchievement] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const [showRatioTip, setShowRatioTip] = useState(false);
+  const ratioTipRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showRatioTip) return;
+    const handler = (e: MouseEvent | TouchEvent) => {
+      if (ratioTipRef.current && !ratioTipRef.current.contains(e.target as Node)) {
+        setShowRatioTip(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("touchstart", handler);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("touchstart", handler);
+    };
+  }, [showRatioTip]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -271,17 +288,25 @@ export default function AddNewExercise({
               <label className="block text-sm font-medium text-gray-700">
                 탄:단:지 비율
               </label>
-              <div className="relative group">
+              <div className="relative" ref={ratioTipRef}>
                 <button
                   type="button"
-                  className="flex items-center justify-center text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600"
+                  onClick={() => setShowRatioTip((v) => !v)}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    setShowRatioTip((v) => !v);
+                  }}
+                  aria-expanded={showRatioTip}
                   aria-label="권장 탄단지 비율 안내"
+                  className="flex items-center justify-center text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600 touch-manipulation"
                 >
                   <Info className="w-4 h-4" />
                 </button>
                 <div
                   role="tooltip"
-                  className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-72 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg transition-opacity z-10 leading-relaxed opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible"
+                  className={`absolute left-1/2 -translate-x-1/2 top-full mt-2 w-72 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg z-10 leading-relaxed transition-opacity ${
+                    showRatioTip ? "opacity-100 visible" : "opacity-0 invisible"
+                  }`}
                 >
                   <p className="mb-2">
                     한국인 영양소 섭취 기준, 권장되는 탄단지 비율
