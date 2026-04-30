@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Plus, X, Upload } from "lucide-react";
 import { applyTimestamp, fileToBase64 } from "@/lib/utils";
 import {
@@ -21,6 +21,8 @@ export default function AddNewLanguage({
   const [expressions, setExpressions] = useState<Expression[]>([
     { id: 1, word: "", meaning: "", example: "" },
   ]);
+  const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   const addExpression = () => {
     const newId = Math.max(...expressions.map((e) => e.id), 0) + 1;
@@ -62,11 +64,14 @@ export default function AddNewLanguage({
   };
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
     const validExpressions = expressions.filter(
       (e) => e.word.trim() || e.meaning.trim() || e.example.trim(),
     );
 
     if (validExpressions.length === 0) return;
+    submittingRef.current = true;
+    setSubmitting(true);
 
     const recordData: LanguageFormData = {
       images,
@@ -78,10 +83,15 @@ export default function AddNewLanguage({
       })),
     };
 
-    if (onSubmit) {
-      await onSubmit(recordData);
-    } else {
-      onCancel();
+    try {
+      if (onSubmit) {
+        await onSubmit(recordData);
+      } else {
+        onCancel();
+      }
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
     }
   };
 
@@ -279,12 +289,15 @@ export default function AddNewLanguage({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={expressions.every(
-              (e) => !e.word.trim() && !e.meaning.trim() && !e.example.trim(),
-            )}
+            disabled={
+              submitting ||
+              expressions.every(
+                (e) => !e.word.trim() && !e.meaning.trim() && !e.example.trim(),
+              )
+            }
             className="flex-1 py-4 px-4 rounded-xl bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
-            기록 추가하기
+            {submitting ? "저장 중..." : "기록 추가하기"}
           </button>
         </div>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Loader2, ExternalLink } from "lucide-react";
 import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
 import type { RecordingRecordData, Json } from "@/types/supabase";
@@ -27,6 +27,7 @@ export default function RecordingContainer({
   const [records, setRecords] = useState<RecordingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [showForm, setShowForm] = useState(false);
 
   // 폼 상태
@@ -64,27 +65,33 @@ export default function RecordingContainer({
   };
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
     if (!content.trim() || !link.trim()) return;
 
+    submittingRef.current = true;
     setSubmitting(true);
 
-    const today = new Date().toISOString().split("T")[0];
-    const recordData: RecordingRecordData = {
-      content: content.trim(),
-      link: link.trim(),
-    };
-    const { error } = await createRitualRecordAuto({
-      routineType: "recording",
-      recordDate: today,
-      recordData: recordData as unknown as Json,
-    });
-    setSubmitting(false);
-    if (error) {
-      alert(`기록 저장 실패: ${error}`);
-      return;
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const recordData: RecordingRecordData = {
+        content: content.trim(),
+        link: link.trim(),
+      };
+      const { error } = await createRitualRecordAuto({
+        routineType: "recording",
+        recordDate: today,
+        recordData: recordData as unknown as Json,
+      });
+      if (error) {
+        alert(`기록 저장 실패: ${error}`);
+        return;
+      }
+      resetForm();
+      fetchRecords();
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
     }
-    resetForm();
-    fetchRecords();
   };
 
   const formatTime = (sec: number) => {

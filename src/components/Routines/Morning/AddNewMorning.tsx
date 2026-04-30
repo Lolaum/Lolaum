@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Upload, X } from "lucide-react";
 import { applyTimestamp, fileToBase64 } from "@/lib/utils";
 import {
@@ -20,6 +20,8 @@ export default function AddNewMorning({
   const [condition, setCondition] = useState<ConditionLevel | "">("");
   const [success, setSuccess] = useState("");
   const [reflection, setReflection] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   const sleepHoursNum = sleepHours ? parseFloat(sleepHours) : NaN;
   const showSleepImprovement = !Number.isNaN(sleepHoursNum) && sleepHoursNum < 7;
@@ -44,7 +46,9 @@ export default function AddNewMorning({
     (!showSleepImprovement || sleepImprovement.trim().length > 0);
 
   const handleSubmit = async () => {
-    if (!isValid) return;
+    if (submittingRef.current || !isValid) return;
+    submittingRef.current = true;
+    setSubmitting(true);
 
     const recordData: MorningFormData = {
       image,
@@ -57,10 +61,15 @@ export default function AddNewMorning({
         : {}),
     };
 
-    if (onSubmit) {
-      await onSubmit(recordData);
-    } else {
-      onCancel();
+    try {
+      if (onSubmit) {
+        await onSubmit(recordData);
+      } else {
+        onCancel();
+      }
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
     }
   };
 
@@ -251,10 +260,10 @@ export default function AddNewMorning({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={!isValid}
+            disabled={!isValid || submitting}
             className="flex-1 py-4 px-4 rounded-xl bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
-            기록 추가하기
+            {submitting ? "저장 중..." : "기록 추가하기"}
           </button>
         </div>
       </div>

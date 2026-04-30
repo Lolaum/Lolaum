@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { ChevronDown, Quote, FileText, Trash2, Camera } from "lucide-react";
 import {
   BookDetailProps,
@@ -35,6 +35,7 @@ function AddReadingRecord({
   const [thoughts, setThoughts] = useState("");
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   const handleScreenshot = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -57,7 +58,8 @@ function AddReadingRecord({
   const canSave = isEnglishBook ? screenshot !== null : note.trim().length > 0;
 
   const handleSave = async () => {
-    if (submitting || !canSave) return;
+    if (submittingRef.current || !canSave) return;
+    submittingRef.current = true;
     setSubmitting(true);
     const today = new Date().toISOString().split("T")[0];
     try {
@@ -73,6 +75,7 @@ function AddReadingRecord({
         screenshot: isEnglishBook && screenshot ? screenshot : undefined,
       });
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };

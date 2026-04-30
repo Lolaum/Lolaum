@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Upload, X, Info } from "lucide-react";
 import { applyTimestamp, fileToBase64 } from "@/lib/utils";
 import {
@@ -26,6 +26,8 @@ export default function AddNewExercise({
   const [macros, setMacros] = useState<string | null>(null);
   const [customMacros, setCustomMacros] = useState("");
   const [achievement, setAchievement] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -52,7 +54,9 @@ export default function AddNewExercise({
     (recordType === "exercise" ? finalDuration > 0 : !!finalMacros);
 
   const handleSubmit = async () => {
-    if (!canSubmit) return;
+    if (submittingRef.current || !canSubmit) return;
+    submittingRef.current = true;
+    setSubmitting(true);
 
     const recordData: ExerciseFormData = {
       recordType,
@@ -63,10 +67,15 @@ export default function AddNewExercise({
       achievement: achievement.trim(),
     };
 
-    if (onSubmit) {
-      await onSubmit(recordData);
-    } else {
-      onCancel();
+    try {
+      if (onSubmit) {
+        await onSubmit(recordData);
+      } else {
+        onCancel();
+      }
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
     }
   };
 
@@ -353,10 +362,10 @@ export default function AddNewExercise({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={!canSubmit}
+            disabled={!canSubmit || submitting}
             className="flex-1 py-4 px-4 rounded-xl bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
-            기록 추가하기
+            {submitting ? "저장 중..." : "기록 추가하기"}
           </button>
         </div>
       </div>
