@@ -105,12 +105,15 @@ export default function FeedContainer() {
         <p className="text-xs text-gray-400 font-medium mb-0.5">
           팀원들의 기록
         </p>
-        <h1 className="text-xl font-bold text-gray-900">인증 피드</h1>
+        <h1 className="text-xl font-bold text-gray-900">인증 게시글</h1>
       </div>
 
       {/* 닉네임 검색 */}
       <div className="relative mb-4">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Search
+          size={16}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+        />
         <input
           type="text"
           value={searchInput}
@@ -157,9 +160,7 @@ export default function FeedContainer() {
             <p className="text-sm">아직 피드가 없습니다.</p>
           </div>
         ) : (
-          feedData.map((feed) => (
-            <FeedItem key={String(feed.id)} item={feed} />
-          ))
+          feedData.map((feed) => <FeedItem key={String(feed.id)} item={feed} />)
         )}
       </div>
 
