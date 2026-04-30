@@ -180,7 +180,7 @@ export default function Profile({
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-gray-900 truncate">{userName || savedName}</p>
+          <p className="text-sm font-bold text-gray-900 truncate">{savedName || userName}</p>
         </div>
         <div className="flex items-center gap-1 bg-yellow-50 rounded-full px-2.5 py-1 flex-shrink-0">
           <Flame size={12} className="text-yellow-500" />
