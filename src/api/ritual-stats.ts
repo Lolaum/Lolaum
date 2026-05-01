@@ -841,7 +841,9 @@ export async function getHomeStats(): Promise<{
       .from("todos")
       .select("todo_date, completed")
       .eq("user_id", user.id)
-      .eq("completed", true),
+      .eq("completed", true)
+      .gte("todo_date", period.start_date)
+      .lte("todo_date", period.end_date),
   ]);
 
   const currentRecords = currentRes.data ?? [];
