@@ -175,7 +175,8 @@ export default function LanguageContainer({
         <button
           type="button"
           onClick={() => setShowStudyPhrase(true)}
-          className="w-full flex items-center justify-between bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+          disabled={totalExpressions === 0}
+          className="w-full flex items-center justify-between bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-sm disabled:hover:translate-y-0"
         >
           <div className="flex items-center gap-3">
             <div
@@ -191,7 +192,11 @@ export default function LanguageContainer({
               <p className="text-sm font-semibold text-gray-900">
                 단어 카드로 복습하기
               </p>
-              <p className="text-xs text-gray-400 mt-0.5">{totalExpressions}개의 표현</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {totalExpressions === 0
+                  ? "기록된 표현이 없어요"
+                  : `${totalExpressions}개의 표현`}
+              </p>
             </div>
           </div>
           <svg

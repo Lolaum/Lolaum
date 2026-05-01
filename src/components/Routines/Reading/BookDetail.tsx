@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ChevronDown, Quote, FileText, Trash2, Camera } from "lucide-react";
+import { ChevronDown, Quote, FileText, Trash2, Camera, Pencil } from "lucide-react";
 import {
   BookDetailProps,
   DailyReadingRecord,
@@ -331,6 +331,11 @@ export default function BookDetail({
   const [expandedIds, setExpandedIds] = useState<number[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editTitle, setEditTitle] = useState(book.title);
+  const [editAuthor, setEditAuthor] = useState(book.author);
+  const [editTotalValue, setEditTotalValue] = useState(book.totalValue.toString());
+  const [savingEdit, setSavingEdit] = useState(false);
 
   // DB에서 이 책의 기존 기록 불러오기
   const fetchRecords = useCallback(async () => {
@@ -431,6 +436,51 @@ export default function BookDetail({
     setDeleting(false);
   };
 
+  const openEdit = () => {
+    setEditTitle(book.title);
+    setEditAuthor(book.author);
+    setEditTotalValue(book.totalValue.toString());
+    setShowEdit(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!onUpdate) return;
+    const trimmedTitle = editTitle.trim();
+    const trimmedAuthor = editAuthor.trim();
+    if (!trimmedTitle || !trimmedAuthor) {
+      alert("제목과 작가를 입력해주세요.");
+      return;
+    }
+    const input: {
+      title?: string;
+      author?: string;
+      totalValue?: number;
+      currentValue?: number;
+    } = {};
+    if (trimmedTitle !== book.title) input.title = trimmedTitle;
+    if (trimmedAuthor !== book.author) input.author = trimmedAuthor;
+    if (!isPercent) {
+      const total = Number(editTotalValue);
+      if (!Number.isFinite(total) || total <= 0) {
+        alert("총 페이지 수는 1 이상이어야 합니다.");
+        return;
+      }
+      if (total !== book.totalValue) {
+        input.totalValue = total;
+        // 현재 페이지가 새 총 페이지를 넘으면 같이 줄여준다
+        if (book.currentValue > total) input.currentValue = total;
+      }
+    }
+    if (Object.keys(input).length === 0) {
+      setShowEdit(false);
+      return;
+    }
+    setSavingEdit(true);
+    await onUpdate(book.id, input);
+    setSavingEdit(false);
+    setShowEdit(false);
+  };
+
   const formatDate = (dateStr: string) => {
     const [, month, day] = dateStr.split("-");
     return `${month}월 ${day}일`;
@@ -497,18 +547,97 @@ export default function BookDetail({
         </button>
       </div>
 
-      {/* 헤더: 책 제목 + 삭제 버튼 */}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-gray-900">{book.title}</h1>
-        <button
-          type="button"
-          onClick={() => setShowDeleteConfirm(true)}
-          className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-        >
-          <Trash2 className="w-4 h-4" />
-          삭제
-        </button>
+      {/* 헤더: 책 제목 + 수정/삭제 버튼 */}
+      <div className="flex items-center justify-between mb-4 gap-2">
+        <h1 className="text-xl font-bold text-gray-900 flex-1 min-w-0 truncate">
+          {book.title}
+        </h1>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button
+            type="button"
+            onClick={openEdit}
+            className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <Pencil className="w-4 h-4" />
+            수정
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            삭제
+          </button>
+        </div>
       </div>
+
+      {/* 수정 모달 */}
+      {showEdit && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
+              책 정보 수정
+            </h3>
+            <div className="space-y-3 mb-6">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  제목
+                </label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  작가
+                </label>
+                <input
+                  type="text"
+                  value={editAuthor}
+                  onChange={(e) => setEditAuthor(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900"
+                />
+              </div>
+              {!isPercent && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                    총 페이지
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={editTotalValue}
+                    onChange={(e) => setEditTotalValue(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900"
+                  />
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowEdit(false)}
+                disabled={savingEdit}
+                className="flex-1 py-3 px-4 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleEditSave}
+                disabled={savingEdit}
+                className="flex-1 py-3 px-4 rounded-xl bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors disabled:bg-gray-300"
+              >
+                {savingEdit ? "저장 중..." : "저장하기"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 삭제 확인 모달 */}
       {showDeleteConfirm && (

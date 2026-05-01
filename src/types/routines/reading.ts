@@ -85,6 +85,7 @@ export interface BookDetailProps {
     title?: string;
     author?: string;
     currentValue?: number;
+    totalValue?: number;
     isCompleted?: boolean;
   }) => void | Promise<void>;
   isEnglishBook?: boolean;

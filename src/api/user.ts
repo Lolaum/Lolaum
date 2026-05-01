@@ -1,6 +1,8 @@
 "use server";
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getActivePeriod } from "@/lib/current-challenge";
 import type { Profile } from "@/types/supabase";
 
 export async function getMe(): Promise<Profile | null> {
@@ -48,25 +50,24 @@ export interface ChallengerSummary {
 }
 
 /**
- * 이번 달 챌린지에 참여 중인 모든 유저의 프로필 정보를 가져온다.
- * (challenges 테이블에 이번 year/month 챌린지가 있는 모든 user_id 기준)
+ * 활성 챌린지 기간에 참여 중인 모든 유저의 프로필 정보를 가져온다.
+ * 진행표(getProgressPageData)와 동일하게 period_id 기준 + admin 클라이언트로 조회해
+ * RLS와 무관하게 동일한 챌린저 집합을 반환한다.
  */
 export async function getCurrentChallengers(): Promise<{
   data?: ChallengerSummary[];
   error?: string;
 }> {
-  const supabase = await createClient();
   const currentUser = await getCurrentUser();
 
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
+  const { period, error: periodError } = await getActivePeriod();
+  if (!period) return { error: periodError ?? "활성 챌린지 기간이 없습니다." };
 
-  const { data, error } = await supabase
+  const admin = createAdminClient();
+  const { data, error } = await admin
     .from("challenges")
     .select("user_id, profiles!inner(id, name, avatar_url, emoji)")
-    .eq("year", year)
-    .eq("month", month);
+    .eq("period_id", period.id);
 
   if (error) return { error: error.message };
 

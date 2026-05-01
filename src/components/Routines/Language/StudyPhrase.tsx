@@ -43,8 +43,8 @@ export default function StudyPhrase({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
 
-  const currentCard = allCards[currentIndex];
   const totalCards = allCards.length;
+  const currentCard = allCards[currentIndex];
 
   const handleNext = () => {
     if (currentIndex < totalCards - 1) {
@@ -63,6 +63,32 @@ export default function StudyPhrase({
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
   };
+
+  if (totalCards === 0) {
+    return (
+      <div
+        className="fixed inset-0 flex items-center justify-center z-50"
+        style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+      >
+        <div className="w-full max-w-md mx-4 bg-white rounded-3xl p-8 text-center">
+          <p className="text-base font-semibold text-gray-900 mb-2">
+            아직 기록된 표현이 없어요
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            오늘 학습 기록을 추가하고 단어 카드로 복습해보세요!
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-3 rounded-xl text-white text-sm font-medium transition-all hover:brightness-110"
+            style={{ backgroundColor: accentColor }}
+          >
+            닫기
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
