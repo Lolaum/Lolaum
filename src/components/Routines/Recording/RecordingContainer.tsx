@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, ExternalLink, X, Plus } from "lucide-react";
 import LinkifiedText from "@/components/common/LinkifiedText";
 import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
@@ -13,9 +14,8 @@ import {
 } from "@/types/supabase";
 
 interface RecordingContainerProps {
+  mode?: "main" | "new";
   elapsedSeconds?: number;
-  onBackToTimer: () => void;
-  onBackToHome: () => void;
 }
 
 interface RecordingRecord {
@@ -53,21 +53,22 @@ const isEntryValid = (e: RecordingEntry): boolean => {
 };
 
 export default function RecordingContainer({
+  mode = "main",
   elapsedSeconds = 0,
-  onBackToTimer,
-  onBackToHome,
 }: RecordingContainerProps) {
+  const router = useRouter();
   const [records, setRecords] = useState<RecordingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
-  const [showForm, setShowForm] = useState(false);
 
   // 폼 상태: 모드(글 작성/글 읽기 대체) + 항목 묶음
-  // - write 모드: entries는 항상 길이 1 (단일 항목)
-  // - read 모드: entries는 1개 이상 (여러 항목 추가 가능)
-  const [mode, setMode] = useState<RecordingMode>("write");
+  const [formMode, setFormMode] = useState<RecordingMode>("write");
   const [entries, setEntries] = useState<RecordingEntry[]>([emptyWrite()]);
+
+  const goHome = () => router.push("/home");
+  const goMain = () => router.push("/home/recording");
+  const goNew = () => router.push("/home/recording/new");
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -89,18 +90,12 @@ export default function RecordingContainer({
   }, []);
 
   useEffect(() => {
-    fetchRecords();
-  }, [fetchRecords]);
+    if (mode === "main") fetchRecords();
+  }, [fetchRecords, mode]);
 
-  const resetForm = () => {
-    setMode("write");
-    setEntries([emptyWrite()]);
-    setShowForm(false);
-  };
-
-  const switchMode = (next: RecordingMode) => {
-    if (next === mode) return;
-    setMode(next);
+  const switchFormMode = (next: RecordingMode) => {
+    if (next === formMode) return;
+    setFormMode(next);
     setEntries([next === "write" ? emptyWrite() : emptyRead()]);
   };
 
@@ -156,8 +151,7 @@ export default function RecordingContainer({
         alert(`기록 저장 실패: ${error}`);
         return;
       }
-      resetForm();
-      fetchRecords();
+      goMain();
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -170,21 +164,21 @@ export default function RecordingContainer({
     return `${m}분 ${s}초`;
   };
 
-  if (showForm) {
+  if (mode === "new") {
     return (
       <div className="w-full max-w-2xl mx-auto px-4 py-4">
         {/* 네비게이션 */}
         <div className="flex items-center justify-between mb-4">
           <button
             type="button"
-            onClick={() => setShowForm(false)}
+            onClick={goMain}
             className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
           >
             ← 뒤로
           </button>
           <button
             type="button"
-            onClick={onBackToHome}
+            onClick={goHome}
             className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -199,9 +193,9 @@ export default function RecordingContainer({
         <div className="flex gap-2 mb-5">
           <button
             type="button"
-            onClick={() => switchMode("write")}
+            onClick={() => switchFormMode("write")}
             className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors ${
-              mode === "write"
+              formMode === "write"
                 ? "bg-rose-500 text-white"
                 : "bg-gray-100 text-gray-500 hover:bg-gray-200"
             }`}
@@ -210,9 +204,9 @@ export default function RecordingContainer({
           </button>
           <button
             type="button"
-            onClick={() => switchMode("read")}
+            onClick={() => switchFormMode("read")}
             className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors ${
-              mode === "read"
+              formMode === "read"
                 ? "bg-rose-500 text-white"
                 : "bg-gray-100 text-gray-500 hover:bg-gray-200"
             }`}
@@ -227,8 +221,8 @@ export default function RecordingContainer({
               key={idx}
               index={idx}
               entry={entry}
-              canRemove={mode === "read" && entries.length > 1}
-              showIndex={mode === "read"}
+              canRemove={formMode === "read" && entries.length > 1}
+              showIndex={formMode === "read"}
               onChange={(patch) => updateEntry(idx, patch)}
               onRemove={() => removeEntry(idx)}
             />
@@ -236,7 +230,7 @@ export default function RecordingContainer({
         </div>
 
         {/* 글 읽기 대체 항목 추가 */}
-        {mode === "read" && (
+        {formMode === "read" && (
           <div className="mb-6">
             <button
               type="button"
@@ -268,7 +262,7 @@ export default function RecordingContainer({
       <div className="flex items-center justify-end mb-4">
         <button
           type="button"
-          onClick={onBackToHome}
+          onClick={goHome}
           className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
         >
           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -320,7 +314,7 @@ export default function RecordingContainer({
       <div className="mb-4">
         <button
           type="button"
-          onClick={() => setShowForm(true)}
+          onClick={goNew}
           className="w-full py-3 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
           style={{ backgroundColor: "#f43f5e" }}
         >

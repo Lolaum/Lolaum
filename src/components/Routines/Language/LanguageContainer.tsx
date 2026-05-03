@@ -1,27 +1,28 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Grid3x3, Loader2 } from "lucide-react";
 import RecordStudy from "./RecordStudy";
 import AddNewLanguage from "./AddNewLanguage";
 import StudyPhrase from "./StudyPhrase";
 import {
   LanguageRecord,
-  LanguageContainerProps,
   LanguageFormData,
 } from "@/types/routines/language";
 import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
 import type { LanguageRecordData, Json, RoutineTypeDB } from "@/types/supabase";
 
+interface LanguageContainerProps {
+  mode?: "main" | "new";
+  languageType?: "영어" | "제2외국어";
+}
+
 export default function LanguageContainer({
-  onBackToTimer,
-  onBackToHome,
+  mode = "main",
   languageType = "영어",
-  certificationPhotos,
 }: LanguageContainerProps) {
-  const [showAddRecord, setShowAddRecord] = useState(
-    !!certificationPhotos?.length,
-  );
+  const router = useRouter();
   const [showStudyPhrase, setShowStudyPhrase] = useState(false);
   const [languageRecords, setLanguageRecords] = useState<LanguageRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +31,11 @@ export default function LanguageContainer({
   const accentColor = isEnglish ? "#0ea5e9" : "#10b981";
   const accentBg = isEnglish ? "#f0f9ff" : "#ecfdf5";
   const routineType: RoutineTypeDB = isEnglish ? "english" : "second_language";
+  const basePath = isEnglish ? "/home/english" : "/home/second-language";
+
+  const goHome = () => router.push("/home");
+  const goMain = () => router.push(basePath);
+  const goNew = () => router.push(`${basePath}/new`);
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -52,8 +58,8 @@ export default function LanguageContainer({
   }, [routineType]);
 
   useEffect(() => {
-    fetchRecords();
-  }, [fetchRecords]);
+    if (mode === "main") fetchRecords();
+  }, [fetchRecords, mode]);
 
   const handleSubmit = async (formData: LanguageFormData) => {
     const today = new Date().toISOString().split("T")[0];
@@ -61,7 +67,6 @@ export default function LanguageContainer({
       achievement: formData.achievement,
       expressions: formData.expressions,
       images: formData.images,
-      certPhotos: certificationPhotos?.length ? certificationPhotos : undefined,
     };
     const { error } = await createRitualRecordAuto({
       routineType,
@@ -72,11 +77,9 @@ export default function LanguageContainer({
       alert(`기록 저장 실패: ${error}`);
       return;
     }
-    setShowAddRecord(false);
-    fetchRecords();
+    goMain();
   };
 
-  // 이번 달 학습한 날 & 총 표현 수 계산
   // 학습일은 같은 날 여러 기록이 있어도 1일로 카운트 (record_date 기준 unique)
   const studiedDays = new Set(languageRecords.map((r) => r.date)).size;
   const totalExpressions = languageRecords.reduce(
@@ -84,48 +87,27 @@ export default function LanguageContainer({
     0,
   );
 
-  const renderContent = () => {
-    // 새 기록 추가하기 화면
-    if (showAddRecord) {
-      return (
+  if (mode === "new") {
+    return (
+      <div className="w-full max-w-2xl mx-auto px-4 py-4">
         <AddNewLanguage
-          onCancel={() => setShowAddRecord(false)}
-          onBackToHome={onBackToHome}
+          onCancel={goMain}
+          onBackToHome={goHome}
           onSubmit={handleSubmit}
-          initialImages={certificationPhotos}
           languageType={languageType}
         />
-      );
-    }
+      </div>
+    );
+  }
 
-    // 메인 화면
-    return (
-      <>
+  return (
+    <>
+      <div className="w-full max-w-2xl mx-auto px-4 py-4">
         {/* 네비게이션 */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-end mb-4">
           <button
             type="button"
-            onClick={onBackToTimer}
-            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-            돌아가기
-          </button>
-          <button
-            type="button"
-            onClick={onBackToHome}
+            onClick={goHome}
             className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
           >
             <svg
@@ -219,7 +201,7 @@ export default function LanguageContainer({
         <div className="mb-4">
           <button
             type="button"
-            onClick={() => setShowAddRecord(true)}
+            onClick={goNew}
             className="w-full py-3 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
             style={{ backgroundColor: accentColor }}
           >
@@ -236,14 +218,6 @@ export default function LanguageContainer({
         ) : (
           <RecordStudy languageRecords={languageRecords} />
         )}
-      </>
-    );
-  };
-
-  return (
-    <>
-      <div className="w-full max-w-2xl mx-auto px-4 py-4">
-        {renderContent()}
       </div>
       {showStudyPhrase && (
         <StudyPhrase

@@ -1,21 +1,27 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Calendar, Loader2 } from "lucide-react";
 import RecordMorning from "./RecordMorning";
 import AddNewMorning from "./AddNewMorning";
-import { MorningRecord, MorningContainerProps, MorningFormData } from "@/types/routines/morning";
+import { MorningRecord, MorningFormData } from "@/types/routines/morning";
 import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
 import type { MorningRecordData, Json } from "@/types/supabase";
 
-export default function MorningContainer({
-  onBackToTimer,
-  onBackToHome,
-}: MorningContainerProps) {
-  const [showAddRecord, setShowAddRecord] = useState(false);
+interface MorningContainerProps {
+  mode?: "main" | "new";
+}
+
+export default function MorningContainer({ mode = "main" }: MorningContainerProps) {
+  const router = useRouter();
   const [morningRecords, setMorningRecords] = useState<MorningRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  const goHome = () => router.push("/home");
+  const goMain = () => router.push("/home/morning");
+  const goNew = () => router.push("/home/morning/new");
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -41,8 +47,8 @@ export default function MorningContainer({
   }, []);
 
   useEffect(() => {
-    fetchRecords();
-  }, [fetchRecords]);
+    if (mode === "main") fetchRecords();
+  }, [fetchRecords, mode]);
 
   const handleSubmit = async (formData: MorningFormData) => {
     setSubmitting(true);
@@ -65,11 +71,9 @@ export default function MorningContainer({
       alert(`기록 저장 실패: ${error}`);
       return;
     }
-    setShowAddRecord(false);
-    fetchRecords();
+    goMain();
   };
 
-  // 이번 달 통계 계산
   // "기록한 날"은 같은 날 여러 기록이 있어도 1일로 카운트 (record_date 기준 unique)
   const recordedDays = new Set(morningRecords.map((r) => r.date)).size;
   const recordCount = morningRecords.length;
@@ -77,95 +81,88 @@ export default function MorningContainer({
     ? (morningRecords.reduce((sum, record) => sum + record.sleepHours, 0) / recordCount).toFixed(1)
     : "0";
 
-  const renderContent = () => {
-    // 새 기록 추가하기 화면
-    if (showAddRecord) {
-      return (
+  if (mode === "new") {
+    return (
+      <div className="w-full max-w-2xl mx-auto px-4 py-4">
         <AddNewMorning
-          onCancel={() => setShowAddRecord(false)}
-          onBackToHome={onBackToHome}
+          onCancel={goMain}
+          onBackToHome={goHome}
           onSubmit={handleSubmit}
         />
-      );
-    }
-
-    // 메인 화면
-    return (
-      <>
-        {/* 네비게이션 */}
-        <div className="flex items-center justify-end mb-4">
-          <button
-            type="button"
-            onClick={onBackToHome}
-            className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* 헤더 */}
-        <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-4">
-          <p className="text-xs text-gray-400 font-medium mb-0.5">모닝 리추얼</p>
-          <h1 className="text-lg font-bold text-gray-900 mb-4">오늘 하루를 시작해요</h1>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-yellow-50 rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold text-gray-900">{recordedDays}</p>
-              <p className="text-xs text-gray-400 mt-0.5">기록한 날</p>
-            </div>
-            <div className="bg-yellow-50 rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold text-gray-900">{averageSleepHours}<span className="text-sm font-medium">h</span></p>
-              <p className="text-xs text-gray-400 mt-0.5">평균 수면</p>
-            </div>
-          </div>
-        </div>
-
-        {/* 구글밋 링크 */}
-        <button
-          type="button"
-          className="w-full flex items-center gap-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
-        >
-          <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Calendar className="w-5 h-5 text-white" />
-          </div>
-          <div className="text-left flex-1">
-            <p className="text-sm font-semibold text-gray-900">모닝리추얼 구글밋 참여</p>
-            <p className="text-xs text-gray-400 mt-0.5">클릭하여 구글 미트에 참여하세요</p>
-          </div>
-          <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-
-        {/* 기록 추가 버튼 */}
-        <div className="mb-4">
-          <button
-            type="button"
-            onClick={() => setShowAddRecord(true)}
-            className="w-full py-3 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
-            style={{ backgroundColor: "#eab32e" }}
-          >
-            + 오늘 모닝 기록하기
-          </button>
-        </div>
-
-        {/* 모닝 기록 섹션 */}
-        {loading ? (
-          <div className="text-center py-8 text-gray-400">
-            <Loader2 size={20} className="animate-spin mx-auto mb-2" />
-            <p className="text-xs">기록을 불러오는 중...</p>
-          </div>
-        ) : (
-          <RecordMorning morningRecords={morningRecords} />
-        )}
-      </>
+      </div>
     );
-  };
+  }
 
   return (
     <div className="w-full max-w-2xl mx-auto px-4 py-4">
-      {renderContent()}
+      {/* 네비게이션 */}
+      <div className="flex items-center justify-end mb-4">
+        <button
+          type="button"
+          onClick={goHome}
+          className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+        >
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      {/* 헤더 */}
+      <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-4">
+        <p className="text-xs text-gray-400 font-medium mb-0.5">모닝 리추얼</p>
+        <h1 className="text-lg font-bold text-gray-900 mb-4">오늘 하루를 시작해요</h1>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-yellow-50 rounded-xl p-3 text-center">
+            <p className="text-2xl font-bold text-gray-900">{recordedDays}</p>
+            <p className="text-xs text-gray-400 mt-0.5">기록한 날</p>
+          </div>
+          <div className="bg-yellow-50 rounded-xl p-3 text-center">
+            <p className="text-2xl font-bold text-gray-900">{averageSleepHours}<span className="text-sm font-medium">h</span></p>
+            <p className="text-xs text-gray-400 mt-0.5">평균 수면</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 구글밋 링크 */}
+      <button
+        type="button"
+        className="w-full flex items-center gap-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+      >
+        <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
+          <Calendar className="w-5 h-5 text-white" />
+        </div>
+        <div className="text-left flex-1">
+          <p className="text-sm font-semibold text-gray-900">모닝리추얼 구글밋 참여</p>
+          <p className="text-xs text-gray-400 mt-0.5">클릭하여 구글 미트에 참여하세요</p>
+        </div>
+        <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+
+      {/* 기록 추가 버튼 */}
+      <div className="mb-4">
+        <button
+          type="button"
+          onClick={goNew}
+          disabled={submitting}
+          className="w-full py-3 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50"
+          style={{ backgroundColor: "#eab32e" }}
+        >
+          + 오늘 모닝 기록하기
+        </button>
+      </div>
+
+      {/* 모닝 기록 섹션 */}
+      {loading ? (
+        <div className="text-center py-8 text-gray-400">
+          <Loader2 size={20} className="animate-spin mx-auto mb-2" />
+          <p className="text-xs">기록을 불러오는 중...</p>
+        </div>
+      ) : (
+        <RecordMorning morningRecords={morningRecords} />
+      )}
     </div>
   );
 }
