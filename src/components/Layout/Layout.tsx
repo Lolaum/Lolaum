@@ -42,6 +42,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const handleLogout = async () => {
     await logout();
+    router.refresh();
     router.push("/login");
   };
 

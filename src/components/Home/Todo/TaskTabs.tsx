@@ -89,7 +89,7 @@ export default function TaskTabs({
           {
             label: "최종회고",
             icon: Trophy,
-            onClick: undefined,
+            onClick: () => router.push("/final-review"),
           },
         ].map(({ label, icon: Icon, onClick }) => (
           <button

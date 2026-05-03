@@ -386,6 +386,38 @@ export interface Database {
         };
         Relationships: [];
       };
+      final_reviews: {
+        Row: {
+          id: string;
+          user_id: string;
+          challenge_id: string;
+          results: string;
+          life_changes: string;
+          continuation_choice: "keep" | "adjust";
+          adjustment_note: string;
+          feedback: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          challenge_id: string;
+          results: string;
+          life_changes: string;
+          continuation_choice: "keep" | "adjust";
+          adjustment_note?: string;
+          feedback?: string;
+          created_at?: string;
+        };
+        Update: {
+          results?: string;
+          life_changes?: string;
+          continuation_choice?: "keep" | "adjust";
+          adjustment_note?: string;
+          feedback?: string;
+        };
+        Relationships: [];
+      };
       todos: {
         Row: {
           id: string;
@@ -433,6 +465,8 @@ export type FeedComment =
 export type Declaration =
   Database["public"]["Tables"]["declarations"]["Row"];
 export type MidReviewDB = Database["public"]["Tables"]["mid_reviews"]["Row"];
+export type FinalReviewDB =
+  Database["public"]["Tables"]["final_reviews"]["Row"];
 export type DailyCompletion =
   Database["public"]["Tables"]["daily_completions"]["Row"];
 export type Todo = Database["public"]["Tables"]["todos"]["Row"];
@@ -492,10 +526,76 @@ export interface FinanceRecordData {
   certPhotos?: string[];
 }
 
+export type RecordingMode = "write" | "read";
+
+export interface RecordingWriteEntry {
+  type: "write";
+  content: string; // 오늘의 주제 (글 or 영상 제목)
+  link?: string; // 작성 링크
+  duration?: number; // 작성에 걸린 시간 (분)
+}
+
+export interface RecordingReadEntry {
+  type: "read";
+  readSourceTitle: string; // 오늘 읽은 다른 챌린저 글
+  readResonatedPart: string; // 마음에 닿은 부분
+  readReason: string; // 마음에 닿았던 이유, 닮고 싶은 부분
+}
+
+export type RecordingEntry = RecordingWriteEntry | RecordingReadEntry;
+
 export interface RecordingRecordData {
-  content: string;
+  // 신규: 여러 항목 묶음
+  entries?: RecordingEntry[];
+  // 레거시 단일 항목 필드 (하위 호환)
+  recordType?: RecordingMode;
+  content?: string;
   link?: string;
+  duration?: number;
+  readSourceTitle?: string;
+  readResonatedPart?: string;
+  readReason?: string;
   certPhotos?: string[];
+}
+
+export function normalizeRecordingEntries(
+  d: Pick<
+    RecordingRecordData,
+    | "entries"
+    | "recordType"
+    | "content"
+    | "link"
+    | "duration"
+    | "readSourceTitle"
+    | "readResonatedPart"
+    | "readReason"
+  >,
+): RecordingEntry[] {
+  if (d.entries && d.entries.length > 0) return d.entries;
+  if (d.recordType === "read") {
+    if (d.readSourceTitle || d.readResonatedPart || d.readReason) {
+      return [
+        {
+          type: "read",
+          readSourceTitle: d.readSourceTitle ?? "",
+          readResonatedPart: d.readResonatedPart ?? "",
+          readReason: d.readReason ?? "",
+        },
+      ];
+    }
+    return [];
+  }
+  if (d.content || d.link || d.duration) {
+    return [
+      {
+        type: "write",
+        content: d.content ?? "",
+        link: d.link,
+        duration: d.duration,
+      },
+    ];
+  }
+  return [];
 }
 
 // routine_type 한글-영문 매핑

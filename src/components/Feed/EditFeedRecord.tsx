@@ -11,7 +11,9 @@ import {
   LanguageFeedData,
   ReadingFeedData,
   RecordingFeedData,
+  RecordingEntry,
   RoutineCategory,
+  normalizeRecordingFeedEntries,
 } from "@/types/feed";
 import { ExpenseItem, ExpenseType } from "@/types/routines/finance";
 import { updateRitualRecord } from "@/api/ritual-record";
@@ -66,7 +68,9 @@ export default function EditFeedRecord({ item, onCancel }: Props) {
       : null,
   );
   const [recordingDraft, setRecordingDraft] = useState<RecordingFeedData | null>(
-    item.routineCategory === "기록" && data ? { ...(data as RecordingFeedData) } : null,
+    item.routineCategory === "기록" && data
+      ? { entries: normalizeRecordingFeedEntries(data as RecordingFeedData) }
+      : null,
   );
 
   if (!data || !recordId) {
@@ -630,26 +634,204 @@ function RecordingEditor({
   draft: RecordingFeedData;
   onChange: (d: RecordingFeedData) => void;
 }) {
+  const entries = draft.entries ?? [];
+  // 모드 추론: 첫 entry 타입을 기준으로 (없으면 write 기본)
+  const mode: "write" | "read" = entries[0]?.type ?? "write";
+
+  const switchMode = (next: "write" | "read") => {
+    if (next === mode) return;
+    const newEntry: RecordingEntry =
+      next === "write"
+        ? { type: "write", content: "", link: "", duration: undefined }
+        : {
+            type: "read",
+            readSourceTitle: "",
+            readResonatedPart: "",
+            readReason: "",
+          };
+    onChange({ ...draft, entries: [newEntry] });
+  };
+
+  const updateEntry = (index: number, patch: Partial<RecordingEntry>) => {
+    onChange({
+      ...draft,
+      entries: entries.map((e, i) =>
+        i === index ? ({ ...e, ...patch } as RecordingEntry) : e,
+      ),
+    });
+  };
+
+  const removeEntry = (index: number) => {
+    onChange({
+      ...draft,
+      entries: entries.filter((_, i) => i !== index),
+    });
+  };
+
+  const addReadEntry = () => {
+    onChange({
+      ...draft,
+      entries: [
+        ...entries,
+        {
+          type: "read",
+          readSourceTitle: "",
+          readResonatedPart: "",
+          readReason: "",
+        },
+      ],
+    });
+  };
+
   return (
     <div className="space-y-3">
-      <div>
-        <label className={fieldLabel}>내용</label>
-        <textarea
-          value={draft.content}
-          onChange={(e) => onChange({ ...draft, content: e.target.value })}
-          rows={6}
-          className={textareaCls}
-        />
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => switchMode("write")}
+          className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors ${
+            mode === "write"
+              ? "bg-rose-500 text-white"
+              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+          }`}
+        >
+          글 작성
+        </button>
+        <button
+          type="button"
+          onClick={() => switchMode("read")}
+          className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors ${
+            mode === "read"
+              ? "bg-rose-500 text-white"
+              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+          }`}
+        >
+          글 읽기 대체
+        </button>
       </div>
-      <div>
-        <label className={fieldLabel}>인증 링크</label>
-        <input
-          type="url"
-          value={draft.link ?? ""}
-          onChange={(e) => onChange({ ...draft, link: e.target.value })}
-          className={inputCls}
-        />
-      </div>
+
+      {entries.map((entry, idx) => {
+        const showIndex = mode === "read";
+        const canRemove = mode === "read" && entries.length > 1;
+        return (
+          <div
+            key={idx}
+            className={`rounded-xl border border-gray-200 p-3 ${
+              entry.type === "write" ? "bg-rose-50" : "bg-violet-50"
+            }`}
+          >
+            {(showIndex || canRemove) && (
+              <div className="flex items-center justify-between mb-2">
+                {showIndex ? (
+                  <span className="text-xs text-gray-500 font-semibold">
+                    #{idx + 1}
+                  </span>
+                ) : (
+                  <span />
+                )}
+                {canRemove && (
+                  <button
+                    type="button"
+                    onClick={() => removeEntry(idx)}
+                    className="text-xs text-gray-400 hover:text-red-500"
+                  >
+                    삭제
+                  </button>
+                )}
+              </div>
+            )}
+
+            {entry.type === "write" ? (
+              <div className="space-y-2">
+                <div>
+                  <label className={fieldLabel}>
+                    오늘의 주제(글 or 영상 제목)
+                  </label>
+                  <textarea
+                    value={entry.content}
+                    onChange={(e) => updateEntry(idx, { content: e.target.value })}
+                    rows={3}
+                    className={textareaCls}
+                  />
+                </div>
+                <div>
+                  <label className={fieldLabel}>작성 링크</label>
+                  <input
+                    type="url"
+                    value={entry.link ?? ""}
+                    onChange={(e) => updateEntry(idx, { link: e.target.value })}
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={fieldLabel}>작성에 걸린 시간 (분)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={entry.duration ?? ""}
+                    onChange={(e) =>
+                      updateEntry(idx, {
+                        duration: e.target.value
+                          ? parseInt(e.target.value)
+                          : undefined,
+                      })
+                    }
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div>
+                  <label className={fieldLabel}>오늘 읽은 다른 챌린저 글</label>
+                  <textarea
+                    value={entry.readSourceTitle}
+                    onChange={(e) =>
+                      updateEntry(idx, { readSourceTitle: e.target.value })
+                    }
+                    rows={2}
+                    className={textareaCls}
+                  />
+                </div>
+                <div>
+                  <label className={fieldLabel}>마음에 닿은 부분</label>
+                  <textarea
+                    value={entry.readResonatedPart}
+                    onChange={(e) =>
+                      updateEntry(idx, { readResonatedPart: e.target.value })
+                    }
+                    rows={3}
+                    className={textareaCls}
+                  />
+                </div>
+                <div>
+                  <label className={fieldLabel}>
+                    마음에 닿았던 이유 / 닮고 싶은 부분
+                  </label>
+                  <textarea
+                    value={entry.readReason}
+                    onChange={(e) =>
+                      updateEntry(idx, { readReason: e.target.value })
+                    }
+                    rows={3}
+                    className={textareaCls}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {mode === "read" && (
+        <button
+          type="button"
+          onClick={addReadEntry}
+          className="w-full py-2 rounded-xl text-xs font-bold border-2 border-dashed border-violet-200 text-violet-500 hover:bg-violet-50 transition-colors"
+        >
+          + 글 읽기 대체 추가
+        </button>
+      )}
     </div>
   );
 }

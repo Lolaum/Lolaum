@@ -2,6 +2,39 @@
 
 import { createClient } from "@/lib/supabase/server";
 
+// Supabase Auth 영문 에러 메시지를 한국어로 매핑.
+// 매칭 안 되면 일반 안내 문구로 폴백 (영문 노출 방지).
+function translateAuthError(message: string): string {
+  const lower = message.toLowerCase();
+
+  if (lower.includes("invalid login credentials")) {
+    return "이메일 또는 비밀번호가 올바르지 않습니다.";
+  }
+  if (lower.includes("email not confirmed")) {
+    return "이메일 인증이 완료되지 않았습니다.";
+  }
+  if (lower.includes("user already registered") || lower.includes("already been registered")) {
+    return "이미 가입된 이메일입니다.";
+  }
+  if (lower.includes("password should be at least")) {
+    return "비밀번호는 6자 이상이어야 합니다.";
+  }
+  if (lower.includes("rate limit") || lower.includes("too many requests")) {
+    return "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.";
+  }
+  if (lower.includes("invalid email") || lower.includes("unable to validate email")) {
+    return "올바른 이메일 형식이 아닙니다.";
+  }
+  if (lower.includes("network") || lower.includes("fetch failed")) {
+    return "네트워크 연결을 확인해주세요.";
+  }
+  if (lower.includes("user not found")) {
+    return "등록되지 않은 계정입니다.";
+  }
+
+  return "오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+}
+
 export async function login(data: { email: string; password: string }) {
   const supabase = await createClient();
 
@@ -11,7 +44,7 @@ export async function login(data: { email: string; password: string }) {
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: translateAuthError(error.message) };
   }
 
   return { success: true };
@@ -36,7 +69,7 @@ export async function signup(data: {
   });
 
   if (authError) {
-    return { error: authError.message };
+    return { error: translateAuthError(authError.message) };
   }
 
   if (authData.user) {
@@ -117,7 +150,7 @@ export async function resetPassword(email: string) {
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: translateAuthError(error.message) };
   }
 
   return { success: true };
@@ -135,7 +168,7 @@ export async function updatePassword(newPassword: string) {
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: translateAuthError(error.message) };
   }
 
   return { success: true };
