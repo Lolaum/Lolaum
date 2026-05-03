@@ -20,9 +20,11 @@ export interface DailyExpense {
 // 자산관리 기록
 export interface FinanceRecord {
   id: number;
+  recordDate: string; // 기록 일자 (YYYY-MM-DD) — 같은 날 중복 기록 dedupe용
   dailyExpenses: DailyExpense[]; // 여러 날짜의 소비 기록
   studyContent: string; // 오늘의 자산관리 공부 내용
   practice: string; // 오늘의 실천 (or 다짐)
+  certPhotos?: string[]; // 인증 사진 (최대 2장)
 }
 
 export interface FinanceContainerProps {
@@ -35,6 +37,7 @@ export interface FinanceFormData {
   dailyExpenses: DailyExpense[];
   studyContent: string;
   practice: string;
+  certPhotos?: string[]; // 인증 사진 (최대 2장)
 }
 
 export interface AddNewFinanceProps {

@@ -74,6 +74,7 @@ export interface DailyReadingRecord {
   note: string;
   thoughts?: string;      // 나만의 생각 (선택)
   screenshot?: string;    // 원서읽기 인증 스크린샷 (base64)
+  certPhotos?: string[];  // 독서 인증 사진 (최대 2장)
 }
 
 export interface BookDetailProps {

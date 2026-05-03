@@ -77,7 +77,8 @@ export default function LanguageContainer({
   };
 
   // 이번 달 학습한 날 & 총 표현 수 계산
-  const studiedDays = languageRecords.length;
+  // 학습일은 같은 날 여러 기록이 있어도 1일로 카운트 (record_date 기준 unique)
+  const studiedDays = new Set(languageRecords.map((r) => r.date)).size;
   const totalExpressions = languageRecords.reduce(
     (sum, r) => sum + r.expressionCount,
     0,

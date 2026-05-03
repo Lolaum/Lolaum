@@ -70,6 +70,8 @@ export default function MorningContainer({
   };
 
   // 이번 달 통계 계산
+  // "기록한 날"은 같은 날 여러 기록이 있어도 1일로 카운트 (record_date 기준 unique)
+  const recordedDays = new Set(morningRecords.map((r) => r.date)).size;
   const recordCount = morningRecords.length;
   const averageSleepHours = recordCount > 0
     ? (morningRecords.reduce((sum, record) => sum + record.sleepHours, 0) / recordCount).toFixed(1)
@@ -109,7 +111,7 @@ export default function MorningContainer({
           <h1 className="text-lg font-bold text-gray-900 mb-4">오늘 하루를 시작해요</h1>
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-yellow-50 rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold text-gray-900">{recordCount}</p>
+              <p className="text-2xl font-bold text-gray-900">{recordedDays}</p>
               <p className="text-xs text-gray-400 mt-0.5">기록한 날</p>
             </div>
             <div className="bg-yellow-50 rounded-xl p-3 text-center">

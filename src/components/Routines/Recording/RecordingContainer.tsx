@@ -283,7 +283,9 @@ export default function RecordingContainer({
         <h1 className="text-lg font-bold text-gray-900 mb-4">오늘의 생각을 기록해요</h1>
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-red-50 rounded-xl p-3 text-center">
-            <p className="text-2xl font-bold text-gray-900">{records.length}</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {new Set(records.map((r) => r.date)).size}
+            </p>
             <p className="text-xs text-gray-400 mt-0.5">기록한 날</p>
           </div>
           {elapsedSeconds > 0 && (

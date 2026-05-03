@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ChevronDown, Quote, FileText, Trash2, Camera, Pencil } from "lucide-react";
+import { ChevronDown, Quote, FileText, Trash2, Camera, Pencil, Upload, X } from "lucide-react";
 import {
   BookDetailProps,
   DailyReadingRecord,
@@ -11,8 +11,10 @@ import {
   createRitualRecordAuto,
   getMyRitualRecords,
 } from "@/api/ritual-record";
-import { applyTimestamp } from "@/lib/utils";
+import { applyTimestamp, fileToBase64 } from "@/lib/utils";
 import type { ReadingRecordData, Json } from "@/types/supabase";
+
+const MAX_READING_CERT_PHOTOS = 2;
 
 function AddReadingRecord({
   book,
@@ -34,6 +36,7 @@ function AddReadingRecord({
   const [note, setNote] = useState("");
   const [thoughts, setThoughts] = useState("");
   const [screenshot, setScreenshot] = useState<string | null>(null);
+  const [certPhotos, setCertPhotos] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
 
@@ -48,6 +51,27 @@ function AddReadingRecord({
       });
     });
     setScreenshot(stamped);
+  };
+
+  const handleCertPhotoUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = e.target.files;
+    if (!files) return;
+    const remaining = MAX_READING_CERT_PHOTOS - certPhotos.length;
+    if (remaining <= 0) return;
+    const newFiles = Array.from(files).slice(0, remaining);
+    const stamped = await Promise.all(
+      newFiles.map((f) => applyTimestamp(f).catch(() => fileToBase64(f))),
+    );
+    setCertPhotos((prev) =>
+      [...prev, ...stamped].slice(0, MAX_READING_CERT_PHOTOS),
+    );
+    e.target.value = "";
+  };
+
+  const removeCertPhoto = (index: number) => {
+    setCertPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
   const progressAmount =
@@ -73,6 +97,8 @@ function AddReadingRecord({
         note: isEnglishBook ? "(스크린샷 인증)" : note.trim(),
         thoughts: thoughts.trim() || undefined,
         screenshot: isEnglishBook && screenshot ? screenshot : undefined,
+        certPhotos:
+          !isEnglishBook && certPhotos.length > 0 ? certPhotos : undefined,
       });
     } finally {
       submittingRef.current = false;
@@ -128,6 +154,56 @@ function AddReadingRecord({
       {/* 메인 카드 */}
       <div className="max-w-2xl bg-white rounded-2xl border border-gray-200 p-4 mx-auto">
         <h2 className="text-xl font-bold text-gray-900 mb-4">기록 추가</h2>
+
+        {/* 일반 독서: 인증 사진 업로드 (최대 2장) */}
+        {!isEnglishBook && (
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              인증 사진
+            </label>
+            <div className="space-y-3">
+              {certPhotos.length < MAX_READING_CERT_PHOTOS && (
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-indigo-400 transition-colors bg-gray-50">
+                  <div className="flex flex-col items-center justify-center">
+                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                    <p className="text-sm text-gray-500">
+                      이미지 업로드 또는 드래그 ({certPhotos.length}/
+                      {MAX_READING_CERT_PHOTOS})
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    multiple
+                    onChange={handleCertPhotoUpload}
+                  />
+                </label>
+              )}
+
+              {certPhotos.length > 0 && (
+                <div className="grid grid-cols-2 gap-3">
+                  {certPhotos.map((photo, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={photo}
+                        alt={`인증 사진 ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-xl"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeCertPhoto(index)}
+                        className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-black bg-opacity-50 rounded-full text-white hover:bg-opacity-70"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* 원서읽기: 스크린샷 업로드 */}
         {isEnglishBook && (
@@ -385,12 +461,15 @@ export default function BookDetail({
   };
 
   const handleSave = async (record: Omit<DailyReadingRecord, "id">) => {
-    // 원서읽기: 업로드된 스크린샷을 우선 사용. 그 외 리추얼은 외부 certificationPhotos prop 사용
+    // 원서읽기: 업로드된 스크린샷 우선
+    // 일반 독서: 사용자가 업로드한 인증 사진(record.certPhotos) 우선, 없으면 외부 certificationPhotos prop
     const certPhotos = record.screenshot
       ? [record.screenshot]
-      : certificationPhotos?.length
-        ? certificationPhotos
-        : undefined;
+      : record.certPhotos?.length
+        ? record.certPhotos
+        : certificationPhotos?.length
+          ? certificationPhotos
+          : undefined;
 
     // DB에 ritual_record 저장
     const recordData: ReadingRecordData = {

@@ -50,7 +50,7 @@ export default function AddNewExercise({
     const files = e.target.files;
     if (!files) return;
 
-    const maxImages = recordType === "diet" ? 1 : 5;
+    const maxImages = recordType === "diet" ? 1 : 2;
     const newFiles = Array.from(files).slice(0, maxImages - images.length);
     const stampedImages = await Promise.all(
       newFiles.map((f) => applyTimestamp(f).catch(() => fileToBase64(f))),
@@ -183,12 +183,13 @@ export default function AddNewExercise({
               : "건강한 식단 사진 1장"}
           </p>
           <div className="space-y-3">
-            {images.length < (recordType === "diet" ? 1 : 5) && (
+            {images.length < (recordType === "diet" ? 1 : 2) && (
               <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-orange-400 transition-colors bg-gray-50">
                 <div className="flex flex-col items-center justify-center">
                   <Upload className="w-8 h-8 text-gray-400 mb-2" />
                   <p className="text-sm text-gray-500">
-                    이미지 업로드 또는 드래그
+                    이미지 업로드 또는 드래그 ({images.length}/
+                    {recordType === "diet" ? 1 : 2})
                   </p>
                 </div>
                 <input
