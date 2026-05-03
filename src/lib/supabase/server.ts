@@ -4,6 +4,9 @@ import { cache } from "react";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 
+// 30일. PWA(특히 iOS 홈화면 추가)에서 세션 쿠키가 앱 종료 시 사라지는 것을 방지.
+const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
+
 /**
  * 요청당 한 번만 Supabase 클라이언트를 생성하도록 캐시.
  * 동일 요청 내 여러 server action / helper에서 호출해도 동일 인스턴스를 공유한다.
@@ -15,6 +18,12 @@ export const createClient = cache(async () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: {
+        maxAge: SESSION_MAX_AGE,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+      },
       cookies: {
         getAll() {
           return cookieStore.getAll();

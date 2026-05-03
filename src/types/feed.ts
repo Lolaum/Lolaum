@@ -38,10 +38,66 @@ export interface FinanceFeedData {
   certPhotos?: string[];
 }
 
-export interface RecordingFeedData {
+export type RecordingMode = "write" | "read";
+
+export interface RecordingWriteEntry {
+  type: "write";
   content: string;
   link?: string;
+  duration?: number;
+}
+
+export interface RecordingReadEntry {
+  type: "read";
+  readSourceTitle: string;
+  readResonatedPart: string;
+  readReason: string;
+}
+
+export type RecordingEntry = RecordingWriteEntry | RecordingReadEntry;
+
+export interface RecordingFeedData {
+  // 신규: 여러 항목 묶음
+  entries?: RecordingEntry[];
+  // 레거시 단일 항목 필드 (하위 호환)
+  recordType?: RecordingMode;
+  content?: string;
+  link?: string;
+  duration?: number;
+  readSourceTitle?: string;
+  readResonatedPart?: string;
+  readReason?: string;
   certPhotos?: string[];
+}
+
+export function normalizeRecordingFeedEntries(
+  d: RecordingFeedData,
+): RecordingEntry[] {
+  if (d.entries && d.entries.length > 0) return d.entries;
+  if (d.recordType === "read") {
+    if (d.readSourceTitle || d.readResonatedPart || d.readReason) {
+      return [
+        {
+          type: "read",
+          readSourceTitle: d.readSourceTitle ?? "",
+          readResonatedPart: d.readResonatedPart ?? "",
+          readReason: d.readReason ?? "",
+        },
+      ];
+    }
+    return [];
+  }
+  if (d.content || d.link || d.duration) {
+    return [
+      {
+        type: "write",
+        content: d.content ?? "",
+        link: d.link,
+        duration: d.duration,
+      },
+    ];
+  }
+  return [];
 }
 
 export interface LanguageFeedData {

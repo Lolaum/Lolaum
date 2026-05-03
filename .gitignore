@@ -46,3 +46,6 @@ next-env.d.ts
 # project docs (local only)
 CLAUDE.md
 page-map.html
+
+# claude code (local only)
+.claude/settings.json

@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Plus, X, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, X, Calendar as CalendarIcon, Upload } from "lucide-react";
+import { applyTimestamp, fileToBase64 } from "@/lib/utils";
 import {
   AddNewFinanceProps,
   FinanceFormData,
   ExpenseItem,
   DailyExpense,
 } from "@/types/routines/finance";
+
+const MAX_CERT_PHOTOS = 2;
 
 interface DailyExpenseState extends DailyExpense {
   id: string; // UI에서 관리하기 위한 임시 ID
@@ -23,6 +26,7 @@ export default function AddNewFinance({
   ]);
   const [studyContent, setStudyContent] = useState("");
   const [practice, setPractice] = useState("");
+  const [certPhotos, setCertPhotos] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
   const [showCalendar, setShowCalendar] = useState<string | null>(null); // 어떤 날짜 섹션의 캘린더를 보여줄지
@@ -238,6 +242,26 @@ export default function AddNewFinance({
     setValueInputs({ ...valueInputs, [dailyId]: { name: "", amount: "" } });
   };
 
+  // 인증 사진 업로드
+  const handleCertPhotoUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = e.target.files;
+    if (!files) return;
+    const remaining = MAX_CERT_PHOTOS - certPhotos.length;
+    if (remaining <= 0) return;
+    const newFiles = Array.from(files).slice(0, remaining);
+    const stamped = await Promise.all(
+      newFiles.map((f) => applyTimestamp(f).catch(() => fileToBase64(f))),
+    );
+    setCertPhotos((prev) => [...prev, ...stamped].slice(0, MAX_CERT_PHOTOS));
+    e.target.value = "";
+  };
+
+  const removeCertPhoto = (index: number) => {
+    setCertPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
   // 소비 항목 제거
   const removeExpense = (dailyId: string, expenseId: string) => {
     setDailyExpenses((prev) =>
@@ -269,6 +293,7 @@ export default function AddNewFinance({
       dailyExpenses: dailyExpenses.map(({ id, ...rest }) => rest),
       studyContent: studyContent.trim(),
       practice: practice.trim(),
+      certPhotos: certPhotos.length > 0 ? certPhotos : undefined,
     };
 
     try {
@@ -341,6 +366,56 @@ export default function AddNewFinance({
       <div className="max-w-2xl bg-white rounded-2xl border border-gray-200 p-4 mx-auto">
         {/* 헤더 */}
         <h2 className="text-xl font-bold text-gray-900 mb-4">자산관리 기록</h2>
+
+        {/* 인증 사진 */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            인증 사진
+          </label>
+          <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+            소비/공부 인증 사진을 최대 2장까지 업로드할 수 있어요
+          </p>
+          <div className="space-y-3">
+            {certPhotos.length < MAX_CERT_PHOTOS && (
+              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-green-400 transition-colors bg-gray-50">
+                <div className="flex flex-col items-center justify-center">
+                  <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-500">
+                    이미지 업로드 또는 드래그 ({certPhotos.length}/{MAX_CERT_PHOTOS})
+                  </p>
+                </div>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  multiple
+                  onChange={handleCertPhotoUpload}
+                />
+              </label>
+            )}
+
+            {certPhotos.length > 0 && (
+              <div className="grid grid-cols-2 gap-3">
+                {certPhotos.map((photo, index) => (
+                  <div key={index} className="relative">
+                    <img
+                      src={photo}
+                      alt={`인증 사진 ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-xl"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeCertPhoto(index)}
+                      className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-black bg-opacity-50 rounded-full text-white hover:bg-opacity-70"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* 날짜별 섹션들 */}
         <div className="mb-4 space-y-4">
@@ -549,8 +624,9 @@ export default function AddNewFinance({
                           },
                         })
                       }
+                      onWheel={(e) => (e.target as HTMLInputElement).blur()}
                       placeholder="금액"
-                      className="w-24 px-3 py-2 bg-white border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                      className="w-24 px-3 py-2 bg-white border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       onKeyPress={(e) =>
                         e.key === "Enter" && addNecessaryExpense(daily.id)
                       }
@@ -629,8 +705,9 @@ export default function AddNewFinance({
                           },
                         })
                       }
+                      onWheel={(e) => (e.target as HTMLInputElement).blur()}
                       placeholder="금액"
-                      className="w-24 px-3 py-2 bg-white border border-red-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 text-sm"
+                      className="w-24 px-3 py-2 bg-white border border-red-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       onKeyPress={(e) =>
                         e.key === "Enter" && addEmotionalExpense(daily.id)
                       }
@@ -709,8 +786,9 @@ export default function AddNewFinance({
                           },
                         })
                       }
+                      onWheel={(e) => (e.target as HTMLInputElement).blur()}
                       placeholder="금액"
-                      className="w-24 px-3 py-2 bg-white border border-violet-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 text-sm"
+                      className="w-24 px-3 py-2 bg-white border border-violet-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       onKeyPress={(e) =>
                         e.key === "Enter" && addValueExpense(daily.id)
                       }

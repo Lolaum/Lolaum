@@ -34,9 +34,11 @@ export default function FinanceContainer({
         const d = r.record_data as unknown as FinanceRecordData;
         return {
           id: r.id as unknown as number,
+          recordDate: r.record_date,
           dailyExpenses: d.dailyExpenses ?? [],
           studyContent: d.studyContent ?? "",
           practice: d.practice ?? "",
+          certPhotos: d.certPhotos,
         };
       });
       setFinanceRecords(records);
@@ -50,11 +52,15 @@ export default function FinanceContainer({
 
   const handleSubmit = async (formData: FinanceFormData) => {
     const today = new Date().toISOString().split("T")[0];
+    const mergedCertPhotos = [
+      ...(certificationPhotos ?? []),
+      ...(formData.certPhotos ?? []),
+    ];
     const recordData: FinanceRecordData = {
       dailyExpenses: formData.dailyExpenses,
       studyContent: formData.studyContent,
       practice: formData.practice,
-      certPhotos: certificationPhotos?.length ? certificationPhotos : undefined,
+      certPhotos: mergedCertPhotos.length ? mergedCertPhotos : undefined,
     };
     const { error } = await createRitualRecordAuto({
       routineType: "finance",
@@ -70,7 +76,8 @@ export default function FinanceContainer({
   };
 
   // 이번 달 통계 계산
-  const recordCount = financeRecords.length;
+  // "기록한 날"은 같은 날 여러 기록이 있어도 1일로 카운트 (record_date 기준 unique)
+  const recordedDays = new Set(financeRecords.map((r) => r.recordDate)).size;
 
   // 전체 소비 금액 계산
   const totalMonthlyExpense = financeRecords.reduce((sum, record) => {
@@ -191,7 +198,7 @@ export default function FinanceContainer({
           </div>
           <div className="grid grid-cols-2 gap-2 mb-2">
             <div className="bg-emerald-50 rounded-xl p-3 text-center">
-              <p className="text-lg font-bold text-gray-900">{recordCount}</p>
+              <p className="text-lg font-bold text-gray-900">{recordedDays}</p>
               <p className="text-xs text-gray-400 mt-0.5">기록한 날</p>
             </div>
             <div className="bg-emerald-50 rounded-xl p-3 text-center">

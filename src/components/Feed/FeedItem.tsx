@@ -21,6 +21,7 @@ import {
   LanguageFeedData,
   FinanceFeedData,
   RecordingFeedData,
+  normalizeRecordingFeedEntries,
 } from "@/types/feed";
 
 interface FeedItemProps {
@@ -88,8 +89,13 @@ function getPreviewText(item: FeedItemType): string | null {
       return d.studyContent || null;
     }
     case "기록": {
-      const d = data as RecordingFeedData;
-      return d.content || null;
+      const entries = normalizeRecordingFeedEntries(data as RecordingFeedData);
+      const first = entries[0];
+      if (!first) return null;
+      if (first.type === "read") {
+        return first.readResonatedPart || first.readSourceTitle || null;
+      }
+      return first.content || null;
     }
     case "원서읽기": {
       const d = data as ReadingFeedData;
@@ -145,8 +151,14 @@ function getSubText(item: FeedItemType): string | null {
       return total > 0 ? `오늘 지출 ${total.toLocaleString()}원` : null;
     }
     case "기록": {
-      const d = data as RecordingFeedData;
-      return d.link || null;
+      const entries = normalizeRecordingFeedEntries(data as RecordingFeedData);
+      if (entries.length > 1) return `항목 ${entries.length}개`;
+      const first = entries[0];
+      if (!first) return null;
+      if (first.type === "read") {
+        return first.readSourceTitle || null;
+      }
+      return first.link || (first.duration ? `${first.duration}분` : null);
     }
     case "원서읽기": {
       const d = data as ReadingFeedData;

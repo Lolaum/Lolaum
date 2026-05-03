@@ -89,7 +89,7 @@ export default function TaskTabs({
           {
             label: "최종회고",
             icon: Trophy,
-            onClick: undefined,
+            onClick: () => router.push("/final-review"),
           },
         ].map(({ label, icon: Icon, onClick }) => (
           <button
@@ -117,15 +117,13 @@ export default function TaskTabs({
         </div>
 
         {/* 콘텐츠 */}
-        <div className="overflow-y-auto max-h-[calc(100vh-400px)]">
-          <RoutineList
-            selectedDate={selectedDate}
-            onTaskClick={handleTaskClick}
-            routineCompletionMap={routineCompletionMap}
-            isPastDate={isPastDate}
-            isOutsidePeriod={isOutsidePeriod}
-          />
-        </div>
+        <RoutineList
+          selectedDate={selectedDate}
+          onTaskClick={handleTaskClick}
+          routineCompletionMap={routineCompletionMap}
+          isPastDate={isPastDate}
+          isOutsidePeriod={isOutsidePeriod}
+        />
       </div>
     </div>
   );

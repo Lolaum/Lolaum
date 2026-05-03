@@ -106,8 +106,15 @@ function transformRecordData(
 
     case "recording":
       return {
-        content: (data.content as string) ?? "",
+        entries: data.entries as RecordingFeedData["entries"],
+        recordType:
+          (data.recordType as RecordingFeedData["recordType"]) ?? "write",
+        content: data.content as string | undefined,
         link: data.link as string | undefined,
+        duration: data.duration as number | undefined,
+        readSourceTitle: data.readSourceTitle as string | undefined,
+        readResonatedPart: data.readResonatedPart as string | undefined,
+        readReason: data.readReason as string | undefined,
         certPhotos: (data.certPhotos as string[]) ?? undefined,
       } satisfies RecordingFeedData;
 

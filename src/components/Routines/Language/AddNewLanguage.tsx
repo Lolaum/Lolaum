@@ -168,7 +168,7 @@ export default function AddNewLanguage({
                 <div className="flex flex-col items-center justify-center">
                   <Upload className="w-8 h-8 text-gray-400 mb-2" />
                   <p className="text-sm text-gray-500">
-                    이미지 업로드 또는 드래그
+                    이미지 업로드 또는 드래그 ({images.length}/2)
                   </p>
                 </div>
                 <input

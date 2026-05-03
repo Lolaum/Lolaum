@@ -22,6 +22,7 @@ import {
   LanguageFeedData,
   FinanceFeedData,
   RecordingFeedData,
+  normalizeRecordingFeedEntries,
 } from "@/types/feed";
 import { getMyRecordsForDisplay } from "@/api/ritual-records-display";
 
@@ -409,13 +410,43 @@ function EnglishBookCardContent({ data }: { data: ReadingFeedData }) {
 }
 
 function RecordingCardContent({ data }: { data: RecordingFeedData }) {
+  const entries = normalizeRecordingFeedEntries(data);
+  const first = entries[0];
+  if (!first) return null;
   return (
-    <div className="space-y-3">
-      <p className="text-xs text-gray-600 leading-relaxed line-clamp-4">
-        {data.content}
-      </p>
-      {data.link && (
-        <p className="text-xs text-violet-500 truncate">{data.link}</p>
+    <div className="space-y-2">
+      {entries.length > 1 && (
+        <p className="text-[10px] font-semibold text-gray-400">
+          총 {entries.length}개 항목
+        </p>
+      )}
+      {first.type === "read" ? (
+        <>
+          {first.readSourceTitle && (
+            <p className="text-xs font-semibold text-gray-700 line-clamp-2">
+              {first.readSourceTitle}
+            </p>
+          )}
+          {first.readResonatedPart && (
+            <p className="text-xs text-gray-600 leading-relaxed line-clamp-3">
+              {first.readResonatedPart}
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          {first.content && (
+            <p className="text-xs text-gray-600 leading-relaxed line-clamp-4">
+              {first.content}
+            </p>
+          )}
+          {first.duration ? (
+            <p className="text-xs text-gray-400">작성 시간 {first.duration}분</p>
+          ) : null}
+          {first.link && (
+            <p className="text-xs text-violet-500 truncate">{first.link}</p>
+          )}
+        </>
       )}
     </div>
   );

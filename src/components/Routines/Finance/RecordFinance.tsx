@@ -319,6 +319,25 @@ export default function RecordFinance({
                         </p>
                       </div>
                     </div>
+
+                    {/* 인증 사진 */}
+                    {record.certPhotos && record.certPhotos.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                          인증 사진
+                        </h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          {record.certPhotos.map((photo, idx) => (
+                            <img
+                              key={idx}
+                              src={photo}
+                              alt={`인증 사진 ${idx + 1}`}
+                              className="w-full h-32 object-cover rounded-xl border border-gray-200"
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

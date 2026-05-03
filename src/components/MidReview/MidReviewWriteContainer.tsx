@@ -110,12 +110,6 @@ export default function MidReviewWriteContainer() {
   if (done) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-6 flex flex-col items-center justify-center min-h-[60vh]">
-        <div
-          className="w-20 h-20 rounded-full flex items-center justify-center mb-5 text-4xl"
-          style={{ backgroundColor: "#fef3c7", border: "3px solid #eab32e" }}
-        >
-          ✅
-        </div>
         <h2 className="text-xl font-bold text-gray-800 mb-2">
           중간 회고 완료!
         </h2>

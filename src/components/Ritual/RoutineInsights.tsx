@@ -35,6 +35,7 @@ import type {
   FinanceFeedData,
   RecordingFeedData,
 } from "@/types/feed";
+import { normalizeRecordingFeedEntries } from "@/types/feed";
 
 // ─────────────────────────────
 // 달성 카드 (공통) — routines prop에서 가져옴
@@ -1090,10 +1091,23 @@ function RecordPreviewCard({ item }: { item: FeedItem }) {
         );
       }
       case "기록": {
-        const d = item.routineData as RecordingFeedData;
+        const entries = normalizeRecordingFeedEntries(
+          item.routineData as RecordingFeedData,
+        );
+        const first = entries[0];
+        const text = !first
+          ? ""
+          : first.type === "read"
+            ? first.readResonatedPart || first.readSourceTitle
+            : first.content;
         return (
           <div className="space-y-1.5">
-            <p className="text-xs text-gray-500 line-clamp-3">{d.content}</p>
+            {entries.length > 1 && (
+              <p className="text-[10px] text-gray-400">
+                항목 {entries.length}개
+              </p>
+            )}
+            <p className="text-xs text-gray-500 line-clamp-3">{text}</p>
           </div>
         );
       }

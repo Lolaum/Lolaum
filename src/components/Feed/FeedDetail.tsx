@@ -24,10 +24,12 @@ import {
   ReadingFeedData,
   RecordingFeedData,
   RoutineCategory,
+  normalizeRecordingFeedEntries,
 } from "@/types/feed";
 import { addComment, deleteComment, updateComment } from "@/api/comment";
 import CommentSection from "./CommentSection";
 import EditFeedRecord from "./EditFeedRecord";
+import LinkifiedText from "@/components/common/LinkifiedText";
 
 interface FeedDetailProps {
   item: FeedItem;
@@ -482,26 +484,98 @@ function EnglishBookContent({ data }: { data: ReadingFeedData }) {
 }
 
 function RecordingContent({ data }: { data: RecordingFeedData }) {
+  const entries = normalizeRecordingFeedEntries(data);
+  if (entries.length === 0) return null;
+
   return (
     <div className="space-y-4">
-      <div className="bg-violet-50 rounded-xl p-4">
-        <p className="text-xs text-violet-400 font-medium mb-1">기록 내용</p>
-        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-          {data.content}
-        </p>
-      </div>
-      {data.link && (
-        <div className="bg-gray-50 rounded-xl p-4">
-          <p className="text-xs text-gray-400 font-medium mb-1">참고 링크</p>
-          <a
-            href={data.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-violet-500 underline break-all"
+      {entries.map((entry, idx) =>
+        entry.type === "read" ? (
+          <div
+            key={idx}
+            className="rounded-xl p-4 bg-violet-50 space-y-3 overflow-hidden"
           >
-            {data.link}
-          </a>
-        </div>
+            <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md text-violet-600 bg-violet-100">
+              글 읽기 대체 #{idx + 1}
+            </span>
+            {entry.readSourceTitle && (
+              <div className="min-w-0">
+                <p className="text-xs text-violet-400 font-medium mb-1">
+                  오늘 읽은 다른 챌린저 글
+                </p>
+                <LinkifiedText
+                  text={entry.readSourceTitle}
+                  className="text-sm text-gray-700 leading-relaxed"
+                />
+              </div>
+            )}
+            {entry.readResonatedPart && (
+              <div className="min-w-0">
+                <p className="text-xs text-violet-400 font-medium mb-1">
+                  마음에 닿은 부분
+                </p>
+                <LinkifiedText
+                  text={entry.readResonatedPart}
+                  className="text-sm text-gray-700 leading-relaxed"
+                />
+              </div>
+            )}
+            {entry.readReason && (
+              <div className="min-w-0">
+                <p className="text-xs text-violet-400 font-medium mb-1">
+                  마음에 닿았던 이유 / 닮고 싶은 부분
+                </p>
+                <LinkifiedText
+                  text={entry.readReason}
+                  className="text-sm text-gray-700 leading-relaxed"
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div
+            key={idx}
+            className="rounded-xl p-4 bg-rose-50 space-y-3 overflow-hidden"
+          >
+            <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md text-rose-600 bg-rose-100">
+              글 작성 #{idx + 1}
+            </span>
+            {entry.content && (
+              <div className="min-w-0">
+                <p className="text-xs text-rose-400 font-medium mb-1">
+                  오늘의 주제
+                </p>
+                <LinkifiedText
+                  text={entry.content}
+                  className="text-sm text-gray-700 leading-relaxed"
+                />
+              </div>
+            )}
+            {entry.duration ? (
+              <div>
+                <p className="text-xs text-rose-400 font-medium mb-1">
+                  작성에 걸린 시간
+                </p>
+                <p className="text-sm text-gray-700">{entry.duration}분</p>
+              </div>
+            ) : null}
+            {entry.link && (
+              <div className="min-w-0">
+                <p className="text-xs text-rose-400 font-medium mb-1">
+                  작성 링크
+                </p>
+                <a
+                  href={entry.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-rose-500 underline break-all"
+                >
+                  {entry.link}
+                </a>
+              </div>
+            )}
+          </div>
+        ),
       )}
     </div>
   );
@@ -550,7 +624,13 @@ function isRecordingData(
   data: NonNullable<FeedItem["routineData"]>,
   category: RoutineCategory,
 ): data is RecordingFeedData {
-  return category === "기록" && "content" in data;
+  return (
+    category === "기록" &&
+    ("entries" in data ||
+      "content" in data ||
+      "readSourceTitle" in data ||
+      "recordType" in data)
+  );
 }
 
 /** routineData에서 인증 사진 URL 배열 추출 (certPhotos + 레거시 필드) */
