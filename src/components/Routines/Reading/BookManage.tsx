@@ -2,11 +2,17 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { List, Plus, LayoutGrid } from "lucide-react";
-import AddNewBook from "./AddNewBook";
 import BookDetail from "./BookDetail";
-import { Book, ViewMode, BookManageProps } from "@/types/routines/reading";
-import { getBooksAuto, createBookAuto, deleteBook, updateBook } from "@/api/book";
+import { Book, ViewMode } from "@/types/routines/reading";
+import { getBooksAuto, deleteBook, updateBook } from "@/api/book";
 import type { Book as BookDB } from "@/types/supabase";
+
+interface BookManageProps {
+  onBackToHome?: () => void;
+  onAddBook: () => void;
+  isEnglishBook?: boolean;
+  certificationPhotos?: string[];
+}
 
 /** DB Row → 프론트엔드 Book 변환 */
 function toBook(row: BookDB): Book {
@@ -23,9 +29,8 @@ function toBook(row: BookDB): Book {
   };
 }
 
-export default function BookManage({ onBackToTimer, onBackToHome, isEnglishBook, certificationPhotos }: BookManageProps) {
+export default function BookManage({ onBackToHome, onAddBook, isEnglishBook, certificationPhotos }: BookManageProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [showAddBook, setShowAddBook] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,29 +50,6 @@ export default function BookManage({ onBackToTimer, onBackToHome, isEnglishBook,
   const calculateProgress = (current: number, total: number) => {
     if (total === 0) return 0;
     return Math.round((current / total) * 100);
-  };
-
-  const handleAddBook = () => {
-    setShowAddBook(true);
-  };
-
-  const handleBookCreated = async (bookData: {
-    title: string;
-    author: string;
-    trackingType: "page" | "percent";
-    totalPages: number;
-  }) => {
-    const result = await createBookAuto({
-      routineType: isEnglishBook ? "english_book" : "reading",
-      title: bookData.title,
-      author: bookData.author,
-      trackingType: bookData.trackingType,
-      totalValue: bookData.trackingType === "percent" ? 100 : bookData.totalPages,
-    });
-
-    if (result.data) {
-      setBooks((prev) => [toBook(result.data!), ...prev]);
-    }
   };
 
   const handleBookDeleted = async (bookId: string) => {
@@ -93,20 +75,6 @@ export default function BookManage({ onBackToTimer, onBackToHome, isEnglishBook,
     }
   };
 
-  // 새 책 추가하기 화면
-  if (showAddBook) {
-    return (
-      <div className="w-full">
-        <AddNewBook
-          onCancel={() => setShowAddBook(false)}
-          onBackToHome={onBackToHome}
-          onSubmit={handleBookCreated}
-          isEnglishBook={isEnglishBook}
-        />
-      </div>
-    );
-  }
-
   // 책 상세 화면
   if (selectedBook) {
     return (
@@ -126,22 +94,8 @@ export default function BookManage({ onBackToTimer, onBackToHome, isEnglishBook,
 
   return (
     <div className="w-full max-w-4xl mx-auto">
-      {/* 뒤로가기 버튼 및 x버튼 */}
-      <div className="flex items-center justify-between mb-4">
-        {!isEnglishBook ? (
-          <button
-            type="button"
-            onClick={onBackToTimer}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            <span className="text-sm">홈으로 돌아가기</span>
-          </button>
-        ) : (
-          <div />
-        )}
+      {/* x버튼 */}
+      <div className="flex items-center justify-end mb-4">
         <button
           type="button"
           onClick={onBackToHome}
@@ -220,7 +174,7 @@ export default function BookManage({ onBackToTimer, onBackToHome, isEnglishBook,
           {/* 새 책 추가하기 카드 */}
           <button
             type="button"
-            onClick={handleAddBook}
+            onClick={onAddBook}
             className="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center gap-3 hover:border-gray-400 hover:bg-gray-50 transition-colors w-[200px] h-[200px] flex-shrink-0"
           >
             <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
@@ -285,7 +239,7 @@ export default function BookManage({ onBackToTimer, onBackToHome, isEnglishBook,
           {/* 새 책 추가하기 버튼 */}
           <button
             type="button"
-            onClick={handleAddBook}
+            onClick={onAddBook}
             className="w-full border-2 border-dashed border-gray-300 rounded-xl p-4 flex items-center gap-3 hover:border-gray-400 hover:bg-gray-50 transition-colors"
           >
             <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
