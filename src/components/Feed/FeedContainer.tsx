@@ -22,9 +22,17 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "english_book", label: "원서읽기" },
 ];
 
-const ITEMS_PER_PAGE = 8;
+export const FEEDS_PER_PAGE = 8;
 
-export default function FeedContainer() {
+export default function FeedContainer({
+  initialData,
+  initialTotal,
+  initialKey,
+}: {
+  initialData: FeedItemType[];
+  initialTotal: number;
+  initialKey: string;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -32,11 +40,13 @@ export default function FeedContainer() {
   const currentPage = Number(searchParams.get("page") ?? "1");
   const searchQuery = searchParams.get("search") ?? "";
 
-  const [feedData, setFeedData] = useState<FeedItemType[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [feedData, setFeedData] = useState<FeedItemType[]>(initialData);
+  const [totalCount, setTotalCount] = useState(initialTotal);
+  const [loading, setLoading] = useState(false);
   const [searchInput, setSearchInput] = useState(searchQuery);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // SSR이 채운 페이지와 동일한 (filter|page|search) 조합이면 클라이언트 페치를 건너뛴다
+  const skipKeyRef = useRef<string | null>(initialKey);
 
   const fetchFeeds = useCallback(async () => {
     setLoading(true);
@@ -46,8 +56,8 @@ export default function FeedContainer() {
 
       const { data, total } = await getAllRecordsForDisplay({
         routineType,
-        limit: ITEMS_PER_PAGE,
-        offset: (currentPage - 1) * ITEMS_PER_PAGE,
+        limit: FEEDS_PER_PAGE,
+        offset: (currentPage - 1) * FEEDS_PER_PAGE,
         searchName: searchQuery || undefined,
       });
       setFeedData(data);
@@ -62,10 +72,15 @@ export default function FeedContainer() {
   }, [selectedFilter, currentPage, searchQuery]);
 
   useEffect(() => {
+    const currentKey = `${selectedFilter}|${currentPage}|${searchQuery}`;
+    if (skipKeyRef.current === currentKey) {
+      skipKeyRef.current = null;
+      return;
+    }
     fetchFeeds();
-  }, [fetchFeeds]);
+  }, [fetchFeeds, selectedFilter, currentPage, searchQuery]);
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(totalCount / FEEDS_PER_PAGE));
 
   const updateParams = (filter: FilterKey, page: number, search?: string) => {
     const params = new URLSearchParams();

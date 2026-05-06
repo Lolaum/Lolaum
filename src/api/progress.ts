@@ -2,7 +2,7 @@
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getActivePeriod } from "@/lib/current-challenge";
+import { getActivePeriod, getEffectiveStart } from "@/lib/current-challenge";
 
 export interface ChallengerProgress {
   userId: string;
@@ -65,7 +65,9 @@ function getWeekKey(d: Date): string {
  * 진행표 페이지용: 모든 챌린저의 진행률 데이터를 가져온다.
  *
  * 진행률 계산 규칙:
- * - 집계 범위: 챌린지 start_date ~ 어제 (오늘 제외)
+ * - 집계 범위: max(period.start_date, challenge.reset_at) ~ min(어제, 기간 종료일)
+ *   · reset_at 없음 → 기간 시작일부터 (늦게 등록해도 빠진 날 카운트)
+ *   · reset_at 있음 → 그 날짜부터 (유저가 명시적으로 "다시 시작" 한 경우)
  * - 평일(월~금)에 등록한 모든 리추얼을 완료해야 1일 달성
  * - 평일에 못한 리추얼을 "같은 주(월~일)의 주말"에 수행하면 그 평일은 보충 완료로 인정
  * - 보충되지 않은 미완료 평일 최초 1회 → 행복찬스 (면제)
@@ -98,7 +100,7 @@ export async function getProgressPageData(): Promise<{
     const { data: challenges, error: cError } = await admin
       .from("challenges")
       .select(
-        "id, user_id, start_date, profiles!inner(id, name, avatar_url, emoji)",
+        "id, user_id, reset_at, profiles!inner(id, name, avatar_url, emoji)",
       )
       .eq("period_id", period.id);
 
@@ -112,7 +114,7 @@ export async function getProgressPageData(): Promise<{
     type ChallengeRow = {
       id: string;
       user_id: string;
-      start_date: string;
+      reset_at: string | null;
       profiles: {
         id: string;
         name: string;
@@ -128,7 +130,7 @@ export async function getProgressPageData(): Promise<{
     const [regRes, recRes, declRes, midRevRes] = await Promise.all([
       admin
         .from("challenge_registrations")
-        .select("user_id, routine_type, challenge_id, registered_at")
+        .select("user_id, routine_type, challenge_id")
         .in("challenge_id", challengeIds),
       admin
         .from("ritual_records")
@@ -147,39 +149,13 @@ export async function getProgressPageData(): Promise<{
     if (regRes.error) return { error: regRes.error.message };
     if (recRes.error) return { error: recRes.error.message };
 
-    // 3. 유저별 등록 리추얼 세트 + 최초 등록일
+    // 3. 유저별 등록 리추얼 세트
     const userRegistrations = new Map<string, Set<string>>();
-    const userFirstRegDate = new Map<string, string>(); // challenge_id:user_id → "YYYY-MM-DD"
     for (const r of regRes.data ?? []) {
       if (!userRegistrations.has(r.user_id)) {
         userRegistrations.set(r.user_id, new Set());
       }
       userRegistrations.get(r.user_id)!.add(r.routine_type);
-
-      const key = `${r.challenge_id}:${r.user_id}`;
-      const regDate = r.registered_at.split("T")[0];
-      const prev = userFirstRegDate.get(key);
-      if (!prev || regDate < prev) userFirstRegDate.set(key, regDate);
-    }
-
-    // 3-2. 챌린지 start_date 백필: 현재 값이 최초 등록일보다 이르면 교정
-    const backfillTasks: Promise<unknown>[] = [];
-    for (const r of rows) {
-      const firstReg = userFirstRegDate.get(`${r.id}:${r.user_id}`);
-      if (firstReg && r.start_date < firstReg) {
-        r.start_date = firstReg; // 이번 계산에도 반영
-        backfillTasks.push(
-          (async () => {
-            await admin
-              .from("challenges")
-              .update({ start_date: firstReg })
-              .eq("id", r.id);
-          })(),
-        );
-      }
-    }
-    if (backfillTasks.length > 0) {
-      await Promise.allSettled(backfillTasks);
     }
 
     // 3-1. 유저별 선언/회고 리추얼 세트
@@ -208,7 +184,7 @@ export async function getProgressPageData(): Promise<{
     }
 
     // 5. 집계 범위 끝 = min(어제, period.end_date)
-    //    기간이 이미 종료된 경우 종료일 이후는 집계하지 않는다
+    //    rangeStart 는 유저별 reset_at 여부에 따라 달라지므로 6번 루프에서 결정.
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const yesterday = new Date(today);
@@ -238,8 +214,10 @@ export async function getProgressPageData(): Promise<{
 
       const dateMap = userDateRecords.get(r.user_id) ?? new Map();
 
-      // 집계 범위: 챌린지 start_date ~ 어제
-      const rangeStart = parseLocalDate(r.start_date);
+      // 유저별 집계 시작일: reset_at 이 있으면 그 날짜, 없으면 period.start_date
+      const rangeStart = parseLocalDate(
+        getEffectiveStart(period.start_date, r.reset_at),
+      );
 
       // 주(월~일) 단위로 날짜 묶기
       const weekData = new Map<

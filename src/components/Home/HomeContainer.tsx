@@ -17,6 +17,7 @@ interface HomeInitialData {
   completion?: CompletionRateStats;
   calendarMarkers?: Record<string, CalendarDayMarker>;
   routineCompletionMap?: Record<string, number>;
+  totalRoutineDays?: number;
   error?: string;
 }
 
@@ -63,6 +64,9 @@ export default function HomeContainer({
   );
   const [routineCompletionMap] = useState<Record<string, number>>(
     initialData.routineCompletionMap ?? {},
+  );
+  const [totalRoutineDays] = useState<number | undefined>(
+    initialData.totalRoutineDays,
   );
   const [memberRefreshKey, setMemberRefreshKey] = useState(0);
 
@@ -157,6 +161,7 @@ export default function HomeContainer({
               isPastDate={isPastDate}
               isOutsidePeriod={isOutsidePeriod}
               routineCompletionMap={routineCompletionMap}
+              totalRoutineDays={totalRoutineDays}
             />
           </div>
         </div>

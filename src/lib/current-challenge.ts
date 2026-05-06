@@ -32,10 +32,13 @@ export const getActivePeriod = cache(async (): Promise<{
  * 활성 period의 start_date/end_date를 그대로 복사 — 어드민이 challenge_periods를
  * 갱신하면 신규 가입자에게도 동일 기간이 적용된다.
  *
+ * resetAt: 유저가 명시적으로 "다시 시작" 한 날짜. NULL이면 period.start_date 기준.
+ *
  * 요청당 한 번만 실행되도록 React `cache()`로 메모이제이션됨.
  */
 export const getCurrentChallengeId = cache(async (): Promise<{
   challengeId: string | null;
+  resetAt?: string | null;
   error?: string;
 }> => {
   const user = await getCurrentUser();
@@ -49,14 +52,14 @@ export const getCurrentChallengeId = cache(async (): Promise<{
   // 현재 활성 period의 내 챌린지 찾기
   const { data: existing } = await supabase
     .from("challenges")
-    .select("id")
+    .select("id, reset_at")
     .eq("user_id", user.id)
     .eq("period_id", period.id)
     .limit(1)
     .maybeSingle();
 
   if (existing) {
-    return { challengeId: existing.id };
+    return { challengeId: existing.id, resetAt: existing.reset_at };
   }
 
   // 없으면 활성 period의 날짜를 복사해서 생성
@@ -76,12 +79,25 @@ export const getCurrentChallengeId = cache(async (): Promise<{
       weekly_target: 5,
       total_weeks: 3,
     })
-    .select("id")
+    .select("id, reset_at")
     .single();
 
   if (error) {
     return { challengeId: null, error: error.message };
   }
 
-  return { challengeId: created.id };
+  return { challengeId: created.id, resetAt: created.reset_at };
 });
+
+/**
+ * 진행률 집계 시작일을 계산한다.
+ * - reset_at 이 있으면 그 날짜부터 (유저가 명시적으로 "다시 시작" 한 경우)
+ * - 없으면 period.start_date 부터 (늦게 등록해도 빠진 날 카운트)
+ */
+export function getEffectiveStart(
+  periodStart: string,
+  resetAt: string | null | undefined,
+): string {
+  if (!resetAt) return periodStart;
+  return resetAt > periodStart ? resetAt : periodStart;
+}

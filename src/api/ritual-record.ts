@@ -146,6 +146,74 @@ export async function updateRitualRecord(
   return {};
 }
 
+/**
+ * ritual_record 삭제. 본인 기록만 삭제 가능.
+ * 삭제 후 같은 (user, challenge, date)의 daily_completions 카운트를 재계산한다.
+ */
+export async function deleteRitualRecord(
+  id: string,
+): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "인증이 필요합니다." };
+
+  const supabase = await createClient();
+
+  // 삭제 전에 challenge_id, record_date 확인 (daily_completions 갱신용)
+  const { data: target, error: fetchErr } = await supabase
+    .from("ritual_records")
+    .select("challenge_id, record_date")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (fetchErr) return { error: fetchErr.message };
+  if (!target) return { error: "기록을 찾을 수 없습니다." };
+
+  const { error } = await supabase
+    .from("ritual_records")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+  if (error) return { error: error.message };
+
+  // daily_completions 재계산
+  const [registrationsRes, recordsRes] = await Promise.all([
+    supabase
+      .from("challenge_registrations")
+      .select("routine_type")
+      .eq("user_id", user.id)
+      .eq("challenge_id", target.challenge_id),
+    supabase
+      .from("ritual_records")
+      .select("routine_type")
+      .eq("user_id", user.id)
+      .eq("challenge_id", target.challenge_id)
+      .eq("record_date", target.record_date),
+  ]);
+
+  const totalRegistered = registrationsRes.data?.length ?? 0;
+  const completedTypes = new Set(
+    (recordsRes.data ?? []).map((r) => r.routine_type),
+  );
+  const totalCompleted = (registrationsRes.data ?? []).filter((r) =>
+    completedTypes.has(r.routine_type),
+  ).length;
+
+  if (totalRegistered > 0) {
+    await supabase.from("daily_completions").upsert(
+      {
+        user_id: user.id,
+        challenge_id: target.challenge_id,
+        completion_date: target.record_date,
+        total_registered: totalRegistered,
+        total_completed: totalCompleted,
+      },
+      { onConflict: "user_id,challenge_id,completion_date" },
+    );
+  }
+
+  return {};
+}
+
 /** 내 기록 가져오기 (challengeId 자동) */
 export async function getMyRitualRecords(input: {
   routineType?: RoutineTypeDB;

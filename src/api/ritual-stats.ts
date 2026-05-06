@@ -1,7 +1,11 @@
 "use server";
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
-import { getCurrentChallengeId, getActivePeriod } from "@/lib/current-challenge";
+import {
+  getCurrentChallengeId,
+  getActivePeriod,
+  getEffectiveStart,
+} from "@/lib/current-challenge";
 import type {
   RoutineTypeDB,
   RitualRecord,
@@ -284,20 +288,25 @@ export async function getRitualPageData(): Promise<{
   overall?: RitualOverallStats;
   routines?: RoutineCardStats[];
   completion?: CompletionRateStats;
+  totalRoutineDays?: number; // 활성 기간 내 평일(월~금) 수
   error?: string;
 }> {
-  const [{ challengeId, error: cError }, user, { period, error: pError }] =
-    await Promise.all([
-      getCurrentChallengeId(),
-      getCurrentUser(),
-      getActivePeriod(),
-    ]);
+  const [
+    { challengeId, resetAt, error: cError },
+    user,
+    { period, error: pError },
+  ] = await Promise.all([
+    getCurrentChallengeId(),
+    getCurrentUser(),
+    getActivePeriod(),
+  ]);
   if (!user) return { error: "인증이 필요합니다." };
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
   if (!period) return { error: pError ?? "활성 챌린지 기간이 없습니다." };
 
+  const effectiveStart = getEffectiveStart(period.start_date, resetAt);
   const totalRoutineDays = countWeekdaysInRange(
-    period.start_date,
+    effectiveStart,
     period.end_date,
   );
   const totalDays = totalRoutineDays + 3;
@@ -312,7 +321,7 @@ export async function getRitualPageData(): Promise<{
         .select("routine_type, record_date")
         .eq("user_id", user.id)
         .eq("challenge_id", challengeId)
-        .gte("record_date", period.start_date)
+        .gte("record_date", effectiveStart)
         .lte("record_date", period.end_date),
       supabase
         .from("challenge_registrations")
@@ -414,7 +423,7 @@ export async function getRitualPageData(): Promise<{
     totalDays,
   };
 
-  return { overall, routines, completion };
+  return { overall, routines, completion, totalRoutineDays };
 }
 
 // ── API: 전체 통계 + 리추얼별 카드 ──────────────────────
@@ -424,16 +433,20 @@ export async function getRitualStats(): Promise<{
   routines?: RoutineCardStats[];
   error?: string;
 }> {
-  const [{ challengeId, error: cError }, user, { period, error: pError }] =
-    await Promise.all([
-      getCurrentChallengeId(),
-      getCurrentUser(),
-      getActivePeriod(),
-    ]);
+  const [
+    { challengeId, resetAt, error: cError },
+    user,
+    { period, error: pError },
+  ] = await Promise.all([
+    getCurrentChallengeId(),
+    getCurrentUser(),
+    getActivePeriod(),
+  ]);
   if (!user) return { error: "인증이 필요합니다." };
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
   if (!period) return { error: pError ?? "활성 챌린지 기간이 없습니다." };
 
+  const effectiveStart = getEffectiveStart(period.start_date, resetAt);
   const supabase = await createClient();
 
   // 기록 + 등록 리추얼 동시 조회 (활성 기간 내 record_date만)
@@ -443,7 +456,7 @@ export async function getRitualStats(): Promise<{
       .select("routine_type, record_date")
       .eq("user_id", user.id)
       .eq("challenge_id", challengeId)
-      .gte("record_date", period.start_date)
+      .gte("record_date", effectiveStart)
       .lte("record_date", period.end_date),
     supabase
       .from("challenge_registrations")
@@ -788,20 +801,25 @@ export async function getHomeStats(): Promise<{
   completion?: CompletionRateStats;
   calendarMarkers?: Record<string, CalendarDayMarker>;
   routineCompletionMap?: Record<string, number>; // routine_type → 완료 일수
+  totalRoutineDays?: number; // 활성 기간 내 평일(월~금) 수 (UI에서 목표 일수로 사용)
   error?: string;
 }> {
-  const [{ challengeId, error: cError }, user, { period, error: pError }] =
-    await Promise.all([
-      getCurrentChallengeId(),
-      getCurrentUser(),
-      getActivePeriod(),
-    ]);
+  const [
+    { challengeId, resetAt, error: cError },
+    user,
+    { period, error: pError },
+  ] = await Promise.all([
+    getCurrentChallengeId(),
+    getCurrentUser(),
+    getActivePeriod(),
+  ]);
   if (!user) return { error: "인증이 필요합니다." };
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
   if (!period) return { error: pError ?? "활성 챌린지 기간이 없습니다." };
 
+  const effectiveStart = getEffectiveStart(period.start_date, resetAt);
   const totalRoutineDays = countWeekdaysInRange(
-    period.start_date,
+    effectiveStart,
     period.end_date,
   );
   const totalDays = totalRoutineDays + 3;
@@ -820,7 +838,7 @@ export async function getHomeStats(): Promise<{
       .select("routine_type, record_date")
       .eq("user_id", user.id)
       .eq("challenge_id", challengeId)
-      .gte("record_date", period.start_date)
+      .gte("record_date", effectiveStart)
       .lte("record_date", period.end_date),
     supabase
       .from("challenge_registrations")
@@ -868,7 +886,7 @@ export async function getHomeStats(): Promise<{
   const completedDays = calcCompletedDays(
     dateMap,
     registeredTypes,
-    period.start_date,
+    effectiveStart,
     period.end_date,
     totalRoutineDays,
   );
@@ -941,7 +959,13 @@ export async function getHomeStats(): Promise<{
     routineCompletionMap[rt] = days + decl + midReviewBonus + final;
   }
 
-  return { myPage, completion, calendarMarkers, routineCompletionMap };
+  return {
+    myPage,
+    completion,
+    calendarMarkers,
+    routineCompletionMap,
+    totalRoutineDays,
+  };
 }
 
 // ── API: 마이페이지 통계 ────────────────────────────────
@@ -950,16 +974,20 @@ export async function getMyPageStats(): Promise<{
   data?: MyPageStats;
   error?: string;
 }> {
-  const [{ challengeId, error: cError }, user, { period, error: pError }] =
-    await Promise.all([
-      getCurrentChallengeId(),
-      getCurrentUser(),
-      getActivePeriod(),
-    ]);
+  const [
+    { challengeId, resetAt, error: cError },
+    user,
+    { period, error: pError },
+  ] = await Promise.all([
+    getCurrentChallengeId(),
+    getCurrentUser(),
+    getActivePeriod(),
+  ]);
   if (!user) return { error: "인증이 필요합니다." };
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
   if (!period) return { error: pError ?? "활성 챌린지 기간이 없습니다." };
 
+  const effectiveStart = getEffectiveStart(period.start_date, resetAt);
   const supabase = await createClient();
 
   // 활성 기간 안의 기록만 조회 (연속 실천, 최장 기록, 총 완료 모두 기간 단위 리셋)
@@ -968,7 +996,7 @@ export async function getMyPageStats(): Promise<{
     .select("record_date")
     .eq("user_id", user.id)
     .eq("challenge_id", challengeId)
-    .gte("record_date", period.start_date)
+    .gte("record_date", effectiveStart)
     .lte("record_date", period.end_date);
 
   if (error) return { error: error.message };
@@ -991,18 +1019,22 @@ export async function getCompletionRate(): Promise<{
   data?: CompletionRateStats;
   error?: string;
 }> {
-  const [{ challengeId, error: cError }, user, { period, error: pError }] =
-    await Promise.all([
-      getCurrentChallengeId(),
-      getCurrentUser(),
-      getActivePeriod(),
-    ]);
+  const [
+    { challengeId, resetAt, error: cError },
+    user,
+    { period, error: pError },
+  ] = await Promise.all([
+    getCurrentChallengeId(),
+    getCurrentUser(),
+    getActivePeriod(),
+  ]);
   if (!user) return { error: "인증이 필요합니다." };
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
   if (!period) return { error: pError ?? "활성 챌린지 기간이 없습니다." };
 
+  const effectiveStart = getEffectiveStart(period.start_date, resetAt);
   const totalRoutineDays = countWeekdaysInRange(
-    period.start_date,
+    effectiveStart,
     period.end_date,
   );
   const totalDays = totalRoutineDays + 3;
@@ -1016,7 +1048,7 @@ export async function getCompletionRate(): Promise<{
         .select("routine_type, record_date")
         .eq("user_id", user.id)
         .eq("challenge_id", challengeId)
-        .gte("record_date", period.start_date)
+        .gte("record_date", effectiveStart)
         .lte("record_date", period.end_date),
       supabase
         .from("challenge_registrations")
@@ -1048,7 +1080,7 @@ export async function getCompletionRate(): Promise<{
   const completedDays = calcCompletedDays(
     dateMap,
     registeredTypes,
-    period.start_date,
+    effectiveStart,
     period.end_date,
     totalRoutineDays,
   );

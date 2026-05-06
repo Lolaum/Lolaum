@@ -44,14 +44,19 @@ function AchievementCard({
   name,
   color,
   routines,
+  goalDays,
 }: {
   name: string;
   color: string;
   routines: RoutineCardStats[];
+  goalDays: number;
 }) {
   const stat = routines.find((r) => r.name === name);
   const streak = stat?.streak ?? 0;
   const totalDays = stat?.totalDays ?? 0;
+  const safeGoal = goalDays > 0 ? goalDays : 1;
+  const ratio = Math.min(totalDays / safeGoal, 1);
+  const remaining = Math.max(safeGoal - totalDays, 0);
 
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
@@ -76,13 +81,13 @@ function AchievementCard({
               fill="none"
               stroke={color}
               strokeWidth="8"
-              strokeDasharray={`${(totalDays / 15) * 188.5} 188.5`}
+              strokeDasharray={`${ratio * 188.5} 188.5`}
               strokeLinecap="round"
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-lg font-bold text-gray-800">{totalDays}</span>
-            <span className="text-[10px] text-gray-400">/ 15일</span>
+            <span className="text-[10px] text-gray-400">/ {safeGoal}일</span>
           </div>
         </div>
         <div className="flex-1 space-y-2">
@@ -97,9 +102,9 @@ function AchievementCard({
             </span>
           </div>
           <p className="text-xs text-gray-400 leading-relaxed">
-            이달 목표 15일 중 {totalDays}일 달성!
+            이달 목표 {safeGoal}일 중 {totalDays}일 달성!
             <br />
-            {15 - totalDays}일 남았어요
+            {remaining}일 남았어요
           </p>
         </div>
       </div>
@@ -114,14 +119,21 @@ function InsightLoading({
   name,
   color,
   routines,
+  goalDays,
 }: {
   name: string;
   color: string;
   routines: RoutineCardStats[];
+  goalDays: number;
 }) {
   return (
     <div className="space-y-4">
-      <AchievementCard name={name} color={color} routines={routines} />
+      <AchievementCard
+        name={name}
+        color={color}
+        routines={routines}
+        goalDays={goalDays}
+      />
       <div className="text-center py-8 text-gray-400">
         <Loader2 size={20} className="animate-spin mx-auto mb-2" />
         <p className="text-xs">불러오는 중...</p>
@@ -139,12 +151,14 @@ function ReadingInsight({
   routineType = "reading",
   tabName = "독서",
   color = "#6366f1",
+  goalDays,
 }: {
   routines: RoutineCardStats[];
   refreshKey?: number;
   routineType?: "reading" | "english_book";
   tabName?: string;
   color?: string;
+  goalDays: number;
 }) {
   const router = useRouter();
   const [books, setBooks] = useState<
@@ -195,11 +209,23 @@ function ReadingInsight({
   const currentBooks = books.filter((b) => !b.isCompleted);
 
   if (loading)
-    return <InsightLoading name={tabName} color={color} routines={routines} />;
+    return (
+      <InsightLoading
+        name={tabName}
+        color={color}
+        routines={routines}
+        goalDays={goalDays}
+      />
+    );
 
   return (
     <div className="space-y-4">
-      <AchievementCard name={tabName} color={color} routines={routines} />
+      <AchievementCard
+        name={tabName}
+        color={color}
+        routines={routines}
+        goalDays={goalDays}
+      />
       {routineType !== "english_book" && (
         <div className="grid grid-cols-2 gap-3">
           {[
@@ -361,9 +387,11 @@ function ReadingInsight({
 function ExerciseInsightView({
   routines,
   refreshKey = 0,
+  goalDays,
 }: {
   routines: RoutineCardStats[];
   refreshKey?: number;
+  goalDays: number;
 }) {
   const [data, setData] = useState<{
     totalMinutes: number;
@@ -384,11 +412,23 @@ function ExerciseInsightView({
   }, [refreshKey]);
 
   if (loading || !data)
-    return <InsightLoading name="운동" color="#ff8900" routines={routines} />;
+    return (
+      <InsightLoading
+        name="운동"
+        color="#ff8900"
+        routines={routines}
+        goalDays={goalDays}
+      />
+    );
 
   return (
     <div className="space-y-4">
-      <AchievementCard name="운동" color="#ff8900" routines={routines} />
+      <AchievementCard
+        name="운동"
+        color="#ff8900"
+        routines={routines}
+        goalDays={goalDays}
+      />
       <div className="grid grid-cols-3 gap-3">
         {[
           {
@@ -461,9 +501,11 @@ function ExerciseInsightView({
 function MorningInsightView({
   routines,
   refreshKey = 0,
+  goalDays,
 }: {
   routines: RoutineCardStats[];
   refreshKey?: number;
+  goalDays: number;
 }) {
   const [data, setData] = useState<{
     avgCondition: number;
@@ -483,7 +525,14 @@ function MorningInsightView({
   }, [refreshKey]);
 
   if (loading || !data)
-    return <InsightLoading name="모닝" color="#eab32e" routines={routines} />;
+    return (
+      <InsightLoading
+        name="모닝"
+        color="#eab32e"
+        routines={routines}
+        goalDays={goalDays}
+      />
+    );
 
   const conditionLevel =
     data.avgCondition >= 80 ? "상" : data.avgCondition >= 60 ? "중" : "하";
@@ -496,7 +545,12 @@ function MorningInsightView({
 
   return (
     <div className="space-y-4">
-      <AchievementCard name="모닝" color="#eab32e" routines={routines} />
+      <AchievementCard
+        name="모닝"
+        color="#eab32e"
+        routines={routines}
+        goalDays={goalDays}
+      />
       <div className="grid grid-cols-2 gap-3">
         {[
           {
@@ -638,12 +692,14 @@ function LanguageInsightView({
   tabName,
   color,
   refreshKey = 0,
+  goalDays,
 }: {
   routines: RoutineCardStats[];
   routineType: "english" | "second_language";
   tabName: string;
   color: string;
   refreshKey?: number;
+  goalDays: number;
 }) {
   const [data, setData] = useState<{
     totalExpressions: number;
@@ -663,14 +719,26 @@ function LanguageInsightView({
   }, [routineType, refreshKey]);
 
   if (loading || !data)
-    return <InsightLoading name={tabName} color={color} routines={routines} />;
+    return (
+      <InsightLoading
+        name={tabName}
+        color={color}
+        routines={routines}
+        goalDays={goalDays}
+      />
+    );
 
   const bgColor = routineType === "english" ? "#f0f9ff" : "#f5f3ff";
   const textColor = routineType === "english" ? "#0369a1" : "#6d28d9";
 
   return (
     <div className="space-y-4">
-      <AchievementCard name={tabName} color={color} routines={routines} />
+      <AchievementCard
+        name={tabName}
+        color={color}
+        routines={routines}
+        goalDays={goalDays}
+      />
       <div className="grid grid-cols-2 gap-3">
         {[
           { label: "학습 표현", value: `${data.totalExpressions}개`, color },
@@ -737,9 +805,11 @@ function LanguageInsightView({
 function FinanceInsightView({
   routines,
   refreshKey = 0,
+  goalDays,
 }: {
   routines: RoutineCardStats[];
   refreshKey?: number;
+  goalDays: number;
 }) {
   const [data, setData] = useState<{
     currentMonth: {
@@ -770,7 +840,12 @@ function FinanceInsightView({
 
   if (loading || !data)
     return (
-      <InsightLoading name="자산관리" color="#10b981" routines={routines} />
+      <InsightLoading
+        name="자산관리"
+        color="#10b981"
+        routines={routines}
+        goalDays={goalDays}
+      />
     );
 
   const { currentMonth, weeklySpending } = data;
@@ -790,7 +865,12 @@ function FinanceInsightView({
 
   return (
     <div className="space-y-4">
-      <AchievementCard name="자산관리" color="#10b981" routines={routines} />
+      <AchievementCard
+        name="자산관리"
+        color="#10b981"
+        routines={routines}
+        goalDays={goalDays}
+      />
 
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
         <div className="flex items-center gap-2 mb-3">
@@ -1204,19 +1284,27 @@ interface RoutineInsightsProps {
   activeTab: string;
   routines: RoutineCardStats[];
   refreshKey?: number;
+  goalDays?: number;
 }
 
 export default function RoutineInsights({
   activeTab,
   routines,
   refreshKey = 0,
+  goalDays = 15,
 }: RoutineInsightsProps) {
   const routineType = TAB_TO_ROUTINE[activeTab];
 
   const renderInsight = () => {
     switch (activeTab) {
       case "독서":
-        return <ReadingInsight routines={routines} refreshKey={refreshKey} />;
+        return (
+          <ReadingInsight
+            routines={routines}
+            refreshKey={refreshKey}
+            goalDays={goalDays}
+          />
+        );
       case "원서읽기":
         return (
           <ReadingInsight
@@ -1225,15 +1313,24 @@ export default function RoutineInsights({
             routineType="english_book"
             tabName="원서읽기"
             color="#ec4899"
+            goalDays={goalDays}
           />
         );
       case "운동":
         return (
-          <ExerciseInsightView routines={routines} refreshKey={refreshKey} />
+          <ExerciseInsightView
+            routines={routines}
+            refreshKey={refreshKey}
+            goalDays={goalDays}
+          />
         );
       case "모닝":
         return (
-          <MorningInsightView routines={routines} refreshKey={refreshKey} />
+          <MorningInsightView
+            routines={routines}
+            refreshKey={refreshKey}
+            goalDays={goalDays}
+          />
         );
       case "제2외국어":
         return (
@@ -1243,6 +1340,7 @@ export default function RoutineInsights({
             tabName="제2외국어"
             color="#8b5cf6"
             refreshKey={refreshKey}
+            goalDays={goalDays}
           />
         );
       case "영어":
@@ -1253,11 +1351,16 @@ export default function RoutineInsights({
             tabName="영어"
             color="#0ea5e9"
             refreshKey={refreshKey}
+            goalDays={goalDays}
           />
         );
       case "자산관리":
         return (
-          <FinanceInsightView routines={routines} refreshKey={refreshKey} />
+          <FinanceInsightView
+            routines={routines}
+            refreshKey={refreshKey}
+            goalDays={goalDays}
+          />
         );
       default:
         return null;

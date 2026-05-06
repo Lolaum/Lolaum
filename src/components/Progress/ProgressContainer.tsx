@@ -1,44 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
-  getProgressPageData,
   type ChallengerProgress,
   type ProgressPageData,
 } from "@/api/progress";
 
-export default function ProgressContainer() {
-  const [data, setData] = useState<ProgressPageData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    getProgressPageData()
-      .then((res) => {
-        if (res.data) setData(res.data);
-      })
-      .catch((e) => {
-        console.error("진행표 조회 실패:", e);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-6 pb-8">
-        <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-6">
-          <p className="text-xs text-gray-400 font-medium mb-0.5">
-            이번 달 현황
-          </p>
-          <h1 className="text-xl font-bold text-gray-900">리추얼 진행표</h1>
-        </div>
-        <div className="flex justify-center py-12">
-          <div className="w-6 h-6 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
-        </div>
-      </div>
-    );
-  }
+export default function ProgressContainer({
+  initialData,
+}: {
+  initialData: ProgressPageData | null;
+}) {
+  const data = initialData;
 
   if (!data) {
     return (

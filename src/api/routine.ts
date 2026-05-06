@@ -58,15 +58,6 @@ export async function createRoutine(input: {
     return { error: "이미 등록된 리추얼입니다." };
   }
 
-  // 이 챌린지에 대한 첫 리추얼 등록인지 확인
-  const { count: priorCount } = await supabase
-    .from("challenge_registrations")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .eq("challenge_id", input.challengeId);
-
-  const isFirstRegistration = (priorCount ?? 0) === 0;
-
   const { data, error } = await supabase
     .from("challenge_registrations")
     .insert({
@@ -78,18 +69,6 @@ export async function createRoutine(input: {
     .single();
 
   if (error) return { error: error.message };
-
-  // 첫 등록이면 챌린지 start_date 를 오늘(로컬 날짜)로 갱신
-  if (isFirstRegistration) {
-    const today = new Date();
-    const y = today.getFullYear();
-    const m = String(today.getMonth() + 1).padStart(2, "0");
-    const d = String(today.getDate()).padStart(2, "0");
-    await supabase
-      .from("challenges")
-      .update({ start_date: `${y}-${m}-${d}` })
-      .eq("id", input.challengeId);
-  }
 
   return { data };
 }
@@ -151,4 +130,55 @@ export async function createRoutineAuto(
   }
 
   return createRoutine({ challengeId, routineType });
+}
+
+/**
+ * 이번 챌린지 "다시 시작".
+ * - challenges.reset_at = 오늘 (이후 진행률은 이 날짜부터 집계)
+ * - 등록한 리추얼(challenge_registrations)과 선언(declarations) 삭제
+ * - ritual_records 는 보존 → "나의 리추얼 기록"에서 계속 조회 가능
+ */
+export async function resetChallenge(): Promise<{
+  success?: boolean;
+  error?: string;
+}> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "인증이 필요합니다." };
+
+  const { challengeId, error: challengeError } = await getCurrentChallengeId();
+  if (!challengeId) {
+    return { error: challengeError ?? "챌린지를 찾을 수 없습니다." };
+  }
+
+  const supabase = await createClient();
+
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = String(today.getMonth() + 1).padStart(2, "0");
+  const d = String(today.getDate()).padStart(2, "0");
+  const todayStr = `${y}-${m}-${d}`;
+
+  const [resetRes, regRes, declRes] = await Promise.all([
+    supabase
+      .from("challenges")
+      .update({ reset_at: todayStr })
+      .eq("id", challengeId)
+      .eq("user_id", user.id),
+    supabase
+      .from("challenge_registrations")
+      .delete()
+      .eq("challenge_id", challengeId)
+      .eq("user_id", user.id),
+    supabase
+      .from("declarations")
+      .delete()
+      .eq("challenge_id", challengeId)
+      .eq("user_id", user.id),
+  ]);
+
+  if (resetRes.error) return { error: resetRes.error.message };
+  if (regRes.error) return { error: regRes.error.message };
+  if (declRes.error) return { error: declRes.error.message };
+
+  return { success: true };
 }
