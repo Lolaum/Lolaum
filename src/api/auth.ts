@@ -1,6 +1,13 @@
 "use server";
 
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
+
+async function getClientIp(): Promise<string> {
+  const h = await headers();
+  return h.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+}
 
 // Supabase Auth 영문 에러 메시지를 한국어로 매핑.
 // 매칭 안 되면 일반 안내 문구로 폴백 (영문 노출 방지).
@@ -36,6 +43,12 @@ function translateAuthError(message: string): string {
 }
 
 export async function login(data: { email: string; password: string }) {
+  const ip = await getClientIp();
+  const { success } = rateLimit(`login:${ip}`, { limit: 5, windowMs: 60_000 });
+  if (!success) {
+    return { error: "로그인 시도가 너무 많습니다. 1분 후 다시 시도해주세요." };
+  }
+
   const supabase = await createClient();
 
   const { error } = await supabase.auth.signInWithPassword({
@@ -100,6 +113,12 @@ export async function checkUsername(username: string) {
     return { error: "닉네임을 입력해주세요.", available: false };
   }
 
+  const ip = await getClientIp();
+  const { success } = rateLimit(`checkUsername:${ip}`, { limit: 20, windowMs: 60_000 });
+  if (!success) {
+    return { error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.", available: false };
+  }
+
   const supabase = await createClient();
 
   const { data } = await supabase
@@ -114,6 +133,12 @@ export async function checkUsername(username: string) {
 export async function findEmail(username: string) {
   if (!username.trim()) {
     return { error: "닉네임을 입력해주세요." };
+  }
+
+  const ip = await getClientIp();
+  const { success } = rateLimit(`findEmail:${ip}`, { limit: 5, windowMs: 60_000 });
+  if (!success) {
+    return { error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." };
   }
 
   const supabase = await createClient();
@@ -141,6 +166,12 @@ export async function findEmail(username: string) {
 export async function resetPassword(email: string) {
   if (!email.trim()) {
     return { error: "이메일을 입력해주세요." };
+  }
+
+  const ip = await getClientIp();
+  const { success } = rateLimit(`resetPassword:${ip}`, { limit: 3, windowMs: 300_000 });
+  if (!success) {
+    return { error: "요청이 너무 많습니다. 5분 후 다시 시도해주세요." };
   }
 
   const supabase = await createClient();
