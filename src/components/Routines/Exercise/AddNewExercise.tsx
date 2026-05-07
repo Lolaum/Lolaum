@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Upload, X, Info } from "lucide-react";
 import { applyTimestamp, fileToBase64 } from "@/lib/utils";
+import { uploadImages } from "@/lib/upload-image";
 import {
   AddNewExerciseProps,
   ExerciseFormData,
@@ -75,9 +76,11 @@ export default function AddNewExercise({
     submittingRef.current = true;
     setSubmitting(true);
 
+    const imageUrls = images.length > 0 ? await uploadImages(images) : [];
+
     const recordData: ExerciseFormData = {
       recordType,
-      images,
+      images: imageUrls,
       exerciseName: exerciseName.trim(),
       duration: recordType === "exercise" ? finalDuration : 0,
       macros: recordType === "diet" ? finalMacros : undefined,

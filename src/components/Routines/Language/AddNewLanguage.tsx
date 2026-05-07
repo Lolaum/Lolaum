@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { Plus, X, Upload } from "lucide-react";
 import { applyTimestamp, fileToBase64 } from "@/lib/utils";
+import { uploadImages } from "@/lib/upload-image";
 import {
   AddNewLanguageProps,
   LanguageFormData,
@@ -73,8 +74,10 @@ export default function AddNewLanguage({
     submittingRef.current = true;
     setSubmitting(true);
 
+    const imageUrls = images.length > 0 ? await uploadImages(images) : [];
+
     const recordData: LanguageFormData = {
-      images,
+      images: imageUrls,
       achievement: "",
       expressions: validExpressions.map((e) => ({
         word: e.word.trim(),

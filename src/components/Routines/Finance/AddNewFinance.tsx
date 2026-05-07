@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Plus, X, Calendar as CalendarIcon, Upload } from "lucide-react";
 import { applyTimestamp, fileToBase64 } from "@/lib/utils";
+import { uploadImages } from "@/lib/upload-image";
 import {
   AddNewFinanceProps,
   FinanceFormData,
@@ -289,11 +290,14 @@ export default function AddNewFinance({
     submittingRef.current = true;
     setSubmitting(true);
 
+    const certPhotoUrls =
+      certPhotos.length > 0 ? await uploadImages(certPhotos) : undefined;
+
     const formData: FinanceFormData = {
       dailyExpenses: dailyExpenses.map(({ id, ...rest }) => rest),
       studyContent: studyContent.trim(),
       practice: practice.trim(),
-      certPhotos: certPhotos.length > 0 ? certPhotos : undefined,
+      certPhotos: certPhotoUrls,
     };
 
     try {

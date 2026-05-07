@@ -12,6 +12,7 @@ import {
   getMyRitualRecords,
 } from "@/api/ritual-record";
 import { applyTimestamp, fileToBase64 } from "@/lib/utils";
+import { uploadImage, uploadImages } from "@/lib/upload-image";
 import type { ReadingRecordData, Json } from "@/types/supabase";
 
 const MAX_READING_CERT_PHOTOS = 2;
@@ -87,6 +88,11 @@ function AddReadingRecord({
     setSubmitting(true);
     const today = new Date().toISOString().split("T")[0];
     try {
+      const [screenshotUrl, certPhotoUrls] = await Promise.all([
+        isEnglishBook && screenshot ? uploadImage(screenshot) : Promise.resolve(undefined),
+        !isEnglishBook && certPhotos.length > 0 ? uploadImages(certPhotos) : Promise.resolve(undefined),
+      ]);
+
       await onSave({
         date: today,
         trackingType: book.trackingType,
@@ -96,9 +102,8 @@ function AddReadingRecord({
         noteType,
         note: isEnglishBook ? "(스크린샷 인증)" : note.trim(),
         thoughts: thoughts.trim() || undefined,
-        screenshot: isEnglishBook && screenshot ? screenshot : undefined,
-        certPhotos:
-          !isEnglishBook && certPhotos.length > 0 ? certPhotos : undefined,
+        screenshot: screenshotUrl,
+        certPhotos: certPhotoUrls,
       });
     } finally {
       submittingRef.current = false;
@@ -463,12 +468,14 @@ export default function BookDetail({
   const handleSave = async (record: Omit<DailyReadingRecord, "id">) => {
     // 원서읽기: 업로드된 스크린샷 우선
     // 일반 독서: 사용자가 업로드한 인증 사진(record.certPhotos) 우선, 없으면 외부 certificationPhotos prop
+    // record.screenshot / record.certPhotos 는 AddReadingRecord에서 이미 업로드 완료된 URL
+    // certificationPhotos prop은 base64일 수 있으므로 업로드 필요
     const certPhotos = record.screenshot
       ? [record.screenshot]
       : record.certPhotos?.length
         ? record.certPhotos
         : certificationPhotos?.length
-          ? certificationPhotos
+          ? await uploadImages(certificationPhotos)
           : undefined;
 
     // DB에 ritual_record 저장

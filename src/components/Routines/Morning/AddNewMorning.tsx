@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { Upload, X } from "lucide-react";
 import { applyTimestamp, fileToBase64 } from "@/lib/utils";
+import { uploadImage } from "@/lib/upload-image";
 import {
   AddNewMorningProps,
   MorningFormData,
@@ -50,8 +51,10 @@ export default function AddNewMorning({
     submittingRef.current = true;
     setSubmitting(true);
 
+    const imageUrl = image ? await uploadImage(image) : "";
+
     const recordData: MorningFormData = {
-      image,
+      image: imageUrl,
       sleepHours: sleepHoursNum,
       condition: condition as ConditionLevel,
       success: success.trim(),
