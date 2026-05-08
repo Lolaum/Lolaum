@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, User, X, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
+import { ArrowLeft, User, X, ChevronLeft, ChevronRight, Pencil, Trash2 } from "lucide-react";
 import {
   BookText,
   Dumbbell,
@@ -27,6 +27,7 @@ import {
   normalizeRecordingFeedEntries,
 } from "@/types/feed";
 import { addComment, deleteComment, updateComment } from "@/api/comment";
+import { deleteRitualRecord } from "@/api/ritual-record";
 import CommentSection from "./CommentSection";
 import EditFeedRecord from "./EditFeedRecord";
 import LinkifiedText from "@/components/common/LinkifiedText";
@@ -818,8 +819,23 @@ export default function FeedDetail({ item, isMine = false }: FeedDetailProps) {
   const router = useRouter();
   const [comments, setComments] = useState<Comment[]>(item.comments ?? []);
   const [editing, setEditing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const meta = getCategoryMeta(item.routineCategory);
   const recordId = item.odOriginalId;
+
+  const handleDeleteRecord = async () => {
+    if (!recordId) return;
+    setDeleting(true);
+    const { error } = await deleteRitualRecord(recordId);
+    setDeleting(false);
+    if (error) {
+      alert(`삭제 실패: ${error}`);
+      return;
+    }
+    setConfirmDelete(false);
+    router.back();
+  };
 
   const handleAddComment = async (text: string) => {
     if (!recordId) return;
@@ -882,16 +898,63 @@ export default function FeedDetail({ item, isMine = false }: FeedDetailProps) {
             {meta.label}
           </span>
           {isMine && !editing && item.routineData && (
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
-            >
-              <Pencil className="w-3.5 h-3.5" />
-              수정
-            </button>
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                수정
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                삭제
+              </button>
+            </div>
           )}
         </div>
+
+        {/* 삭제 확인 모달 */}
+        {confirmDelete && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6"
+            onClick={() => !deleting && setConfirmDelete(false)}
+          >
+            <div
+              className="w-full max-w-xs rounded-2xl bg-white p-5 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-base font-semibold text-gray-900">
+                인증 게시글을 삭제하시겠습니까?
+              </h3>
+              <p className="mt-2 text-sm text-gray-500">
+                기록과 댓글이 함께 사라지며, 달성률에서도 제외됩니다.
+              </p>
+              <div className="mt-5 flex gap-2">
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  disabled={deleting}
+                  className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleDeleteRecord}
+                  disabled={deleting}
+                  className="flex-1 rounded-xl py-2.5 text-sm font-medium text-white disabled:opacity-50"
+                  style={{ backgroundColor: "#ef4444" }}
+                >
+                  {deleting ? "삭제 중..." : "삭제"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 본문 카드 */}
         <div className="bg-white rounded-2xl shadow-md p-6">

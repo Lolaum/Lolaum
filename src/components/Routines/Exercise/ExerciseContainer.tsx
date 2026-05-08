@@ -146,7 +146,10 @@ export default function ExerciseContainer({ mode = "main" }: ExerciseContainerPr
           <p className="text-xs">기록을 불러오는 중...</p>
         </div>
       ) : (
-        <RecordExercise exerciseRecords={exerciseRecords} />
+        <RecordExercise
+          exerciseRecords={exerciseRecords}
+          onChanged={fetchRecords}
+        />
       )}
     </div>
   );

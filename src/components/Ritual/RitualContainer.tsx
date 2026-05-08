@@ -1,11 +1,32 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Flame, Calendar, TrendingUp, Loader2 } from "lucide-react";
 import { getRitualPageData } from "@/api/ritual-stats";
-import type { RitualOverallStats, RoutineCardStats } from "@/api/ritual-stats";
+import type {
+  RitualOverallStats,
+  RoutineCardStats,
+  CompletionRateStats,
+} from "@/api/ritual-stats";
 import RecordGallery from "./RecordGallery";
 import RoutineInsights from "./RoutineInsights";
+
+interface RitualInitialData {
+  overall?: RitualOverallStats;
+  routines?: RoutineCardStats[];
+  completion?: CompletionRateStats;
+  totalRoutineDays?: number;
+  error?: string;
+}
+
+function deriveOverall(initial: RitualInitialData): RitualOverallStats | null {
+  if (!initial.overall) return null;
+  return {
+    ...initial.overall,
+    completionRate:
+      initial.completion?.rate ?? initial.overall.completionRate,
+  };
+}
 
 type TabId =
   | "아카이빙"
@@ -44,13 +65,25 @@ const TAB_COLORS: Record<TabId, string> = {
 
 const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
 
-export default function RitualContainer() {
+export default function RitualContainer({
+  initialData,
+}: {
+  initialData: RitualInitialData;
+}) {
   const [activeTab, setActiveTab] = useState<TabId>("아카이빙");
-  const [overall, setOverall] = useState<RitualOverallStats | null>(null);
-  const [routines, setRoutines] = useState<RoutineCardStats[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [overall, setOverall] = useState<RitualOverallStats | null>(
+    deriveOverall(initialData),
+  );
+  const [routines, setRoutines] = useState<RoutineCardStats[]>(
+    initialData.routines ?? [],
+  );
+  const [totalRoutineDays, setTotalRoutineDays] = useState<number>(
+    initialData.totalRoutineDays ?? 15,
+  );
+  const [loading, setLoading] = useState(false);
 
   const [refreshKey, setRefreshKey] = useState(0);
+  const skipFirstFetch = useRef(true);
 
   // 페이지에 다시 돌아올 때 자동 갱신
   useEffect(() => {
@@ -65,6 +98,11 @@ export default function RitualContainer() {
   }, []);
 
   useEffect(() => {
+    // 초기 렌더는 SSR이 채운 initialData 그대로 사용 — 클라이언트 fetch 1회 절약
+    if (skipFirstFetch.current) {
+      skipFirstFetch.current = false;
+      return;
+    }
     async function fetchStats() {
       setLoading(true);
       const result = await getRitualPageData();
@@ -76,6 +114,9 @@ export default function RitualContainer() {
         });
       }
       if (result.routines) setRoutines(result.routines);
+      if (typeof result.totalRoutineDays === "number") {
+        setTotalRoutineDays(result.totalRoutineDays);
+      }
       setLoading(false);
     }
     fetchStats();
@@ -226,6 +267,7 @@ export default function RitualContainer() {
           activeTab={activeTab}
           routines={routines}
           refreshKey={refreshKey}
+          goalDays={totalRoutineDays}
         />
       )}
     </div>

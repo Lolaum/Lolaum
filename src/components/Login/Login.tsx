@@ -55,12 +55,12 @@ export default function Login() {
 
       <div className="w-full max-w-md relative">
         <div className="rounded-3xl bg-white p-8 shadow-xl sm:p-10">
-          {/* 로고 */}
+          {/* 로고 — 양쪽 글자 끝이 잘리지 않도록 가로 padding 확보 */}
           <div className="mb-8 text-center">
             <img
               src="/images/common/LolaumLogo.png"
               alt="Lolaum Logo"
-              className="mx-auto h-10 w-auto mb-3"
+              className="mx-auto h-10 w-auto mb-3 px-2"
             />
             <p className="text-sm text-gray-400">매일 성장하는 나를 만드는 곳</p>
           </div>

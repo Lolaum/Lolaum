@@ -11,4 +11,5 @@ export interface RoutineListProps {
   routineCompletionMap?: Record<string, number>; // routine_type → 완료 일수
   isPastDate?: boolean; // 지난 날짜 여부 (리추얼 진행 차단용)
   isOutsidePeriod?: boolean; // 챌린지 기간 외 여부 (리추얼 진행 차단용)
+  totalRoutineDays?: number; // 활성 기간 평일 수 (목표 일수)
 }

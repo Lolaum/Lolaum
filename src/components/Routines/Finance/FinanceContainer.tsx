@@ -249,7 +249,10 @@ export default function FinanceContainer({ mode = "main" }: FinanceContainerProp
           <p className="text-xs">기록을 불러오는 중...</p>
         </div>
       ) : (
-        <RecordFinance financeRecords={financeRecords} />
+        <RecordFinance
+          financeRecords={financeRecords}
+          onChanged={fetchRecords}
+        />
       )}
     </div>
   );

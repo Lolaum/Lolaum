@@ -1,13 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Trash2 } from "lucide-react";
 import { RecordFinanceProps } from "@/types/routines/finance";
+import { deleteRitualRecord } from "@/api/ritual-record";
+
+interface RecordFinancePropsWithCallback extends RecordFinanceProps {
+  onChanged?: () => void;
+}
 
 export default function RecordFinance({
   financeRecords,
-}: RecordFinanceProps) {
+  onChanged,
+}: RecordFinancePropsWithCallback) {
   const [expandedIds, setExpandedIds] = useState<number[]>([]);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!deleteTargetId) return;
+    setDeleting(true);
+    const { error } = await deleteRitualRecord(deleteTargetId);
+    setDeleting(false);
+    setDeleteTargetId(null);
+    if (error) {
+      alert(`삭제 실패: ${error}`);
+      return;
+    }
+    onChanged?.();
+  };
 
   const toggleExpand = (id: number) => {
     setExpandedIds((prev) =>
@@ -338,6 +359,18 @@ export default function RecordFinance({
                         </div>
                       </div>
                     )}
+
+                    {/* 삭제 버튼 */}
+                    <div className="flex items-center justify-end pt-2 border-t border-gray-100">
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTargetId(String(record.id))}
+                        className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        삭제
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -345,6 +378,43 @@ export default function RecordFinance({
           );
         })}
       </div>
+
+      {/* 삭제 확인 모달 */}
+      {deleteTargetId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6"
+          onClick={() => !deleting && setDeleteTargetId(null)}
+        >
+          <div
+            className="w-full max-w-xs rounded-2xl bg-white p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-semibold text-gray-900">
+              자산관리 기록을 삭제하시겠습니까?
+            </h3>
+            <p className="mt-2 text-sm text-gray-500">
+              이 작업은 되돌릴 수 없습니다.
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setDeleteTargetId(null)}
+                disabled={deleting}
+                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 rounded-xl py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: "#ef4444" }}
+              >
+                {deleting ? "삭제 중..." : "삭제"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

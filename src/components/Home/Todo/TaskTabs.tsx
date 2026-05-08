@@ -21,6 +21,7 @@ interface TaskTabsProps {
   isPastDate?: boolean;
   isOutsidePeriod?: boolean;
   routineCompletionMap?: Record<string, number>;
+  totalRoutineDays?: number;
 }
 
 export default function TaskTabs({
@@ -31,6 +32,7 @@ export default function TaskTabs({
   isPastDate,
   isOutsidePeriod,
   routineCompletionMap,
+  totalRoutineDays,
 }: TaskTabsProps) {
   const router = useRouter();
 
@@ -123,6 +125,7 @@ export default function TaskTabs({
           routineCompletionMap={routineCompletionMap}
           isPastDate={isPastDate}
           isOutsidePeriod={isOutsidePeriod}
+          totalRoutineDays={totalRoutineDays}
         />
       </div>
     </div>

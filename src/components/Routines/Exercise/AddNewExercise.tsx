@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Upload, X, Info } from "lucide-react";
 import { applyTimestamp, fileToBase64 } from "@/lib/utils";
+import { uploadImages } from "@/lib/upload-image";
 import {
   AddNewExerciseProps,
   ExerciseFormData,
@@ -75,9 +76,11 @@ export default function AddNewExercise({
     submittingRef.current = true;
     setSubmitting(true);
 
+    const imageUrls = images.length > 0 ? await uploadImages(images) : [];
+
     const recordData: ExerciseFormData = {
       recordType,
-      images,
+      images: imageUrls,
       exerciseName: exerciseName.trim(),
       duration: recordType === "exercise" ? finalDuration : 0,
       macros: recordType === "diet" ? finalMacros : undefined,
@@ -391,7 +394,7 @@ export default function AddNewExercise({
             disabled={!canSubmit || submitting}
             className="flex-1 py-4 px-4 rounded-xl bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
-            {submitting ? "저장 중..." : "기록 추가하기"}
+            {submitting ? "저장 중..." : "오늘의 리추얼 성공"}
           </button>
         </div>
       </div>

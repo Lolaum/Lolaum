@@ -161,7 +161,10 @@ export default function MorningContainer({ mode = "main" }: MorningContainerProp
           <p className="text-xs">기록을 불러오는 중...</p>
         </div>
       ) : (
-        <RecordMorning morningRecords={morningRecords} />
+        <RecordMorning
+          morningRecords={morningRecords}
+          onChanged={fetchRecords}
+        />
       )}
     </div>
   );

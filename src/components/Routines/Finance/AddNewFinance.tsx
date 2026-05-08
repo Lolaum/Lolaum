@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Plus, X, Calendar as CalendarIcon, Upload } from "lucide-react";
 import { applyTimestamp, fileToBase64 } from "@/lib/utils";
+import { uploadImages } from "@/lib/upload-image";
 import {
   AddNewFinanceProps,
   FinanceFormData,
@@ -10,7 +11,7 @@ import {
   DailyExpense,
 } from "@/types/routines/finance";
 
-const MAX_CERT_PHOTOS = 2;
+const MAX_CERT_PHOTOS = 1;
 
 interface DailyExpenseState extends DailyExpense {
   id: string; // UI에서 관리하기 위한 임시 ID
@@ -289,11 +290,14 @@ export default function AddNewFinance({
     submittingRef.current = true;
     setSubmitting(true);
 
+    const certPhotoUrls =
+      certPhotos.length > 0 ? await uploadImages(certPhotos) : undefined;
+
     const formData: FinanceFormData = {
       dailyExpenses: dailyExpenses.map(({ id, ...rest }) => rest),
       studyContent: studyContent.trim(),
       practice: practice.trim(),
-      certPhotos: certPhotos.length > 0 ? certPhotos : undefined,
+      certPhotos: certPhotoUrls,
     };
 
     try {
@@ -373,7 +377,7 @@ export default function AddNewFinance({
             인증 사진
           </label>
           <p className="text-xs text-gray-500 mb-3 leading-relaxed">
-            소비/공부 인증 사진을 최대 2장까지 업로드할 수 있어요
+            오늘의 자산관리 공부 시작 화면/노트/책 등 사진 1장
           </p>
           <div className="space-y-3">
             {certPhotos.length < MAX_CERT_PHOTOS && (
@@ -584,6 +588,11 @@ export default function AddNewFinance({
                     </div>
                   )}
                 </div>
+
+                {/* 입력 안내 */}
+                <p className="text-xs text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2 mb-3">
+                  +를 누르면 금액이 자동으로 합산돼요
+                </p>
 
                 {/* 필요소비 */}
                 <div className="mb-4">
@@ -911,7 +920,7 @@ export default function AddNewFinance({
             }
             className="flex-1 py-4 px-4 rounded-xl bg-green-500 text-white font-medium hover:bg-green-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
-            {submitting ? "저장 중..." : "기록 추가하기"}
+            {submitting ? "저장 중..." : "오늘의 리추얼 성공"}
           </button>
         </div>
       </div>

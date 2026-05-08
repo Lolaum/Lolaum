@@ -133,6 +133,7 @@ export interface Database {
           weekly_target: number;
           total_weeks: number;
           created_at: string;
+          reset_at: string | null;
         };
         Insert: {
           id?: string;
@@ -146,6 +147,7 @@ export interface Database {
           weekly_target?: number;
           total_weeks?: number;
           created_at?: string;
+          reset_at?: string | null;
         };
         Update: {
           period_id?: string;
@@ -153,6 +155,7 @@ export interface Database {
           end_date?: string;
           weekly_target?: number;
           total_weeks?: number;
+          reset_at?: string | null;
         };
         Relationships: [];
       };

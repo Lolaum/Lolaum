@@ -20,7 +20,7 @@ export function fileToBase64(file: File): Promise<string> {
 
 /** File → EXIF 날짜/시간을 중앙에 찍은 base64 이미지 반환 (최대 1920px 리사이즈) */
 export async function applyTimestamp(file: File): Promise<string> {
-  const MAX_SIZE = 1920;
+  const MAX_SIZE = 1280;
   const exifr = (await import("exifr")).default;
 
   let photoDate: Date;
@@ -79,7 +79,7 @@ export async function applyTimestamp(file: File): Promise<string> {
       ctx.fillText(text, w / 2, h / 2);
 
       URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL("image/jpeg", 0.85));
+      resolve(canvas.toDataURL("image/jpeg", 0.75));
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);

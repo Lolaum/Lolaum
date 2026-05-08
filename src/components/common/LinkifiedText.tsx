@@ -2,6 +2,15 @@ import React from "react";
 
 const URL_REGEX = /(https?:\/\/\S+)/g;
 
+function isSafeUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 interface LinkifiedTextProps {
   text: string;
   className?: string;
@@ -22,7 +31,7 @@ export default function LinkifiedText({
   return (
     <p className={`whitespace-pre-wrap break-words ${className}`}>
       {parts.map((part, i) =>
-        i % 2 === 1 ? (
+        i % 2 === 1 && isSafeUrl(part) ? (
           <a
             key={i}
             href={part}

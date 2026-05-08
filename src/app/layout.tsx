@@ -12,13 +12,9 @@ export const metadata: Metadata = {
     title: "Lolaum",
   },
   icons: {
-    icon: [
-      { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
-    ],
-    shortcut: "/icon.svg",
-    apple: "/apple-touch-icon.png",
+    icon: [{ url: "/images/common/LolaumLogo.png", type: "image/png" }],
+    shortcut: "/images/common/LolaumLogo.png",
+    apple: "/images/common/LolaumLogo.png",
   },
 };
 

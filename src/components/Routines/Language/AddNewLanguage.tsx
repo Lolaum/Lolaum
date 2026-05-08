@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { Plus, X, Upload } from "lucide-react";
 import { applyTimestamp, fileToBase64 } from "@/lib/utils";
+import { uploadImages } from "@/lib/upload-image";
 import {
   AddNewLanguageProps,
   LanguageFormData,
@@ -73,8 +74,10 @@ export default function AddNewLanguage({
     submittingRef.current = true;
     setSubmitting(true);
 
+    const imageUrls = images.length > 0 ? await uploadImages(images) : [];
+
     const recordData: LanguageFormData = {
-      images,
+      images: imageUrls,
       achievement: "",
       expressions: validExpressions.map((e) => ({
         word: e.word.trim(),
@@ -154,7 +157,7 @@ export default function AddNewLanguage({
         {/* 인증 사진 */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            인증 사진 (10분 이상 텀이 있는 시작/종료 사진)
+            인증 사진 (10분 이상 간격이 있는 시작/종료 사진)
             {initialImages?.length ? (
               <span className="ml-2 text-xs font-normal text-orange-500">
                 시작·종료 인증 사진 자동 첨부됨
@@ -291,13 +294,14 @@ export default function AddNewLanguage({
             onClick={handleSubmit}
             disabled={
               submitting ||
+              images.length < 2 ||
               expressions.every(
                 (e) => !e.word.trim() && !e.meaning.trim() && !e.example.trim(),
               )
             }
             className="flex-1 py-4 px-4 rounded-xl bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
-            {submitting ? "저장 중..." : "기록 추가하기"}
+            {submitting ? "저장 중..." : "오늘의 리추얼 성공"}
           </button>
         </div>
       </div>
