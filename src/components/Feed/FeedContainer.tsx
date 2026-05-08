@@ -175,7 +175,13 @@ export default function FeedContainer({
             <p className="text-sm">아직 피드가 없습니다.</p>
           </div>
         ) : (
-          feedData.map((feed) => <FeedItem key={String(feed.id)} item={feed} />)
+          feedData.map((feed, index) => (
+            <FeedItem
+              key={String(feed.id)}
+              item={feed}
+              priority={index < 2}
+            />
+          ))
         )}
       </div>
 

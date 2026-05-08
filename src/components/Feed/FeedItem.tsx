@@ -1,6 +1,6 @@
-/* eslint-disable @next/next/no-img-element */
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   User,
   BookText,
@@ -26,6 +26,7 @@ import {
 
 interface FeedItemProps {
   item: FeedItemType;
+  priority?: boolean;
 }
 
 const CATEGORY_CONFIG: Record<
@@ -214,15 +215,24 @@ function getImages(item: FeedItemType): string[] {
 }
 
 /** 깨진 이미지 자동 숨김 */
-function FeedThumbnail({ images }: { images: string[] }) {
+function FeedThumbnail({
+  images,
+  priority,
+}: {
+  images: string[];
+  priority?: boolean;
+}) {
   const [failed, setFailed] = React.useState(false);
   if (failed || images.length === 0) return null;
   return (
     <div className="relative w-full h-44 bg-gray-100">
-      <img
+      <Image
         src={images[0]}
         alt="인증 사진"
-        className="w-full h-full object-cover"
+        fill
+        sizes="(max-width: 768px) 50vw, 360px"
+        className="object-cover"
+        priority={priority}
         onError={() => setFailed(true)}
       />
       {images.length > 1 && (
@@ -234,7 +244,7 @@ function FeedThumbnail({ images }: { images: string[] }) {
   );
 }
 
-export default function FeedItem({ item }: FeedItemProps) {
+export default function FeedItem({ item, priority }: FeedItemProps) {
   const config = CATEGORY_CONFIG[item.routineCategory];
   const previewText = getPreviewText(item);
   const subText = getSubText(item);
@@ -247,7 +257,7 @@ export default function FeedItem({ item }: FeedItemProps) {
       style={{ borderTop: `3px solid ${config.color}` }}
     >
       {/* 이미지 */}
-      <FeedThumbnail images={images} />
+      <FeedThumbnail images={images} priority={priority} />
 
       <div className="p-4">
         {/* 상단: 카테고리 뱃지 + 날짜 */}
@@ -264,12 +274,14 @@ export default function FeedItem({ item }: FeedItemProps) {
 
         {/* 유저 + 서브텍스트 */}
         <div className="flex items-center gap-2.5 mb-2.5">
-          <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <div className="relative w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
             {item.userProfileImage ? (
-              <img
+              <Image
                 src={item.userProfileImage}
                 alt={item.userName}
-                className="w-full h-full object-cover"
+                fill
+                sizes="32px"
+                className="object-cover"
               />
             ) : (
               <User size={14} className="text-gray-400" />
