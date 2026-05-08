@@ -1,19 +1,23 @@
 "use server";
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   getCurrentChallengeId,
   getActivePeriod,
   getEffectiveStart,
 } from "@/lib/current-challenge";
 import type {
+  ChallengeRegistration,
+  Profile,
   RoutineTypeDB,
-  RitualRecord,
   ExerciseRecordData,
   MorningRecordData,
   LanguageRecordData,
   FinanceRecordData,
 } from "@/types/supabase";
+import type { ChallengerSummary } from "@/api/user";
+import { isAllRoutinesCovered } from "@/lib/declarations";
 
 // ── 타입 ──────────────────────────────────────────────
 
@@ -84,6 +88,11 @@ export interface FinanceInsight {
   };
   weeklySpending: { week: string; amount: number }[];
 }
+
+export type HomeProfile = Pick<
+  Profile,
+  "id" | "username" | "name" | "avatar_url"
+>;
 
 // ── 리추얼 설정 ──────────────────────────────────────────
 
@@ -209,7 +218,7 @@ function calcStreak(dates: string[]): number {
   const sorted = [...dates].sort((a, b) => b.localeCompare(a)); // 최신순
   const today = new Date().toISOString().split("T")[0];
   let streak = 0;
-  let checkDate = new Date(today);
+  const checkDate = new Date(today);
 
   // 오늘 기록이 없으면 어제부터 체크
   if (sorted[0] !== today) {
@@ -247,22 +256,6 @@ function calcLongestStreak(dates: string[]): number {
     }
   }
   return longest;
-}
-
-/**
- * 신청한 모든 리추얼(registeredTypes)에 대해 항목(rows)이 작성되었는지 검사.
- * 선언/중간회고/최종회고가 "신청한 리추얼 수만큼 채워졌을 때"만 달성으로 인정한다.
- */
-function isAllRoutinesCovered(
-  registeredTypes: Set<string>,
-  rows: { routine_type: string }[] | null | undefined,
-): boolean {
-  if (registeredTypes.size === 0) return false;
-  const written = new Set((rows ?? []).map((r) => r.routine_type));
-  for (const rt of registeredTypes) {
-    if (!written.has(rt)) return false;
-  }
-  return true;
 }
 
 function getWeekActivity(dates: string[]): boolean[] {
@@ -313,9 +306,28 @@ export async function getRitualPageData(): Promise<{
 
   const supabase = await createClient();
 
-  // 4개 쿼리를 한 번에 병렬 실행 (이전엔 두 endpoint가 ritual_records/registrations를 중복 조회)
-  const [recordsRes, registrationsRes, declarationsRes, midReviewsRes] =
+  // 4개 쿼리를 한 번에 병렬 실행
+  // daily_completions로 fullyCompleteDays/streak 계산, ritual_records는 routines 카드용으로만 사용
+  const [dailyRes, recordsCountRes, routineRecordsRes, registrationsRes, declarationsRes, midReviewsRes] =
     await Promise.all([
+      // 완전 달성일 목록 (fullyCompleteDays, streak 계산용)
+      supabase
+        .from("daily_completions")
+        .select("completion_date")
+        .eq("user_id", user.id)
+        .eq("challenge_id", challengeId)
+        .eq("is_fully_complete", true)
+        .gte("completion_date", effectiveStart)
+        .lte("completion_date", period.end_date),
+      // 전체 리추얼 기록 수 (totalRecords용 — count only)
+      supabase
+        .from("ritual_records")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("challenge_id", challengeId)
+        .gte("record_date", effectiveStart)
+        .lte("record_date", period.end_date),
+      // routines 카드용: routine_type, record_date만 (record_data 제외)
       supabase
         .from("ritual_records")
         .select("routine_type, record_date")
@@ -340,28 +352,16 @@ export async function getRitualPageData(): Promise<{
         .eq("challenge_id", challengeId),
     ]);
 
-  const records = recordsRes.data ?? [];
+  const fullyCompleteDates = (dailyRes.data ?? []).map((r) => r.completion_date);
+  const fullyCompleteDays = fullyCompleteDates.length;
+  const totalRecords = recordsCountRes.count ?? 0;
+  const routineRecords = routineRecordsRes.data ?? [];
   const registrations = registrationsRes.data ?? [];
 
-  const totalRecords = records.length;
-  const allDates = [...new Set(records.map((r) => r.record_date))].sort();
-  const currentStreak = calcStreak(allDates);
-
-  // 날짜별 완료 리추얼 set
-  const registeredTypes = new Set(registrations.map((r) => r.routine_type));
-  const dateMap = new Map<string, Set<string>>();
-  for (const r of records) {
-    if (!dateMap.has(r.record_date)) dateMap.set(r.record_date, new Set());
-    dateMap.get(r.record_date)!.add(r.routine_type);
-  }
-  let fullyCompleteDays = 0;
-  for (const [, completedTypes] of dateMap) {
-    const allDone = [...registeredTypes].every((rt) => completedTypes.has(rt));
-    if (allDone) fullyCompleteDays++;
-  }
+  const currentStreak = calcStreak(fullyCompleteDates);
 
   // overall stats
-  const totalDaysWithRecords = dateMap.size || 1;
+  const totalDaysWithRecords = fullyCompleteDays || 1;
   const overallCompletionRate = Math.round(
     (fullyCompleteDays / totalDaysWithRecords) * 100,
   );
@@ -371,7 +371,7 @@ export async function getRitualPageData(): Promise<{
     completionRate: overallCompletionRate,
   };
 
-  // routines cards
+  // routines cards (routine_type, record_date만 사용 — record_data 없음)
   const registeredTypesList = registrations.map(
     (r) => r.routine_type as RoutineTypeDB,
   );
@@ -379,7 +379,7 @@ export async function getRitualPageData(): Promise<{
     .filter((rt) => ROUTINE_CONFIG[rt])
     .map((rt) => {
       const config = ROUTINE_CONFIG[rt];
-      const routineDates = records
+      const routineDates = routineRecords
         .filter((r) => r.routine_type === rt)
         .map((r) => r.record_date);
       const uniqueDates = [...new Set(routineDates)];
@@ -399,6 +399,7 @@ export async function getRitualPageData(): Promise<{
   // completion stats (활성 기간 기반)
   // 선언은 "신청한 모든 리추얼에 대해 작성"되어야 +1
   // 중간 회고는 유저당 1개라도 작성했으면 +1
+  const registeredTypes = new Set(registrations.map((r) => r.routine_type));
   const completedDays = Math.min(fullyCompleteDays, totalRoutineDays);
   const hasDeclaration = isAllRoutinesCovered(
     registeredTypes,
@@ -449,43 +450,50 @@ export async function getRitualStats(): Promise<{
   const effectiveStart = getEffectiveStart(period.start_date, resetAt);
   const supabase = await createClient();
 
-  // 기록 + 등록 리추얼 동시 조회 (활성 기간 내 record_date만)
-  const [recordsRes, registrationsRes] = await Promise.all([
-    supabase
-      .from("ritual_records")
-      .select("routine_type, record_date")
-      .eq("user_id", user.id)
-      .eq("challenge_id", challengeId)
-      .gte("record_date", effectiveStart)
-      .lte("record_date", period.end_date),
-    supabase
-      .from("challenge_registrations")
-      .select("routine_type")
-      .eq("user_id", user.id)
-      .eq("challenge_id", challengeId),
-  ]);
+  // daily_completions로 overall 계산, routine_records는 routines 카드용으로만 사용
+  const [dailyRes, recordsCountRes, routineRecordsRes, registrationsRes] =
+    await Promise.all([
+      // 완전 달성일 목록 (fullyCompleteDays, streak 계산용)
+      supabase
+        .from("daily_completions")
+        .select("completion_date")
+        .eq("user_id", user.id)
+        .eq("challenge_id", challengeId)
+        .eq("is_fully_complete", true)
+        .gte("completion_date", effectiveStart)
+        .lte("completion_date", period.end_date),
+      // 전체 리추얼 기록 수 (totalRecords용 — count only)
+      supabase
+        .from("ritual_records")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("challenge_id", challengeId)
+        .gte("record_date", effectiveStart)
+        .lte("record_date", period.end_date),
+      // routines 카드용: routine_type, record_date만 (record_data 제외)
+      supabase
+        .from("ritual_records")
+        .select("routine_type, record_date")
+        .eq("user_id", user.id)
+        .eq("challenge_id", challengeId)
+        .gte("record_date", effectiveStart)
+        .lte("record_date", period.end_date),
+      supabase
+        .from("challenge_registrations")
+        .select("routine_type")
+        .eq("user_id", user.id)
+        .eq("challenge_id", challengeId),
+    ]);
 
-  const records = recordsRes.data ?? [];
+  const fullyCompleteDates = (dailyRes.data ?? []).map((r) => r.completion_date);
+  const fullyCompleteDays = fullyCompleteDates.length;
+  const totalRecords = recordsCountRes.count ?? 0;
+  const routineRecords = routineRecordsRes.data ?? [];
   const registrations = registrationsRes.data ?? [];
 
   // 전체 통계
-  const totalRecords = records.length;
-  const allDates = [...new Set(records.map((r) => r.record_date))].sort();
-  const currentStreak = calcStreak(allDates);
-
-  // 달성률: 날짜별로 등록된 리추얼을 모두 완료했는지 계산
-  const registeredTypes = new Set(registrations.map((r) => r.routine_type));
-  const dateMap = new Map<string, Set<string>>();
-  for (const r of records) {
-    if (!dateMap.has(r.record_date)) dateMap.set(r.record_date, new Set());
-    dateMap.get(r.record_date)!.add(r.routine_type);
-  }
-  let fullyCompleteDays = 0;
-  for (const [, completedTypes] of dateMap) {
-    const allDone = [...registeredTypes].every((rt) => completedTypes.has(rt));
-    if (allDone) fullyCompleteDays++;
-  }
-  const totalDaysWithRecords = dateMap.size || 1;
+  const currentStreak = calcStreak(fullyCompleteDates);
+  const totalDaysWithRecords = fullyCompleteDays || 1;
   const completionRate = Math.round(
     (fullyCompleteDays / totalDaysWithRecords) * 100,
   );
@@ -496,7 +504,7 @@ export async function getRitualStats(): Promise<{
     completionRate,
   };
 
-  // 리추얼별 카드 (등록된 리추얼만)
+  // 리추얼별 카드 (등록된 리추얼만, routine_type/record_date만 사용)
   const registeredTypesList = registrations.map(
     (r) => r.routine_type as RoutineTypeDB,
   );
@@ -504,7 +512,7 @@ export async function getRitualStats(): Promise<{
     .filter((rt) => ROUTINE_CONFIG[rt])
     .map((rt) => {
       const config = ROUTINE_CONFIG[rt];
-      const routineDates = records
+      const routineDates = routineRecords
         .filter((r) => r.routine_type === rt)
         .map((r) => r.record_date);
       const uniqueDates = [...new Set(routineDates)];
@@ -802,6 +810,9 @@ export async function getHomeStats(): Promise<{
   calendarMarkers?: Record<string, CalendarDayMarker>;
   routineCompletionMap?: Record<string, number>; // routine_type → 완료 일수
   totalRoutineDays?: number; // 활성 기간 내 평일(월~금) 수 (UI에서 목표 일수로 사용)
+  profile?: HomeProfile | null;
+  challengers?: ChallengerSummary[];
+  routines?: ChallengeRegistration[];
   error?: string;
 }> {
   const [
@@ -825,6 +836,7 @@ export async function getHomeStats(): Promise<{
   const totalDays = totalRoutineDays + 3;
 
   const supabase = await createClient();
+  const admin = createAdminClient();
 
   const [
     currentRes,
@@ -832,6 +844,8 @@ export async function getHomeStats(): Promise<{
     declarationsRes,
     midReviewsRes,
     todosRes,
+    profileRes,
+    challengersRes,
   ] = await Promise.all([
     supabase
       .from("ritual_records")
@@ -842,9 +856,10 @@ export async function getHomeStats(): Promise<{
       .lte("record_date", period.end_date),
     supabase
       .from("challenge_registrations")
-      .select("routine_type")
+      .select("*")
       .eq("user_id", user.id)
-      .eq("challenge_id", challengeId),
+      .eq("challenge_id", challengeId)
+      .order("registered_at", { ascending: true }),
     supabase
       .from("declarations")
       .select("routine_type")
@@ -862,11 +877,53 @@ export async function getHomeStats(): Promise<{
       .eq("completed", true)
       .gte("todo_date", period.start_date)
       .lte("todo_date", period.end_date),
+    supabase
+      .from("profiles")
+      .select("id, username, name, avatar_url")
+      .eq("id", user.id)
+      .single(),
+    admin
+      .from("challenges")
+      .select("user_id, profiles!inner(id, name, avatar_url, emoji)")
+      .eq("period_id", period.id),
   ]);
 
   const currentRecords = currentRes.data ?? [];
-  const registrations = registrationsRes.data ?? [];
+  const registrations = (registrationsRes.data ?? []) as ChallengeRegistration[];
   const completedTodos = todosRes.data ?? [];
+  const profile = (profileRes.data ?? null) as HomeProfile | null;
+
+  type ChallengerRow = {
+    user_id: string;
+    profiles: {
+      id: string;
+      name: string;
+      avatar_url: string | null;
+      emoji: string | null;
+    } | null;
+  };
+  const challengers: ChallengerSummary[] = (
+    (challengersRes.data ?? []) as unknown as ChallengerRow[]
+  )
+    .filter((r) => r.profiles)
+    .map((r) => ({
+      id: r.profiles!.id,
+      name: r.profiles!.name,
+      avatarUrl: r.profiles!.avatar_url,
+      emoji: r.profiles!.emoji,
+    }))
+    .sort((a, b) => {
+      if (a.id === user.id) return -1;
+      if (b.id === user.id) return 1;
+      return 0;
+    });
+
+  const seenRoutineTypes = new Set<string>();
+  const routines = registrations.filter((r) => {
+    if (seenRoutineTypes.has(r.routine_type)) return false;
+    seenRoutineTypes.add(r.routine_type);
+    return true;
+  });
 
   // myPage stats (현재 챌린지 기준으로 스트릭 계산)
   const currentDates = [...new Set(currentRecords.map((r) => r.record_date))];
@@ -965,6 +1022,9 @@ export async function getHomeStats(): Promise<{
     calendarMarkers,
     routineCompletionMap,
     totalRoutineDays,
+    profile,
+    challengers,
+    routines,
   };
 }
 

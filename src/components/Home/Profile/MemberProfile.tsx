@@ -4,19 +4,27 @@ import { useEffect, useState } from "react";
 import { getCurrentChallengers, type ChallengerSummary } from "@/api/user";
 
 interface MemberProfileProps {
+  initialMembers?: ChallengerSummary[];
   selectedMemberId?: string;
   onSelectMember?: (memberId: string) => void;
   refreshKey?: number;
 }
 
 export default function MemberProfile({
+  initialMembers,
   selectedMemberId,
   onSelectMember,
   refreshKey = 0,
 }: MemberProfileProps) {
-  const [members, setMembers] = useState<ChallengerSummary[]>([]);
+  const [members, setMembers] = useState<ChallengerSummary[]>(
+    initialMembers ?? [],
+  );
 
   useEffect(() => {
+    // 최초 마운트(refreshKey===0)에서 SSR initialMembers를 받았다면 재페칭 불필요.
+    // refreshKey가 증가했을 때만 (등록/탈퇴 등 외부 변경 신호) 다시 조회한다.
+    if (refreshKey === 0) return;
+
     getCurrentChallengers().then((res) => {
       if (res.data) setMembers(res.data);
     });

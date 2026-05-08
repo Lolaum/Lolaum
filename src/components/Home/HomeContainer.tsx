@@ -10,7 +10,10 @@ import {
   type MyPageStats,
   type CompletionRateStats,
   type CalendarDayMarker,
+  type HomeProfile,
 } from "@/api/ritual-stats";
+import type { ChallengerSummary } from "@/api/user";
+import type { ChallengeRegistration } from "@/types/supabase";
 
 interface HomeInitialData {
   myPage?: MyPageStats;
@@ -18,6 +21,9 @@ interface HomeInitialData {
   calendarMarkers?: Record<string, CalendarDayMarker>;
   routineCompletionMap?: Record<string, number>;
   totalRoutineDays?: number;
+  profile?: HomeProfile | null;
+  challengers?: ChallengerSummary[];
+  routines?: ChallengeRegistration[];
   error?: string;
 }
 
@@ -71,10 +77,13 @@ export default function HomeContainer({
   const [memberRefreshKey, setMemberRefreshKey] = useState(0);
 
   useEffect(() => {
-    const now = new Date();
-    setToday(now);
-    setSelectedDate(now);
-    setMounted(true);
+    const frame = requestAnimationFrame(() => {
+      const now = new Date();
+      setToday(now);
+      setSelectedDate(now);
+      setMounted(true);
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   // 선택된 날짜가 오늘 이전인지 확인
@@ -129,6 +138,7 @@ export default function HomeContainer({
           {/* 캘린더 섹션 */}
           <div className="w-full md:w-1/2 lg:w-5/12">
             <MemberProfile
+              initialMembers={initialData.challengers}
               selectedMemberId={selectedMemberId}
               onSelectMember={(id) =>
                 setSelectedMemberId((prev) => (prev === id ? undefined : id))
@@ -136,6 +146,7 @@ export default function HomeContainer({
               refreshKey={memberRefreshKey}
             />
             <Profile
+              initialProfile={initialData.profile}
               stats={myPageStats}
               completionRate={completionRate}
               period={period}
@@ -157,11 +168,11 @@ export default function HomeContainer({
               selectedDate={selectedDate}
               onTaskClick={handleTaskClick}
               stats={myPageStats}
-              completionRate={completionRate}
               isPastDate={isPastDate}
               isOutsidePeriod={isOutsidePeriod}
               routineCompletionMap={routineCompletionMap}
               totalRoutineDays={totalRoutineDays}
+              initialRoutines={initialData.routines}
             />
           </div>
         </div>

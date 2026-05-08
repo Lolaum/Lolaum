@@ -28,8 +28,9 @@ import {
 } from "@/types/feed";
 import { addComment, deleteComment, updateComment } from "@/api/comment";
 import { deleteRitualRecord } from "@/api/ritual-record";
+import dynamic from "next/dynamic";
 import CommentSection from "./CommentSection";
-import EditFeedRecord from "./EditFeedRecord";
+const EditFeedRecord = dynamic(() => import("./EditFeedRecord"), { ssr: false });
 import LinkifiedText from "@/components/common/LinkifiedText";
 
 interface FeedDetailProps {

@@ -2,6 +2,7 @@
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { getCurrentChallengeId } from "@/lib/current-challenge";
+import { normalizeRecordDataImages } from "@/lib/record-data-images";
 import type { Json, RitualRecord, RoutineTypeDB } from "@/types/supabase";
 
 export async function getRitualRecords(input: {
@@ -49,6 +50,7 @@ export async function createRitualRecord(input: {
   }
 
   const supabase = await createClient();
+  const recordData = await normalizeRecordDataImages(input.recordData, user.id);
 
   // 하루에 여러 기록 허용 (INSERT), 달성률은 Set으로 하루 1회만 인정
   const { data, error } = await supabase
@@ -58,7 +60,7 @@ export async function createRitualRecord(input: {
       challenge_id: input.challengeId,
       routine_type: input.routineType,
       record_date: input.recordDate,
-      record_data: input.recordData,
+      record_data: recordData,
     })
     .select()
     .single();
@@ -136,9 +138,10 @@ export async function updateRitualRecord(
   if (!user) return { error: "인증이 필요합니다." };
 
   const supabase = await createClient();
+  const normalizedRecordData = await normalizeRecordDataImages(recordData, user.id);
   const { error } = await supabase
     .from("ritual_records")
-    .update({ record_data: recordData })
+    .update({ record_data: normalizedRecordData })
     .eq("id", id)
     .eq("user_id", user.id);
 
@@ -161,7 +164,7 @@ export async function deleteRitualRecord(
   // 삭제 전에 challenge_id, record_date 확인 (daily_completions 갱신용)
   const { data: target, error: fetchErr } = await supabase
     .from("ritual_records")
-    .select("challenge_id, record_date")
+    .select("id, challenge_id, record_date")
     .eq("id", id)
     .eq("user_id", user.id)
     .maybeSingle();

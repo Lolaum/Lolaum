@@ -1,4 +1,5 @@
 // 할 일 및 리추얼 관련 타입 정의
+import type { ChallengeRegistration } from "@/types/supabase";
 
 export interface TodoListProps {
   selectedDate: Date;
@@ -8,6 +9,7 @@ export interface TodoListProps {
 export interface RoutineListProps {
   selectedDate: Date;
   onTaskClick: (title: string, color: string) => void;
+  initialRoutines?: ChallengeRegistration[];
   routineCompletionMap?: Record<string, number>; // routine_type → 완료 일수
   isPastDate?: boolean; // 지난 날짜 여부 (리추얼 진행 차단용)
   isOutsidePeriod?: boolean; // 챌린지 기간 외 여부 (리추얼 진행 차단용)
