@@ -221,9 +221,12 @@ function AddReadingRecord({
         {/* 원서읽기: 스크린샷 업로드 */}
         {isEnglishBook && (
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               인증 스크린샷
             </label>
+            <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+              구글 클래스룸 오늘의 질문에 답변 후 &lsquo;제출 완료&rsquo; 화면 캡쳐
+            </p>
             {screenshot ? (
               <div className="relative rounded-xl overflow-hidden border border-gray-200">
                 <img

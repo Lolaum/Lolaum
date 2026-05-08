@@ -121,7 +121,7 @@ export default function Layout({ children }: LayoutProps) {
           {/* 로그아웃 */}
           <button
             onClick={handleLogout}
-            className="p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+            className="flex items-center gap-1.5 px-2 py-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
             aria-label="로그아웃"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -129,6 +129,7 @@ export default function Layout({ children }: LayoutProps) {
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
+            <span className="text-xs font-semibold tracking-wider">LOGOUT</span>
           </button>
         </header>
       )}

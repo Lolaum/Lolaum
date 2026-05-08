@@ -11,7 +11,7 @@ import {
   DailyExpense,
 } from "@/types/routines/finance";
 
-const MAX_CERT_PHOTOS = 2;
+const MAX_CERT_PHOTOS = 1;
 
 interface DailyExpenseState extends DailyExpense {
   id: string; // UI에서 관리하기 위한 임시 ID
@@ -377,7 +377,7 @@ export default function AddNewFinance({
             인증 사진
           </label>
           <p className="text-xs text-gray-500 mb-3 leading-relaxed">
-            소비/공부 인증 사진을 최대 2장까지 업로드할 수 있어요
+            오늘의 자산관리 공부 시작 화면/노트/책 등 사진 1장
           </p>
           <div className="space-y-3">
             {certPhotos.length < MAX_CERT_PHOTOS && (
@@ -588,6 +588,11 @@ export default function AddNewFinance({
                     </div>
                   )}
                 </div>
+
+                {/* 입력 안내 */}
+                <p className="text-xs text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2 mb-3">
+                  +를 누르면 금액이 자동으로 합산돼요
+                </p>
 
                 {/* 필요소비 */}
                 <div className="mb-4">
