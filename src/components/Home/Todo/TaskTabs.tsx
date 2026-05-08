@@ -11,28 +11,29 @@ import {
 } from "lucide-react";
 import RoutineList from "./RoutineList";
 import { formatDateDisplay, getWeekRangeText } from "@/lib/date";
-import { MyPageStats, CompletionRateStats } from "@/api/ritual-stats";
+import { MyPageStats } from "@/api/ritual-stats";
+import type { ChallengeRegistration } from "@/types/supabase";
 
 interface TaskTabsProps {
   selectedDate: Date;
   onTaskClick?: (title: string, color: string) => void;
   stats?: MyPageStats | null;
-  completionRate?: CompletionRateStats | null;
   isPastDate?: boolean;
   isOutsidePeriod?: boolean;
   routineCompletionMap?: Record<string, number>;
   totalRoutineDays?: number;
+  initialRoutines?: ChallengeRegistration[];
 }
 
 export default function TaskTabs({
   selectedDate,
   onTaskClick,
   stats,
-  completionRate,
   isPastDate,
   isOutsidePeriod,
   routineCompletionMap,
   totalRoutineDays,
+  initialRoutines,
 }: TaskTabsProps) {
   const router = useRouter();
 
@@ -122,6 +123,7 @@ export default function TaskTabs({
         <RoutineList
           selectedDate={selectedDate}
           onTaskClick={handleTaskClick}
+          initialRoutines={initialRoutines}
           routineCompletionMap={routineCompletionMap}
           isPastDate={isPastDate}
           isOutsidePeriod={isOutsidePeriod}

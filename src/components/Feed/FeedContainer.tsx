@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useRef, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Search, X } from "lucide-react";
 import FeedItem from "./FeedItem";
 import { FeedItem as FeedItemType } from "@/types/feed";
-import { getAllRecordsForDisplay } from "@/api/ritual-records-display";
 import type { RoutineTypeDB } from "@/types/supabase";
 
 type FilterKey = "all" | RoutineTypeDB;
@@ -27,58 +26,30 @@ export const FEEDS_PER_PAGE = 8;
 export default function FeedContainer({
   initialData,
   initialTotal,
-  initialKey,
 }: {
   initialData: FeedItemType[];
   initialTotal: number;
-  initialKey: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
   const selectedFilter = (searchParams.get("filter") ?? "all") as FilterKey;
   const currentPage = Number(searchParams.get("page") ?? "1");
   const searchQuery = searchParams.get("search") ?? "";
 
-  const [feedData, setFeedData] = useState<FeedItemType[]>(initialData);
-  const [totalCount, setTotalCount] = useState(initialTotal);
-  const [loading, setLoading] = useState(false);
   const [searchInput, setSearchInput] = useState(searchQuery);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // SSR이 채운 페이지와 동일한 (filter|page|search) 조합이면 클라이언트 페치를 건너뛴다
-  const skipKeyRef = useRef<string | null>(initialKey);
 
-  const fetchFeeds = useCallback(async () => {
-    setLoading(true);
-    try {
-      const routineType: RoutineTypeDB | undefined =
-        selectedFilter !== "all" ? selectedFilter : undefined;
-
-      const { data, total } = await getAllRecordsForDisplay({
-        routineType,
-        limit: FEEDS_PER_PAGE,
-        offset: (currentPage - 1) * FEEDS_PER_PAGE,
-        searchName: searchQuery || undefined,
-      });
-      setFeedData(data);
-      setTotalCount(total);
-    } catch (e) {
-      console.error("피드 조회 실패:", e);
-      setFeedData([]);
-      setTotalCount(0);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedFilter, currentPage, searchQuery]);
+  const feedData = initialData;
+  const totalCount = initialTotal;
+  const loading = isPending;
 
   useEffect(() => {
-    const currentKey = `${selectedFilter}|${currentPage}|${searchQuery}`;
-    if (skipKeyRef.current === currentKey) {
-      skipKeyRef.current = null;
-      return;
-    }
-    fetchFeeds();
-  }, [fetchFeeds, selectedFilter, currentPage, searchQuery]);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / FEEDS_PER_PAGE));
 
@@ -89,7 +60,9 @@ export default function FeedContainer({
     const s = search ?? searchQuery;
     if (s) params.set("search", s);
     const query = params.toString();
-    router.replace(query ? `/feeds?${query}` : "/feeds");
+    startTransition(() => {
+      router.replace(query ? `/feeds?${query}` : "/feeds");
+    });
   };
 
   const handleFilterChange = (key: FilterKey) => {

@@ -1,16 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { ProfileProps } from "@/types/home/profile";
 import { Flame, Trophy, CheckCircle2 } from "lucide-react";
-import { getMe, updateMe } from "@/api/user";
+import { updateMe } from "@/api/user";
 import { createClient } from "@/lib/supabase/client";
-import { MyPageStats, CompletionRateStats } from "@/api/ritual-stats";
+import {
+  MyPageStats,
+  CompletionRateStats,
+  type HomeProfile,
+} from "@/api/ritual-stats";
 
 interface Props extends ProfileProps {
   stats?: MyPageStats | null;
   completionRate?: CompletionRateStats | null;
+  initialProfile?: HomeProfile | null;
   period?: {
     start_date: string;
     end_date: string;
@@ -22,40 +28,30 @@ interface Props extends ProfileProps {
 export default function Profile({
   stats: statsProp,
   completionRate: completionRateProp,
+  initialProfile,
   period,
   onProfileUpdated,
 }: Props) {
   const [showEditModal, setShowEditModal] = useState(false);
-  const [userName, setUserName] = useState("");
-  const [editName, setEditName] = useState("");
-  const [savedName, setSavedName] = useState("");
-  const [savedPhoto, setSavedPhoto] = useState<string | null>(null);
-  const [editPhoto, setEditPhoto] = useState<string | null>(null);
+  const [userName, setUserName] = useState(initialProfile?.username ?? "");
+  const [editName, setEditName] = useState(initialProfile?.name ?? "");
+  const [savedName, setSavedName] = useState(initialProfile?.name ?? "");
+  const [savedPhoto, setSavedPhoto] = useState<string | null>(
+    initialProfile?.avatar_url ?? null,
+  );
+  const [editPhoto, setEditPhoto] = useState<string | null>(
+    initialProfile?.avatar_url ?? null,
+  );
 
   // 부모(HomeContainer)에서 stats/completionRate를 받아와 중복 호출을 피한다
   const stats = statsProp;
   const completionRate = completionRateProp;
 
-  const [userId, setUserId] = useState("");
+  const [userId, setUserId] = useState(initialProfile?.id ?? "");
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    getMe().then((profile) => {
-      if (profile) {
-        setUserId(profile.id);
-        setUserName(profile.username);
-        setSavedName(profile.name);
-        setEditName(profile.name);
-        if (profile.avatar_url) {
-          setSavedPhoto(profile.avatar_url);
-          setEditPhoto(profile.avatar_url);
-        }
-      }
-    });
-  }, []);
-
-  const handleSave = async () => {
+const handleSave = async () => {
     setSaving(true);
     let avatarUrl = savedPhoto;
 
@@ -120,7 +116,7 @@ export default function Profile({
             <div className="relative">
               <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
                 {editPhoto ? (
-                  <img src={editPhoto} alt="프로필" className="w-full h-full object-cover" />
+                  <Image src={editPhoto} alt="프로필" width={64} height={64} className="w-full h-full object-cover" unoptimized />
                 ) : (
                   <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
@@ -172,7 +168,7 @@ export default function Profile({
       <button type="button" onClick={handleOpen} className="flex items-center gap-3 mb-4 w-full text-left">
         <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
           {savedPhoto ? (
-            <img src={savedPhoto} alt="프로필" className="w-full h-full object-cover" />
+            <Image src={savedPhoto} alt="프로필" width={40} height={40} className="w-full h-full object-cover" unoptimized />
           ) : (
             <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />

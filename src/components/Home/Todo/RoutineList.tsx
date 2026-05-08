@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import GenerateRoutine from "./GenerateRoutine";
-import { Plus, X, Flame, ChevronRight, Trash2, RotateCcw } from "lucide-react";
+import { Plus, X, ChevronRight, Trash2, RotateCcw } from "lucide-react";
 import { RoutineListProps } from "@/types/home/todo";
 import { getMyRoutines, deleteRoutine, resetChallenge } from "@/api/routine";
 import type { ChallengeRegistration, RoutineTypeDB } from "@/types/supabase";
@@ -33,8 +33,8 @@ const ROUTINE_TAG: Record<RoutineTypeDB, string> = {
 const DEFAULT_COLOR = { color: "#6b7280", bgColor: "#f3f4f6" };
 
 export default function RoutineList({
-  selectedDate,
   onTaskClick,
+  initialRoutines,
   routineCompletionMap = {},
   isPastDate = false,
   isOutsidePeriod = false,
@@ -43,7 +43,9 @@ export default function RoutineList({
   const isDisabled = isPastDate || isOutsidePeriod;
   // 목표 일수 = 평일 수 + 3 보너스(선언/중간회고/최종회고). API 미수신 시 fallback 18
   const goalDays = (totalRoutineDays ?? 15) + 3;
-  const [routines, setRoutines] = useState<ChallengeRegistration[]>([]);
+  const [routines, setRoutines] = useState<ChallengeRegistration[]>(
+    initialRoutines ?? [],
+  );
   const [loading, setLoading] = useState(false);
   const [showGenerateRoutine, setShowGenerateRoutine] = useState(false);
   const [deleteTarget, setDeleteTarget] =
@@ -57,10 +59,6 @@ export default function RoutineList({
     setRoutines(data || []);
     setLoading(false);
   }, []);
-
-  useEffect(() => {
-    fetchRoutines();
-  }, [fetchRoutines]);
 
   const handleDeleteClick = (
     e: React.MouseEvent,

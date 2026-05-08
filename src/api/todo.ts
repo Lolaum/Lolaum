@@ -15,7 +15,7 @@ export async function getTodos(
 
   const { data, error } = await supabase
     .from("todos")
-    .select("*")
+    .select("id, title, completed, todo_date, user_id, created_at, updated_at")
     .eq("user_id", user.id)
     .eq("todo_date", date)
     .order("created_at", { ascending: true });
@@ -34,7 +34,7 @@ export async function getAllTodos(): Promise<{ data?: Todo[]; error?: string }> 
 
   const { data, error } = await supabase
     .from("todos")
-    .select("*")
+    .select("id, title, completed, todo_date, user_id, created_at, updated_at")
     .eq("user_id", user.id)
     .order("todo_date", { ascending: false })
     .order("created_at", { ascending: true });

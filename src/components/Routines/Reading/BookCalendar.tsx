@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { ChevronLeft, ChevronRight, BookCheck } from "lucide-react";
 import { ReadingRecord, BookCalendarProps, CompletedBook } from "@/types/routines/reading";
 import { getMyRitualRecords } from "@/api/ritual-record";
@@ -156,7 +157,7 @@ export default function BookCalendar({ onBack, onBookSelect, completedBooks = []
               >
                 <div className="w-12 h-16 rounded-lg overflow-hidden shadow-sm">
                   {book.coverImageUrl ? (
-                    <img src={book.coverImageUrl} alt={book.title} className="w-full h-full object-cover" />
+                    <Image src={book.coverImageUrl} alt={book.title} width={48} height={64} className="w-full h-full object-cover" unoptimized />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center">
                       <span className="text-white text-[7px] font-medium">완독</span>
@@ -230,10 +231,13 @@ export default function BookCalendar({ onBack, onBookSelect, completedBooks = []
                       title={`${completedBook.title} (완독!)`}
                     >
                       {completedBook.coverImageUrl ? (
-                        <img
+                        <Image
                           src={completedBook.coverImageUrl}
                           alt={completedBook.title}
+                          width={40}
+                          height={56}
                           className="w-full h-full object-cover"
+                          unoptimized
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center">
@@ -255,10 +259,13 @@ export default function BookCalendar({ onBack, onBookSelect, completedBooks = []
                       title={readingRecord.bookTitle}
                     >
                       {readingRecord.bookCover ? (
-                        <img
+                        <Image
                           src={readingRecord.bookCover}
                           alt={readingRecord.bookTitle}
+                          width={40}
+                          height={56}
                           className="w-full h-full object-cover"
+                          unoptimized
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center">

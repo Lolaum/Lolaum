@@ -45,7 +45,6 @@ export default async function VerifyPage({
       <FeedContainer
         initialData={initial.data}
         initialTotal={initial.total}
-        initialKey={`${filter}|${page}|${search}`}
       />
     </Layout>
   );
