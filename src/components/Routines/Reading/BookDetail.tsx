@@ -80,7 +80,9 @@ function AddReadingRecord({
       ? Number(endValue) - Number(startValue)
       : 0;
 
-  const canSave = isEnglishBook ? screenshot !== null : note.trim().length > 0;
+  const canSave = isEnglishBook
+    ? screenshot !== null
+    : note.trim().length > 0 && certPhotos.length === MAX_READING_CERT_PHOTOS;
 
   const handleSave = async () => {
     if (submittingRef.current || !canSave) return;
@@ -160,13 +162,16 @@ function AddReadingRecord({
       <div className="max-w-2xl bg-white rounded-2xl border border-gray-200 p-4 mx-auto">
         <h2 className="text-xl font-bold text-gray-900 mb-4">기록 추가</h2>
 
-        {/* 일반 독서: 인증 사진 업로드 (최대 2장) */}
+        {/* 일반 독서: 인증 사진 업로드 (필수 2장) */}
         {!isEnglishBook && (
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-3">
-              인증 사진
+              인증 사진{" "}
+              <span className="text-xs font-normal text-gray-500">
+                (10분 이상 간격이 있는 독서 시작/종료 사진)
+              </span>
             </label>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {certPhotos.length < MAX_READING_CERT_PHOTOS && (
                 <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-indigo-400 transition-colors bg-gray-50">
                   <div className="flex flex-col items-center justify-center">
@@ -185,9 +190,12 @@ function AddReadingRecord({
                   />
                 </label>
               )}
+              <p className="text-xs text-gray-400">
+                전자책이라 인증 사진 찍기가 어려울 경우 전자책 어플 홈 화면 캡쳐로 대체 가능
+              </p>
 
               {certPhotos.length > 0 && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3 pt-1">
                   {certPhotos.map((photo, index) => (
                     <div key={index} className="relative">
                       <img
@@ -389,7 +397,7 @@ function AddReadingRecord({
             disabled={!canSave || submitting}
             className="flex-1 py-4 px-4 rounded-xl bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
-            {submitting ? "저장 중..." : "기록 추가하기"}
+            {submitting ? "저장 중..." : "오늘의 리추얼 성공"}
           </button>
         </div>
       </div>

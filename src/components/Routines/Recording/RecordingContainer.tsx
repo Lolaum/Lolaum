@@ -49,11 +49,7 @@ const isEntryValid = (e: RecordingEntry): boolean => {
   if (e.type === "write") {
     return !!e.content.trim() && !!(e.link ?? "").trim() && !!e.duration;
   }
-  return (
-    !!e.readSourceTitle.trim() &&
-    !!e.readResonatedPart.trim() &&
-    !!e.readReason.trim()
-  );
+  return !!e.readSourceTitle.trim() && !!e.readResonatedPart.trim();
 };
 
 export default function RecordingContainer({
@@ -244,6 +240,21 @@ export default function RecordingContainer({
           </button>
         </div>
 
+        {/* 글 읽기 대체: 다른 챌린저 글 보기 안내 */}
+        {formMode === "read" && (
+          <a
+            href="/feeds"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between gap-2 mb-4 px-4 py-3 rounded-xl bg-violet-50 border border-violet-100 text-violet-700 hover:bg-violet-100 transition-colors"
+          >
+            <span className="text-sm font-medium">
+              다른 챌린저 글 보러가기
+            </span>
+            <ExternalLink className="w-4 h-4" />
+          </a>
+        )}
+
         <div className="space-y-4 mb-4">
           {entries.map((entry, idx) => (
             <EntryCard
@@ -266,7 +277,7 @@ export default function RecordingContainer({
               onClick={addReadEntry}
               className="w-full py-3 rounded-xl text-xs font-bold border-2 border-dashed border-violet-200 text-violet-500 hover:bg-violet-50 transition-colors flex items-center justify-center gap-1.5"
             >
-              <Plus className="w-4 h-4" />글 읽기 대체 추가
+              <Plus className="w-4 h-4" />다른 챌린저 글 후기 추가
             </button>
           </div>
         )}
@@ -279,7 +290,7 @@ export default function RecordingContainer({
           className="w-full py-3.5 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ backgroundColor: "#f43f5e" }}
         >
-          {submitting ? "저장 중..." : "기록 저장하기"}
+          {submitting ? "저장 중..." : "오늘의 리추얼 성공"}
         </button>
       </div>
     );
@@ -450,7 +461,7 @@ function RecordEntryView({ entry }: { entry: RecordingEntry }) {
         {entry.readSourceTitle && (
           <div className="min-w-0">
             <p className="text-[10px] text-gray-400 font-medium">
-              오늘 읽은 글
+              챌린저 닉네임
             </p>
             <LinkifiedText
               text={entry.readSourceTitle}
@@ -461,7 +472,7 @@ function RecordEntryView({ entry }: { entry: RecordingEntry }) {
         {entry.readResonatedPart && (
           <div className="min-w-0">
             <p className="text-[10px] text-gray-400 font-medium">
-              마음에 닿은 부분
+              마음에 닿은 부분과 그 이유
             </p>
             <LinkifiedText
               text={entry.readResonatedPart}
@@ -653,46 +664,21 @@ function ReadFields({
   onChange: (patch: Partial<RecordingEntry>) => void;
 }) {
   return (
-    <div className="space-y-3">
-      <div>
-        <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-          오늘 읽은 다른 챌린저 글 <span className="text-red-400">*</span>
-        </label>
-        <textarea
-          value={entry.readSourceTitle}
-          onChange={(e) => onChange({ readSourceTitle: e.target.value })}
-          placeholder="다른 챌린저의 글 제목 또는 링크를 적어주세요"
-          rows={2}
-          className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] transition-all"
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-          마음에 닿은 부분 <span className="text-red-400">*</span>
-        </label>
-        <textarea
-          value={entry.readResonatedPart}
-          onChange={(e) => onChange({ readResonatedPart: e.target.value })}
-          placeholder="다른 챌린저 글 중 마음에 닿은 부분을 적어주세요"
-          rows={3}
-          className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] transition-all"
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-          마음에 닿았던 이유 / 닮고 싶은 부분{" "}
-          <span className="text-red-400">*</span>
-        </label>
-        <textarea
-          value={entry.readReason}
-          onChange={(e) => onChange({ readReason: e.target.value })}
-          placeholder="마음에 닿았던 이유나 닮고 싶은 부분을 적어주세요"
-          rows={3}
-          className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] transition-all"
-        />
-      </div>
+    <div className="flex gap-2">
+      <input
+        type="text"
+        value={entry.readSourceTitle}
+        onChange={(e) => onChange({ readSourceTitle: e.target.value })}
+        placeholder="챌린저 닉네임"
+        className="w-28 shrink-0 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] transition-all"
+      />
+      <textarea
+        value={entry.readResonatedPart}
+        onChange={(e) => onChange({ readResonatedPart: e.target.value })}
+        placeholder="마음에 닿은 부분과 그 이유"
+        rows={3}
+        className="flex-1 min-w-0 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] transition-all"
+      />
     </div>
   );
 }
