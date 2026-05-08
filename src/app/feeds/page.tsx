@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React from "react";
 import FeedContainer, { FEEDS_PER_PAGE } from "@/components/Feed/FeedContainer";
 import Layout from "@/components/Layout/Layout";
 import { getAllRecordsForDisplay } from "@/api/ritual-records-display";
@@ -42,13 +42,11 @@ export default async function VerifyPage({
 
   return (
     <Layout>
-      <Suspense>
-        <FeedContainer
-          initialData={initial.data}
-          initialTotal={initial.total}
-          initialKey={`${filter}|${page}|${search}`}
-        />
-      </Suspense>
+      <FeedContainer
+        initialData={initial.data}
+        initialTotal={initial.total}
+        initialKey={`${filter}|${page}|${search}`}
+      />
     </Layout>
   );
 }
