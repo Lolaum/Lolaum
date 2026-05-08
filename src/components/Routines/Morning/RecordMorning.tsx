@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Trash2 } from "lucide-react";
 import { MorningRecord, ConditionLevel } from "@/types/routines/morning";
+import { deleteRitualRecord } from "@/api/ritual-record";
 
 interface GroupedRecord {
   date: string;
@@ -12,16 +13,21 @@ interface GroupedRecord {
   condition: ConditionLevel;
   success: string;
   reflection: string;
+  recordIds: string[];
 }
 
 interface RecordMorningProps {
   morningRecords: MorningRecord[];
+  onChanged?: () => void;
 }
 
 export default function RecordMorning({
   morningRecords,
+  onChanged,
 }: RecordMorningProps) {
   const [expandedDates, setExpandedDates] = useState<string[]>([]);
+  const [deleteTargetIds, setDeleteTargetIds] = useState<string[] | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // 날짜별로 그룹화
   const groupedRecords = useMemo(() => {
@@ -36,8 +42,10 @@ export default function RecordMorning({
             condition: record.condition,
             success: record.success,
             reflection: record.reflection,
+            recordIds: [],
           };
         }
+        acc[record.date].recordIds.push(String(record.id));
 
         return acc;
       },
@@ -51,6 +59,23 @@ export default function RecordMorning({
     setExpandedDates((prev) =>
       prev.includes(date) ? prev.filter((d) => d !== date) : [...prev, date],
     );
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTargetIds || deleteTargetIds.length === 0) return;
+    setDeleting(true);
+    let firstError: string | undefined;
+    for (const id of deleteTargetIds) {
+      const { error } = await deleteRitualRecord(id);
+      if (error && !firstError) firstError = error;
+    }
+    setDeleting(false);
+    setDeleteTargetIds(null);
+    if (firstError) {
+      alert(`삭제 실패: ${firstError}`);
+      return;
+    }
+    onChanged?.();
   };
 
   return (
@@ -153,6 +178,18 @@ export default function RecordMorning({
                         {group.reflection}
                       </p>
                     </div>
+
+                    {/* 삭제 버튼 */}
+                    <div className="flex items-center justify-end pt-2 border-t border-gray-100">
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTargetIds(group.recordIds)}
+                        className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        삭제
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -160,6 +197,45 @@ export default function RecordMorning({
           );
         })}
       </div>
+
+      {/* 삭제 확인 모달 */}
+      {deleteTargetIds && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6"
+          onClick={() => !deleting && setDeleteTargetIds(null)}
+        >
+          <div
+            className="w-full max-w-xs rounded-2xl bg-white p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-semibold text-gray-900">
+              모닝 기록을 삭제하시겠습니까?
+            </h3>
+            <p className="mt-2 text-sm text-gray-500">
+              {deleteTargetIds.length > 1
+                ? `이 날의 모닝 기록 ${deleteTargetIds.length}건이 모두 삭제됩니다. 이 작업은 되돌릴 수 없습니다.`
+                : "이 작업은 되돌릴 수 없습니다."}
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setDeleteTargetIds(null)}
+                disabled={deleting}
+                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 rounded-xl py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: "#ef4444" }}
+              >
+                {deleting ? "삭제 중..." : "삭제"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

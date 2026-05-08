@@ -216,7 +216,10 @@ export default function LanguageContainer({
             <p className="text-xs">기록을 불러오는 중...</p>
           </div>
         ) : (
-          <RecordStudy languageRecords={languageRecords} />
+          <RecordStudy
+            languageRecords={languageRecords}
+            onChanged={fetchRecords}
+          />
         )}
       </div>
       {showStudyPhrase && (

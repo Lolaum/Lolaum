@@ -2,9 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, ExternalLink, X, Plus } from "lucide-react";
+import { Loader2, ExternalLink, X, Plus, Trash2 } from "lucide-react";
 import LinkifiedText from "@/components/common/LinkifiedText";
-import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
+import {
+  createRitualRecordAuto,
+  deleteRitualRecord,
+  getMyRitualRecords,
+} from "@/api/ritual-record";
 import {
   normalizeRecordingEntries,
   type RecordingEntry,
@@ -61,6 +65,8 @@ export default function RecordingContainer({
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // 폼 상태: 모드(글 작성/글 읽기 대체) + 항목 묶음
   const [formMode, setFormMode] = useState<RecordingMode>("write");
@@ -92,6 +98,19 @@ export default function RecordingContainer({
   useEffect(() => {
     if (mode === "main") fetchRecords();
   }, [fetchRecords, mode]);
+
+  const handleDelete = async () => {
+    if (!deleteTargetId) return;
+    setDeleting(true);
+    const { error } = await deleteRitualRecord(deleteTargetId);
+    setDeleting(false);
+    setDeleteTargetId(null);
+    if (error) {
+      alert(`삭제 실패: ${error}`);
+      return;
+    }
+    fetchRecords();
+  };
 
   const switchFormMode = (next: RecordingMode) => {
     if (next === formMode) return;
@@ -181,8 +200,18 @@ export default function RecordingContainer({
             onClick={goHome}
             className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
           >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -265,8 +294,18 @@ export default function RecordingContainer({
           onClick={goHome}
           className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
         >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
@@ -274,7 +313,9 @@ export default function RecordingContainer({
       {/* 헤더 */}
       <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-4">
         <p className="text-xs text-gray-400 font-medium mb-0.5">기록 리추얼</p>
-        <h1 className="text-lg font-bold text-gray-900 mb-4">오늘의 생각을 기록해요</h1>
+        <h1 className="text-lg font-bold text-gray-900 mb-4">
+          오늘의 생각을 기록해요
+        </h1>
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-red-50 rounded-xl p-3 text-center">
             <p className="text-2xl font-bold text-gray-900">
@@ -284,31 +325,14 @@ export default function RecordingContainer({
           </div>
           {elapsedSeconds > 0 && (
             <div className="bg-red-50 rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold text-gray-900">{formatTime(elapsedSeconds)}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {formatTime(elapsedSeconds)}
+              </p>
               <p className="text-xs text-gray-400 mt-0.5">소요 시간</p>
             </div>
           )}
         </div>
       </div>
-
-      {/* 외부 링크 */}
-      <a
-        href="https://notion.so"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="w-full flex items-center gap-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 no-underline"
-      >
-        <div className="w-10 h-10 bg-rose-500 rounded-xl flex items-center justify-center flex-shrink-0">
-          <ExternalLink className="w-5 h-5 text-white" />
-        </div>
-        <div className="text-left flex-1">
-          <p className="text-sm font-semibold text-gray-900">기록 자료 페이지</p>
-          <p className="text-xs text-gray-400 mt-0.5">클릭하여 기록 자료 페이지로 이동</p>
-        </div>
-        <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-      </a>
 
       {/* 기록 추가 버튼 */}
       <div className="mb-4">
@@ -329,7 +353,9 @@ export default function RecordingContainer({
           <p className="text-xs">기록을 불러오는 중...</p>
         </div>
       ) : records.length === 0 ? (
-        <p className="text-center text-sm text-gray-300 py-8">아직 작성한 기록이 없어요</p>
+        <p className="text-center text-sm text-gray-300 py-8">
+          아직 작성한 기록이 없어요
+        </p>
       ) : (
         <div className="space-y-3">
           {records.map((record) => (
@@ -337,14 +363,18 @@ export default function RecordingContainer({
               key={record.id}
               className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4"
             >
-              <p className="text-[10px] text-gray-300 font-medium mb-3">{record.date}</p>
+              <p className="text-[10px] text-gray-300 font-medium mb-3">
+                {record.date}
+              </p>
               <div className="space-y-3">
                 {record.entries.map((entry, i) => (
                   <RecordEntryView key={i} entry={entry} />
                 ))}
               </div>
               {record.photos && record.photos.length > 0 && (
-                <div className={`grid gap-2 mt-3 ${record.photos.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
+                <div
+                  className={`grid gap-2 mt-3 ${record.photos.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}
+                >
                   {record.photos.map((url, i) => (
                     <img
                       key={i}
@@ -355,8 +385,55 @@ export default function RecordingContainer({
                   ))}
                 </div>
               )}
+              <div className="flex items-center justify-end mt-3 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTargetId(record.id)}
+                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  삭제
+                </button>
+              </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* 삭제 확인 모달 */}
+      {deleteTargetId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6"
+          onClick={() => !deleting && setDeleteTargetId(null)}
+        >
+          <div
+            className="w-full max-w-xs rounded-2xl bg-white p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-semibold text-gray-900">
+              기록을 삭제하시겠습니까?
+            </h3>
+            <p className="mt-2 text-sm text-gray-500">
+              이 작업은 되돌릴 수 없습니다.
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setDeleteTargetId(null)}
+                disabled={deleting}
+                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 rounded-xl py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: "#ef4444" }}
+              >
+                {deleting ? "삭제 중..." : "삭제"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -372,7 +449,9 @@ function RecordEntryView({ entry }: { entry: RecordingEntry }) {
         </span>
         {entry.readSourceTitle && (
           <div className="min-w-0">
-            <p className="text-[10px] text-gray-400 font-medium">오늘 읽은 글</p>
+            <p className="text-[10px] text-gray-400 font-medium">
+              오늘 읽은 글
+            </p>
             <LinkifiedText
               text={entry.readSourceTitle}
               className="text-sm text-gray-800"
@@ -381,7 +460,9 @@ function RecordEntryView({ entry }: { entry: RecordingEntry }) {
         )}
         {entry.readResonatedPart && (
           <div className="min-w-0">
-            <p className="text-[10px] text-gray-400 font-medium">마음에 닿은 부분</p>
+            <p className="text-[10px] text-gray-400 font-medium">
+              마음에 닿은 부분
+            </p>
             <LinkifiedText
               text={entry.readResonatedPart}
               className="text-sm text-gray-800"
@@ -410,7 +491,10 @@ function RecordEntryView({ entry }: { entry: RecordingEntry }) {
       {entry.content && (
         <div className="min-w-0">
           <p className="text-[10px] text-gray-400 font-medium">오늘의 주제</p>
-          <LinkifiedText text={entry.content} className="text-sm text-gray-800" />
+          <LinkifiedText
+            text={entry.content}
+            className="text-sm text-gray-800"
+          />
         </div>
       )}
       {entry.duration ? (
@@ -598,7 +682,8 @@ function ReadFields({
 
       <div>
         <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-          마음에 닿았던 이유 / 닮고 싶은 부분 <span className="text-red-400">*</span>
+          마음에 닿았던 이유 / 닮고 싶은 부분{" "}
+          <span className="text-red-400">*</span>
         </label>
         <textarea
           value={entry.readReason}
