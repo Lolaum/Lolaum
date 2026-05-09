@@ -79,12 +79,13 @@ export async function getCurrentChallengers(): Promise<{
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("challenges")
-    .select("user_id, profiles!inner(id, name, avatar_url, emoji)")
+    .select("id, user_id, profiles!inner(id, name, avatar_url, emoji)")
     .eq("period_id", period.id);
 
   if (error) return { error: error.message };
 
   type Row = {
+    id: string;
     user_id: string;
     profiles: {
       id: string;
@@ -95,8 +96,23 @@ export async function getCurrentChallengers(): Promise<{
   };
 
   const rows = (data ?? []) as unknown as Row[];
+  const challengeIds = rows.map((r) => r.id);
+  const { data: registrations, error: regError } =
+    challengeIds.length > 0
+      ? await admin
+          .from("challenge_registrations")
+          .select("user_id")
+          .in("challenge_id", challengeIds)
+      : { data: [], error: null };
+
+  if (regError) return { error: regError.message };
+
+  const registeredUserIds = new Set(
+    (registrations ?? []).map((r) => r.user_id),
+  );
   const challengers: ChallengerSummary[] = rows
     .filter((r) => r.profiles)
+    .filter((r) => registeredUserIds.has(r.user_id))
     .map((r) => ({
       id: r.profiles!.id,
       name: r.profiles!.name,

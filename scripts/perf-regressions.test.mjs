@@ -51,3 +51,109 @@ test("record writes normalize data-url images before DB persistence", () => {
     "migration script should keep a safe dry-run summary for legacy payloads",
   );
 });
+
+test("progress and completion count mid and final review bonuses", () => {
+  const progress = read("src/api/progress.ts");
+  const ritualStats = read("src/api/ritual-stats.ts");
+
+  assert.match(
+    progress,
+    /\.from\("mid_reviews"\)[\s\S]*\.from\("final_reviews"\)/,
+    "progress should fetch both mid and final review rows",
+  );
+  assert.match(
+    progress,
+    /\(hasMidReview \? 1 : 0\)[\s\S]*\(hasFinalReview \? 1 : 0\)/,
+    "progress totalAchieved should include both review bonuses",
+  );
+  assert.match(
+    ritualStats,
+    /\.from\("mid_reviews"\)[\s\S]*\.from\("final_reviews"\)/,
+    "home and ritual completion stats should fetch both review rows",
+  );
+  assert.doesNotMatch(
+    ritualStats,
+    /hasFinalReview = false/,
+    "completion stats should not hard-code final review as missing",
+  );
+});
+
+test("progress counts same-day and weekend certifications as completed", () => {
+  const progress = read("src/api/progress.ts");
+  const ritualStats = read("src/api/ritual-stats.ts");
+
+  assert.match(
+    progress,
+    /const rangeEnd = today < periodEnd \? today : periodEnd/,
+    "progress should include today's completed certification",
+  );
+  assert.match(
+    progress,
+    /const completedDays = fullyCompleteCount/,
+    "progress should count completed certification dates, including weekends",
+  );
+  assert.match(
+    ritualStats,
+    /const completedDays = Array\.from\(dateMap\.keys\(\)\)\.filter/,
+    "home completion should count completed certification dates, including weekends",
+  );
+});
+
+test("progress denominator stays fixed to weekdays plus three bonus slots", () => {
+  const progress = read("src/api/progress.ts");
+  const ritualStats = read("src/api/ritual-stats.ts");
+  const progressUi = read("src/components/Progress/ProgressContainer.tsx");
+
+  assert.match(
+    progress,
+    /const totalDaysWithBonus = totalRoutineDays \+ BONUS_SLOTS/,
+    "progress page should use period weekdays plus declaration/mid/final bonus slots as the fixed denominator",
+  );
+  assert.match(
+    ritualStats,
+    /const totalDays = totalRoutineDays \+ 3/,
+    "completion stats should use period weekdays plus three bonus slots as the fixed denominator",
+  );
+  assert.doesNotMatch(
+    progress,
+    /totalAchieved \+ weekdayMissed/,
+    "progress denominator should not include missed weekdays, happy chance, or penalty counts",
+  );
+  assert.doesNotMatch(
+    ritualStats,
+    /accountedTotalDays/,
+    "completion denominator should not grow with missed weekdays",
+  );
+  assert.match(
+    progressUi,
+    /\{member\.totalAchieved\}\/\{totalDays\}/,
+    "progress UI should display the shared fixed totalDays denominator",
+  );
+  assert.doesNotMatch(
+    progressUi,
+    /displayTotalDays|member\.totalDays/,
+    "progress UI should not use per-member variable denominators",
+  );
+});
+
+test("progress lists only challengers with at least one registered ritual", () => {
+  const progress = read("src/api/progress.ts");
+  const ritualStats = read("src/api/ritual-stats.ts");
+  const userApi = read("src/api/user.ts");
+
+  assert.match(
+    progress,
+    /registeredUserIds\.has\(c\.userId\)/,
+    "progress challenger list should hide users without registered rituals",
+  );
+  assert.match(
+    ritualStats,
+    /registeredUserIds\.has\(r\.user_id\)/,
+    "home challenger list should hide users without registered rituals",
+  );
+  assert.match(
+    userApi,
+    /registeredUserIds\.has\(r\.user_id\)/,
+    "refetched challenger list should hide users without registered rituals",
+  );
+});
