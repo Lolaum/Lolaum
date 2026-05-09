@@ -6,6 +6,7 @@ import HomCalendar from "./HomeCalendar";
 import TaskTabs from "./Todo/TaskTabs";
 import MemberProfile from "./Profile/MemberProfile";
 import Profile from "./Profile/Profile";
+import { formatDateKey } from "@/lib/date";
 import {
   type MyPageStats,
   type CompletionRateStats,
@@ -96,9 +97,12 @@ export default function HomeContainer({
   // 선택된 날짜가 챌린지 기간 외인지 확인
   const isOutsidePeriod = (() => {
     if (!period || !selectedDate) return false;
-    const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
+    const dateStr = formatDateKey(selectedDate);
     return dateStr < period.start_date || dateStr > period.end_date;
   })();
+  const isRitualPeriodEnded = period && today
+    ? formatDateKey(today) > period.end_date
+    : false;
 
   const handleTaskClick = (title: string) => {
     if (isPastDate) return; // 지난 날짜에서는 리추얼 진행 불가
@@ -170,6 +174,7 @@ export default function HomeContainer({
               stats={myPageStats}
               isPastDate={isPastDate}
               isOutsidePeriod={isOutsidePeriod}
+              isRitualPeriodEnded={isRitualPeriodEnded}
               routineCompletionMap={routineCompletionMap}
               totalRoutineDays={totalRoutineDays}
               initialRoutines={initialData.routines}
