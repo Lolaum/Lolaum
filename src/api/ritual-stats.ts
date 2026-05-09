@@ -946,7 +946,7 @@ export async function getHomeStats(): Promise<{
       .single(),
     admin
       .from("challenges")
-      .select("user_id, profiles!inner(id, name, avatar_url, emoji)")
+      .select("id, user_id, profiles!inner(id, name, avatar_url, emoji)")
       .eq("period_id", period.id),
   ]);
 
@@ -956,6 +956,7 @@ export async function getHomeStats(): Promise<{
   const profile = (profileRes.data ?? null) as HomeProfile | null;
 
   type ChallengerRow = {
+    id: string;
     user_id: string;
     profiles: {
       id: string;
@@ -964,10 +965,21 @@ export async function getHomeStats(): Promise<{
       emoji: string | null;
     } | null;
   };
-  const challengers: ChallengerSummary[] = (
-    (challengersRes.data ?? []) as unknown as ChallengerRow[]
-  )
+  const challengerRows = (challengersRes.data ?? []) as unknown as ChallengerRow[];
+  const periodChallengeIds = challengerRows.map((r) => r.id);
+  const { data: periodRegistrations } =
+    periodChallengeIds.length > 0
+      ? await admin
+          .from("challenge_registrations")
+          .select("user_id")
+          .in("challenge_id", periodChallengeIds)
+      : { data: [] };
+  const registeredUserIds = new Set(
+    (periodRegistrations ?? []).map((r) => r.user_id),
+  );
+  const challengers: ChallengerSummary[] = challengerRows
     .filter((r) => r.profiles)
+    .filter((r) => registeredUserIds.has(r.user_id))
     .map((r) => ({
       id: r.profiles!.id,
       name: r.profiles!.name,
