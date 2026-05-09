@@ -157,3 +157,29 @@ test("progress lists only challengers with at least one registered ritual", () =
     "refetched challenger list should hide users without registered rituals",
   );
 });
+
+test("language flash cards reset outside the current ritual period", () => {
+  const recordApi = read("src/api/ritual-record.ts");
+  const language = read("src/components/Routines/Language/LanguageContainer.tsx");
+
+  assert.match(
+    recordApi,
+    /currentPeriodOnly\?: boolean/,
+    "record reads should support current-period filtering for period-scoped screens",
+  );
+  assert.match(
+    recordApi,
+    /isChallengePeriodEnded\(period\)\) return \{ data: \[\] \}/,
+    "current-period record reads should reset to empty after the ritual period ends",
+  );
+  assert.match(
+    recordApi,
+    /getEffectiveStart\(period\.start_date, resetAt\)/,
+    "current-period record reads should also respect challenge reset_at",
+  );
+  assert.match(
+    language,
+    /currentPeriodOnly: true/,
+    "English and second-language flash cards should only use current-period records",
+  );
+});
