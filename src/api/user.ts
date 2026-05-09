@@ -4,6 +4,7 @@ import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getActivePeriod } from "@/lib/current-challenge";
 import type { Profile } from "@/types/supabase";
+import { saveProfileRitualStart } from "@/lib/profile-ritual-start";
 
 export async function getMe(): Promise<Profile | null> {
   const user = await getCurrentUser();
@@ -23,6 +24,8 @@ export async function getMe(): Promise<Profile | null> {
 export async function updateMe(input: {
   name?: string;
   avatarUrl?: string | null;
+  ritualStartYear?: number | null;
+  ritualStartMonth?: number | null;
 }): Promise<{ error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "인증이 필요합니다." };
@@ -39,6 +42,16 @@ export async function updateMe(input: {
     .eq("id", user.id);
 
   if (error) return { error: error.message };
+  if (
+    input.ritualStartYear !== undefined ||
+    input.ritualStartMonth !== undefined
+  ) {
+    const metaRes = await saveProfileRitualStart(user.id, {
+      ritual_start_year: input.ritualStartYear ?? null,
+      ritual_start_month: input.ritualStartMonth ?? null,
+    });
+    if (metaRes.error) return { error: metaRes.error };
+  }
   return {};
 }
 

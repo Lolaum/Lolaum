@@ -19,6 +19,7 @@ import type {
 } from "@/types/supabase";
 import type { ChallengerSummary } from "@/api/user";
 import { isAllRoutinesCovered } from "@/lib/declarations";
+import { getProfileRitualStart } from "@/lib/profile-ritual-start";
 
 // ── 타입 ──────────────────────────────────────────────
 
@@ -90,10 +91,11 @@ export interface FinanceInsight {
   weeklySpending: { week: string; amount: number }[];
 }
 
-export type HomeProfile = Pick<
-  Profile,
-  "id" | "username" | "name" | "avatar_url"
->;
+export interface HomeProfile
+  extends Pick<Profile, "id" | "username" | "name" | "avatar_url"> {
+  ritual_start_year: number | null;
+  ritual_start_month: number | null;
+}
 
 // ── 리추얼 설정 ──────────────────────────────────────────
 
@@ -880,11 +882,14 @@ export async function getHomeStats(): Promise<{
   const admin = createAdminClient();
 
   if (isChallengePeriodEnded(period)) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("id, username, name, avatar_url")
-      .eq("id", user.id)
-      .single();
+    const [{ data: profile }, ritualStart] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, username, name, avatar_url")
+        .eq("id", user.id)
+        .single(),
+      getProfileRitualStart(user.id),
+    ]);
 
     return {
       myPage: getEmptyMyPageStats(),
@@ -892,7 +897,7 @@ export async function getHomeStats(): Promise<{
       calendarMarkers: {},
       routineCompletionMap: {},
       totalRoutineDays,
-      profile: (profile ?? null) as HomeProfile | null,
+      profile: profile ? { ...profile, ...ritualStart } : null,
       challengers: [],
       routines: [],
     };
@@ -953,7 +958,10 @@ export async function getHomeStats(): Promise<{
   const currentRecords = currentRes.data ?? [];
   const registrations = (registrationsRes.data ?? []) as ChallengeRegistration[];
   const completedTodos = todosRes.data ?? [];
-  const profile = (profileRes.data ?? null) as HomeProfile | null;
+  const ritualStart = await getProfileRitualStart(user.id);
+  const profile = profileRes.data
+    ? ({ ...profileRes.data, ...ritualStart } as HomeProfile)
+    : null;
 
   type ChallengerRow = {
     id: string;

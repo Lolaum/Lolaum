@@ -33,7 +33,8 @@ export default function Profile({
   onProfileUpdated,
 }: Props) {
   const [showEditModal, setShowEditModal] = useState(false);
-  const [userName, setUserName] = useState(initialProfile?.username ?? "");
+  const userName = initialProfile?.username ?? "";
+  const userId = initialProfile?.id ?? "";
   const [editName, setEditName] = useState(initialProfile?.name ?? "");
   const [savedName, setSavedName] = useState(initialProfile?.name ?? "");
   const [savedPhoto, setSavedPhoto] = useState<string | null>(
@@ -42,18 +43,47 @@ export default function Profile({
   const [editPhoto, setEditPhoto] = useState<string | null>(
     initialProfile?.avatar_url ?? null,
   );
+  const [savedStartYear, setSavedStartYear] = useState<number | null>(
+    initialProfile?.ritual_start_year ?? null,
+  );
+  const [savedStartMonth, setSavedStartMonth] = useState<number | null>(
+    initialProfile?.ritual_start_month ?? null,
+  );
+  const [editStartYear, setEditStartYear] = useState(
+    initialProfile?.ritual_start_year?.toString() ?? "",
+  );
+  const [editStartMonth, setEditStartMonth] = useState(
+    initialProfile?.ritual_start_month?.toString() ?? "",
+  );
 
   // 부모(HomeContainer)에서 stats/completionRate를 받아와 중복 호출을 피한다
   const stats = statsProp;
   const completionRate = completionRateProp;
 
-  const [userId, setUserId] = useState(initialProfile?.id ?? "");
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
-const handleSave = async () => {
+  const startLabel =
+    savedStartYear && savedStartMonth
+      ? `${savedStartYear}.${String(savedStartMonth).padStart(2, "0")} 시작`
+      : null;
+
+  const handleSave = async () => {
     setSaving(true);
     let avatarUrl = savedPhoto;
+    const ritualStartYear = editStartYear ? Number(editStartYear) : null;
+    const ritualStartMonth = editStartMonth ? Number(editStartMonth) : null;
+
+    if (
+      (ritualStartYear !== null &&
+        (ritualStartYear < 2000 || ritualStartYear > 2100)) ||
+      (ritualStartMonth !== null &&
+        (ritualStartMonth < 1 || ritualStartMonth > 12))
+    ) {
+      setSaving(false);
+      alert("리추얼 시작 연도와 월을 확인해주세요.");
+      return;
+    }
 
     // 새 사진이 data URL이면 Storage에 업로드
     if (editPhoto && editPhoto.startsWith("data:")) {
@@ -77,6 +107,8 @@ const handleSave = async () => {
     const { error } = await updateMe({
       name: editName,
       avatarUrl,
+      ritualStartYear,
+      ritualStartMonth,
     });
 
     setSaving(false);
@@ -84,15 +116,21 @@ const handleSave = async () => {
     if (!error) {
       setSavedName(editName);
       setSavedPhoto(avatarUrl);
+      setSavedStartYear(ritualStartYear);
+      setSavedStartMonth(ritualStartMonth);
       onProfileUpdated?.();
       router.refresh();
       setShowEditModal(false);
+    } else {
+      alert(`프로필 저장에 실패했어요: ${error}`);
     }
   };
 
   const handleOpen = () => {
     setEditName(savedName);
     setEditPhoto(savedPhoto);
+    setEditStartYear(savedStartYear?.toString() ?? "");
+    setEditStartMonth(savedStartMonth?.toString() ?? "");
     setShowEditModal(true);
   };
 
@@ -133,7 +171,7 @@ const handleSave = async () => {
           </div>
 
           {/* 이름 */}
-          <div className="mb-6">
+          <div className="mb-4">
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">이름</label>
             <input
               type="text"
@@ -141,6 +179,37 @@ const handleSave = async () => {
               onChange={(e) => setEditName(e.target.value)}
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] focus:bg-white transition-all"
             />
+          </div>
+
+          {/* 리추얼 시작 시점 */}
+          <div className="mb-6">
+            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+              리추얼 시작
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="number"
+                inputMode="numeric"
+                min={2000}
+                max={2100}
+                value={editStartYear}
+                onChange={(e) => setEditStartYear(e.target.value)}
+                placeholder="연도"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] focus:bg-white transition-all"
+              />
+              <select
+                value={editStartMonth}
+                onChange={(e) => setEditStartMonth(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] focus:bg-white transition-all"
+              >
+                <option value="">월</option>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                  <option key={month} value={month}>
+                    {month}월
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* 버튼 */}
@@ -176,11 +245,14 @@ const handleSave = async () => {
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-gray-900 truncate">{savedName || userName}</p>
-        </div>
-        <div className="flex items-center gap-1 bg-yellow-50 rounded-full px-2.5 py-1 flex-shrink-0">
-          <Flame size={12} className="text-yellow-500" />
-          <span className="text-xs font-bold text-yellow-500">{stats?.currentStreak ?? 0}일</span>
+          <div className="flex items-center gap-2 min-w-0">
+            <p className="text-sm font-bold text-gray-900 truncate">{savedName || userName}</p>
+            {startLabel && (
+              <span className="flex-shrink-0 rounded-full bg-yellow-50 px-2 py-0.5 text-[11px] font-semibold text-yellow-600">
+                {startLabel}
+              </span>
+            )}
+          </div>
         </div>
       </button>
 
