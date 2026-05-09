@@ -14,8 +14,8 @@ export interface ChallengerProgress {
   name: string;
   avatarUrl: string | null;
   emoji: string | null;
-  completedDays: number; // 평일 완료 + 주말 보충 일수 (최대 = 활성 기간의 평일 수)
-  totalAchieved: number; // 달성 합계 (최대 = 평일 수 + 3 보너스)
+  completedDays: number; // 인증 완료 횟수
+  totalAchieved: number; // 달성 합계
   penaltyAmount: number; // 기부금 (원)
   happyChanceUsed: boolean; // 행복찬스 사용됨 (평일 1회 이상 미완료)
   hasDeclaration: boolean;
@@ -70,14 +70,13 @@ function getWeekKey(d: Date): string {
  * 진행표 페이지용: 모든 챌린저의 진행률 데이터를 가져온다.
  *
  * 진행률 계산 규칙:
- * - 집계 범위: max(period.start_date, challenge.reset_at) ~ min(어제, 기간 종료일)
+ * - 집계 범위: max(period.start_date, challenge.reset_at) ~ min(오늘, 기간 종료일)
  *   · reset_at 없음 → 기간 시작일부터 (늦게 등록해도 빠진 날 카운트)
  *   · reset_at 있음 → 그 날짜부터 (유저가 명시적으로 "다시 시작" 한 경우)
  * - 평일(월~금)에 등록한 모든 리추얼을 완료해야 1일 달성
- * - 평일에 못한 리추얼을 "같은 주(월~일)의 주말"에 수행하면 그 평일은 보충 완료로 인정
- * - 보충되지 않은 미완료 평일 최초 1회 → 행복찬스 (면제)
- * - 보충되지 않은 미완료 평일 2회째부터 → 기부금 1,000원씩 누적
- * - 모든 미완료가 주말로 보충되면 행복찬스도 소모되지 않음
+ * - 주말 인증도 인증 완료 횟수로 즉시 반영
+ * - 미완료 평일 최초 1회 → 행복찬스 (면제)
+ * - 미완료 평일 2회째부터 → 기부금 1,000원씩 누적
  */
 export async function getProgressPageData(): Promise<{
   data?: ProgressPageData;
@@ -139,30 +138,38 @@ export async function getProgressPageData(): Promise<{
 
     // 2. daily_completions(완료 날짜) + 선언/회고를 한 번에 조회
     //    ritual_records 풀스캔 대신 daily_completions에서 완료 날짜만 가져와
-    //    주 단위 평일/주말 보충 로직을 날짜별 완료 여부로 계산한다.
-    const [regRes, dailyCompRes, declRes, midRevRes] = await Promise.all([
-      admin
-        .from("challenge_registrations")
-        .select("user_id, challenge_id, routine_type")
-        .in("challenge_id", challengeIds),
-      admin
-        .from("daily_completions")
-        .select("user_id, challenge_id, completion_date, is_fully_complete")
-        .in("challenge_id", challengeIds)
-        .gte("completion_date", period.start_date)
-        .lte("completion_date", period.end_date),
-      admin
-        .from("declarations")
-        .select("user_id, routine_type, challenge_id")
-        .in("challenge_id", challengeIds),
-      admin
-        .from("mid_reviews")
-        .select("user_id, challenge_id")
-        .in("challenge_id", challengeIds),
-    ]);
+    //    날짜별 완료 여부로 인증 횟수와 평일 미완료 횟수를 계산한다.
+    const [regRes, dailyCompRes, declRes, midRevRes, finalRevRes] =
+      await Promise.all([
+        admin
+          .from("challenge_registrations")
+          .select("user_id, challenge_id, routine_type")
+          .in("challenge_id", challengeIds),
+        admin
+          .from("daily_completions")
+          .select("user_id, challenge_id, completion_date, is_fully_complete")
+          .in("challenge_id", challengeIds)
+          .gte("completion_date", period.start_date)
+          .lte("completion_date", period.end_date),
+        admin
+          .from("declarations")
+          .select("user_id, routine_type, challenge_id")
+          .in("challenge_id", challengeIds),
+        admin
+          .from("mid_reviews")
+          .select("user_id, challenge_id")
+          .in("challenge_id", challengeIds),
+        admin
+          .from("final_reviews")
+          .select("user_id, challenge_id")
+          .in("challenge_id", challengeIds),
+      ]);
 
     if (regRes.error) return { error: regRes.error.message };
     if (dailyCompRes.error) return { error: dailyCompRes.error.message };
+    if (declRes.error) return { error: declRes.error.message };
+    if (midRevRes.error) return { error: midRevRes.error.message };
+    if (finalRevRes.error) return { error: finalRevRes.error.message };
 
     // 3. 유저별 등록 리추얼 타입 세트 (선언 보너스가 "등록한 모든 리추얼에 작성"인지 검사하려면 routine_type 필요)
     const userRegisteredTypes = new Map<string, Set<string>>();
@@ -171,6 +178,11 @@ export async function getProgressPageData(): Promise<{
         userRegisteredTypes.set(r.user_id, new Set());
       userRegisteredTypes.get(r.user_id)!.add(r.routine_type);
     }
+    const registeredUserIds = new Set(
+      Array.from(userRegisteredTypes.entries())
+        .filter(([, types]) => types.size > 0)
+        .map(([userId]) => userId),
+    );
 
     // 3-1. 유저별 선언 행 (routine_type 단위) — isAllRoutinesCovered가 행 배열을 받음
     const userDeclarationRows = new Map<string, { routine_type: string }[]>();
@@ -182,6 +194,10 @@ export async function getProgressPageData(): Promise<{
     const userMidReviewed = new Set<string>();
     for (const r of midRevRes.data ?? []) {
       userMidReviewed.add(r.user_id);
+    }
+    const userFinalReviewed = new Set<string>();
+    for (const r of finalRevRes.data ?? []) {
+      userFinalReviewed.add(r.user_id);
     }
 
     // 4. 유저별 날짜별 완전 달성 여부 세트 (is_fully_complete 기반)
@@ -195,14 +211,12 @@ export async function getProgressPageData(): Promise<{
       }
     }
 
-    // 5. 집계 범위 끝 = min(어제, period.end_date)
+    // 5. 집계 범위 끝 = min(오늘, period.end_date)
     //    rangeStart 는 유저별 reset_at 여부에 따라 달라지므로 6번 루프에서 결정.
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
     const periodEnd = parseLocalDate(period.end_date);
-    const rangeEnd = yesterday < periodEnd ? yesterday : periodEnd;
+    const rangeEnd = today < periodEnd ? today : periodEnd;
 
     // 6. 유저별 진행률 계산
     const allChallengers: ChallengerProgress[] = rows.map((r) => {
@@ -227,7 +241,8 @@ export async function getProgressPageData(): Promise<{
       }
 
       // 유저의 완전 달성 날짜 세트 (daily_completions.is_fully_complete=true)
-      const fullyCompleteDates = userFullyCompleteDates.get(r.user_id) ?? new Set<string>();
+      const fullyCompleteDates =
+        userFullyCompleteDates.get(r.user_id) ?? new Set<string>();
 
       // 유저별 집계 시작일: reset_at 이 있으면 그 날짜, 없으면 period.start_date
       const rangeStart = parseLocalDate(
@@ -257,35 +272,25 @@ export async function getProgressPageData(): Promise<{
         }
       }
 
-      // 주 단위로 완료/보충/미완료 집계
+      // 주 단위로 완료/미완료 집계
       // daily_completions.is_fully_complete 기반: 그날 등록된 모든 리추얼 완료 = 완전 달성
-      // 주말의 완전 달성일이 있으면 같은 주 미완료 평일을 보충으로 처리
-      let weekdayComplete = 0;
-      let weekdayMadeUp = 0;
+      // 인증 횟수는 주말/오늘 인증도 즉시 +1로 집계한다.
       let weekdayMissed = 0;
+      const fullyCompleteCount = Array.from(fullyCompleteDates).filter(
+        (date) =>
+          parseLocalDate(date) >= rangeStart && parseLocalDate(date) <= rangeEnd,
+      ).length;
 
-      for (const { weekdays, weekends } of weekData.values()) {
-        // 이 주의 주말에 완전 달성한 날이 있으면 보충 가능
-        const hasWeekendCompletion = weekends.some((we) =>
-          fullyCompleteDates.has(we),
-        );
-
+      for (const { weekdays } of weekData.values()) {
         for (const wd of weekdays) {
-          if (fullyCompleteDates.has(wd)) {
-            weekdayComplete++;
-          } else if (hasWeekendCompletion) {
-            weekdayMadeUp++;
-          } else {
+          if (!fullyCompleteDates.has(wd)) {
             weekdayMissed++;
           }
         }
       }
 
-      // 진행률: 평일 완료 + 주말 보충으로 채운 평일 (최대 = 기간 내 평일 수)
-      const completedDays = Math.min(
-        weekdayComplete + weekdayMadeUp,
-        totalRoutineDays,
-      );
+      // 진행률: 실제 인증 완료 횟수. 주말 인증도 횟수로는 즉시 반영한다.
+      const completedDays = fullyCompleteCount;
 
       // 선언 보너스: 등록한 모든 리추얼에 대해 작성해야 +1 (ritual-stats.ts와 동일 로직 재사용)
       const hasDeclaration = isAllRoutinesCovered(
@@ -294,7 +299,8 @@ export async function getProgressPageData(): Promise<{
       );
       // 중간 회고 보너스: 유저당 1개라도 작성했으면 +1
       const hasMidReview = userMidReviewed.has(r.user_id);
-      const hasFinalReview = false; // TODO: 최종회고 테이블 연동
+      // 최종 회고 보너스: 유저당 1개라도 작성했으면 +1
+      const hasFinalReview = userFinalReviewed.has(r.user_id);
 
       const totalAchieved =
         completedDays +
@@ -303,9 +309,8 @@ export async function getProgressPageData(): Promise<{
         (hasFinalReview ? 1 : 0);
 
       // 기부금 계산:
-      // - 보충되지 않은 미완료 평일의 1회차는 행복찬스로 면제
+      // - 미완료 평일의 1회차는 행복찬스로 면제
       // - 2회차부터 1,000원씩
-      // - 모두 보충되면 행복찬스도 소모되지 않음
       const happyChanceUsed = weekdayMissed >= 1;
       const penaltyAmount = Math.max(0, weekdayMissed - 1) * 1000;
 
@@ -327,7 +332,7 @@ export async function getProgressPageData(): Promise<{
     // 나와 나머지 분리 (달성 합계 내림차순)
     const me = allChallengers.find((c) => c.userId === user.id) ?? null;
     const challengers = allChallengers
-      .filter((c) => c.userId !== user.id)
+      .filter((c) => c.userId !== user.id && registeredUserIds.has(c.userId))
       .sort((a, b) => b.totalAchieved - a.totalAchieved);
 
     return {

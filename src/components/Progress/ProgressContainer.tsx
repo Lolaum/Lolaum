@@ -130,26 +130,6 @@ function Avatar({
   );
 }
 
-function ProgressBar({ progress }: { progress: number }) {
-  return (
-    <div
-      className={`h-2.5 bg-${progress === 100 ? "blue" : "yellow"}-100 rounded-full overflow-hidden`}
-      style={{ backgroundColor: progress === 100 ? "#dbeafe" : undefined }}
-    >
-      <div
-        className="h-full rounded-full transition-all duration-700"
-        style={{
-          width: `${progress}%`,
-          background:
-            progress === 100
-              ? "linear-gradient(90deg, #60a5fa, #3b82f6)"
-              : "linear-gradient(90deg, #fbbf24, #eab308)",
-        }}
-      />
-    </div>
-  );
-}
-
 function Badges({
   member,
   size = "sm",
@@ -193,7 +173,8 @@ function MyProgressCard({
   member: ChallengerProgress;
   totalDays: number;
 }) {
-  const progress = Math.round((member.totalAchieved / totalDays) * 100);
+  const progress =
+    totalDays > 0 ? Math.round((member.totalAchieved / totalDays) * 100) : 0;
 
   return (
     <div className="rounded-2xl bg-yellow-50 border border-yellow-100 p-4 mb-6">
@@ -246,7 +227,8 @@ function MemberRow({
   member: ChallengerProgress;
   totalDays: number;
 }) {
-  const progress = Math.round((member.totalAchieved / totalDays) * 100);
+  const progress =
+    totalDays > 0 ? Math.round((member.totalAchieved / totalDays) * 100) : 0;
 
   return (
     <div className="flex items-center gap-4">

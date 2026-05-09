@@ -1,13 +1,20 @@
 "use server";
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
-import { getCurrentChallengeId } from "@/lib/current-challenge";
+import {
+  getActivePeriod,
+  getCurrentChallengeId,
+  getEffectiveStart,
+  isChallengePeriodEnded,
+} from "@/lib/current-challenge";
 import { normalizeRecordDataImages } from "@/lib/record-data-images";
 import type { Json, RitualRecord, RoutineTypeDB } from "@/types/supabase";
 
 export async function getRitualRecords(input: {
   challengeId: string;
   date?: string;
+  dateFrom?: string;
+  dateTo?: string;
   routineType?: RoutineTypeDB;
 }): Promise<{ data?: RitualRecord[]; error?: string }> {
   const user = await getCurrentUser();
@@ -24,6 +31,14 @@ export async function getRitualRecords(input: {
 
   if (input.date) {
     query = query.eq("record_date", input.date);
+  } else {
+    if (input.dateFrom) {
+      query = query.gte("record_date", input.dateFrom);
+    }
+
+    if (input.dateTo) {
+      query = query.lte("record_date", input.dateTo);
+    }
   }
 
   if (input.routineType) {
@@ -221,8 +236,22 @@ export async function deleteRitualRecord(
 export async function getMyRitualRecords(input: {
   routineType?: RoutineTypeDB;
   date?: string;
+  currentPeriodOnly?: boolean;
 }): Promise<{ data?: RitualRecord[]; error?: string }> {
-  const { challengeId, error: challengeError } = await getCurrentChallengeId();
+  const { period, error: periodError } = input.currentPeriodOnly
+    ? await getActivePeriod()
+    : { period: null, error: undefined };
+
+  if (input.currentPeriodOnly) {
+    if (!period) return { error: periodError ?? "활성 챌린지 기간이 없습니다." };
+    if (isChallengePeriodEnded(period)) return { data: [] };
+  }
+
+  const {
+    challengeId,
+    resetAt,
+    error: challengeError,
+  } = await getCurrentChallengeId();
 
   if (!challengeId) {
     return { error: challengeError ?? "챌린지를 찾을 수 없습니다." };
@@ -232,5 +261,10 @@ export async function getMyRitualRecords(input: {
     challengeId,
     routineType: input.routineType,
     date: input.date,
+    dateFrom:
+      input.currentPeriodOnly && period
+        ? getEffectiveStart(period.start_date, resetAt)
+        : undefined,
+    dateTo: input.currentPeriodOnly && period ? period.end_date : undefined,
   });
 }

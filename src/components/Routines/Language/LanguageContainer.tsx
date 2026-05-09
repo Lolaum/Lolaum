@@ -39,7 +39,10 @@ export default function LanguageContainer({
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
-    const { data } = await getMyRitualRecords({ routineType });
+    const { data } = await getMyRitualRecords({
+      routineType,
+      currentPeriodOnly: true,
+    });
     if (data) {
       const records: LanguageRecord[] = data.map((r) => {
         const d = r.record_data as unknown as LanguageRecordData;

@@ -29,14 +29,21 @@ function toBook(row: BookDB): Book {
   };
 }
 
-export default function BookManage({ onBackToHome, onAddBook, isEnglishBook, certificationPhotos }: BookManageProps) {
+export default function BookManage({
+  onBackToHome,
+  onAddBook,
+  isEnglishBook,
+  certificationPhotos,
+}: BookManageProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const fetchBooks = useCallback(async () => {
     setLoading(true);
-    const result = await getBooksAuto(isEnglishBook ? "english_book" : "reading");
+    const result = await getBooksAuto(
+      isEnglishBook ? "english_book" : "reading",
+    );
     if (result.data) {
       setBooks(result.data.map(toBook));
     }
@@ -60,13 +67,16 @@ export default function BookManage({ onBackToHome, onAddBook, isEnglishBook, cer
     }
   };
 
-  const handleBookUpdated = async (bookId: string, input: {
-    title?: string;
-    author?: string;
-    currentValue?: number;
-    totalValue?: number;
-    isCompleted?: boolean;
-  }) => {
+  const handleBookUpdated = async (
+    bookId: string,
+    input: {
+      title?: string;
+      author?: string;
+      currentValue?: number;
+      totalValue?: number;
+      isCompleted?: boolean;
+    },
+  ) => {
     const result = await updateBook(bookId, input);
     if (result.data) {
       const updated = toBook(result.data);
@@ -101,8 +111,18 @@ export default function BookManage({ onBackToHome, onAddBook, isEnglishBook, cer
           onClick={onBackToHome}
           className="flex items-center justify-center w-8 h-8 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
         >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
@@ -116,16 +136,38 @@ export default function BookManage({ onBackToHome, onAddBook, isEnglishBook, cer
           className="w-full flex items-center gap-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
         >
           <div className="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center flex-shrink-0">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            <svg
+              className="w-5 h-5 text-white"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+              />
             </svg>
           </div>
           <div className="text-left flex-1">
-            <p className="text-sm font-semibold text-gray-900">원서 읽기 자료</p>
-            <p className="text-xs text-gray-400 mt-0.5">클릭하여 원서 자료 페이지로 이동</p>
+            <p className="text-sm font-semibold text-gray-900">구글 클래스룸</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              클릭하여 구글 클래스룸 페이지로 이동
+            </p>
           </div>
-          <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          <svg
+            className="w-4 h-4 text-gray-300"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
+            />
           </svg>
         </a>
       )}
@@ -137,7 +179,9 @@ export default function BookManage({ onBackToHome, onAddBook, isEnglishBook, cer
             {isEnglishBook ? "원서 관리" : "독서 관리"}
           </h1>
           <p className="text-sm text-gray-500">
-            {loading ? "불러오는 중..." : `현재 ${books.length}권의 책을 읽고 있습니다`}
+            {loading
+              ? "불러오는 중..."
+              : `현재 ${books.length}권의 책을 읽고 있습니다`}
           </p>
         </div>
 
@@ -297,7 +341,6 @@ export default function BookManage({ onBackToHome, onAddBook, isEnglishBook, cer
           })}
         </div>
       )}
-
     </div>
   );
 }

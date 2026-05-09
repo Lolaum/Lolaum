@@ -2,7 +2,11 @@
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentChallengeId, getActivePeriod } from "@/lib/current-challenge";
+import {
+  getCurrentChallengeId,
+  getActivePeriod,
+  isChallengePeriodEnded,
+} from "@/lib/current-challenge";
 import type { Json } from "@/types/supabase";
 import type { MidReview, MidReviewCondition } from "@/types/routines/midReview";
 
@@ -81,6 +85,7 @@ async function getCurrentPeriodChallengeIds(): Promise<string[]> {
   try {
     const { period } = await getActivePeriod();
     if (!period) return [];
+    if (isChallengePeriodEnded(period)) return [];
     const admin = createAdminClient();
     const { data } = await admin
       .from("challenges")
