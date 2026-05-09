@@ -90,11 +90,11 @@ export default function LayoutShell({ children }: LayoutShellProps) {
                 onClick={handleLogoClick}
               >
                 <Image
-                  src="/images/common/LolaumLogo.png"
+                  src="/images/common/LolaumLogoWeb.png"
                   alt="Lolaum Logo"
-                  width={120}
-                  height={32}
-                  className="mx-auto h-8 w-30"
+                  width={148}
+                  height={40}
+                  className="h-8 w-auto object-contain"
                   priority
                 />
               </Link>
@@ -111,11 +111,11 @@ export default function LayoutShell({ children }: LayoutShellProps) {
             onClick={handleLogoClick}
           >
             <Image
-              src="/images/common/LolaumLogo.png"
+              src="/images/common/LolaumLogoWeb.png"
               alt="Lolaum Logo"
-              width={120}
-              height={32}
-              className="mx-auto h-8 w-30"
+              width={148}
+              height={40}
+              className="h-8 w-auto object-contain"
               priority
             />
           </Link>
@@ -198,11 +198,11 @@ export default function LayoutShell({ children }: LayoutShellProps) {
                 }}
               >
                 <Image
-                  src="/images/common/LolaumLogo.png"
+                  src="/images/common/LolaumLogoWeb.png"
                   alt="Lolaum Logo"
-                  width={120}
-                  height={32}
-                  className="h-8 w-30"
+                  width={148}
+                  height={40}
+                  className="h-8 w-auto object-contain"
                 />
               </Link>
               <button

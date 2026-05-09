@@ -46,6 +46,9 @@ export const getCurrentChallengeId = cache(async (): Promise<{
 
   const { period, error: periodError } = await getActivePeriod();
   if (!period) return { challengeId: null, error: periodError };
+  if (isChallengePeriodEnded(period)) {
+    return { challengeId: null, error: "챌린지 기간이 종료되었습니다." };
+  }
 
   const supabase = await createClient();
 
@@ -100,4 +103,26 @@ export function getEffectiveStart(
 ): string {
   if (!resetAt) return periodStart;
   return resetAt > periodStart ? resetAt : periodStart;
+}
+
+function formatLocalDate(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const value = (type: string) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
+/**
+ * 활성 row가 아직 교체되지 않았더라도 종료일이 지나면 현재 챌린지로 보지 않는다.
+ */
+export function isChallengePeriodEnded(
+  period: { end_date: string },
+  today = new Date(),
+): boolean {
+  return formatLocalDate(today) > period.end_date;
 }

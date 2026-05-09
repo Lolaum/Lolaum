@@ -10,14 +10,20 @@
   "theme_color": "#eab32e",
   "icons": [
     {
-      "src": "/images/common/LolaumLogo.png",
-      "sizes": "any",
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/images/common/LolaumLogo.png",
-      "sizes": "any",
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-512x512.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     }

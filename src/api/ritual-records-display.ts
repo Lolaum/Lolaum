@@ -2,7 +2,7 @@
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getActivePeriod } from "@/lib/current-challenge";
+import { getActivePeriod, isChallengePeriodEnded } from "@/lib/current-challenge";
 import type { RoutineTypeDB, RitualRecord } from "@/types/supabase";
 import type {
   FeedItem,
@@ -256,7 +256,6 @@ export async function getRecordById(
 
     // 다른 유저의 기록도 볼 수 있도록 admin 클라이언트 사용
     const admin = createAdminClient();
-
     const { data: record, error } = await admin
       .from("ritual_records")
       .select("id, user_id, routine_type, record_date, record_data, challenge_id, created_at")
@@ -265,6 +264,24 @@ export async function getRecordById(
 
     if (error || !record) {
       return { data: null, error: error?.message ?? "기록을 찾을 수 없습니다." };
+    }
+
+    const isMine = record.user_id === user.id;
+    if (!isMine) {
+      const { period } = await getActivePeriod();
+      if (!period || isChallengePeriodEnded(period)) {
+        return { data: null, error: "현재 표시할 인증 게시글이 없습니다." };
+      }
+
+      const { data: challenge } = await admin
+        .from("challenges")
+        .select("period_id")
+        .eq("id", record.challenge_id)
+        .maybeSingle();
+
+      if (challenge?.period_id !== period.id) {
+        return { data: null, error: "현재 표시할 인증 게시글이 없습니다." };
+      }
     }
 
     // 프로필 + 댓글용 feed 매핑 + 책정보 모두 병렬 조회
@@ -361,7 +378,7 @@ export async function getAllRecordsForDisplay(options?: {
 
     // 활성 기간의 challenge_id 목록 (이전 기간 인증 게시글은 피드에서 자동으로 사라짐)
     const { period } = await getActivePeriod();
-    if (!period) {
+    if (!period || isChallengePeriodEnded(period)) {
       return { data: [], total: 0 };
     }
     const { data: periodChallenges } = await admin

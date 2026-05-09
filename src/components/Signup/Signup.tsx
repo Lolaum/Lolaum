@@ -114,9 +114,9 @@ export default function Signup() {
           {/* 로고 */}
           <div className="mb-8 text-center">
             <img
-              src="/images/common/LolaumLogo.png"
+              src="/images/common/LolaumLogoWeb.png"
               alt="Lolaum Logo"
-              className="mx-auto h-10 w-auto mb-3"
+              className="mx-auto mb-3 h-12 w-auto max-w-[220px] object-contain"
             />
             <p className="text-sm text-gray-400">새로운 리추얼 여정을 시작하세요</p>
           </div>

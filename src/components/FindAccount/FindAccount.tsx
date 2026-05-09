@@ -100,9 +100,9 @@ export default function FindAccount() {
           {/* 로고 */}
           <div className="mb-8 text-center">
             <img
-              src="/images/common/LolaumLogo.png"
+              src="/images/common/LolaumLogoWeb.png"
               alt="Lolaum Logo"
-              className="mx-auto h-10 w-auto mb-3"
+              className="mx-auto mb-3 h-12 w-auto max-w-[220px] object-contain"
             />
             <p className="text-sm text-gray-400">계정 찾기</p>
           </div>
