@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
 import { Declaration, RoutineType } from "@/types/routines/declaration";
 import { getAllDeclarations } from "@/api/declaration";
 import { ROUTINE_CONFIG, ALL_ROUTINE_TYPES } from "@/lib/routineConfig";
@@ -17,6 +17,7 @@ export default function DeclarationContainer() {
   const [allDecls, setAllDecls] = useState<Declaration[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState("");
 
   useEffect(() => {
     async function fetchDeclarations() {
@@ -38,10 +39,14 @@ export default function DeclarationContainer() {
     allDecls.some((d) => d.routineType === type)
   );
 
-  const filtered =
-    activeTab === "전체"
-      ? allDecls
-      : allDecls.filter((d) => d.routineType === activeTab);
+  const searchQuery = searchInput.trim().toLowerCase();
+  const filtered = allDecls.filter((d) => {
+    const matchesTab = activeTab === "전체" || d.routineType === activeTab;
+    const matchesSearch =
+      searchQuery.length === 0 ||
+      d.userName.toLowerCase().includes(searchQuery);
+    return matchesTab && matchesSearch;
+  });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const visible = filtered.slice(
@@ -49,9 +54,15 @@ export default function DeclarationContainer() {
     currentPage * PAGE_SIZE
   );
 
-  useEffect(() => {
+  const handleTabChange = (tab: RoutineType | "전체") => {
+    setActiveTab(tab);
     setCurrentPage(1);
-  }, [activeTab]);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    setCurrentPage(1);
+  };
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 pb-8">
@@ -73,10 +84,35 @@ export default function DeclarationContainer() {
         </div>
       </div>
 
+      {/* 닉네임 검색 */}
+      <div className="relative mb-4">
+        <Search
+          size={16}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+        />
+        <input
+          type="text"
+          value={searchInput}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          placeholder="닉네임으로 검색"
+          className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-white border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[var(--gold-400)] focus:ring-1 focus:ring-[var(--gold-400)] transition-colors"
+        />
+        {searchInput && (
+          <button
+            type="button"
+            onClick={() => handleSearchChange("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            aria-label="검색어 지우기"
+          >
+            <X size={16} />
+          </button>
+        )}
+      </div>
+
       {/* 탭 필터 */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 mb-5 scrollbar-hide">
         <button
-          onClick={() => setActiveTab("전체")}
+          onClick={() => handleTabChange("전체")}
           className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
             activeTab === "전체"
               ? "bg-[var(--gold-400)] text-white shadow-sm"
@@ -90,7 +126,7 @@ export default function DeclarationContainer() {
           return (
             <button
               key={type}
-              onClick={() => setActiveTab(type)}
+              onClick={() => handleTabChange(type)}
               className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 ${
                 activeTab === type
                   ? "bg-[var(--gold-400)] text-white shadow-sm"

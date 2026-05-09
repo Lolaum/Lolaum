@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
 import { MidReview } from "@/types/routines/midReview";
 import { getAllMidReviews } from "@/api/mid-review";
 import MidReviewItem from "./MidReviewItem";
@@ -15,6 +15,7 @@ export default function MidReviewContainer() {
   const [allReviews, setAllReviews] = useState<MidReview[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState("");
 
   useEffect(() => {
     async function fetchReviews() {
@@ -27,11 +28,22 @@ export default function MidReviewContainer() {
     fetchReviews();
   }, []);
 
-  const totalPages = Math.max(1, Math.ceil(allReviews.length / PAGE_SIZE));
-  const visible = allReviews.slice(
+  const searchQuery = searchInput.trim().toLowerCase();
+  const filteredReviews = allReviews.filter(
+    (review) =>
+      searchQuery.length === 0 ||
+      review.userName.toLowerCase().includes(searchQuery),
+  );
+  const totalPages = Math.max(1, Math.ceil(filteredReviews.length / PAGE_SIZE));
+  const visible = filteredReviews.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE
   );
+
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    setCurrentPage(1);
+  };
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 pb-8">
@@ -60,6 +72,31 @@ export default function MidReviewContainer() {
             작성하기
           </button>
         </div>
+      </div>
+
+      {/* 닉네임 검색 */}
+      <div className="relative mb-5">
+        <Search
+          size={16}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+        />
+        <input
+          type="text"
+          value={searchInput}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          placeholder="닉네임으로 검색"
+          className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-white border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[var(--gold-400)] focus:ring-1 focus:ring-[var(--gold-400)] transition-colors"
+        />
+        {searchInput && (
+          <button
+            type="button"
+            onClick={() => handleSearchChange("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            aria-label="검색어 지우기"
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
 
       {loading && (
