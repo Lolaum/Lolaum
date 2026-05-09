@@ -6,6 +6,7 @@ import {
   getCurrentChallengeId,
   getActivePeriod,
   getEffectiveStart,
+  isChallengePeriodEnded,
 } from "@/lib/current-challenge";
 import type {
   ChallengeRegistration,
@@ -136,6 +137,34 @@ function countWeekdaysInRange(startDate: string, endDate: string): number {
     cur.setDate(cur.getDate() + 1);
   }
   return count;
+}
+
+function getEmptyCompletion(totalDays: number): CompletionRateStats {
+  return {
+    rate: 0,
+    completedDays: 0,
+    hasDeclaration: false,
+    hasMidReview: false,
+    hasFinalReview: false,
+    totalAchieved: 0,
+    totalDays,
+  };
+}
+
+function getEmptyMyPageStats(): MyPageStats {
+  return {
+    currentStreak: 0,
+    longestStreak: 0,
+    totalCompletions: 0,
+  };
+}
+
+function getEmptyOverallStats(): RitualOverallStats {
+  return {
+    totalRecords: 0,
+    currentStreak: 0,
+    completionRate: 0,
+  };
 }
 
 /** 활성 기간 시작 ~ min(오늘, 기간 종료일)의 평일(월~금) 날짜 목록 */
@@ -294,7 +323,6 @@ export async function getRitualPageData(): Promise<{
     getActivePeriod(),
   ]);
   if (!user) return { error: "인증이 필요합니다." };
-  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
   if (!period) return { error: pError ?? "활성 챌린지 기간이 없습니다." };
 
   const effectiveStart = getEffectiveStart(period.start_date, resetAt);
@@ -303,6 +331,17 @@ export async function getRitualPageData(): Promise<{
     period.end_date,
   );
   const totalDays = totalRoutineDays + 3;
+
+  if (isChallengePeriodEnded(period)) {
+    return {
+      overall: getEmptyOverallStats(),
+      routines: [],
+      completion: getEmptyCompletion(totalDays),
+      totalRoutineDays,
+    };
+  }
+
+  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
   const supabase = await createClient();
 
@@ -444,8 +483,11 @@ export async function getRitualStats(): Promise<{
     getActivePeriod(),
   ]);
   if (!user) return { error: "인증이 필요합니다." };
-  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
   if (!period) return { error: pError ?? "활성 챌린지 기간이 없습니다." };
+  if (isChallengePeriodEnded(period)) {
+    return { overall: getEmptyOverallStats(), routines: [] };
+  }
+  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
   const effectiveStart = getEffectiveStart(period.start_date, resetAt);
   const supabase = await createClient();
@@ -825,7 +867,6 @@ export async function getHomeStats(): Promise<{
     getActivePeriod(),
   ]);
   if (!user) return { error: "인증이 필요합니다." };
-  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
   if (!period) return { error: pError ?? "활성 챌린지 기간이 없습니다." };
 
   const effectiveStart = getEffectiveStart(period.start_date, resetAt);
@@ -837,6 +878,27 @@ export async function getHomeStats(): Promise<{
 
   const supabase = await createClient();
   const admin = createAdminClient();
+
+  if (isChallengePeriodEnded(period)) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, username, name, avatar_url")
+      .eq("id", user.id)
+      .single();
+
+    return {
+      myPage: getEmptyMyPageStats(),
+      completion: getEmptyCompletion(totalDays),
+      calendarMarkers: {},
+      routineCompletionMap: {},
+      totalRoutineDays,
+      profile: (profile ?? null) as HomeProfile | null,
+      challengers: [],
+      routines: [],
+    };
+  }
+
+  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
   const [
     currentRes,
@@ -1044,8 +1106,11 @@ export async function getMyPageStats(): Promise<{
     getActivePeriod(),
   ]);
   if (!user) return { error: "인증이 필요합니다." };
-  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
   if (!period) return { error: pError ?? "활성 챌린지 기간이 없습니다." };
+  if (isChallengePeriodEnded(period)) {
+    return { data: getEmptyMyPageStats() };
+  }
+  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
   const effectiveStart = getEffectiveStart(period.start_date, resetAt);
   const supabase = await createClient();
@@ -1089,7 +1154,6 @@ export async function getCompletionRate(): Promise<{
     getActivePeriod(),
   ]);
   if (!user) return { error: "인증이 필요합니다." };
-  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
   if (!period) return { error: pError ?? "활성 챌린지 기간이 없습니다." };
 
   const effectiveStart = getEffectiveStart(period.start_date, resetAt);
@@ -1098,6 +1162,12 @@ export async function getCompletionRate(): Promise<{
     period.end_date,
   );
   const totalDays = totalRoutineDays + 3;
+
+  if (isChallengePeriodEnded(period)) {
+    return { data: getEmptyCompletion(totalDays) };
+  }
+
+  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
   const supabase = await createClient();
 

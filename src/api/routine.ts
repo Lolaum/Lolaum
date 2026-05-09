@@ -1,7 +1,11 @@
 "use server";
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
-import { getCurrentChallengeId } from "@/lib/current-challenge";
+import {
+  getActivePeriod,
+  getCurrentChallengeId,
+  isChallengePeriodEnded,
+} from "@/lib/current-challenge";
 import type { ChallengeRegistration, RoutineTypeDB } from "@/types/supabase";
 
 export async function getRoutines(
@@ -110,6 +114,10 @@ export async function getMyRoutines(): Promise<{
   data?: ChallengeRegistration[];
   error?: string;
 }> {
+  const { period, error: periodError } = await getActivePeriod();
+  if (!period) return { error: periodError ?? "활성 챌린지 기간이 없습니다." };
+  if (isChallengePeriodEnded(period)) return { data: [] };
+
   const { challengeId, error: challengeError } = await getCurrentChallengeId();
 
   if (!challengeId) {
@@ -123,6 +131,12 @@ export async function getMyRoutines(): Promise<{
 export async function createRoutineAuto(
   routineType: RoutineTypeDB,
 ): Promise<{ data?: ChallengeRegistration; error?: string }> {
+  const { period, error: periodError } = await getActivePeriod();
+  if (!period) return { error: periodError ?? "활성 챌린지 기간이 없습니다." };
+  if (isChallengePeriodEnded(period)) {
+    return { error: "챌린지 기간이 종료되었습니다." };
+  }
+
   const { challengeId, error: challengeError } = await getCurrentChallengeId();
 
   if (!challengeId) {
@@ -144,6 +158,12 @@ export async function resetChallenge(): Promise<{
 }> {
   const user = await getCurrentUser();
   if (!user) return { error: "인증이 필요합니다." };
+
+  const { period, error: periodError } = await getActivePeriod();
+  if (!period) return { error: periodError ?? "활성 챌린지 기간이 없습니다." };
+  if (isChallengePeriodEnded(period)) {
+    return { success: true };
+  }
 
   const { challengeId, error: challengeError } = await getCurrentChallengeId();
   if (!challengeId) {

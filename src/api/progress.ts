@@ -2,7 +2,11 @@
 
 import { getCurrentUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getActivePeriod, getEffectiveStart } from "@/lib/current-challenge";
+import {
+  getActivePeriod,
+  getEffectiveStart,
+  isChallengePeriodEnded,
+} from "@/lib/current-challenge";
 import { isAllRoutinesCovered } from "@/lib/declarations";
 
 export interface ChallengerProgress {
@@ -96,6 +100,12 @@ export async function getProgressPageData(): Promise<{
       period.end_date,
     );
     const totalDaysWithBonus = totalRoutineDays + BONUS_SLOTS;
+
+    if (isChallengePeriodEnded(period)) {
+      return {
+        data: { me: null, challengers: [], totalDays: totalDaysWithBonus },
+      };
+    }
 
     // 1. 활성 기간의 모든 챌린지 + 프로필
     const { data: challenges, error: cError } = await admin
