@@ -42,9 +42,8 @@ function AddReadingRecord({
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
 
-  const handleScreenshot = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleScreenshotFile = async (file: File | undefined) => {
+    if (!file || !file.type.startsWith("image/")) return;
     const stamped = await applyTimestamp(file).catch(() => {
       const reader = new FileReader();
       return new Promise<string>((resolve) => {
@@ -55,21 +54,41 @@ function AddReadingRecord({
     setScreenshot(stamped);
   };
 
-  const handleCertPhotoUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const files = e.target.files;
+  const handleScreenshot = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    await handleScreenshotFile(e.target.files?.[0]);
+    e.target.value = "";
+  };
+
+  const handleScreenshotDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    await handleScreenshotFile(e.dataTransfer.files[0]);
+  };
+
+  const handleCertPhotoFiles = async (files: FileList | null) => {
     if (!files) return;
     const remaining = MAX_READING_CERT_PHOTOS - certPhotos.length;
     if (remaining <= 0) return;
-    const newFiles = Array.from(files).slice(0, remaining);
+    const newFiles = Array.from(files)
+      .filter((file) => file.type.startsWith("image/"))
+      .slice(0, remaining);
     const stamped = await Promise.all(
       newFiles.map((f) => applyTimestamp(f).catch(() => fileToBase64(f))),
     );
     setCertPhotos((prev) =>
       [...prev, ...stamped].slice(0, MAX_READING_CERT_PHOTOS),
     );
+  };
+
+  const handleCertPhotoUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    await handleCertPhotoFiles(e.target.files);
     e.target.value = "";
+  };
+
+  const handleCertPhotoDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    await handleCertPhotoFiles(e.dataTransfer.files);
   };
 
   const removeCertPhoto = (index: number) => {
@@ -174,7 +193,11 @@ function AddReadingRecord({
             </label>
             <div className="space-y-2">
               {certPhotos.length < MAX_READING_CERT_PHOTOS && (
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-indigo-400 transition-colors bg-gray-50">
+                <label
+                  className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-indigo-400 transition-colors bg-gray-50"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleCertPhotoDrop}
+                >
                   <div className="flex flex-col items-center justify-center">
                     <Upload className="w-8 h-8 text-gray-400 mb-2" />
                     <p className="text-sm text-gray-500">
@@ -256,7 +279,11 @@ function AddReadingRecord({
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center gap-2 w-full h-36 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 cursor-pointer hover:border-gray-300 hover:bg-gray-100 transition-colors">
+              <label
+                className="flex flex-col items-center justify-center gap-2 w-full h-36 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 cursor-pointer hover:border-gray-300 hover:bg-gray-100 transition-colors"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleScreenshotDrop}
+              >
                 <Camera size={24} className="text-gray-400" />
                 <span className="text-sm text-gray-400 font-medium">
                   스크린샷 추가

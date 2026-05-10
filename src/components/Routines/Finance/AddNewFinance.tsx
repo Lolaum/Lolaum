@@ -243,20 +243,30 @@ export default function AddNewFinance({
     setValueInputs({ ...valueInputs, [dailyId]: { name: "", amount: "" } });
   };
 
-  // 인증 사진 업로드
-  const handleCertPhotoUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const files = e.target.files;
+  const handleCertPhotoFiles = async (files: FileList | null) => {
     if (!files) return;
     const remaining = MAX_CERT_PHOTOS - certPhotos.length;
     if (remaining <= 0) return;
-    const newFiles = Array.from(files).slice(0, remaining);
+    const newFiles = Array.from(files)
+      .filter((file) => file.type.startsWith("image/"))
+      .slice(0, remaining);
     const stamped = await Promise.all(
       newFiles.map((f) => applyTimestamp(f).catch(() => fileToBase64(f))),
     );
     setCertPhotos((prev) => [...prev, ...stamped].slice(0, MAX_CERT_PHOTOS));
+  };
+
+  // 인증 사진 업로드
+  const handleCertPhotoUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    await handleCertPhotoFiles(e.target.files);
     e.target.value = "";
+  };
+
+  const handleCertPhotoDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    await handleCertPhotoFiles(e.dataTransfer.files);
   };
 
   const removeCertPhoto = (index: number) => {
@@ -381,7 +391,11 @@ export default function AddNewFinance({
           </p>
           <div className="space-y-3">
             {certPhotos.length < MAX_CERT_PHOTOS && (
-              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-green-400 transition-colors bg-gray-50">
+              <label
+                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-green-400 transition-colors bg-gray-50"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleCertPhotoDrop}
+              >
                 <div className="flex flex-col items-center justify-center">
                   <Upload className="w-8 h-8 text-gray-400 mb-2" />
                   <p className="text-sm text-gray-500">
