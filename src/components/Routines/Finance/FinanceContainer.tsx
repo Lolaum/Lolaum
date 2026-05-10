@@ -13,6 +13,7 @@ import {
   createRitualRecordAuto,
   getMyRitualRecords,
 } from "@/api/ritual-record";
+import { formatDateKey } from "@/lib/date";
 import type { FinanceRecordData, Json } from "@/types/supabase";
 
 interface FinanceContainerProps {
@@ -53,7 +54,7 @@ export default function FinanceContainer({ mode = "main" }: FinanceContainerProp
   }, [fetchRecords, mode]);
 
   const handleSubmit = async (formData: FinanceFormData) => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = formatDateKey(new Date());
     const recordData: FinanceRecordData = {
       dailyExpenses: formData.dailyExpenses,
       studyContent: formData.studyContent,

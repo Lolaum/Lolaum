@@ -375,6 +375,7 @@ export interface Database {
           completion_date: string;
           total_registered: number;
           total_completed: number;
+          is_fully_complete?: boolean;
           is_happy_chance?: boolean;
           has_penalty?: boolean;
           created_at?: string;
@@ -383,6 +384,7 @@ export interface Database {
         Update: {
           total_registered?: number;
           total_completed?: number;
+          is_fully_complete?: boolean;
           is_happy_chance?: boolean;
           has_penalty?: boolean;
           updated_at?: string;

@@ -13,6 +13,7 @@ import {
 } from "@/api/ritual-record";
 import { applyTimestamp, fileToBase64 } from "@/lib/utils";
 import { uploadImage, uploadImages } from "@/lib/upload-image";
+import { formatDateKey } from "@/lib/date";
 import type { ReadingRecordData, Json } from "@/types/supabase";
 
 const MAX_READING_CERT_PHOTOS = 2;
@@ -88,7 +89,7 @@ function AddReadingRecord({
     if (submittingRef.current || !canSave) return;
     submittingRef.current = true;
     setSubmitting(true);
-    const today = new Date().toISOString().split("T")[0];
+    const today = formatDateKey(new Date());
     try {
       const [screenshotUrl, certPhotoUrls] = await Promise.all([
         isEnglishBook && screenshot ? uploadImage(screenshot) : Promise.resolve(undefined),

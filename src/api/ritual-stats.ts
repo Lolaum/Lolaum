@@ -201,9 +201,9 @@ function calcCompletionAccounting(
 function calcStreak(dates: string[]): number {
   if (dates.length === 0) return 0;
   const sorted = [...dates].sort((a, b) => b.localeCompare(a)); // 최신순
-  const today = new Date().toISOString().split("T")[0];
+  const today = formatLocalDate(new Date());
   let streak = 0;
-  const checkDate = new Date(today);
+  const checkDate = parseLocalDate(today);
 
   // 오늘 기록이 없으면 어제부터 체크
   if (sorted[0] !== today) {
@@ -211,7 +211,7 @@ function calcStreak(dates: string[]): number {
   }
 
   for (const date of sorted) {
-    const checkStr = checkDate.toISOString().split("T")[0];
+    const checkStr = formatLocalDate(checkDate);
     if (date === checkStr) {
       streak++;
       checkDate.setDate(checkDate.getDate() - 1);
@@ -229,8 +229,8 @@ function calcLongestStreak(dates: string[]): number {
   let current = 1;
 
   for (let i = 1; i < sorted.length; i++) {
-    const prev = new Date(sorted[i - 1]);
-    const curr = new Date(sorted[i]);
+    const prev = parseLocalDate(sorted[i - 1]);
+    const curr = parseLocalDate(sorted[i]);
     const diffDays = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24);
 
     if (diffDays === 1) {
@@ -252,7 +252,7 @@ function getWeekActivity(dates: string[]): boolean[] {
   for (let i = 0; i < 7; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() + mondayOffset + i);
-    const dateStr = d.toISOString().split("T")[0];
+    const dateStr = formatLocalDate(d);
     activity.push(dates.includes(dateStr));
   }
   return activity;
