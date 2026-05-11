@@ -405,7 +405,9 @@ export async function getAllRecordsForDisplay(options?: {
       .in("challenge_id", periodChallengeIds)
       .gte("record_date", period.start_date)
       .lte("record_date", period.end_date)
-      .order("record_date", { ascending: false });
+      .order("record_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false });
 
     if (options?.routineType) {
       countQuery = countQuery.eq("routine_type", options.routineType);
@@ -417,12 +419,9 @@ export async function getAllRecordsForDisplay(options?: {
       query = query.in("user_id", searchUserIds);
     }
 
-    if (options?.limit) {
-      query = query.limit(options.limit);
-    }
-
-    if (options?.offset) {
-      query = query.range(options.offset, options.offset + (options?.limit ?? 8) - 1);
+    if (options?.limit && options.limit > 0) {
+      const offset = Math.max(0, options.offset ?? 0);
+      query = query.range(offset, offset + options.limit - 1);
     }
 
     const [{ count }, { data: records, error }] = await Promise.all([
@@ -433,11 +432,19 @@ export async function getAllRecordsForDisplay(options?: {
     if (error) return { data: [], total: 0, error: error.message };
     if (!records?.length) return { data: [], total: 0 };
 
+    // id 기준으로 dedup (정렬 불안정성/캐시 등으로 인한 중복 행 방어)
+    const seen = new Set<string>();
+    const uniqueRecords = (records as RitualRecord[]).filter((r) => {
+      if (seen.has(r.id)) return false;
+      seen.add(r.id);
+      return true;
+    });
+
     // 프로필 + 책정보 병렬 조회 (admin으로 전체 유저 프로필 접근)
-    const userIds = [...new Set(records.map((r) => r.user_id))];
+    const userIds = [...new Set(uniqueRecords.map((r) => r.user_id))];
     const [profilesRes, bookMap] = await Promise.all([
       admin.from("profiles").select("id, name, avatar_url").in("id", userIds),
-      fetchBookMap(records as RitualRecord[], admin),
+      fetchBookMap(uniqueRecords, admin),
     ]);
 
     const profileMap = new Map(
@@ -445,7 +452,7 @@ export async function getAllRecordsForDisplay(options?: {
     );
 
     const feedItems: FeedItem[] = [];
-    for (const record of records as RitualRecord[]) {
+    for (const record of uniqueRecords) {
       const profile = profileMap.get(record.user_id) ?? null;
       const item = recordToFeedItem(record, profile, bookMap);
       if (item) feedItems.push(item);
