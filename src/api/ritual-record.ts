@@ -78,7 +78,6 @@ async function recomputeDailyCompletion(input: {
         completion_date: input.recordDate,
         total_registered: totalRegistered,
         total_completed: totalCompleted,
-        is_fully_complete: totalCompleted >= totalRegistered,
       },
       { onConflict: "user_id,challenge_id,completion_date" },
     );
