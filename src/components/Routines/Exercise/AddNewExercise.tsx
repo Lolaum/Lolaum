@@ -47,16 +47,27 @@ export default function AddNewExercise({
     };
   }, [showRatioTip]);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
+  const handleImageFiles = async (files: FileList | null) => {
     if (!files) return;
 
     const maxImages = recordType === "diet" ? 1 : 2;
-    const newFiles = Array.from(files).slice(0, maxImages - images.length);
+    const newFiles = Array.from(files)
+      .filter((file) => file.type.startsWith("image/"))
+      .slice(0, maxImages - images.length);
     const stampedImages = await Promise.all(
       newFiles.map((f) => applyTimestamp(f).catch(() => fileToBase64(f))),
     );
     setImages([...images, ...stampedImages].slice(0, maxImages));
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    await handleImageFiles(e.target.files);
+    e.target.value = "";
+  };
+
+  const handleImageDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    await handleImageFiles(e.dataTransfer.files);
   };
 
   const removeImage = (index: number) => {
@@ -187,7 +198,11 @@ export default function AddNewExercise({
           </p>
           <div className="space-y-3">
             {images.length < (recordType === "diet" ? 1 : 2) && (
-              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-orange-400 transition-colors bg-gray-50">
+              <label
+                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-orange-400 transition-colors bg-gray-50"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleImageDrop}
+              >
                 <div className="flex flex-col items-center justify-center">
                   <Upload className="w-8 h-8 text-gray-400 mb-2" />
                   <p className="text-sm text-gray-500">

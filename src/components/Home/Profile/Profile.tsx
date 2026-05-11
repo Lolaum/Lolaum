@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ProfileProps } from "@/types/home/profile";
@@ -43,6 +43,7 @@ export default function Profile({
   const [editPhoto, setEditPhoto] = useState<string | null>(
     initialProfile?.avatar_url ?? null,
   );
+  const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
   const [savedStartYear, setSavedStartYear] = useState<number | null>(
     initialProfile?.ritual_start_year ?? null,
   );
@@ -61,12 +62,27 @@ export default function Profile({
   const completionRate = completionRateProp;
 
   const [saving, setSaving] = useState(false);
+  const editPhotoObjectUrlRef = useRef<string | null>(null);
   const router = useRouter();
 
   const startLabel =
     savedStartYear && savedStartMonth
       ? `${savedStartYear}.${String(savedStartMonth).padStart(2, "0")} 시작`
       : null;
+
+  useEffect(() => {
+    return () => {
+      if (editPhotoObjectUrlRef.current) {
+        URL.revokeObjectURL(editPhotoObjectUrlRef.current);
+      }
+    };
+  }, []);
+
+  const clearEditPhotoObjectUrl = () => {
+    if (!editPhotoObjectUrlRef.current) return;
+    URL.revokeObjectURL(editPhotoObjectUrlRef.current);
+    editPhotoObjectUrlRef.current = null;
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -85,21 +101,28 @@ export default function Profile({
       return;
     }
 
-    // 새 사진이 data URL이면 Storage에 업로드
-    if (editPhoto && editPhoto.startsWith("data:")) {
+    // 새 사진 파일이면 Storage에 바로 업로드한다.
+    // data URL fetch 변환은 일부 환경에서 실패하고 불필요하게 느리다.
+    if (editPhotoFile) {
       const supabase = createClient();
-      const res = await fetch(editPhoto);
-      const blob = await res.blob();
-      const ext = blob.type.split("/")[1] || "jpg";
-      const path = `${userId}.${ext}`;
+      const ext =
+        editPhotoFile.type.split("/")[1]?.replace("jpeg", "jpg") || "jpg";
+      const path = `${userId}/avatar-${Date.now()}.${ext}`;
 
-      await supabase.storage.from("avatars").upload(path, blob, {
-        upsert: true,
-        contentType: blob.type,
-      });
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, editPhotoFile, {
+          upsert: false,
+          contentType: editPhotoFile.type,
+        });
+      if (uploadError) {
+        setSaving(false);
+        alert(`프로필 사진 업로드에 실패했어요: ${uploadError.message}`);
+        return;
+      }
 
       const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
-      avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      avatarUrl = urlData.publicUrl;
     } else if (editPhoto !== savedPhoto) {
       avatarUrl = editPhoto;
     }
@@ -116,6 +139,8 @@ export default function Profile({
     if (!error) {
       setSavedName(editName);
       setSavedPhoto(avatarUrl);
+      clearEditPhotoObjectUrl();
+      setEditPhotoFile(null);
       setSavedStartYear(ritualStartYear);
       setSavedStartMonth(ritualStartMonth);
       onProfileUpdated?.();
@@ -127,25 +152,36 @@ export default function Profile({
   };
 
   const handleOpen = () => {
+    clearEditPhotoObjectUrl();
     setEditName(savedName);
     setEditPhoto(savedPhoto);
+    setEditPhotoFile(null);
     setEditStartYear(savedStartYear?.toString() ?? "");
     setEditStartMonth(savedStartMonth?.toString() ?? "");
     setShowEditModal(true);
   };
 
+  const handleClose = () => {
+    clearEditPhotoObjectUrl();
+    setEditPhotoFile(null);
+    setEditPhoto(savedPhoto);
+    setShowEditModal(false);
+  };
+
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setEditPhoto(reader.result as string);
-    reader.readAsDataURL(file);
+    clearEditPhotoObjectUrl();
+    const objectUrl = URL.createObjectURL(file);
+    editPhotoObjectUrlRef.current = objectUrl;
+    setEditPhoto(objectUrl);
+    setEditPhotoFile(file);
   };
 
   return (
     <>
     {showEditModal && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowEditModal(false)}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={handleClose}>
         <div className="bg-white rounded-3xl shadow-xl p-6 mx-4 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
           <h2 className="text-base font-bold text-gray-800 mb-5">프로필 수정</h2>
 
@@ -215,7 +251,7 @@ export default function Profile({
           {/* 버튼 */}
           <div className="flex gap-2">
             <button
-              onClick={() => setShowEditModal(false)}
+              onClick={handleClose}
               className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm font-semibold text-gray-500 hover:bg-gray-50 transition-colors"
             >
               취소

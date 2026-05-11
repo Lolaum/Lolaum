@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  type ChallengerProgress,
-  type ProgressPageData,
-} from "@/api/progress";
+import { type ChallengerProgress, type ProgressPageData } from "@/api/progress";
 
 export default function ProgressContainer({
   initialData,
@@ -28,7 +25,7 @@ export default function ProgressContainer({
     );
   }
 
-  const { me, challengers, totalDays } = data;
+  const { me, challengers } = data;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 pb-8">
@@ -44,7 +41,7 @@ export default function ProgressContainer({
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 px-1">
             나의 진행도
           </h2>
-          <MyProgressCard member={me} totalDays={totalDays} />
+          <MyProgressCard member={me} />
         </>
       )}
 
@@ -62,11 +59,7 @@ export default function ProgressContainer({
         <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4">
           <div className="flex flex-col gap-5">
             {challengers.map((member) => (
-              <MemberRow
-                key={member.userId}
-                member={member}
-                totalDays={totalDays}
-              />
+              <MemberRow key={member.userId} member={member} />
             ))}
           </div>
         </div>
@@ -166,13 +159,8 @@ function Badges({
   );
 }
 
-function MyProgressCard({
-  member,
-  totalDays,
-}: {
-  member: ChallengerProgress;
-  totalDays: number;
-}) {
+function MyProgressCard({ member }: { member: ChallengerProgress }) {
+  const totalDays = member.totalDays;
   const progress =
     totalDays > 0 ? Math.round((member.totalAchieved / totalDays) * 100) : 0;
 
@@ -220,13 +208,8 @@ function MyProgressCard({
   );
 }
 
-function MemberRow({
-  member,
-  totalDays,
-}: {
-  member: ChallengerProgress;
-  totalDays: number;
-}) {
+function MemberRow({ member }: { member: ChallengerProgress }) {
+  const totalDays = member.totalDays;
   const progress =
     totalDays > 0 ? Math.round((member.totalAchieved / totalDays) * 100) : 0;
 

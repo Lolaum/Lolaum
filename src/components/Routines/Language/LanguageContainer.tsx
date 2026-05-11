@@ -11,6 +11,7 @@ import {
   LanguageFormData,
 } from "@/types/routines/language";
 import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
+import { formatDateKey } from "@/lib/date";
 import type { LanguageRecordData, Json, RoutineTypeDB } from "@/types/supabase";
 
 interface LanguageContainerProps {
@@ -65,7 +66,7 @@ export default function LanguageContainer({
   }, [fetchRecords, mode]);
 
   const handleSubmit = async (formData: LanguageFormData) => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = formatDateKey(new Date());
     const recordData: LanguageRecordData = {
       achievement: formData.achievement,
       expressions: formData.expressions,

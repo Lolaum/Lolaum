@@ -10,6 +10,7 @@ import {
   ExerciseFormData,
 } from "@/types/routines/exercise";
 import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
+import { formatDateKey } from "@/lib/date";
 import type { ExerciseRecordData, Json } from "@/types/supabase";
 
 interface ExerciseContainerProps {
@@ -53,7 +54,7 @@ export default function ExerciseContainer({ mode = "main" }: ExerciseContainerPr
   }, [fetchRecords, mode]);
 
   const handleSubmit = async (formData: ExerciseFormData) => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = formatDateKey(new Date());
     const recordData: ExerciseRecordData = {
       recordType: formData.recordType,
       exerciseName: formData.exerciseName,

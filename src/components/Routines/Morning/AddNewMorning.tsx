@@ -27,12 +27,24 @@ export default function AddNewMorning({
   const sleepHoursNum = sleepHours ? parseFloat(sleepHours) : NaN;
   const showSleepImprovement = !Number.isNaN(sleepHoursNum) && sleepHoursNum < 7;
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
+  const handleImageFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
-    const stamped = await applyTimestamp(files[0]).catch(() => fileToBase64(files[0]));
+    const file = Array.from(files).find((item) => item.type.startsWith("image/"));
+    if (!file) return;
+
+    const stamped = await applyTimestamp(file).catch(() => fileToBase64(file));
     setImage(stamped);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    await handleImageFiles(e.target.files);
+    e.target.value = "";
+  };
+
+  const handleImageDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    await handleImageFiles(e.dataTransfer.files);
   };
 
   const removeImage = () => {
@@ -134,7 +146,11 @@ export default function AddNewMorning({
           <div className="space-y-3">
             {/* 이미지 업로드 영역 */}
             {!image && (
-              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-orange-400 transition-colors bg-gray-50">
+              <label
+                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-orange-400 transition-colors bg-gray-50"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleImageDrop}
+              >
                 <div className="flex flex-col items-center justify-center">
                   <Upload className="w-8 h-8 text-gray-400 mb-2" />
                   <p className="text-sm text-gray-500">

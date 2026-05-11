@@ -7,6 +7,7 @@ import RecordMorning from "./RecordMorning";
 import AddNewMorning from "./AddNewMorning";
 import { MorningRecord, MorningFormData } from "@/types/routines/morning";
 import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
+import { formatDateKey } from "@/lib/date";
 import type { MorningRecordData, Json } from "@/types/supabase";
 
 interface MorningContainerProps {
@@ -52,7 +53,7 @@ export default function MorningContainer({ mode = "main" }: MorningContainerProp
 
   const handleSubmit = async (formData: MorningFormData) => {
     setSubmitting(true);
-    const today = new Date().toISOString().split("T")[0];
+    const today = formatDateKey(new Date());
     const recordData: MorningRecordData = {
       sleepHours: formData.sleepHours,
       sleepImprovement: formData.sleepImprovement,

@@ -9,6 +9,7 @@ import {
   deleteRitualRecord,
   getMyRitualRecords,
 } from "@/api/ritual-record";
+import { formatDateKey } from "@/lib/date";
 import {
   normalizeRecordingEntries,
   type RecordingEntry,
@@ -140,7 +141,7 @@ export default function RecordingContainer({
     setSubmitting(true);
 
     try {
-      const today = new Date().toISOString().split("T")[0];
+      const today = formatDateKey(new Date());
       const cleaned: RecordingEntry[] = entries.map((e) =>
         e.type === "write"
           ? {

@@ -16,6 +16,7 @@ export interface ChallengerProgress {
   emoji: string | null;
   completedDays: number; // 인증 완료 횟수
   totalAchieved: number; // 달성 합계
+  totalDays: number; // 유저별 만점 일수 (effectiveStart 기준 평일 수 + 3 보너스)
   penaltyAmount: number; // 기부금 (원)
   happyChanceUsed: boolean; // 행복찬스 사용됨 (평일 1회 이상 미완료)
   hasDeclaration: boolean;
@@ -94,15 +95,19 @@ export async function getProgressPageData(): Promise<{
       return { error: periodError ?? "활성 챌린지 기간이 없습니다." };
     }
 
-    const totalRoutineDays = countWeekdaysInRange(
+    const periodTotalRoutineDays = countWeekdaysInRange(
       period.start_date,
       period.end_date,
     );
-    const totalDaysWithBonus = totalRoutineDays + BONUS_SLOTS;
+    const periodTotalDaysWithBonus = periodTotalRoutineDays + BONUS_SLOTS;
 
     if (isChallengePeriodEnded(period)) {
       return {
-        data: { me: null, challengers: [], totalDays: totalDaysWithBonus },
+        data: {
+          me: null,
+          challengers: [],
+          totalDays: periodTotalDaysWithBonus,
+        },
       };
     }
 
@@ -117,7 +122,11 @@ export async function getProgressPageData(): Promise<{
     if (cError) return { error: cError.message };
     if (!challenges || challenges.length === 0) {
       return {
-        data: { me: null, challengers: [], totalDays: totalDaysWithBonus },
+        data: {
+          me: null,
+          challengers: [],
+          totalDays: periodTotalDaysWithBonus,
+        },
       };
     }
 
@@ -136,21 +145,20 @@ export async function getProgressPageData(): Promise<{
     const rows = challenges as unknown as ChallengeRow[];
     const challengeIds = rows.map((r) => r.id);
 
-    // 2. daily_completions(완료 날짜) + 선언/회고를 한 번에 조회
-    //    ritual_records 풀스캔 대신 daily_completions에서 완료 날짜만 가져와
-    //    날짜별 완료 여부로 인증 횟수와 평일 미완료 횟수를 계산한다.
-    const [regRes, dailyCompRes, declRes, midRevRes, finalRevRes] =
+    // 2. 리추얼 기록 + 선언/회고를 한 번에 조회
+    //    홈 달성률과 같은 기준으로 실제 ritual_records에서 날짜별 완료 여부를 계산한다.
+    const [regRes, recordsRes, declRes, midRevRes, finalRevRes] =
       await Promise.all([
         admin
           .from("challenge_registrations")
           .select("user_id, challenge_id, routine_type")
           .in("challenge_id", challengeIds),
         admin
-          .from("daily_completions")
-          .select("user_id, challenge_id, completion_date, is_fully_complete")
+          .from("ritual_records")
+          .select("user_id, challenge_id, routine_type, record_date")
           .in("challenge_id", challengeIds)
-          .gte("completion_date", period.start_date)
-          .lte("completion_date", period.end_date),
+          .gte("record_date", period.start_date)
+          .lte("record_date", period.end_date),
         admin
           .from("declarations")
           .select("user_id, routine_type, challenge_id")
@@ -166,7 +174,7 @@ export async function getProgressPageData(): Promise<{
       ]);
 
     if (regRes.error) return { error: regRes.error.message };
-    if (dailyCompRes.error) return { error: dailyCompRes.error.message };
+    if (recordsRes.error) return { error: recordsRes.error.message };
     if (declRes.error) return { error: declRes.error.message };
     if (midRevRes.error) return { error: midRevRes.error.message };
     if (finalRevRes.error) return { error: finalRevRes.error.message };
@@ -189,7 +197,9 @@ export async function getProgressPageData(): Promise<{
     for (const r of declRes.data ?? []) {
       if (!userDeclarationRows.has(r.user_id))
         userDeclarationRows.set(r.user_id, []);
-      userDeclarationRows.get(r.user_id)!.push({ routine_type: r.routine_type });
+      userDeclarationRows
+        .get(r.user_id)!
+        .push({ routine_type: r.routine_type });
     }
     const userMidReviewed = new Set<string>();
     for (const r of midRevRes.data ?? []) {
@@ -200,14 +210,36 @@ export async function getProgressPageData(): Promise<{
       userFinalReviewed.add(r.user_id);
     }
 
-    // 4. 유저별 날짜별 완전 달성 여부 세트 (is_fully_complete 기반)
-    //    user_id → challenge_id별 완전 달성 날짜 Set
+    // 4. 유저별 날짜별 완전 달성 여부 세트
+    //    홈과 동일하게 같은 날짜에 등록된 모든 리추얼 타입이 기록됐는지 직접 계산한다.
+    const userRecordTypesByDate = new Map<string, Map<string, Set<string>>>();
+    for (const r of recordsRes.data ?? []) {
+      if (!userRecordTypesByDate.has(r.user_id)) {
+        userRecordTypesByDate.set(r.user_id, new Map());
+      }
+      const dateMap = userRecordTypesByDate.get(r.user_id)!;
+      if (!dateMap.has(r.record_date)) {
+        dateMap.set(r.record_date, new Set());
+      }
+      dateMap.get(r.record_date)!.add(r.routine_type);
+    }
+
     const userFullyCompleteDates = new Map<string, Set<string>>();
-    for (const r of dailyCompRes.data ?? []) {
-      if (r.is_fully_complete) {
-        if (!userFullyCompleteDates.has(r.user_id))
-          userFullyCompleteDates.set(r.user_id, new Set());
-        userFullyCompleteDates.get(r.user_id)!.add(r.completion_date);
+    for (const [userId, dateMap] of userRecordTypesByDate) {
+      const registeredTypes =
+        userRegisteredTypes.get(userId) ?? new Set<string>();
+      if (registeredTypes.size === 0) continue;
+
+      for (const [recordDate, completedTypes] of dateMap) {
+        const isFullyComplete = Array.from(registeredTypes).every(
+          (routineType) => completedTypes.has(routineType),
+        );
+        if (!isFullyComplete) continue;
+
+        if (!userFullyCompleteDates.has(userId)) {
+          userFullyCompleteDates.set(userId, new Set());
+        }
+        userFullyCompleteDates.get(userId)!.add(recordDate);
       }
     }
 
@@ -215,6 +247,7 @@ export async function getProgressPageData(): Promise<{
     //    rangeStart 는 유저별 reset_at 여부에 따라 달라지므로 6번 루프에서 결정.
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const todayStr = formatLocalDate(today);
     const periodEnd = parseLocalDate(period.end_date);
     const rangeEnd = today < periodEnd ? today : periodEnd;
 
@@ -222,6 +255,12 @@ export async function getProgressPageData(): Promise<{
     const allChallengers: ChallengerProgress[] = rows.map((r) => {
       const registeredTypes =
         userRegisteredTypes.get(r.user_id) ?? new Set<string>();
+
+      // 유저별 집계 시작일: reset_at 이 있으면 그 날짜, 없으면 period.start_date
+      const effectiveStart = getEffectiveStart(period.start_date, r.reset_at);
+      const rangeStart = parseLocalDate(effectiveStart);
+      const totalDays =
+        countWeekdaysInRange(effectiveStart, period.end_date) + BONUS_SLOTS;
 
       // 리추얼 등록이 없으면 미완료/벌금 없음
       if (registeredTypes.size === 0) {
@@ -232,6 +271,7 @@ export async function getProgressPageData(): Promise<{
           emoji: r.profiles.emoji,
           completedDays: 0,
           totalAchieved: 0,
+          totalDays,
           penaltyAmount: 0,
           happyChanceUsed: false,
           hasDeclaration: false,
@@ -240,14 +280,9 @@ export async function getProgressPageData(): Promise<{
         };
       }
 
-      // 유저의 완전 달성 날짜 세트 (daily_completions.is_fully_complete=true)
+      // 유저의 완전 달성 날짜 세트
       const fullyCompleteDates =
         userFullyCompleteDates.get(r.user_id) ?? new Set<string>();
-
-      // 유저별 집계 시작일: reset_at 이 있으면 그 날짜, 없으면 period.start_date
-      const rangeStart = parseLocalDate(
-        getEffectiveStart(period.start_date, r.reset_at),
-      );
 
       // 주(월~일) 단위로 날짜 묶기
       const weekData = new Map<
@@ -273,17 +308,18 @@ export async function getProgressPageData(): Promise<{
       }
 
       // 주 단위로 완료/미완료 집계
-      // daily_completions.is_fully_complete 기반: 그날 등록된 모든 리추얼 완료 = 완전 달성
+      // 그날 등록된 모든 리추얼 완료 = 완전 달성
       // 인증 횟수는 주말/오늘 인증도 즉시 +1로 집계한다.
       let weekdayMissed = 0;
       const fullyCompleteCount = Array.from(fullyCompleteDates).filter(
         (date) =>
-          parseLocalDate(date) >= rangeStart && parseLocalDate(date) <= rangeEnd,
+          parseLocalDate(date) >= rangeStart &&
+          parseLocalDate(date) <= rangeEnd,
       ).length;
 
       for (const { weekdays } of weekData.values()) {
         for (const wd of weekdays) {
-          if (!fullyCompleteDates.has(wd)) {
+          if (wd < todayStr && !fullyCompleteDates.has(wd)) {
             weekdayMissed++;
           }
         }
@@ -321,6 +357,7 @@ export async function getProgressPageData(): Promise<{
         emoji: r.profiles.emoji,
         completedDays,
         totalAchieved,
+        totalDays,
         penaltyAmount,
         happyChanceUsed,
         hasDeclaration,
@@ -336,7 +373,7 @@ export async function getProgressPageData(): Promise<{
       .sort((a, b) => b.totalAchieved - a.totalAchieved);
 
     return {
-      data: { me, challengers, totalDays: totalDaysWithBonus },
+      data: { me, challengers, totalDays: periodTotalDaysWithBonus },
     };
   } catch (e) {
     console.error("getProgressPageData error:", e);
