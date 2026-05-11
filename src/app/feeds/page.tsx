@@ -1,8 +1,12 @@
 import React from "react";
-import FeedContainer, { FEEDS_PER_PAGE } from "@/components/Feed/FeedContainer";
+import FeedContainer from "@/components/Feed/FeedContainer";
 import Layout from "@/components/Layout/Layout";
 import { getAllRecordsForDisplay } from "@/api/ritual-records-display";
+import { FEEDS_PER_PAGE } from "@/constants/feeds";
 import type { RoutineTypeDB } from "@/types/supabase";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const ROUTINE_KEYS: RoutineTypeDB[] = [
   "morning",

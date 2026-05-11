@@ -6,6 +6,7 @@ import { Loader2, Search, X } from "lucide-react";
 import FeedItem from "./FeedItem";
 import { FeedItem as FeedItemType } from "@/types/feed";
 import type { RoutineTypeDB } from "@/types/supabase";
+import { FEEDS_PER_PAGE } from "@/constants/feeds";
 
 type FilterKey = "all" | RoutineTypeDB;
 
@@ -20,8 +21,6 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "finance", label: "자산관리" },
   { key: "english_book", label: "원서읽기" },
 ];
-
-export const FEEDS_PER_PAGE = 8;
 
 export default function FeedContainer({
   initialData,
@@ -62,6 +61,7 @@ export default function FeedContainer({
     const query = params.toString();
     startTransition(() => {
       router.replace(query ? `/feeds?${query}` : "/feeds");
+      router.refresh();
     });
   };
 
