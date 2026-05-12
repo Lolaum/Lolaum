@@ -8,6 +8,13 @@ import {
   isChallengePeriodEnded,
 } from "@/lib/current-challenge";
 import { isAllRoutinesCovered } from "@/lib/declarations";
+import {
+  addDaysToDateKey,
+  countWeekdaysInDateKeyRange,
+  formatKoreaDateKey,
+  getDateKeyDayOfWeek,
+  getKoreaTodayWithinRange,
+} from "@/lib/korea-date";
 
 export interface ChallengerProgress {
   userId: string;
@@ -32,39 +39,11 @@ export interface ProgressPageData {
 
 const BONUS_SLOTS = 3; // 선언/중간회고/최종회고
 
-/** 활성 기간 [start, end] 내 평일(월~금) 수 */
-function countWeekdaysInRange(startDate: string, endDate: string): number {
-  const start = parseLocalDate(startDate);
-  const end = parseLocalDate(endDate);
-  let count = 0;
-  const cur = new Date(start);
-  while (cur <= end) {
-    const dow = cur.getDay();
-    if (dow !== 0 && dow !== 6) count++;
-    cur.setDate(cur.getDate() + 1);
-  }
-  return count;
-}
-
-function parseLocalDate(s: string): Date {
-  const [y, m, d] = s.split("-").map(Number);
-  return new Date(y, m - 1, d);
-}
-
-function formatLocalDate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
 /** 해당 날짜가 속한 주(월~일)의 월요일 날짜 문자열 */
-function getWeekKey(d: Date): string {
-  const dow = d.getDay(); // 0=일, 1=월, ..., 6=토
+function getWeekKey(dateKey: string): string {
+  const dow = getDateKeyDayOfWeek(dateKey); // 0=일, 1=월, ..., 6=토
   const diff = dow === 0 ? -6 : 1 - dow;
-  const monday = new Date(d);
-  monday.setDate(d.getDate() + diff);
-  return formatLocalDate(monday);
+  return addDaysToDateKey(dateKey, diff);
 }
 
 /**
@@ -95,7 +74,7 @@ export async function getProgressPageData(): Promise<{
       return { error: periodError ?? "활성 챌린지 기간이 없습니다." };
     }
 
-    const periodTotalRoutineDays = countWeekdaysInRange(
+    const periodTotalRoutineDays = countWeekdaysInDateKeyRange(
       period.start_date,
       period.end_date,
     );
@@ -245,11 +224,8 @@ export async function getProgressPageData(): Promise<{
 
     // 5. 집계 범위 끝 = min(오늘, period.end_date)
     //    rangeStart 는 유저별 reset_at 여부에 따라 달라지므로 6번 루프에서 결정.
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = formatLocalDate(today);
-    const periodEnd = parseLocalDate(period.end_date);
-    const rangeEnd = today < periodEnd ? today : periodEnd;
+    const todayStr = formatKoreaDateKey();
+    const rangeEnd = getKoreaTodayWithinRange(period.end_date);
 
     // 6. 유저별 진행률 계산
     const allChallengers: ChallengerProgress[] = rows.map((r) => {
@@ -258,9 +234,10 @@ export async function getProgressPageData(): Promise<{
 
       // 유저별 집계 시작일: reset_at 이 있으면 그 날짜, 없으면 period.start_date
       const effectiveStart = getEffectiveStart(period.start_date, r.reset_at);
-      const rangeStart = parseLocalDate(effectiveStart);
+      const rangeStart = effectiveStart;
       const totalDays =
-        countWeekdaysInRange(effectiveStart, period.end_date) + BONUS_SLOTS;
+        countWeekdaysInDateKeyRange(effectiveStart, period.end_date) +
+        BONUS_SLOTS;
 
       // 리추얼 등록이 없으면 미완료/벌금 없음
       if (registeredTypes.size === 0) {
@@ -290,11 +267,13 @@ export async function getProgressPageData(): Promise<{
         { weekdays: string[]; weekends: string[] }
       >();
       if (rangeEnd >= rangeStart) {
-        const cur = new Date(rangeStart);
-        while (cur <= rangeEnd) {
-          const dateStr = formatLocalDate(cur);
-          const dow = cur.getDay();
-          const wk = getWeekKey(cur);
+        for (
+          let dateStr = rangeStart;
+          dateStr <= rangeEnd;
+          dateStr = addDaysToDateKey(dateStr, 1)
+        ) {
+          const dow = getDateKeyDayOfWeek(dateStr);
+          const wk = getWeekKey(dateStr);
           if (!weekData.has(wk)) {
             weekData.set(wk, { weekdays: [], weekends: [] });
           }
@@ -303,7 +282,6 @@ export async function getProgressPageData(): Promise<{
           } else {
             weekData.get(wk)!.weekdays.push(dateStr);
           }
-          cur.setDate(cur.getDate() + 1);
         }
       }
 
@@ -312,9 +290,7 @@ export async function getProgressPageData(): Promise<{
       // 인증 횟수는 주말/오늘 인증도 즉시 +1로 집계한다.
       let weekdayMissed = 0;
       const fullyCompleteCount = Array.from(fullyCompleteDates).filter(
-        (date) =>
-          parseLocalDate(date) >= rangeStart &&
-          parseLocalDate(date) <= rangeEnd,
+        (date) => date >= rangeStart && date <= rangeEnd,
       ).length;
 
       for (const { weekdays } of weekData.values()) {

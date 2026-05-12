@@ -4,6 +4,9 @@ import Layout from "@/components/Layout/Layout";
 import { getHomeStats } from "@/api/ritual-stats";
 import { getActivePeriod } from "@/lib/current-challenge";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function page() {
   const [homeData, { period }] = await Promise.all([
     getHomeStats(),

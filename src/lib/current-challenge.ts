@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { formatKoreaDateKey, parseDateKey } from "@/lib/korea-date";
 
 /**
  * 현재 활성 challenge_periods row.
@@ -66,9 +67,9 @@ export const getCurrentChallengeId = cache(async (): Promise<{
   }
 
   // 없으면 활성 period의 날짜를 복사해서 생성
-  const startDate = new Date(period.start_date);
-  const year = startDate.getFullYear();
-  const month = startDate.getMonth() + 1;
+  const startDate = parseDateKey(period.start_date);
+  const year = startDate.getUTCFullYear();
+  const month = startDate.getUTCMonth() + 1;
 
   const { data: created, error } = await supabase
     .from("challenges")
@@ -105,18 +106,6 @@ export function getEffectiveStart(
   return resetAt > periodStart ? resetAt : periodStart;
 }
 
-function formatLocalDate(date: Date): string {
-  const parts = new Intl.DateTimeFormat("en", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
-  const value = (type: string) =>
-    parts.find((part) => part.type === type)?.value ?? "";
-  return `${value("year")}-${value("month")}-${value("day")}`;
-}
-
 /**
  * 활성 row가 아직 교체되지 않았더라도 종료일이 지나면 현재 챌린지로 보지 않는다.
  */
@@ -124,5 +113,5 @@ export function isChallengePeriodEnded(
   period: { end_date: string },
   today = new Date(),
 ): boolean {
-  return formatLocalDate(today) > period.end_date;
+  return formatKoreaDateKey(today) > period.end_date;
 }

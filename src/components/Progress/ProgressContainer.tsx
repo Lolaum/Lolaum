@@ -1,5 +1,6 @@
 "use client";
 
+import { useKoreaMidnightRefresh } from "@/lib/hooks/useKoreaMidnightRefresh";
 import { type ChallengerProgress, type ProgressPageData } from "@/api/progress";
 
 export default function ProgressContainer({
@@ -7,6 +8,7 @@ export default function ProgressContainer({
 }: {
   initialData: ProgressPageData | null;
 }) {
+  useKoreaMidnightRefresh();
   const data = initialData;
 
   if (!data) {
@@ -134,7 +136,7 @@ function Badges({
 
   return (
     <>
-      {member.happyChanceUsed && member.penaltyAmount === 0 && (
+      {member.happyChanceUsed && (
         <span
           className={`${textSize} font-bold px-1.5 py-0.5 rounded-full bg-green-50 text-green-500`}
         >
@@ -142,18 +144,11 @@ function Badges({
         </span>
       )}
       {member.penaltyAmount > 0 && (
-        <>
-          <span
-            className={`${textSize} font-bold px-1.5 py-0.5 rounded-full bg-green-50 text-green-500`}
-          >
-            행복찬스
-          </span>
-          <span
-            className={`${textSize} font-bold px-1.5 py-0.5 rounded-full bg-red-50 text-red-400`}
-          >
-            기부금 {member.penaltyAmount.toLocaleString()}원
-          </span>
-        </>
+        <span
+          className={`${textSize} font-bold px-1.5 py-0.5 rounded-full bg-red-50 text-red-400`}
+        >
+          기부금 {member.penaltyAmount.toLocaleString()}원
+        </span>
       )}
     </>
   );

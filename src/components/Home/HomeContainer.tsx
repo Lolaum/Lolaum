@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import HomCalendar from "./HomeCalendar";
 import TaskTabs from "./Todo/TaskTabs";
 import MemberProfile from "./Profile/MemberProfile";
 import Profile from "./Profile/Profile";
 import { formatDateKey } from "@/lib/date";
+import { useKoreaMidnightRefresh } from "@/lib/hooks/useKoreaMidnightRefresh";
 import {
   type MyPageStats,
   type CompletionRateStats,
@@ -60,22 +61,22 @@ export default function HomeContainer({
     string | undefined
   >();
 
-  const [myPageStats] = useState<MyPageStats | null>(
-    initialData.myPage ?? null,
-  );
-  const [completionRate] = useState<CompletionRateStats | null>(
-    initialData.completion ?? null,
-  );
-  const [calendarMarkers] = useState<Record<string, CalendarDayMarker>>(
-    initialData.calendarMarkers ?? {},
-  );
-  const [routineCompletionMap] = useState<Record<string, number>>(
-    initialData.routineCompletionMap ?? {},
-  );
-  const [totalRoutineDays] = useState<number | undefined>(
-    initialData.totalRoutineDays,
-  );
+  const myPageStats: MyPageStats | null = initialData.myPage ?? null;
+  const completionRate: CompletionRateStats | null =
+    initialData.completion ?? null;
+  const calendarMarkers: Record<string, CalendarDayMarker> =
+    initialData.calendarMarkers ?? {};
+  const routineCompletionMap: Record<string, number> =
+    initialData.routineCompletionMap ?? {};
+  const totalRoutineDays = initialData.totalRoutineDays;
   const [memberRefreshKey, setMemberRefreshKey] = useState(0);
+
+  const refreshToday = useCallback(() => {
+    const now = new Date();
+    setToday(now);
+    setSelectedDate(now);
+  }, []);
+  useKoreaMidnightRefresh(refreshToday);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
