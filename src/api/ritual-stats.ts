@@ -20,6 +20,14 @@ import type {
 import type { ChallengerSummary } from "@/api/user";
 import { isAllRoutinesCovered } from "@/lib/declarations";
 import { getProfileRitualStart } from "@/lib/profile-ritual-start";
+import {
+  addDaysToDateKey,
+  countWeekdaysInDateKeyRange,
+  formatKoreaDateKey,
+  getDateKeyDayOfWeek,
+  getKoreaTodayWithinRange,
+  parseDateKey,
+} from "@/lib/korea-date";
 
 // ── 타입 ──────────────────────────────────────────────
 
@@ -115,30 +123,9 @@ const ROUTINE_CONFIG: Record<
 
 // ── 유틸 ──────────────────────────────────────────────
 
-function parseLocalDate(s: string): Date {
-  const [y, m, d] = s.split("-").map(Number);
-  return new Date(y, m - 1, d);
-}
-
-function formatLocalDate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
 /** 활성 기간 [start, end] 내 모든 평일(월~금) 수 (기간 만점 산정용) */
 function countWeekdaysInRange(startDate: string, endDate: string): number {
-  const start = parseLocalDate(startDate);
-  const end = parseLocalDate(endDate);
-  let count = 0;
-  const cur = new Date(start);
-  while (cur <= end) {
-    const dow = cur.getDay();
-    if (dow !== 0 && dow !== 6) count++;
-    cur.setDate(cur.getDate() + 1);
-  }
-  return count;
+  return countWeekdaysInDateKeyRange(startDate, endDate);
 }
 
 function getEmptyCompletion(totalDays: number): CompletionRateStats {
@@ -170,10 +157,7 @@ function getEmptyOverallStats(): RitualOverallStats {
 }
 
 function getAccountingUpperDate(endDate: string): string {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const periodEnd = parseLocalDate(endDate);
-  return formatLocalDate(today < periodEnd ? today : periodEnd);
+  return getKoreaTodayWithinRange(endDate);
 }
 
 function calcCompletionAccounting(
@@ -201,21 +185,20 @@ function calcCompletionAccounting(
 function calcStreak(dates: string[]): number {
   if (dates.length === 0) return 0;
   const sorted = [...dates].sort((a, b) => b.localeCompare(a)); // 최신순
-  const today = formatLocalDate(new Date());
+  const today = formatKoreaDateKey();
   let streak = 0;
-  const checkDate = parseLocalDate(today);
+  let checkDate = today;
 
   // 오늘 기록이 없으면 어제부터 체크
   if (sorted[0] !== today) {
-    checkDate.setDate(checkDate.getDate() - 1);
+    checkDate = addDaysToDateKey(checkDate, -1);
   }
 
   for (const date of sorted) {
-    const checkStr = formatLocalDate(checkDate);
-    if (date === checkStr) {
+    if (date === checkDate) {
       streak++;
-      checkDate.setDate(checkDate.getDate() - 1);
-    } else if (date < checkStr) {
+      checkDate = addDaysToDateKey(checkDate, -1);
+    } else if (date < checkDate) {
       break;
     }
   }
@@ -229,8 +212,8 @@ function calcLongestStreak(dates: string[]): number {
   let current = 1;
 
   for (let i = 1; i < sorted.length; i++) {
-    const prev = parseLocalDate(sorted[i - 1]);
-    const curr = parseLocalDate(sorted[i]);
+    const prev = parseDateKey(sorted[i - 1]);
+    const curr = parseDateKey(sorted[i]);
     const diffDays = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24);
 
     if (diffDays === 1) {
@@ -244,15 +227,13 @@ function calcLongestStreak(dates: string[]): number {
 }
 
 function getWeekActivity(dates: string[]): boolean[] {
-  const today = new Date();
-  const dayOfWeek = today.getDay(); // 0=일, 1=월, ...
+  const today = formatKoreaDateKey();
+  const dayOfWeek = getDateKeyDayOfWeek(today); // 0=일, 1=월, ...
   const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
 
   const activity: boolean[] = [];
   for (let i = 0; i < 7; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + mondayOffset + i);
-    const dateStr = formatLocalDate(d);
+    const dateStr = addDaysToDateKey(today, mondayOffset + i);
     activity.push(dates.includes(dateStr));
   }
   return activity;
@@ -776,8 +757,8 @@ export async function getFinanceInsight(): Promise<{
     }
 
     // 주차 계산
-    const date = new Date(r.record_date);
-    const weekNum = Math.ceil(date.getDate() / 7);
+    const date = parseDateKey(r.record_date);
+    const weekNum = Math.ceil(date.getUTCDate() / 7);
     const weekLabel = `${weekNum}주`;
     weeklyMap[weekLabel] =
       (weeklyMap[weekLabel] || 0) +

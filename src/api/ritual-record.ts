@@ -203,13 +203,17 @@ export async function updateRitualRecord(
     recordData,
     user.id,
   );
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("ritual_records")
     .update({ record_data: normalizedRecordData })
     .eq("id", id)
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .select("routine_type")
+    .maybeSingle();
 
   if (error) return { error: error.message };
+  if (!updated) return { error: "기록을 찾을 수 없습니다." };
+  revalidateRitualSurfaces(updated.routine_type);
   return {};
 }
 
