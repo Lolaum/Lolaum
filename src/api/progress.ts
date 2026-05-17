@@ -9,11 +9,9 @@ import {
 } from "@/lib/current-challenge";
 import { isAllRoutinesCovered } from "@/lib/declarations";
 import { calculatePenaltyAccounting } from "@/lib/progress-accounting";
+import { calculateWeeklyRoutineProgress } from "@/lib/weekly-routine-progress";
 import {
-  addDaysToDateKey,
   countWeekdaysInDateKeyRange,
-  formatKoreaDateKey,
-  getDateKeyDayOfWeek,
   getKoreaTodayWithinRange,
 } from "@/lib/korea-date";
 
@@ -39,13 +37,6 @@ export interface ProgressPageData {
 }
 
 const BONUS_SLOTS = 3; // 선언/중간회고/최종회고
-
-/** 해당 날짜가 속한 주(월~일)의 월요일 날짜 문자열 */
-function getWeekKey(dateKey: string): string {
-  const dow = getDateKeyDayOfWeek(dateKey); // 0=일, 1=월, ..., 6=토
-  const diff = dow === 0 ? -6 : 1 - dow;
-  return addDaysToDateKey(dateKey, diff);
-}
 
 /**
  * 진행표 페이지용: 모든 챌린저의 진행률 데이터를 가져온다.
@@ -207,7 +198,6 @@ export async function getProgressPageData(): Promise<{
 
     // 5. 집계 범위 끝 = min(오늘, period.end_date)
     //    rangeStart 는 유저별 reset_at 여부에 따라 달라지므로 6번 루프에서 결정.
-    const todayStr = formatKoreaDateKey();
     const rangeEnd = getKoreaTodayWithinRange(period.end_date);
 
     // 6. 유저별 진행률 계산
@@ -240,82 +230,12 @@ export async function getProgressPageData(): Promise<{
         };
       }
 
-      // 주(월~일) 단위로 날짜 묶기
-      const weekData = new Map<
-        string,
-        { weekdays: string[]; weekends: string[] }
-      >();
-      if (rangeEnd >= rangeStart) {
-        for (
-          let dateStr = rangeStart;
-          dateStr <= rangeEnd;
-          dateStr = addDaysToDateKey(dateStr, 1)
-        ) {
-          const dow = getDateKeyDayOfWeek(dateStr);
-          const wk = getWeekKey(dateStr);
-          if (!weekData.has(wk)) {
-            weekData.set(wk, { weekdays: [], weekends: [] });
-          }
-          if (dow === 0 || dow === 6) {
-            weekData.get(wk)!.weekends.push(dateStr);
-          } else {
-            weekData.get(wk)!.weekdays.push(dateStr);
-          }
-        }
-      }
-
-      // 주 단위로 완료/미완료 집계
-      // - 평일에는 같은 날짜에 신청 리추얼을 모두 했는지로 달성일을 계산한다.
-      // - 주말이 집계 범위에 들어온 주는 보충을 반영해
-      //   각 신청 리추얼이 주중 목표 횟수만큼 채워졌는지로 최종 계산한다.
-      let weekdayMissed = 0;
-      let completedDays = 0;
-
-      for (const { weekdays, weekends } of weekData.values()) {
-        const pastWeekdayTarget = weekdays.filter((wd) => wd < todayStr).length;
-        const maxWeekdayTarget = weekdays.length;
-        const hasWeekendMakeupWindow = weekends.some(
-          (weekendDate) => weekendDate <= rangeEnd,
-        );
-        let weekdayFullCompletions = 0;
-
-        for (const weekday of weekdays) {
-          const completedTypes = userRecordTypesByDate
-            .get(r.user_id)
-            ?.get(weekday);
-          const isFullyCompleteWeekday = Array.from(registeredTypes).every(
-            (routineType) => completedTypes?.has(routineType),
-          );
-          if (isFullyCompleteWeekday) {
-            weekdayFullCompletions++;
-          }
-        }
-
-        let minRoutineCompletions = maxWeekdayTarget;
-
-        for (const routineType of registeredTypes) {
-          let routineCompletions = 0;
-          for (const date of [...weekdays, ...weekends]) {
-            const completedTypes = userRecordTypesByDate
-              .get(r.user_id)
-              ?.get(date);
-            if (completedTypes?.has(routineType)) {
-              routineCompletions++;
-            }
-          }
-          minRoutineCompletions = Math.min(
-            minRoutineCompletions,
-            routineCompletions,
-          );
-        }
-
-        const completedInWeek = hasWeekendMakeupWindow
-          ? Math.min(minRoutineCompletions, maxWeekdayTarget)
-          : weekdayFullCompletions;
-
-        completedDays += completedInWeek;
-        weekdayMissed += Math.max(0, pastWeekdayTarget - completedInWeek);
-      }
+      const { completedDays, weekdayMissed } = calculateWeeklyRoutineProgress({
+        dateMap: userRecordTypesByDate.get(r.user_id) ?? new Map(),
+        registeredTypes,
+        rangeStart,
+        rangeEnd,
+      });
 
       // 선언 보너스: 등록한 모든 리추얼에 대해 작성해야 +1 (ritual-stats.ts와 동일 로직 재사용)
       const hasDeclaration = isAllRoutinesCovered(
