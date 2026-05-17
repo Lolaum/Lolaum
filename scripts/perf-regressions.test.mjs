@@ -22,6 +22,16 @@ test("feed pagination does not refetch the same page from a client effect", () =
     /useTransition/,
     "FeedContainer should show navigation pending state without a duplicate fetch",
   );
+  assert.match(
+    source,
+    /const PAGE_NUMBER_WINDOW = 5/,
+    "Feed pagination should show at most five numbered page buttons",
+  );
+  assert.match(
+    source,
+    /visiblePageNumbers\.map/,
+    "Feed pagination should render the bounded page number window",
+  );
 });
 
 test("home sends hydration data that used to be fetched again on mount", () => {

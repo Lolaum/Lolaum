@@ -22,6 +22,20 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "english_book", label: "원서읽기" },
 ];
 
+const PAGE_NUMBER_WINDOW = 5;
+
+function getVisiblePageNumbers(currentPage: number, totalPages: number) {
+  const visibleCount = Math.min(PAGE_NUMBER_WINDOW, totalPages);
+  const halfWindow = Math.floor(visibleCount / 2);
+  const maxStart = totalPages - visibleCount + 1;
+  const startPage = Math.max(
+    1,
+    Math.min(currentPage - halfWindow, maxStart),
+  );
+
+  return Array.from({ length: visibleCount }, (_, i) => startPage + i);
+}
+
 export default function FeedContainer({
   initialData,
   initialTotal,
@@ -51,6 +65,7 @@ export default function FeedContainer({
   }, []);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / FEEDS_PER_PAGE));
+  const visiblePageNumbers = getVisiblePageNumbers(currentPage, totalPages);
 
   const updateParams = (filter: FilterKey, page: number, search?: string) => {
     const params = new URLSearchParams();
@@ -169,7 +184,7 @@ export default function FeedContainer({
             이전
           </button>
 
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+          {visiblePageNumbers.map((page) => (
             <button
               key={page}
               onClick={() => handlePageChange(page)}
