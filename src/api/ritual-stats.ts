@@ -20,6 +20,7 @@ import type {
 import type { ChallengerSummary } from "@/api/user";
 import { isAllRoutinesCovered } from "@/lib/declarations";
 import { getProfileRitualStart } from "@/lib/profile-ritual-start";
+import { calculateWeeklyRoutineProgress } from "@/lib/weekly-routine-progress";
 import {
   addDaysToDateKey,
   countWeekdaysInDateKeyRange,
@@ -167,19 +168,12 @@ function calcCompletionAccounting(
   periodEnd: string,
 ): { completedDays: number } {
   const upperDate = getAccountingUpperDate(periodEnd);
-  const isFullyComplete = (date: string): boolean => {
-    const done = dateMap.get(date);
-    if (!done) return false;
-    for (const rt of registeredTypes) {
-      if (!done.has(rt)) return false;
-    }
-    return true;
-  };
-
-  const completedDays = Array.from(dateMap.keys()).filter(
-    (date) => date >= periodStart && date <= upperDate && isFullyComplete(date),
-  ).length;
-  return { completedDays };
+  return calculateWeeklyRoutineProgress({
+    dateMap,
+    registeredTypes,
+    rangeStart: periodStart,
+    rangeEnd: upperDate,
+  });
 }
 
 function calcStreak(dates: string[]): number {
