@@ -78,24 +78,65 @@ test("progress and completion count mid and final review bonuses", () => {
   );
 });
 
-test("progress counts same-day and weekend certifications as completed", () => {
+test("progress uses same-day weekday completion before weekend makeup", () => {
   const progress = read("src/api/progress.ts");
   const ritualStats = read("src/api/ritual-stats.ts");
 
   assert.match(
     progress,
-    /const rangeEnd = today < periodEnd \? today : periodEnd/,
+    /const rangeEnd = getKoreaTodayWithinRange\(period\.end_date\)/,
     "progress should include today's completed certification",
   );
   assert.match(
     progress,
-    /const completedDays = fullyCompleteCount/,
-    "progress should count completed certification dates, including weekends",
+    /const hasWeekendMakeupWindow = weekends\.some/,
+    "progress should switch to weekly makeup accounting only when weekend is in range",
+  );
+  assert.match(
+    progress,
+    /const isFullyCompleteWeekday = Array\.from\(registeredTypes\)\.every/,
+    "weekdays should count only dates where all registered routines were certified on the same day",
+  );
+  assert.match(
+    progress,
+    /hasWeekendMakeupWindow[\s\S]*minRoutineCompletions[\s\S]*weekdayFullCompletions/,
+    "weekend weeks should use weekly routine counts, while pre-weekend weeks use same-day full completions",
   );
   assert.match(
     ritualStats,
     /const completedDays = Array\.from\(dateMap\.keys\(\)\)\.filter/,
     "home completion should count completed certification dates, including weekends",
+  );
+});
+
+test("progress applies happy chance and donation after weekly makeup accounting", () => {
+  const progress = read("src/api/progress.ts");
+  const accounting = read("src/lib/progress-accounting.ts");
+
+  assert.match(
+    progress,
+    /주말이 집계 범위에 들어온 주는 보충을 반영/,
+    "progress should treat weekend certifications as same-week makeups once weekend is in range",
+  );
+  assert.match(
+    progress,
+    /calculatePenaltyAccounting\(\s*weekdayMissed,\s*0,\s*\)/,
+    "progress should calculate happy chance and donation after weekly makeups are already reflected",
+  );
+  assert.match(
+    accounting,
+    /const penaltyMisses = Math\.max\(0, missed - 1\)/,
+    "the first missed weekday should be the happy chance bucket",
+  );
+  assert.match(
+    accounting,
+    /const remainingMakeupsAfterPenalty = Math\.max\(0, makeups - penaltyMisses\)/,
+    "weekend makeups should clear donation buckets before the happy chance bucket",
+  );
+  assert.match(
+    accounting,
+    /happyChanceUsed: remainingMakeupsAfterPenalty === 0/,
+    "happy chance should be cancelled only after donation buckets are cleared",
   );
 });
 
@@ -106,7 +147,7 @@ test("progress denominator stays fixed to weekdays plus three bonus slots", () =
 
   assert.match(
     progress,
-    /const totalDaysWithBonus = totalRoutineDays \+ BONUS_SLOTS/,
+    /const periodTotalDaysWithBonus = periodTotalRoutineDays \+ BONUS_SLOTS/,
     "progress page should use period weekdays plus declaration/mid/final bonus slots as the fixed denominator",
   );
   assert.match(
@@ -126,13 +167,13 @@ test("progress denominator stays fixed to weekdays plus three bonus slots", () =
   );
   assert.match(
     progressUi,
-    /\{member\.totalAchieved\}\/\{totalDays\}/,
-    "progress UI should display the shared fixed totalDays denominator",
+    /const totalDays = member\.totalDays/,
+    "progress UI should display each member's fixed effective-start denominator",
   );
   assert.doesNotMatch(
     progressUi,
-    /displayTotalDays|member\.totalDays/,
-    "progress UI should not use per-member variable denominators",
+    /displayTotalDays/,
+    "progress UI should not use ad-hoc display denominators",
   );
 });
 
