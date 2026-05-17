@@ -8,6 +8,7 @@ import {
   isChallengePeriodEnded,
 } from "@/lib/current-challenge";
 import { isAllRoutinesCovered } from "@/lib/declarations";
+import { calculatePenaltyAccounting } from "@/lib/progress-accounting";
 import {
   addDaysToDateKey,
   countWeekdaysInDateKeyRange,
@@ -57,6 +58,7 @@ function getWeekKey(dateKey: string): string {
  * - 주말 인증도 인증 완료 횟수로 즉시 반영
  * - 미완료 평일 최초 1회 → 행복찬스 (면제)
  * - 미완료 평일 2회째부터 → 기부금 1,000원씩 누적
+ * - 주말 보충 인증은 기부금을 먼저 차감하고, 마지막에 행복찬스를 취소
  */
 export async function getProgressPageData(): Promise<{
   data?: ProgressPageData;
@@ -189,8 +191,8 @@ export async function getProgressPageData(): Promise<{
       userFinalReviewed.add(r.user_id);
     }
 
-    // 4. 유저별 날짜별 완전 달성 여부 세트
-    //    홈과 동일하게 같은 날짜에 등록된 모든 리추얼 타입이 기록됐는지 직접 계산한다.
+    // 4. 유저별 날짜별 인증 리추얼 타입 세트
+    //    주간 단위로 각 리추얼의 완료 횟수를 계산하기 위한 원본 맵이다.
     const userRecordTypesByDate = new Map<string, Map<string, Set<string>>>();
     for (const r of recordsRes.data ?? []) {
       if (!userRecordTypesByDate.has(r.user_id)) {
@@ -201,25 +203,6 @@ export async function getProgressPageData(): Promise<{
         dateMap.set(r.record_date, new Set());
       }
       dateMap.get(r.record_date)!.add(r.routine_type);
-    }
-
-    const userFullyCompleteDates = new Map<string, Set<string>>();
-    for (const [userId, dateMap] of userRecordTypesByDate) {
-      const registeredTypes =
-        userRegisteredTypes.get(userId) ?? new Set<string>();
-      if (registeredTypes.size === 0) continue;
-
-      for (const [recordDate, completedTypes] of dateMap) {
-        const isFullyComplete = Array.from(registeredTypes).every(
-          (routineType) => completedTypes.has(routineType),
-        );
-        if (!isFullyComplete) continue;
-
-        if (!userFullyCompleteDates.has(userId)) {
-          userFullyCompleteDates.set(userId, new Set());
-        }
-        userFullyCompleteDates.get(userId)!.add(recordDate);
-      }
     }
 
     // 5. 집계 범위 끝 = min(오늘, period.end_date)
@@ -257,10 +240,6 @@ export async function getProgressPageData(): Promise<{
         };
       }
 
-      // 유저의 완전 달성 날짜 세트
-      const fullyCompleteDates =
-        userFullyCompleteDates.get(r.user_id) ?? new Set<string>();
-
       // 주(월~일) 단위로 날짜 묶기
       const weekData = new Map<
         string,
@@ -286,23 +265,57 @@ export async function getProgressPageData(): Promise<{
       }
 
       // 주 단위로 완료/미완료 집계
-      // 그날 등록된 모든 리추얼 완료 = 완전 달성
-      // 인증 횟수는 주말/오늘 인증도 즉시 +1로 집계한다.
+      // - 평일에는 같은 날짜에 신청 리추얼을 모두 했는지로 달성일을 계산한다.
+      // - 주말이 집계 범위에 들어온 주는 보충을 반영해
+      //   각 신청 리추얼이 주중 목표 횟수만큼 채워졌는지로 최종 계산한다.
       let weekdayMissed = 0;
-      const fullyCompleteCount = Array.from(fullyCompleteDates).filter(
-        (date) => date >= rangeStart && date <= rangeEnd,
-      ).length;
+      let completedDays = 0;
 
-      for (const { weekdays } of weekData.values()) {
-        for (const wd of weekdays) {
-          if (wd < todayStr && !fullyCompleteDates.has(wd)) {
-            weekdayMissed++;
+      for (const { weekdays, weekends } of weekData.values()) {
+        const pastWeekdayTarget = weekdays.filter((wd) => wd < todayStr).length;
+        const maxWeekdayTarget = weekdays.length;
+        const hasWeekendMakeupWindow = weekends.some(
+          (weekendDate) => weekendDate <= rangeEnd,
+        );
+        let weekdayFullCompletions = 0;
+
+        for (const weekday of weekdays) {
+          const completedTypes = userRecordTypesByDate
+            .get(r.user_id)
+            ?.get(weekday);
+          const isFullyCompleteWeekday = Array.from(registeredTypes).every(
+            (routineType) => completedTypes?.has(routineType),
+          );
+          if (isFullyCompleteWeekday) {
+            weekdayFullCompletions++;
           }
         }
-      }
 
-      // 진행률: 실제 인증 완료 횟수. 주말 인증도 횟수로는 즉시 반영한다.
-      const completedDays = fullyCompleteCount;
+        let minRoutineCompletions = maxWeekdayTarget;
+
+        for (const routineType of registeredTypes) {
+          let routineCompletions = 0;
+          for (const date of [...weekdays, ...weekends]) {
+            const completedTypes = userRecordTypesByDate
+              .get(r.user_id)
+              ?.get(date);
+            if (completedTypes?.has(routineType)) {
+              routineCompletions++;
+            }
+          }
+          minRoutineCompletions = Math.min(
+            minRoutineCompletions,
+            routineCompletions,
+          );
+        }
+
+        const completedInWeek = hasWeekendMakeupWindow
+          ? Math.min(minRoutineCompletions, maxWeekdayTarget)
+          : weekdayFullCompletions;
+
+        completedDays += completedInWeek;
+        weekdayMissed += Math.max(0, pastWeekdayTarget - completedInWeek);
+      }
 
       // 선언 보너스: 등록한 모든 리추얼에 대해 작성해야 +1 (ritual-stats.ts와 동일 로직 재사용)
       const hasDeclaration = isAllRoutinesCovered(
@@ -323,8 +336,11 @@ export async function getProgressPageData(): Promise<{
       // 기부금 계산:
       // - 미완료 평일의 1회차는 행복찬스로 면제
       // - 2회차부터 1,000원씩
-      const happyChanceUsed = weekdayMissed >= 1;
-      const penaltyAmount = Math.max(0, weekdayMissed - 1) * 1000;
+      // - 주말 보충은 위 주간 리추얼별 완료 횟수에 이미 반영됨
+      const { happyChanceUsed, penaltyAmount } = calculatePenaltyAccounting(
+        weekdayMissed,
+        0,
+      );
 
       return {
         userId: r.user_id,
