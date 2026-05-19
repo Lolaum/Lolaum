@@ -175,6 +175,7 @@ function recordToFeedItem(
     userName: profile?.name ?? "알 수 없음",
     userProfileImage: profile?.avatar_url ?? undefined,
     date: record.record_date,
+    createdAt: record.created_at,
     routineCategory: category,
     routineId: 0,
     recordId: 0,

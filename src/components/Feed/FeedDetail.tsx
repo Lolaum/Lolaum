@@ -110,6 +110,13 @@ const formatFullDate = (dateString: string) => {
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
 };
 
+const formatTime = (dateString: string) => {
+  const date = new Date(dateString);
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
+};
+
 // --- 리추얼별 콘텐츠 컴포넌트 ---
 
 function ExerciseContent({ data }: { data: ExerciseFeedData }) {
@@ -978,6 +985,7 @@ export default function FeedDetail({ item, isMine = false }: FeedDetailProps) {
               </p>
               <p className="text-xs text-gray-400">
                 {formatFullDate(item.date)}
+                {item.createdAt && ` · ${formatTime(item.createdAt)}`}
               </p>
             </div>
           </div>

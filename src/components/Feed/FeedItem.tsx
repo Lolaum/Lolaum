@@ -293,7 +293,7 @@ export default function FeedItem({ item, priority }: FeedItemProps) {
             </p>
             {subText && (
               <p
-                className="text-xs font-medium mt-0.5"
+                className="text-xs font-medium mt-0.5 truncate"
                 style={{ color: config.color }}
               >
                 {subText}
