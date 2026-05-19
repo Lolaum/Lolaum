@@ -1,7 +1,19 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ChevronDown, Quote, FileText, Trash2, Camera, Pencil, Upload, X } from "lucide-react";
+import Image from "next/image";
+import {
+  ChevronDown,
+  Quote,
+  FileText,
+  Trash2,
+  Camera,
+  Pencil,
+  Upload,
+  X,
+  ImagePlus,
+  BookOpen,
+} from "lucide-react";
 import {
   BookDetailProps,
   DailyReadingRecord,
@@ -11,7 +23,8 @@ import {
   createRitualRecordAuto,
   getMyRitualRecords,
 } from "@/api/ritual-record";
-import { applyTimestamp, fileToBase64 } from "@/lib/utils";
+import { uploadBookCover } from "@/api/book";
+import { applyTimestamp, fileToBase64, resizeImageFile } from "@/lib/utils";
 import { uploadImage, uploadImages } from "@/lib/upload-image";
 import { formatDateKey } from "@/lib/date";
 import type { ReadingRecordData, Json } from "@/types/supabase";
@@ -455,6 +468,9 @@ export default function BookDetail({
   const [editTitle, setEditTitle] = useState(book.title);
   const [editAuthor, setEditAuthor] = useState(book.author);
   const [editTotalValue, setEditTotalValue] = useState(book.totalValue.toString());
+  const [editCoverImageUrl, setEditCoverImageUrl] = useState<string | null>(book.coverImageUrl);
+  const [editUploading, setEditUploading] = useState(false);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
   const [savingEdit, setSavingEdit] = useState(false);
 
   // DB에서 이 책의 기존 기록 불러오기
@@ -565,7 +581,29 @@ export default function BookDetail({
     setEditTitle(book.title);
     setEditAuthor(book.author);
     setEditTotalValue(book.totalValue.toString());
+    setEditCoverImageUrl(book.coverImageUrl);
     setShowEdit(true);
+  };
+
+  const handleEditFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    setEditUploading(true);
+    try {
+      const resized = await resizeImageFile(file, 800, 0.85);
+      const formData = new FormData();
+      formData.append("file", resized);
+      const { url, error } = await uploadBookCover(formData);
+      if (error) {
+        alert(`표지 업로드 실패: ${error}`);
+        return;
+      }
+      if (url) setEditCoverImageUrl(url);
+    } finally {
+      setEditUploading(false);
+    }
   };
 
   const handleEditSave = async () => {
@@ -581,9 +619,13 @@ export default function BookDetail({
       author?: string;
       totalValue?: number;
       currentValue?: number;
+      coverImageUrl?: string | null;
     } = {};
     if (trimmedTitle !== book.title) input.title = trimmedTitle;
     if (trimmedAuthor !== book.author) input.author = trimmedAuthor;
+    if (editCoverImageUrl !== book.coverImageUrl) {
+      input.coverImageUrl = editCoverImageUrl;
+    }
     if (!isPercent) {
       const total = Number(editTotalValue);
       if (!Number.isFinite(total) || total <= 0) {
@@ -704,6 +746,59 @@ export default function BookDetail({
             <h3 className="text-lg font-bold text-gray-900 mb-4">
               책 정보 수정
             </h3>
+
+            {/* 표지 */}
+            <div className="flex items-start gap-3 mb-4">
+              <input
+                ref={editFileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleEditFileChange}
+              />
+              {editCoverImageUrl ? (
+                <div className="relative w-20 h-28 shrink-0">
+                  <Image
+                    src={editCoverImageUrl}
+                    alt={editTitle || "책 표지"}
+                    fill
+                    sizes="80px"
+                    unoptimized
+                    referrerPolicy="no-referrer"
+                    className="object-cover rounded-md border border-gray-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setEditCoverImageUrl(null)}
+                    className="absolute -top-2 -right-2 bg-white border border-gray-200 rounded-full w-5 h-5 flex items-center justify-center text-gray-500 hover:text-gray-700 shadow-sm"
+                    aria-label="표지 제거"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="w-20 h-28 shrink-0 bg-gray-100 rounded-md border border-gray-200 flex items-center justify-center">
+                  <BookOpen className="w-6 h-6 text-gray-300" />
+                </div>
+              )}
+              <div className="flex-1 flex flex-col justify-center gap-2">
+                <p className="text-xs font-medium text-gray-500">표지</p>
+                <button
+                  type="button"
+                  onClick={() => editFileInputRef.current?.click()}
+                  disabled={editUploading}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <ImagePlus className="w-3.5 h-3.5" />
+                  {editUploading
+                    ? "업로드 중..."
+                    : editCoverImageUrl
+                      ? "다른 사진으로 변경"
+                      : "사진 추가"}
+                </button>
+              </div>
+            </div>
+
             <div className="space-y-3 mb-6">
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">

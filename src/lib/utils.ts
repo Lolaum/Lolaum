@@ -8,6 +8,52 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** File → 긴 변 maxSize, JPEG quality로 리사이즈한 File 반환. 책 표지처럼 큰 해상도가 불필요한 이미지용. */
+export async function resizeImageFile(
+  file: File,
+  maxSize = 800,
+  quality = 0.85,
+): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+
+  const url = URL.createObjectURL(file);
+  try {
+    const bitmap = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("이미지 로드 실패"));
+      img.src = url;
+    });
+
+    let w = bitmap.naturalWidth;
+    let h = bitmap.naturalHeight;
+    if (w > maxSize || h > maxSize) {
+      const ratio = Math.min(maxSize / w, maxSize / h);
+      w = Math.round(w * ratio);
+      h = Math.round(h * ratio);
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, w, h);
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", quality),
+    );
+    if (!blob) return file;
+
+    return new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 /** File → base64 data URL 변환 */
 export function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

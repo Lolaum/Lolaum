@@ -1,11 +1,43 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { List, Plus, LayoutGrid } from "lucide-react";
+import Image from "next/image";
+import { List, Plus, LayoutGrid, BookOpen } from "lucide-react";
 import BookDetail from "./BookDetail";
 import { Book, ViewMode } from "@/types/routines/reading";
 import { getBooksAuto, deleteBook, updateBook } from "@/api/book";
 import type { Book as BookDB } from "@/types/supabase";
+
+function BookCover({
+  url,
+  alt,
+  className,
+  iconSize,
+}: {
+  url: string | null;
+  alt: string;
+  className: string;
+  iconSize: string;
+}) {
+  if (url) {
+    return (
+      <Image
+        src={url}
+        alt={alt}
+        fill
+        sizes="120px"
+        unoptimized
+        referrerPolicy="no-referrer"
+        className={className}
+      />
+    );
+  }
+  return (
+    <div className={`${className} bg-gray-100 flex items-center justify-center`}>
+      <BookOpen className={`${iconSize} text-gray-300`} />
+    </div>
+  );
+}
 
 interface BookManageProps {
   onBackToHome?: () => void;
@@ -75,6 +107,7 @@ export default function BookManage({
       currentValue?: number;
       totalValue?: number;
       isCompleted?: boolean;
+      coverImageUrl?: string | null;
     },
   ) => {
     const result = await updateBook(bookId, input);
@@ -244,13 +277,23 @@ export default function BookManage({
                 onClick={() => setSelectedBook(book)}
                 className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer border border-gray-100 w-[280px] h-[200px] flex-shrink-0 flex p-4 gap-4"
               >
+                {/* 책 표지 */}
+                <div className="relative w-[100px] h-[140px] shrink-0">
+                  <BookCover
+                    url={book.coverImageUrl}
+                    alt={book.title}
+                    className="object-cover rounded-md"
+                    iconSize="w-7 h-7"
+                  />
+                </div>
+
                 {/* 책 정보 */}
-                <div className="flex-1 flex flex-col justify-between py-1">
+                <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
                   <div>
                     <h3 className="text-base font-bold text-gray-900 mb-1 line-clamp-2">
                       {book.title}
                     </h3>
-                    <p className="text-sm text-gray-500">{book.author}</p>
+                    <p className="text-sm text-gray-500 truncate">{book.author}</p>
                   </div>
 
                   {/* 진행률 정보 */}
@@ -310,6 +353,16 @@ export default function BookManage({
                 className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow cursor-pointer"
               >
                 <div className="flex gap-3">
+                  {/* 책 표지 */}
+                  <div className="relative w-[60px] h-[84px] shrink-0">
+                    <BookCover
+                      url={book.coverImageUrl}
+                      alt={book.title}
+                      className="object-cover rounded-md"
+                      iconSize="w-5 h-5"
+                    />
+                  </div>
+
                   {/* 책 정보 */}
                   <div className="flex-1 min-w-0">
                     <h3 className="text-base font-bold text-gray-900 mb-0.5 truncate">
