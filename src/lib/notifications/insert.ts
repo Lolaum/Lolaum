@@ -38,14 +38,28 @@ export async function insertCommentNotification(input: {
   }
 }
 
-/** 리추얼 인증 완료 알림: 관리자(롤라/지로) 전원에게 발송 */
+/**
+ * 리추얼 인증 완료 알림: 관리자(롤라/지로) 중 알림 ON 상태인 사람에게만 발송.
+ * profiles.admin_ritual_notifications_enabled = false 인 관리자는 INSERT 자체를 생략한다.
+ */
 export async function insertRitualCompletionNotifications(input: {
   actorUserId: string;
   routineType: RoutineTypeDB;
   ritualRecordId: string;
 }): Promise<void> {
   const admin = createAdminClient();
-  const rows = ADMIN_USER_IDS.map((adminId) => ({
+
+  // 알림 ON 상태인 관리자만 추림
+  const { data: enabledAdmins } = await admin
+    .from("profiles")
+    .select("id")
+    .in("id", ADMIN_USER_IDS as unknown as string[])
+    .eq("admin_ritual_notifications_enabled", true);
+
+  const recipients = (enabledAdmins ?? []).map((r) => r.id);
+  if (recipients.length === 0) return;
+
+  const rows = recipients.map((adminId) => ({
     recipient_user_id: adminId,
     actor_user_id: input.actorUserId,
     type: "ritual_completion" as const,

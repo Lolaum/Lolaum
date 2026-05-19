@@ -7,7 +7,14 @@ import {
   type Notification,
   type RoutineTypeDB,
 } from "@/types/supabase";
-import type { NotificationView } from "@/lib/notifications/constants";
+import {
+  ADMIN_USER_IDS,
+  type NotificationView,
+} from "@/lib/notifications/constants";
+
+function isAdminUserId(userId: string): boolean {
+  return (ADMIN_USER_IDS as readonly string[]).includes(userId);
+}
 
 function buildMessage(input: {
   type: Notification["type"];
@@ -134,8 +141,61 @@ export async function markNotificationRead(
   }
 }
 
-/** 모든 알림 읽음 처리 */
-export async function markAllNotificationsRead(): Promise<{ error?: string }> {
+/**
+ * 현재 유저가 관리자(롤라/지로)인지 + 리추얼 알림 ON/OFF 상태 조회.
+ * 일반 유저에게는 isAdmin=false로 응답 (토글 자체를 안 보여줌).
+ */
+export async function getAdminNotificationSetting(): Promise<{
+  isAdmin: boolean;
+  enabled: boolean;
+}> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { isAdmin: false, enabled: true };
+    if (!isAdminUserId(user.id)) return { isAdmin: false, enabled: true };
+
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("profiles")
+      .select("admin_ritual_notifications_enabled")
+      .eq("id", user.id)
+      .single();
+
+    return {
+      isAdmin: true,
+      enabled: data?.admin_ritual_notifications_enabled ?? true,
+    };
+  } catch (e) {
+    console.error("getAdminNotificationSetting error:", e);
+    return { isAdmin: false, enabled: true };
+  }
+}
+
+/** 관리자 본인의 리추얼 알림 수신 ON/OFF 설정 변경 */
+export async function setAdminNotificationSetting(
+  enabled: boolean,
+): Promise<{ error?: string }> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { error: "인증이 필요합니다." };
+    if (!isAdminUserId(user.id)) return { error: "권한이 없습니다." };
+
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("profiles")
+      .update({ admin_ritual_notifications_enabled: enabled })
+      .eq("id", user.id);
+
+    if (error) return { error: error.message };
+    return {};
+  } catch (e) {
+    console.error("setAdminNotificationSetting error:", e);
+    return { error: "설정 변경 중 오류가 발생했습니다." };
+  }
+}
+
+/** 내 알림 전체 영구 삭제 ("모두 읽음" 버튼 동작) */
+export async function deleteAllNotifications(): Promise<{ error?: string }> {
   try {
     const user = await getCurrentUser();
     if (!user) return { error: "인증이 필요합니다." };
@@ -143,14 +203,13 @@ export async function markAllNotificationsRead(): Promise<{ error?: string }> {
     const supabase = await createClient();
     const { error } = await supabase
       .from("notifications")
-      .update({ is_read: true })
-      .eq("recipient_user_id", user.id)
-      .eq("is_read", false);
+      .delete()
+      .eq("recipient_user_id", user.id);
 
     if (error) return { error: error.message };
     return {};
   } catch (e) {
-    console.error("markAllNotificationsRead error:", e);
-    return { error: "알림 읽음 처리 중 오류가 발생했습니다." };
+    console.error("deleteAllNotifications error:", e);
+    return { error: "알림 삭제 중 오류가 발생했습니다." };
   }
 }

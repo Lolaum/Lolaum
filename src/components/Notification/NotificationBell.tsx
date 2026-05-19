@@ -3,10 +3,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  deleteAllNotifications,
+  getAdminNotificationSetting,
   getNotifications,
   getUnreadNotificationCount,
-  markAllNotificationsRead,
   markNotificationRead,
+  setAdminNotificationSetting,
 } from "@/api/notification";
 import type { NotificationView } from "@/lib/notifications/constants";
 import BellIcon from "../icons/BellIcon";
@@ -32,6 +34,8 @@ export default function NotificationBell() {
   const [unread, setUnread] = useState(0);
   const [items, setItems] = useState<NotificationView[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminEnabled, setAdminEnabled] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const refreshUnread = useCallback(async () => {
@@ -41,10 +45,25 @@ export default function NotificationBell() {
 
   const loadList = useCallback(async () => {
     setLoading(true);
-    const { data } = await getNotifications();
+    const [{ data }, setting] = await Promise.all([
+      getNotifications(),
+      getAdminNotificationSetting(),
+    ]);
     setItems(data);
+    setIsAdmin(setting.isAdmin);
+    setAdminEnabled(setting.enabled);
     setLoading(false);
   }, []);
+
+  const handleToggleAdminSetting = async () => {
+    const next = !adminEnabled;
+    setAdminEnabled(next);
+    const { error } = await setAdminNotificationSetting(next);
+    if (error) {
+      // 실패 시 롤백
+      setAdminEnabled(!next);
+    }
+  };
 
   // 마운트 시 & 주기적으로 미읽음 개수 갱신 (외부 시스템 폴링)
   useEffect(() => {
@@ -92,11 +111,11 @@ export default function NotificationBell() {
     }
   };
 
-  const handleMarkAll = async () => {
-    if (unread === 0) return;
-    setItems((prev) => prev.map((it) => ({ ...it, isRead: true })));
+  const handleClearAll = async () => {
+    if (items.length === 0) return;
+    setItems([]);
     setUnread(0);
-    await markAllNotificationsRead();
+    await deleteAllNotifications();
   };
 
   return (
@@ -115,19 +134,42 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1rem)] bg-white border border-gray-100 rounded-xl shadow-xl z-[80] overflow-hidden">
+        <div className="fixed top-14 right-2 md:top-[72px] md:right-4 w-[calc(100vw-1rem)] max-w-[320px] bg-white border border-gray-100 rounded-xl shadow-xl z-[80] overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <span className="font-semibold text-gray-900">알림</span>
             <button
-              onClick={handleMarkAll}
-              disabled={unread === 0}
+              onClick={handleClearAll}
+              disabled={items.length === 0}
               className="text-xs text-gray-500 hover:text-gray-800 disabled:opacity-40"
             >
               모두 읽음
             </button>
           </div>
 
-          <div className="max-h-[60vh] overflow-y-auto">
+          {isAdmin && (
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+              <span className="text-xs text-gray-600">
+                게시글 추가 알림 받기
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={adminEnabled}
+                onClick={handleToggleAdminSetting}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                  adminEnabled ? "bg-[var(--gold-400)]" : "bg-gray-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                    adminEnabled ? "translate-x-[18px]" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+            </div>
+          )}
+
+          <div className="max-h-[280px] overflow-y-auto">
             {loading ? (
               <div className="px-4 py-8 text-center text-sm text-gray-400">
                 불러오는 중...

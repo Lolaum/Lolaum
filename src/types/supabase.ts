@@ -32,6 +32,7 @@ export interface Database {
           email: string;
           avatar_url: string | null;
           emoji: string | null;
+          admin_ritual_notifications_enabled: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -42,6 +43,7 @@ export interface Database {
           email: string;
           avatar_url?: string | null;
           emoji?: string | null;
+          admin_ritual_notifications_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -52,6 +54,7 @@ export interface Database {
           email?: string;
           avatar_url?: string | null;
           emoji?: string | null;
+          admin_ritual_notifications_enabled?: boolean;
           updated_at?: string;
         };
         Relationships: [];
