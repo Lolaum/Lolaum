@@ -2,6 +2,7 @@
 
 import { getCurrentUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { insertCommentNotification } from "@/lib/notifications/insert";
 import type { Comment } from "@/types/feed";
 
 /**
@@ -131,6 +132,24 @@ export async function addComment(
       .single();
 
     if (error) return { error: error.message };
+
+    // 게시글 소유자 + routine_type 조회 후 알림 발송
+    const { data: feedOwner } = await admin
+      .from("feeds")
+      .select("user_id, routine_type")
+      .eq("id", feedId)
+      .single();
+
+    if (feedOwner) {
+      await insertCommentNotification({
+        recipientUserId: feedOwner.user_id,
+        actorUserId: user.id,
+        routineType: feedOwner.routine_type,
+        feedId,
+        ritualRecordId: recordId,
+        commentId: comment.id,
+      });
+    }
 
     // 프로필 이름 가져오기
     const { data: profile } = await admin

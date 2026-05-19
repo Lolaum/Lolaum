@@ -448,6 +448,36 @@ export interface Database {
         };
         Relationships: [];
       };
+      notifications: {
+        Row: {
+          id: string;
+          recipient_user_id: string;
+          actor_user_id: string | null;
+          type: "comment" | "ritual_completion";
+          routine_type: RoutineTypeDB | null;
+          feed_id: string | null;
+          ritual_record_id: string | null;
+          comment_id: string | null;
+          is_read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          recipient_user_id: string;
+          actor_user_id?: string | null;
+          type: "comment" | "ritual_completion";
+          routine_type?: RoutineTypeDB | null;
+          feed_id?: string | null;
+          ritual_record_id?: string | null;
+          comment_id?: string | null;
+          is_read?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          is_read?: boolean;
+        };
+        Relationships: [];
+      };
     };
   };
 }
@@ -473,6 +503,8 @@ export type FinalReviewDB =
 export type DailyCompletion =
   Database["public"]["Tables"]["daily_completions"]["Row"];
 export type Todo = Database["public"]["Tables"]["todos"]["Row"];
+export type Notification =
+  Database["public"]["Tables"]["notifications"]["Row"];
 
 // record_data JSONB 타입들
 export interface MorningRecordData {

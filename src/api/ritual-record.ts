@@ -9,6 +9,7 @@ import {
   isChallengePeriodEnded,
 } from "@/lib/current-challenge";
 import { normalizeRecordDataImages } from "@/lib/record-data-images";
+import { insertRitualCompletionNotifications } from "@/lib/notifications/insert";
 import type { Json, RitualRecord, RoutineTypeDB } from "@/types/supabase";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -163,6 +164,15 @@ export async function createRitualRecord(input: {
     recordDate: input.recordDate,
   });
   revalidateRitualSurfaces(input.routineType);
+
+  // 관리자(롤라/지로)에게 리추얼 인증 완료 알림 발송
+  if (data?.id) {
+    await insertRitualCompletionNotifications({
+      actorUserId: user.id,
+      routineType: input.routineType,
+      ritualRecordId: data.id,
+    });
+  }
 
   return { data };
 }
