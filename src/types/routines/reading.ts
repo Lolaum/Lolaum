@@ -17,6 +17,7 @@ export interface BookFormData {
   author: string;
   trackingType: "page" | "percent";
   totalPages: number;
+  coverImageUrl?: string | null;
 }
 
 export interface AddNewBookProps {
@@ -88,6 +89,7 @@ export interface BookDetailProps {
     currentValue?: number;
     totalValue?: number;
     isCompleted?: boolean;
+    coverImageUrl?: string | null;
   }) => void | Promise<void>;
   isEnglishBook?: boolean;
   certificationPhotos?: string[];

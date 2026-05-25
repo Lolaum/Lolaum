@@ -5,7 +5,7 @@ const CSP_HEADER = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' blob: data: https://*.supabase.co",
+  "img-src 'self' blob: data: https://*.supabase.co https://*.kakaocdn.net https://*.daumcdn.net",
   "font-src 'self'",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
   "frame-ancestors 'none'",

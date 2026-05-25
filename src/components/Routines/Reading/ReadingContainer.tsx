@@ -30,6 +30,7 @@ export default function ReadingContainer({
       trackingType: bookData.trackingType,
       totalValue:
         bookData.trackingType === "percent" ? 100 : bookData.totalPages,
+      coverImageUrl: bookData.coverImageUrl ?? undefined,
     });
     goMain();
   };

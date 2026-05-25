@@ -11,6 +11,7 @@ import HomeIcon from "../icons/HomeIcon";
 import RitualIcon from "../icons/RitualIcon";
 import VerifyIcon from "../icons/VerifyIcon";
 import ReportIcon from "../icons/ReportIcon";
+import NotificationBell from "../Notification/NotificationBell";
 
 interface LayoutShellProps {
   children: React.ReactNode;
@@ -99,6 +100,9 @@ export default function LayoutShell({ children }: LayoutShellProps) {
                 />
               </Link>
             </div>
+            <div className="flex items-center gap-2 pr-2">
+              <NotificationBell />
+            </div>
           </div>
         </header>
       )}
@@ -119,27 +123,32 @@ export default function LayoutShell({ children }: LayoutShellProps) {
               priority
             />
           </Link>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 px-2 py-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
-            aria-label="로그아웃"
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-2 py-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+              aria-label="로그아웃"
             >
-              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-            <span className="text-xs font-semibold tracking-wider">LOGOUT</span>
-          </button>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span className="text-xs font-semibold tracking-wider">
+                LOGOUT
+              </span>
+            </button>
+          </div>
         </header>
       )}
 

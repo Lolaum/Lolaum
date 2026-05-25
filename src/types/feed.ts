@@ -146,7 +146,8 @@ export interface FeedItem {
   userId: number | string;
   userName: string;
   userProfileImage?: string;
-  date: string; // ISO 형식 날짜
+  date: string; // ISO 형식 날짜 (record_date — 리추얼 수행일)
+  createdAt?: string; // 게시글 작성 시각 (timestamp)
   routineCategory: RoutineCategory;
   routineId: number;
   recordId: number;

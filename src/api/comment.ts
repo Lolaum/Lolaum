@@ -2,7 +2,43 @@
 
 import { getCurrentUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { insertCommentNotification } from "@/lib/notifications/insert";
 import type { Comment } from "@/types/feed";
+import type { User } from "@supabase/supabase-js";
+
+async function ensureUserProfile(
+  user: User,
+  admin: ReturnType<typeof createAdminClient>,
+): Promise<{ name: string } | null> {
+  const { data: existingProfile, error: selectError } = await admin
+    .from("profiles")
+    .select("name")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (selectError) return null;
+  if (existingProfile) return { name: existingProfile.name };
+
+  const fallbackName =
+    typeof user.user_metadata?.name === "string" &&
+    user.user_metadata.name.trim()
+      ? user.user_metadata.name.trim()
+      : (user.email?.split("@")[0] ?? "사용자");
+
+  const { data: newProfile, error: insertError } = await admin
+    .from("profiles")
+    .insert({
+      id: user.id,
+      name: fallbackName,
+      username: `user_${user.id.slice(0, 8)}`,
+      email: user.email ?? `${user.id}@missing.local`,
+    })
+    .select("name")
+    .single();
+
+  if (insertError) return null;
+  return { name: newProfile.name };
+}
 
 /**
  * ritual_record_id에 대응하는 feed를 찾거나 생성한다.
@@ -116,6 +152,8 @@ export async function addComment(
     if (!user) return { error: "인증이 필요합니다." };
 
     const admin = createAdminClient();
+    const profile = await ensureUserProfile(user, admin);
+    if (!profile) return { error: "프로필 정보를 준비할 수 없습니다." };
 
     const feedId = await getOrCreateFeedId(recordId, admin);
     if (!feedId) return { error: "피드를 찾을 수 없습니다." };
@@ -132,19 +170,30 @@ export async function addComment(
 
     if (error) return { error: error.message };
 
-    // 프로필 이름 가져오기
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("name")
-      .eq("id", user.id)
+    // 게시글 소유자 + routine_type 조회 후 알림 발송
+    const { data: feedOwner } = await admin
+      .from("feeds")
+      .select("user_id, routine_type")
+      .eq("id", feedId)
       .single();
+
+    if (feedOwner) {
+      await insertCommentNotification({
+        recipientUserId: feedOwner.user_id,
+        actorUserId: user.id,
+        routineType: feedOwner.routine_type,
+        feedId,
+        ritualRecordId: recordId,
+        commentId: comment.id,
+      });
+    }
 
     return {
       data: {
         id: comment.id as unknown as number,
         odOriginalId: comment.id,
         userId: comment.user_id as unknown as number,
-        userName: profile?.name ?? "나",
+        userName: profile.name,
         text: comment.text,
         date: comment.created_at,
       },

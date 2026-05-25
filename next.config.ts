@@ -26,6 +26,22 @@ const nextConfig: NextConfig = {
         hostname: "*.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
+      {
+        protocol: "https",
+        hostname: "search1.kakaocdn.net",
+      },
+      {
+        protocol: "https",
+        hostname: "search2.kakaocdn.net",
+      },
+      {
+        protocol: "https",
+        hostname: "img1.kakaocdn.net",
+      },
+      {
+        protocol: "https",
+        hostname: "img2.kakaocdn.net",
+      },
     ],
   },
   compress: true,
