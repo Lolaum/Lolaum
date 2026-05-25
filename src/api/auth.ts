@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { rateLimit } from "@/lib/rate-limit";
 
 async function getClientIp(): Promise<string> {
@@ -86,13 +87,15 @@ export async function signup(data: {
   }
 
   if (authData.user) {
-    const { error: profileError } = await supabase
+    const admin = createAdminClient();
+    const { error: profileError } = await admin
       .from("profiles")
-      .update({
+      .upsert({
+        id: authData.user.id,
         name: data.name,
         username: data.username,
-      })
-      .eq("id", authData.user.id);
+        email: data.email,
+      });
 
     if (profileError) {
       return { error: profileError.message };
