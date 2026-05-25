@@ -28,6 +28,10 @@ export default function ProgressContainer({
   }
 
   const { me, challengers } = data;
+  const totalDonationAmount = challengers.reduce(
+    (sum, member) => sum + member.penaltyAmount,
+    0,
+  );
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 pb-8">
@@ -67,8 +71,31 @@ export default function ProgressContainer({
         </div>
       )}
 
+      <DonationSummary amount={totalDonationAmount} />
+
       <p className="mt-4 text-xs text-gray-400 text-center">
         매일 인증 완료 시 자동으로 업데이트됩니다
+      </p>
+    </div>
+  );
+}
+
+function DonationSummary({ amount }: { amount: number }) {
+  return (
+    <div className="mb-6 rounded-2xl border border-amber-100 bg-amber-50 p-4 mt-4">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold text-amber-600">전체 기부금</p>
+          <p className="mt-1 text-2xl font-bold text-gray-900">
+            {amount.toLocaleString()}원
+          </p>
+        </div>
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-lg font-bold text-amber-500 shadow-sm">
+          ₩
+        </div>
+      </div>
+      <p className="mt-3 text-xs text-amber-700">
+        챌린저별 누적 기부금을 합산한 금액입니다
       </p>
     </div>
   );
