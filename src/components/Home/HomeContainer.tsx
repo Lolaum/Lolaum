@@ -157,6 +157,29 @@ export default function HomeContainer({
               period={period}
               onProfileUpdated={() => setMemberRefreshKey((k) => k + 1)}
             />
+            {/* <button
+              type="button"
+              onClick={() => router.push("/mid-review/write")}
+              className="mb-3 w-full rounded-2xl p-4 text-left transition-opacity hover:opacity-90 active:opacity-80"
+              style={{
+                background: "linear-gradient(135deg, #fef3c7, #fde68a)",
+              }}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p
+                    className="mb-0.5 text-sm font-bold"
+                    style={{ color: "#92400e" }}
+                  >
+                    중간 회고 작성 기간입니다
+                  </p>
+                  <p className="text-xs" style={{ color: "#b45309" }}>
+                    지금 바로 작성하기
+                  </p>
+                </div>
+                <span className="text-sm font-bold text-amber-800">작성</span>
+              </div>
+            </button> */}
             <div className="sticky top-0 z-10 static">
               <HomCalendar
                 today={today}

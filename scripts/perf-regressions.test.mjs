@@ -91,6 +91,7 @@ test("progress and completion count mid and final review bonuses", () => {
 test("progress uses same-day weekday completion before weekend makeup", () => {
   const progress = read("src/api/progress.ts");
   const ritualStats = read("src/api/ritual-stats.ts");
+  const weeklyProgress = read("src/lib/weekly-routine-progress.ts");
 
   assert.match(
     progress,
@@ -98,24 +99,24 @@ test("progress uses same-day weekday completion before weekend makeup", () => {
     "progress should include today's completed certification",
   );
   assert.match(
-    progress,
+    weeklyProgress,
     /const hasWeekendMakeupWindow = weekends\.some/,
-    "progress should switch to weekly makeup accounting only when weekend is in range",
+    "routine progress should switch to weekly makeup accounting only when weekend is in range",
   );
   assert.match(
-    progress,
-    /const isFullyCompleteWeekday = Array\.from\(registeredTypes\)\.every/,
+    weeklyProgress,
+    /const isFullyCompleteWeekday = Array\.from\(input\.registeredTypes\)\.every/,
     "weekdays should count only dates where all registered routines were certified on the same day",
   );
   assert.match(
-    progress,
+    weeklyProgress,
     /hasWeekendMakeupWindow[\s\S]*minRoutineCompletions[\s\S]*weekdayFullCompletions/,
-    "weekend weeks should use weekly routine counts, while pre-weekend weeks use same-day full completions",
+    "weekend weeks should use routine-type makeup counts, while pre-weekend weeks use same-day full completions",
   );
   assert.match(
     ritualStats,
-    /const completedDays = Array\.from\(dateMap\.keys\(\)\)\.filter/,
-    "home completion should count completed certification dates, including weekends",
+    /calcCompletionAccounting\([\s\S]*dateMap[\s\S]*registeredTypes/,
+    "home completion should use the shared routine progress accounting",
   );
 });
 

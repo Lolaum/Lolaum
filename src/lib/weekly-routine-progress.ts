@@ -18,11 +18,11 @@ function getWeekKey(dateKey: string): string {
 /**
  * Shared routine progress accounting.
  *
- * - Weekdays before the weekend are counted by same-day full completion:
- *   every registered routine must be certified on that date.
- * - Once the weekend is in range, weekend certifications can make up missed
- *   weekday certifications in the same week. The final weekly count is limited
- *   by the least-completed registered routine, capped at the weekday target.
+ * - Before the weekend, weekdays count only when every registered routine was
+ *   certified on that same date.
+ * - Once Saturday/Sunday is in range, weekend certifications can make up the
+ *   routine types missed on weekdays in the same Monday-Sunday week. The weekly
+ *   result is the least-completed routine count, capped at the weekday target.
  * - Duplicate records for the same routine/date are already collapsed by the
  *   Set in dateMap and therefore count once.
  */

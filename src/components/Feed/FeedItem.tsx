@@ -233,6 +233,7 @@ function FeedThumbnail({
         sizes="(max-width: 768px) 50vw, 360px"
         className="object-cover"
         priority={priority}
+        unoptimized
         onError={() => setFailed(true)}
       />
       {images.length > 1 && (
@@ -282,6 +283,7 @@ export default function FeedItem({ item, priority }: FeedItemProps) {
                 fill
                 sizes="32px"
                 className="object-cover"
+                unoptimized
               />
             ) : (
               <User size={14} className="text-gray-400" />
