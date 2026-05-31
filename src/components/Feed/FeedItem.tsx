@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -23,6 +25,7 @@ import {
   RecordingFeedData,
   normalizeRecordingFeedEntries,
 } from "@/types/feed";
+import ChallengerRitualsPopover from "./ChallengerRitualsPopover";
 
 interface FeedItemProps {
   item: FeedItemType;
@@ -250,8 +253,10 @@ export default function FeedItem({ item, priority }: FeedItemProps) {
   const previewText = getPreviewText(item);
   const subText = getSubText(item);
   const images = getImages(item);
+  const [profileOpen, setProfileOpen] = React.useState(false);
 
   return (
+    <>
     <Link
       href={`/feeds/${item.odOriginalId ?? item.id}`}
       className="block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
@@ -274,7 +279,16 @@ export default function FeedItem({ item, priority }: FeedItemProps) {
         </div>
 
         {/* 유저 + 서브텍스트 */}
-        <div className="flex items-center gap-2.5 mb-2.5">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setProfileOpen(true);
+          }}
+          className="flex items-center gap-2.5 mb-2.5 text-left rounded-xl hover:bg-gray-50 transition-colors"
+          aria-label={`${item.userName} 신청 리추얼 보기`}
+        >
           <div className="relative w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
             {item.userProfileImage ? (
               <Image
@@ -302,7 +316,7 @@ export default function FeedItem({ item, priority }: FeedItemProps) {
               </p>
             )}
           </div>
-        </div>
+        </button>
 
         {/* 미리보기 텍스트 */}
         {previewText && (
@@ -329,5 +343,12 @@ export default function FeedItem({ item, priority }: FeedItemProps) {
         )}
       </div>
     </Link>
+    <ChallengerRitualsPopover
+      userId={String(item.userId)}
+      userName={item.userName}
+      open={profileOpen}
+      onClose={() => setProfileOpen(false)}
+    />
+    </>
   );
 }

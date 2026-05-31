@@ -3,7 +3,7 @@
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getActivePeriod } from "@/lib/current-challenge";
-import type { Profile } from "@/types/supabase";
+import { ROUTINE_TYPE_LABEL, type Profile, type RoutineTypeDB } from "@/types/supabase";
 import { saveProfileRitualStart } from "@/lib/profile-ritual-start";
 
 export async function getMe(): Promise<Profile | null> {
@@ -60,6 +60,7 @@ export interface ChallengerSummary {
   name: string;
   avatarUrl: string | null;
   emoji: string | null;
+  registeredRituals?: string[];
 }
 
 /**
@@ -101,7 +102,7 @@ export async function getCurrentChallengers(): Promise<{
     challengeIds.length > 0
       ? await admin
           .from("challenge_registrations")
-          .select("user_id")
+          .select("user_id, routine_type")
           .in("challenge_id", challengeIds)
       : { data: [], error: null };
 
@@ -110,6 +111,15 @@ export async function getCurrentChallengers(): Promise<{
   const registeredUserIds = new Set(
     (registrations ?? []).map((r) => r.user_id),
   );
+  const ritualMap = new Map<string, string[]>();
+  for (const registration of registrations ?? []) {
+    const routineType = registration.routine_type as RoutineTypeDB;
+    const labels = ritualMap.get(registration.user_id) ?? [];
+    if (!labels.includes(ROUTINE_TYPE_LABEL[routineType])) {
+      labels.push(ROUTINE_TYPE_LABEL[routineType]);
+    }
+    ritualMap.set(registration.user_id, labels);
+  }
   const challengers: ChallengerSummary[] = rows
     .filter((r) => r.profiles)
     .filter((r) => registeredUserIds.has(r.user_id))
@@ -118,6 +128,7 @@ export async function getCurrentChallengers(): Promise<{
       name: r.profiles!.name,
       avatarUrl: r.profiles!.avatar_url,
       emoji: r.profiles!.emoji,
+      registeredRituals: ritualMap.get(r.user_id) ?? [],
     }))
     .sort((a, b) => {
       // 본인을 맨 앞으로

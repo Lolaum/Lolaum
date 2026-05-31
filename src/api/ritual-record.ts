@@ -8,12 +8,35 @@ import {
   getEffectiveStart,
   isChallengePeriodEnded,
 } from "@/lib/current-challenge";
+import { getCurrentKoreaWeekRange } from "@/lib/current-week";
 import { normalizeRecordDataImages } from "@/lib/record-data-images";
 import { insertRitualCompletionNotifications } from "@/lib/notifications/insert";
 import type { Json, RitualRecord, RoutineTypeDB } from "@/types/supabase";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseAnyClient = { from: (...args: any[]) => any };
+
+
+const PHOTO_DUPLICATE_WINDOW_MINUTES = 10;
+const PHOTO_DUPLICATE_MESSAGE =
+  "사진 인증 리추얼은 10분 이내 중복 업로드할 수 없어요. 잠시 후 다시 시도해주세요.";
+
+function hasPhotoCertification(recordData: Json): boolean {
+  if (!recordData || typeof recordData !== "object" || Array.isArray(recordData)) {
+    return false;
+  }
+
+  const data = recordData as Record<string, Json | undefined>;
+  const photoFields = [data.certPhotos, data.images, data.image, data.screenshot];
+
+  return photoFields.some((value) => {
+    if (typeof value === "string") return value.trim().length > 0;
+    if (Array.isArray(value)) {
+      return value.some((item) => typeof item === "string" && item.trim().length > 0);
+    }
+    return false;
+  });
+}
 
 const ROUTINE_HOME_PATH: Record<RoutineTypeDB, string> = {
   morning: "/home/morning",
@@ -34,6 +57,111 @@ function revalidateRitualSurfaces(routineType?: RoutineTypeDB) {
   if (routineType) {
     revalidatePath(ROUTINE_HOME_PATH[routineType]);
   }
+}
+
+function getRecordDataObject(recordData: Json): Record<string, unknown> {
+  return recordData && typeof recordData === "object" && !Array.isArray(recordData)
+    ? (recordData as Record<string, unknown>)
+    : {};
+}
+
+function getRecordingReadEntryCount(recordData: Json): number {
+  const data = getRecordDataObject(recordData);
+  const entries = data.entries;
+
+  if (Array.isArray(entries)) {
+    return entries.filter(
+      (entry) =>
+        entry &&
+        typeof entry === "object" &&
+        (entry as Record<string, unknown>).type === "read",
+    ).length;
+  }
+
+  return data.recordType === "read" ? 1 : 0;
+}
+
+async function getWeeklySpecialRitualCount(input: {
+  supabase: SupabaseAnyClient;
+  userId: string;
+  challengeId: string;
+  routineType: "exercise" | "recording";
+  recordDate: string;
+  excludeRecordId?: string;
+}): Promise<{ count?: number; error?: string }> {
+  const { start, end } = getCurrentKoreaWeekRange(input.recordDate);
+  let query = input.supabase
+    .from("ritual_records")
+    .select("id, record_data")
+    .eq("user_id", input.userId)
+    .eq("challenge_id", input.challengeId)
+    .eq("routine_type", input.routineType)
+    .gte("record_date", start)
+    .lte("record_date", end);
+
+  if (input.excludeRecordId) {
+    query = query.neq("id", input.excludeRecordId);
+  }
+
+  const { data, error } = await query;
+  if (error) return { error: error.message };
+
+  const count = (data ?? []).reduce(
+    (sum: number, row: { record_data: Json }) => {
+      const recordData = row.record_data;
+      if (input.routineType === "exercise") {
+        return (
+          sum + (getRecordDataObject(recordData).recordType === "diet" ? 1 : 0)
+        );
+      }
+      return sum + getRecordingReadEntryCount(recordData);
+    },
+    0,
+  );
+
+  return { count };
+}
+
+async function validateWeeklySpecialRitualLimit(input: {
+  supabase: SupabaseAnyClient;
+  userId: string;
+  challengeId: string;
+  routineType: RoutineTypeDB;
+  recordDate: string;
+  recordData: Json;
+  excludeRecordId?: string;
+}): Promise<{ error?: string }> {
+  const isDietRecord =
+    input.routineType === "exercise" &&
+    getRecordDataObject(input.recordData).recordType === "diet";
+  const readEntryCount =
+    input.routineType === "recording"
+      ? getRecordingReadEntryCount(input.recordData)
+      : 0;
+
+  if (!isDietRecord && readEntryCount === 0) return {};
+
+  const routineType = isDietRecord ? "exercise" : "recording";
+  const { count, error } = await getWeeklySpecialRitualCount({
+    supabase: input.supabase,
+    userId: input.userId,
+    challengeId: input.challengeId,
+    routineType,
+    recordDate: input.recordDate,
+    excludeRecordId: input.excludeRecordId,
+  });
+  if (error) return { error };
+
+  const nextCount = (count ?? 0) + (isDietRecord ? 1 : readEntryCount);
+  if (nextCount > 2) {
+    return {
+      error: isDietRecord
+        ? "식단 기록은 주 2회까지만 선택할 수 있습니다."
+        : "글 읽기 대체는 주 2회까지만 선택할 수 있습니다.",
+    };
+  }
+
+  return {};
 }
 
 async function recomputeDailyCompletion(input: {
@@ -141,6 +269,36 @@ export async function createRitualRecord(input: {
 
   const supabase = await createClient();
   const recordData = await normalizeRecordDataImages(input.recordData, user.id);
+  const { error: limitError } = await validateWeeklySpecialRitualLimit({
+    supabase,
+    userId: user.id,
+    challengeId: input.challengeId,
+    routineType: input.routineType,
+    recordDate: input.recordDate,
+    recordData,
+  });
+  if (limitError) return { error: limitError };
+
+  if (hasPhotoCertification(recordData)) {
+    const duplicateSince = new Date(
+      Date.now() - PHOTO_DUPLICATE_WINDOW_MINUTES * 60 * 1000,
+    ).toISOString();
+    const { data: recentPhotoRecords, error: recentError } = await supabase
+      .from("ritual_records")
+      .select("id, record_data")
+      .eq("user_id", user.id)
+      .eq("challenge_id", input.challengeId)
+      .eq("routine_type", input.routineType)
+      .eq("record_date", input.recordDate)
+      .gte("created_at", duplicateSince)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    if (recentError) return { error: recentError.message };
+    if ((recentPhotoRecords ?? []).some((r) => hasPhotoCertification(r.record_data as Json))) {
+      return { error: PHOTO_DUPLICATE_MESSAGE };
+    }
+  }
 
   // 하루에 여러 기록 허용 (INSERT), 달성률은 Set으로 하루 1회만 인정
   const { data, error } = await supabase
@@ -213,17 +371,38 @@ export async function updateRitualRecord(
     recordData,
     user.id,
   );
-  const { data: updated, error } = await supabase
+
+  const { data: target, error: fetchErr } = await supabase
+    .from("ritual_records")
+    .select("challenge_id, record_date, routine_type")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (fetchErr) return { error: fetchErr.message };
+  if (!target) return { error: "기록을 찾을 수 없습니다." };
+
+  const { error: limitError } = await validateWeeklySpecialRitualLimit({
+    supabase,
+    userId: user.id,
+    challengeId: target.challenge_id,
+    routineType: target.routine_type,
+    recordDate: target.record_date,
+    recordData: normalizedRecordData,
+    excludeRecordId: id,
+  });
+  if (limitError) return { error: limitError };
+
+  const { error } = await supabase
     .from("ritual_records")
     .update({ record_data: normalizedRecordData })
     .eq("id", id)
     .eq("user_id", user.id)
-    .select("routine_type")
-    .maybeSingle();
+    .select()
+    .single();
 
   if (error) return { error: error.message };
-  if (!updated) return { error: "기록을 찾을 수 없습니다." };
-  revalidateRitualSurfaces(updated.routine_type);
+  revalidateRitualSurfaces(target.routine_type);
   return {};
 }
 

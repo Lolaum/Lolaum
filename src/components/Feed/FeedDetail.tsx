@@ -30,6 +30,7 @@ import { addComment, deleteComment, updateComment } from "@/api/comment";
 import { deleteRitualRecord } from "@/api/ritual-record";
 import dynamic from "next/dynamic";
 import CommentSection from "./CommentSection";
+import ChallengerRitualsPopover from "./ChallengerRitualsPopover";
 const EditFeedRecord = dynamic(() => import("./EditFeedRecord"), { ssr: false });
 import LinkifiedText from "@/components/common/LinkifiedText";
 
@@ -828,6 +829,7 @@ export default function FeedDetail({ item, isMine = false }: FeedDetailProps) {
   const [comments, setComments] = useState<Comment[]>(item.comments ?? []);
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const meta = getCategoryMeta(item.routineCategory);
   const recordId = item.odOriginalId;
@@ -967,7 +969,12 @@ export default function FeedDetail({ item, isMine = false }: FeedDetailProps) {
         {/* 본문 카드 */}
         <div className="bg-white rounded-2xl shadow-md p-6">
           {/* 유저 정보 */}
-          <div className="flex items-center gap-3 mb-5">
+          <button
+            type="button"
+            onClick={() => setProfileOpen(true)}
+            className="flex items-center gap-3 mb-5 text-left rounded-xl hover:bg-gray-50 transition-colors"
+            aria-label={`${item.userName} 신청 리추얼 보기`}
+          >
             <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
               {item.userProfileImage ? (
                 <img
@@ -988,7 +995,14 @@ export default function FeedDetail({ item, isMine = false }: FeedDetailProps) {
                 {item.createdAt && ` · ${formatTime(item.createdAt)}`}
               </p>
             </div>
-          </div>
+          </button>
+
+          <ChallengerRitualsPopover
+            userId={String(item.userId)}
+            userName={item.userName}
+            open={profileOpen}
+            onClose={() => setProfileOpen(false)}
+          />
 
           {/* 인증 사진 (수정 모드에서도 표시 — 사진은 수정 불가, 참고용) */}
           <CertPhotoGrid

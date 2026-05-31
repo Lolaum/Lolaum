@@ -18,8 +18,11 @@ export default function AddNewExercise({
   onBackToHome,
   onSubmit,
   initialImages,
+  weeklyDietCount = 0,
+  weeklyDietLimit = 2,
 }: AddNewExerciseProps) {
   const [images, setImages] = useState<string[]>(initialImages ?? []);
+  const dietLimitReached = weeklyDietCount >= weeklyDietLimit;
   const [recordType, setRecordType] = useState<ExerciseRecordType>("exercise");
   const [exerciseName, setExerciseName] = useState("");
   const [duration, setDuration] = useState<number | null>(null);
@@ -173,10 +176,18 @@ export default function AddNewExercise({
           <button
             type="button"
             onClick={() => {
+              if (dietLimitReached) return;
               setRecordType("diet");
               setImages((prev) => prev.slice(0, 1));
             }}
-            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors ${
+            disabled={dietLimitReached}
+            aria-disabled={dietLimitReached}
+            title={
+              dietLimitReached
+                ? "식단 기록은 주 2회까지 달성할 수 있어요"
+                : undefined
+            }
+            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
               recordType === "diet"
                 ? "bg-orange-500 text-white"
                 : "bg-gray-100 text-gray-500 hover:bg-gray-200"
@@ -185,6 +196,12 @@ export default function AddNewExercise({
             식단 기록
           </button>
         </div>
+
+        {dietLimitReached && (
+          <p className="-mt-3 mb-4 rounded-xl bg-orange-50 px-3 py-2 text-xs font-medium text-orange-600">
+            이번 주 식단 기록을 2회 달성했어요. 다음 주에 다시 선택할 수 있어요.
+          </p>
+        )}
 
         {/* 인증 사진 */}
         <div className="mb-4">

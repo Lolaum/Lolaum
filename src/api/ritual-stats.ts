@@ -8,6 +8,7 @@ import {
   getEffectiveStart,
   isChallengePeriodEnded,
 } from "@/lib/current-challenge";
+import { ROUTINE_TYPE_LABEL } from "@/types/supabase";
 import type {
   ChallengeRegistration,
   Profile,
@@ -937,12 +938,21 @@ export async function getHomeStats(): Promise<{
     periodChallengeIds.length > 0
       ? await admin
           .from("challenge_registrations")
-          .select("user_id")
+          .select("user_id, routine_type")
           .in("challenge_id", periodChallengeIds)
       : { data: [] };
   const registeredUserIds = new Set(
     (periodRegistrations ?? []).map((r) => r.user_id),
   );
+  const challengerRitualMap = new Map<string, string[]>();
+  for (const registration of periodRegistrations ?? []) {
+    const routineType = registration.routine_type as RoutineTypeDB;
+    const labels = challengerRitualMap.get(registration.user_id) ?? [];
+    if (!labels.includes(ROUTINE_TYPE_LABEL[routineType])) {
+      labels.push(ROUTINE_TYPE_LABEL[routineType]);
+    }
+    challengerRitualMap.set(registration.user_id, labels);
+  }
   const challengers: ChallengerSummary[] = challengerRows
     .filter((r) => r.profiles)
     .filter((r) => registeredUserIds.has(r.user_id))
@@ -951,6 +961,7 @@ export async function getHomeStats(): Promise<{
       name: r.profiles!.name,
       avatarUrl: r.profiles!.avatar_url,
       emoji: r.profiles!.emoji,
+      registeredRituals: challengerRitualMap.get(r.user_id) ?? [],
     }))
     .sort((a, b) => {
       if (a.id === user.id) return -1;

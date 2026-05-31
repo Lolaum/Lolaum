@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   getActivePeriod,
   getCurrentChallengeId,
@@ -201,4 +202,44 @@ export async function resetChallenge(): Promise<{
   if (declRes.error) return { error: declRes.error.message };
 
   return { success: true };
+}
+
+
+export async function getChallengerRoutines(userId: string): Promise<{
+  data?: RoutineTypeDB[];
+  error?: string;
+}> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "인증이 필요합니다." };
+
+  const { period, error: periodError } = await getActivePeriod();
+  if (!period) return { error: periodError ?? "활성 챌린지 기간이 없습니다." };
+  if (isChallengePeriodEnded(period)) return { data: [] };
+
+  const admin = createAdminClient();
+  const { data: challenges, error: challengeError } = await admin
+    .from("challenges")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("period_id", period.id);
+
+  if (challengeError) return { error: challengeError.message };
+  const challengeIds = (challenges ?? []).map((challenge) => challenge.id);
+  if (challengeIds.length === 0) return { data: [] };
+
+  const { data, error } = await admin
+    .from("challenge_registrations")
+    .select("routine_type, registered_at")
+    .eq("user_id", userId)
+    .in("challenge_id", challengeIds)
+    .order("registered_at", { ascending: true });
+
+  if (error) return { error: error.message };
+
+  const seen = new Set<RoutineTypeDB>();
+  for (const row of data ?? []) {
+    seen.add(row.routine_type as RoutineTypeDB);
+  }
+
+  return { data: [...seen] };
 }

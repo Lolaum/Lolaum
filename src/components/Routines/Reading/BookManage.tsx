@@ -67,7 +67,7 @@ export default function BookManage({
   isEnglishBook,
   certificationPhotos,
 }: BookManageProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +83,7 @@ export default function BookManage({
   }, [isEnglishBook]);
 
   useEffect(() => {
-    fetchBooks();
+    void Promise.resolve().then(() => fetchBooks());
   }, [fetchBooks]);
 
   const calculateProgress = (current: number, total: number) => {

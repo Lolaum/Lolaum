@@ -10,6 +10,7 @@ import {
   getMyRitualRecords,
 } from "@/api/ritual-record";
 import { formatDateKey } from "@/lib/date";
+import { isDateInCurrentKoreaWeek } from "@/lib/current-week";
 import {
   normalizeRecordingEntries,
   type RecordingEntry,
@@ -31,6 +32,7 @@ interface RecordingRecord {
 }
 
 const DURATION_OPTIONS = [10, 20, 30, 40, 50, 60];
+const WEEKLY_READ_LIMIT = 2;
 
 const emptyWrite = (): RecordingEntry => ({
   type: "write",
@@ -68,6 +70,7 @@ export default function RecordingContainer({
   // 폼 상태: 모드(글 작성/글 읽기 대체) + 항목 묶음
   const [formMode, setFormMode] = useState<RecordingMode>("write");
   const [entries, setEntries] = useState<RecordingEntry[]>([emptyWrite()]);
+  const [weeklyReadCount, setWeeklyReadCount] = useState(0);
 
   const goHome = () => router.push("/home");
   const goMain = () => router.push("/home/recording");
@@ -92,9 +95,29 @@ export default function RecordingContainer({
     setLoading(false);
   }, []);
 
+
+  const fetchWeeklyReadCount = useCallback(async () => {
+    const { data } = await getMyRitualRecords({
+      routineType: "recording",
+      currentPeriodOnly: true,
+    });
+    const count = (data ?? []).reduce((sum, r) => {
+      if (!isDateInCurrentKoreaWeek(r.record_date)) return sum;
+      const d = r.record_data as unknown as RecordingRecordData;
+      return (
+        sum + normalizeRecordingEntries(d).filter((entry) => entry.type === "read").length
+      );
+    }, 0);
+    setWeeklyReadCount(count);
+  }, []);
+
   useEffect(() => {
-    if (mode === "main") fetchRecords();
-  }, [fetchRecords, mode]);
+    void Promise.resolve().then(() => {
+      if (mode === "main") return fetchRecords();
+      if (mode === "new") return fetchWeeklyReadCount();
+      return undefined;
+    });
+  }, [fetchRecords, fetchWeeklyReadCount, mode]);
 
   const handleDelete = async () => {
     if (!deleteTargetId) return;
@@ -109,7 +132,10 @@ export default function RecordingContainer({
     fetchRecords();
   };
 
+  const readLimitReached = weeklyReadCount >= WEEKLY_READ_LIMIT;
+
   const switchFormMode = (next: RecordingMode) => {
+    if (next === "read" && readLimitReached) return;
     if (next === formMode) return;
     setFormMode(next);
     setEntries([next === "write" ? emptyWrite() : emptyRead()]);
@@ -128,7 +154,11 @@ export default function RecordingContainer({
   };
 
   const addReadEntry = () => {
-    setEntries((prev) => [...prev, emptyRead()]);
+    setEntries((prev) => {
+      const remaining = WEEKLY_READ_LIMIT - weeklyReadCount - prev.length;
+      if (remaining <= 0) return prev;
+      return [...prev, emptyRead()];
+    });
   };
 
   const canSubmit = entries.length > 0 && entries.every(isEntryValid);
@@ -231,7 +261,14 @@ export default function RecordingContainer({
           <button
             type="button"
             onClick={() => switchFormMode("read")}
-            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors ${
+            disabled={readLimitReached}
+            aria-disabled={readLimitReached}
+            title={
+              readLimitReached
+                ? "글 읽기 대체는 주 2회까지 달성할 수 있어요"
+                : undefined
+            }
+            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
               formMode === "read"
                 ? "bg-rose-500 text-white"
                 : "bg-gray-100 text-gray-500 hover:bg-gray-200"
@@ -240,6 +277,12 @@ export default function RecordingContainer({
             글 읽기 대체
           </button>
         </div>
+
+        {readLimitReached && (
+          <p className="-mt-3 mb-4 rounded-xl bg-rose-50 px-3 py-2 text-xs font-medium text-rose-600">
+            이번 주 글 읽기 대체를 2회 달성했어요. 다음 주에 다시 선택할 수 있어요.
+          </p>
+        )}
 
         {/* 글 읽기 대체: 다른 챌린저 글 보기 안내 */}
         {formMode === "read" && (
@@ -276,10 +319,16 @@ export default function RecordingContainer({
             <button
               type="button"
               onClick={addReadEntry}
-              className="w-full py-3 rounded-xl text-xs font-bold border-2 border-dashed border-violet-200 text-violet-500 hover:bg-violet-50 transition-colors flex items-center justify-center gap-1.5"
+              disabled={weeklyReadCount + entries.length >= WEEKLY_READ_LIMIT}
+              className="w-full py-3 rounded-xl text-xs font-bold border-2 border-dashed border-violet-200 text-violet-500 hover:bg-violet-50 transition-colors flex items-center justify-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-45"
             >
               <Plus className="w-4 h-4" />다른 챌린저 글 후기 추가
             </button>
+            {weeklyReadCount + entries.length >= WEEKLY_READ_LIMIT && (
+              <p className="mt-2 text-center text-xs text-violet-500">
+                글 읽기 대체는 주 2회까지만 추가할 수 있어요.
+              </p>
+            )}
           </div>
         )}
 
