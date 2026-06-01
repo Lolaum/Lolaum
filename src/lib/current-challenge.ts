@@ -37,7 +37,9 @@ export const getActivePeriod = cache(async (): Promise<{
  *
  * 요청당 한 번만 실행되도록 React `cache()`로 메모이제이션됨.
  */
-export const getCurrentChallengeId = cache(async (): Promise<{
+export const getCurrentChallengeId = cache(async (options?: {
+  allowEnded?: boolean;
+}): Promise<{
   challengeId: string | null;
   resetAt?: string | null;
   error?: string;
@@ -47,7 +49,8 @@ export const getCurrentChallengeId = cache(async (): Promise<{
 
   const { period, error: periodError } = await getActivePeriod();
   if (!period) return { challengeId: null, error: periodError };
-  if (isChallengePeriodEnded(period)) {
+  const periodEnded = isChallengePeriodEnded(period);
+  if (periodEnded && !options?.allowEnded) {
     return { challengeId: null, error: "챌린지 기간이 종료되었습니다." };
   }
 
@@ -64,6 +67,10 @@ export const getCurrentChallengeId = cache(async (): Promise<{
 
   if (existing) {
     return { challengeId: existing.id, resetAt: existing.reset_at };
+  }
+
+  if (periodEnded) {
+    return { challengeId: null, error: "챌린지를 찾을 수 없습니다." };
   }
 
   // 없으면 활성 period의 날짜를 복사해서 생성

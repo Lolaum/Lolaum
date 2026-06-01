@@ -6,7 +6,6 @@ import {
   getActivePeriod,
   getCurrentChallengeId,
   getEffectiveStart,
-  isChallengePeriodEnded,
 } from "@/lib/current-challenge";
 import { getCurrentKoreaWeekRange } from "@/lib/current-week";
 import { normalizeRecordDataImages } from "@/lib/record-data-images";
@@ -475,14 +474,13 @@ export async function getMyRitualRecords(input: {
   if (input.currentPeriodOnly) {
     if (!period)
       return { error: periodError ?? "활성 챌린지 기간이 없습니다." };
-    if (isChallengePeriodEnded(period)) return { data: [] };
   }
 
   const {
     challengeId,
     resetAt,
     error: challengeError,
-  } = await getCurrentChallengeId();
+  } = await getCurrentChallengeId({ allowEnded: true });
 
   if (!challengeId) {
     return { error: challengeError ?? "챌린지를 찾을 수 없습니다." };

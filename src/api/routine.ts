@@ -117,9 +117,10 @@ export async function getMyRoutines(): Promise<{
 }> {
   const { period, error: periodError } = await getActivePeriod();
   if (!period) return { error: periodError ?? "활성 챌린지 기간이 없습니다." };
-  if (isChallengePeriodEnded(period)) return { data: [] };
 
-  const { challengeId, error: challengeError } = await getCurrentChallengeId();
+  const { challengeId, error: challengeError } = await getCurrentChallengeId({
+    allowEnded: true,
+  });
 
   if (!challengeId) {
     return { error: challengeError ?? "챌린지를 찾을 수 없습니다." };
@@ -214,7 +215,6 @@ export async function getChallengerRoutines(userId: string): Promise<{
 
   const { period, error: periodError } = await getActivePeriod();
   if (!period) return { error: periodError ?? "활성 챌린지 기간이 없습니다." };
-  if (isChallengePeriodEnded(period)) return { data: [] };
 
   const admin = createAdminClient();
   const { data: challenges, error: challengeError } = await admin

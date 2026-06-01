@@ -101,9 +101,6 @@ export default function HomeContainer({
     const dateStr = formatDateKey(selectedDate);
     return dateStr < period.start_date || dateStr > period.end_date;
   })();
-  const isRitualPeriodEnded =
-    period && today ? formatDateKey(today) > period.end_date : false;
-
   const handleTaskClick = (title: string) => {
     if (isPastDate) return; // 지난 날짜에서는 리추얼 진행 불가
     if (isOutsidePeriod) return; // 챌린지 기간 외에는 리추얼 진행 불가
@@ -201,7 +198,6 @@ export default function HomeContainer({
               stats={myPageStats}
               isPastDate={isPastDate}
               isOutsidePeriod={isOutsidePeriod}
-              isRitualPeriodEnded={isRitualPeriodEnded}
               routineCompletionMap={routineCompletionMap}
               totalRoutineDays={totalRoutineDays}
               initialRoutines={initialData.routines}
