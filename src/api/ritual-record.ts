@@ -16,23 +16,33 @@ import type { Json, RitualRecord, RoutineTypeDB } from "@/types/supabase";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseAnyClient = { from: (...args: any[]) => any };
 
-
 const PHOTO_DUPLICATE_WINDOW_MINUTES = 10;
 const PHOTO_DUPLICATE_MESSAGE =
   "사진 인증 리추얼은 10분 이내 중복 업로드할 수 없어요. 잠시 후 다시 시도해주세요.";
 
 function hasPhotoCertification(recordData: Json): boolean {
-  if (!recordData || typeof recordData !== "object" || Array.isArray(recordData)) {
+  if (
+    !recordData ||
+    typeof recordData !== "object" ||
+    Array.isArray(recordData)
+  ) {
     return false;
   }
 
   const data = recordData as Record<string, Json | undefined>;
-  const photoFields = [data.certPhotos, data.images, data.image, data.screenshot];
+  const photoFields = [
+    data.certPhotos,
+    data.images,
+    data.image,
+    data.screenshot,
+  ];
 
   return photoFields.some((value) => {
     if (typeof value === "string") return value.trim().length > 0;
     if (Array.isArray(value)) {
-      return value.some((item) => typeof item === "string" && item.trim().length > 0);
+      return value.some(
+        (item) => typeof item === "string" && item.trim().length > 0,
+      );
     }
     return false;
   });
@@ -60,7 +70,9 @@ function revalidateRitualSurfaces(routineType?: RoutineTypeDB) {
 }
 
 function getRecordDataObject(recordData: Json): Record<string, unknown> {
-  return recordData && typeof recordData === "object" && !Array.isArray(recordData)
+  return recordData &&
+    typeof recordData === "object" &&
+    !Array.isArray(recordData)
     ? (recordData as Record<string, unknown>)
     : {};
 }
@@ -295,7 +307,11 @@ export async function createRitualRecord(input: {
       .limit(5);
 
     if (recentError) return { error: recentError.message };
-    if ((recentPhotoRecords ?? []).some((r) => hasPhotoCertification(r.record_data as Json))) {
+    if (
+      (recentPhotoRecords ?? []).some((r) =>
+        hasPhotoCertification(r.record_data as Json),
+      )
+    ) {
       return { error: PHOTO_DUPLICATE_MESSAGE };
     }
   }
@@ -482,4 +498,25 @@ export async function getMyRitualRecords(input: {
         : undefined,
     dateTo: input.currentPeriodOnly && period ? period.end_date : undefined,
   });
+}
+
+export async function getMyRitualRecordsAcrossChallenges(input: {
+  routineTypes: RoutineTypeDB[];
+}): Promise<{ data?: RitualRecord[]; error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { error: "인증이 필요합니다." };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("ritual_records")
+    .select("*")
+    .eq("user_id", user.id)
+    .in("routine_type", input.routineTypes)
+    .order("record_date", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error) return { error: error.message };
+  return { data: data ?? [] };
 }

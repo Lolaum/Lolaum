@@ -64,12 +64,14 @@ export function fileToBase64(file: File): Promise<string> {
   });
 }
 
-/** File → EXIF 날짜/시간을 중앙에 찍은 base64 이미지 반환 (최대 1920px 리사이즈) */
-export async function applyTimestamp(file: File): Promise<string> {
-  const MAX_SIZE = 1280;
+export const CERT_PHOTO_MIN_INTERVAL_MINUTES = 10;
+export const CERT_PHOTO_INTERVAL_MESSAGE =
+  "시작 사진과 종료 사진의 촬영 시간이 10분 이상 차이 나는 사진으로 다시 업로드해 주십시오.";
+
+/** 사진 파일의 EXIF 촬영 시각을 읽고, 없으면 파일 수정 시각을 사용한다. */
+export async function getPhotoTakenAt(file: File): Promise<Date> {
   const exifr = (await import("exifr")).default;
 
-  let photoDate: Date;
   try {
     const exif = await exifr.parse(file, [
       "DateTimeOriginal",
@@ -78,13 +80,33 @@ export async function applyTimestamp(file: File): Promise<string> {
     ]);
     const exifDate =
       exif?.DateTimeOriginal ?? exif?.CreateDate ?? exif?.ModifyDate;
-    photoDate =
-      exifDate instanceof Date
-        ? exifDate
-        : new Date(file.lastModified || Date.now());
+    if (exifDate instanceof Date && !Number.isNaN(exifDate.getTime())) {
+      return exifDate;
+    }
   } catch {
-    photoDate = new Date(file.lastModified || Date.now());
+    // EXIF를 읽을 수 없는 캡처/압축 이미지도 파일 메타데이터로 검증을 이어간다.
   }
+
+  return new Date(file.lastModified || Date.now());
+}
+
+export function hasMinimumPhotoInterval(
+  takenAtTimes: number[],
+  minMinutes = CERT_PHOTO_MIN_INTERVAL_MINUTES,
+): boolean {
+  if (takenAtTimes.length < 2) return true;
+
+  const sorted = [...takenAtTimes].sort((a, b) => a - b);
+  return sorted[sorted.length - 1] - sorted[0] >= minMinutes * 60 * 1000;
+}
+
+/** File → EXIF 날짜/시간을 중앙에 찍은 base64 이미지 반환 (최대 1920px 리사이즈) */
+export async function applyTimestamp(
+  file: File,
+  takenAt?: Date,
+): Promise<string> {
+  const MAX_SIZE = 1280;
+  const photoDate = takenAt ?? (await getPhotoTakenAt(file));
 
   return new Promise((resolve, reject) => {
     const img = new Image();

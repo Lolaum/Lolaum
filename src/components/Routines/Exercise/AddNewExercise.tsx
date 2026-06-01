@@ -2,8 +2,14 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Upload, X, Info } from "lucide-react";
-import { applyTimestamp, fileToBase64 } from "@/lib/utils";
+import {
+  applyTimestamp,
+  fileToBase64,
+  getPhotoTakenAt,
+  hasMinimumPhotoInterval,
+} from "@/lib/utils";
 import { uploadImages } from "@/lib/upload-image";
+import CertificationPhotoIntervalModal from "@/components/common/CertificationPhotoIntervalModal";
 import {
   AddNewExerciseProps,
   ExerciseFormData,
@@ -22,6 +28,7 @@ export default function AddNewExercise({
   weeklyDietLimit = 2,
 }: AddNewExerciseProps) {
   const [images, setImages] = useState<string[]>(initialImages ?? []);
+  const [imageTakenAtTimes, setImageTakenAtTimes] = useState<number[]>([]);
   const dietLimitReached = weeklyDietCount >= weeklyDietLimit;
   const [recordType, setRecordType] = useState<ExerciseRecordType>("exercise");
   const [exerciseName, setExerciseName] = useState("");
@@ -32,13 +39,17 @@ export default function AddNewExercise({
   const [achievement, setAchievement] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const [showPhotoIntervalModal, setShowPhotoIntervalModal] = useState(false);
   const [showRatioTip, setShowRatioTip] = useState(false);
   const ratioTipRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!showRatioTip) return;
     const handler = (e: MouseEvent | TouchEvent) => {
-      if (ratioTipRef.current && !ratioTipRef.current.contains(e.target as Node)) {
+      if (
+        ratioTipRef.current &&
+        !ratioTipRef.current.contains(e.target as Node)
+      ) {
         setShowRatioTip(false);
       }
     };
@@ -57,10 +68,36 @@ export default function AddNewExercise({
     const newFiles = Array.from(files)
       .filter((file) => file.type.startsWith("image/"))
       .slice(0, maxImages - images.length);
-    const stampedImages = await Promise.all(
-      newFiles.map((f) => applyTimestamp(f).catch(() => fileToBase64(f))),
+    const imageDrafts = await Promise.all(
+      newFiles.map(async (file) => {
+        const takenAt = await getPhotoTakenAt(file);
+        const image = await applyTimestamp(file, takenAt).catch(() =>
+          fileToBase64(file),
+        );
+        return { image, takenAtTime: takenAt.getTime() };
+      }),
     );
-    setImages([...images, ...stampedImages].slice(0, maxImages));
+    const nextTakenAtTimes = [
+      ...imageTakenAtTimes,
+      ...imageDrafts.map((draft) => draft.takenAtTime),
+    ].slice(0, maxImages);
+
+    if (
+      recordType === "exercise" &&
+      nextTakenAtTimes.length >= 2 &&
+      !hasMinimumPhotoInterval(nextTakenAtTimes)
+    ) {
+      setShowPhotoIntervalModal(true);
+      return;
+    }
+
+    setImages(
+      [...images, ...imageDrafts.map((draft) => draft.image)].slice(
+        0,
+        maxImages,
+      ),
+    );
+    setImageTakenAtTimes(nextTakenAtTimes);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,6 +112,7 @@ export default function AddNewExercise({
 
   const removeImage = (index: number) => {
     setImages(images.filter((_, i) => i !== index));
+    setImageTakenAtTimes((prev) => prev.filter((_, i) => i !== index));
   };
 
   const finalDuration =
@@ -115,6 +153,11 @@ export default function AddNewExercise({
 
   return (
     <div className="w-full max-w-4xl mx-auto">
+      <CertificationPhotoIntervalModal
+        open={showPhotoIntervalModal}
+        onClose={() => setShowPhotoIntervalModal(false)}
+      />
+
       {/* 백 네비게이션 및 x버튼 */}
       <div className="flex items-center justify-between mb-4">
         <button
@@ -179,6 +222,7 @@ export default function AddNewExercise({
               if (dietLimitReached) return;
               setRecordType("diet");
               setImages((prev) => prev.slice(0, 1));
+              setImageTakenAtTimes((prev) => prev.slice(0, 1));
             }}
             disabled={dietLimitReached}
             aria-disabled={dietLimitReached}
