@@ -47,9 +47,11 @@ function transformRecordData(
   switch (record.routine_type) {
     case "exercise":
       return {
+        recordType: (data.recordType as ExerciseFeedData["recordType"]) ?? "exercise",
         images: (data.images as string[]) ?? [],
         exerciseName: (data.exerciseName as string) ?? "",
         duration: (data.duration as number) ?? 0,
+        macros: data.macros as string | undefined,
         achievement: (data.achievement as string) ?? "",
         certPhotos: (data.certPhotos as string[]) ?? undefined,
       } satisfies ExerciseFeedData;

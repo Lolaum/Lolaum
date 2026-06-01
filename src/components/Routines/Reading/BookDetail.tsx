@@ -24,9 +24,16 @@ import {
   getMyRitualRecords,
 } from "@/api/ritual-record";
 import { uploadBookCover } from "@/api/book";
-import { applyTimestamp, fileToBase64, resizeImageFile } from "@/lib/utils";
+import {
+  applyTimestamp,
+  fileToBase64,
+  getPhotoTakenAt,
+  hasMinimumPhotoInterval,
+  resizeImageFile,
+} from "@/lib/utils";
 import { uploadImage, uploadImages } from "@/lib/upload-image";
 import { formatDateKey } from "@/lib/date";
+import CertificationPhotoIntervalModal from "@/components/common/CertificationPhotoIntervalModal";
 import type { ReadingRecordData, Json } from "@/types/supabase";
 
 const MAX_READING_CERT_PHOTOS = 2;
@@ -52,8 +59,12 @@ function AddReadingRecord({
   const [thoughts, setThoughts] = useState("");
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [certPhotos, setCertPhotos] = useState<string[]>([]);
+  const [certPhotoTakenAtTimes, setCertPhotoTakenAtTimes] = useState<number[]>(
+    [],
+  );
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const [showPhotoIntervalModal, setShowPhotoIntervalModal] = useState(false);
 
   const handleScreenshotFile = async (file: File | undefined) => {
     if (!file || !file.type.startsWith("image/")) return;
@@ -84,12 +95,35 @@ function AddReadingRecord({
     const newFiles = Array.from(files)
       .filter((file) => file.type.startsWith("image/"))
       .slice(0, remaining);
-    const stamped = await Promise.all(
-      newFiles.map((f) => applyTimestamp(f).catch(() => fileToBase64(f))),
+    const photoDrafts = await Promise.all(
+      newFiles.map(async (file) => {
+        const takenAt = await getPhotoTakenAt(file);
+        const photo = await applyTimestamp(file, takenAt).catch(() =>
+          fileToBase64(file),
+        );
+        return { photo, takenAtTime: takenAt.getTime() };
+      }),
     );
+    const nextTakenAtTimes = [
+      ...certPhotoTakenAtTimes,
+      ...photoDrafts.map((draft) => draft.takenAtTime),
+    ].slice(0, MAX_READING_CERT_PHOTOS);
+
+    if (
+      nextTakenAtTimes.length >= MAX_READING_CERT_PHOTOS &&
+      !hasMinimumPhotoInterval(nextTakenAtTimes)
+    ) {
+      setShowPhotoIntervalModal(true);
+      return;
+    }
+
     setCertPhotos((prev) =>
-      [...prev, ...stamped].slice(0, MAX_READING_CERT_PHOTOS),
+      [...prev, ...photoDrafts.map((draft) => draft.photo)].slice(
+        0,
+        MAX_READING_CERT_PHOTOS,
+      ),
     );
+    setCertPhotoTakenAtTimes(nextTakenAtTimes);
   };
 
   const handleCertPhotoUpload = async (
@@ -106,6 +140,7 @@ function AddReadingRecord({
 
   const removeCertPhoto = (index: number) => {
     setCertPhotos((prev) => prev.filter((_, i) => i !== index));
+    setCertPhotoTakenAtTimes((prev) => prev.filter((_, i) => i !== index));
   };
 
   const progressAmount =
@@ -124,8 +159,12 @@ function AddReadingRecord({
     const today = formatDateKey(new Date());
     try {
       const [screenshotUrl, certPhotoUrls] = await Promise.all([
-        isEnglishBook && screenshot ? uploadImage(screenshot) : Promise.resolve(undefined),
-        !isEnglishBook && certPhotos.length > 0 ? uploadImages(certPhotos) : Promise.resolve(undefined),
+        isEnglishBook && screenshot
+          ? uploadImage(screenshot)
+          : Promise.resolve(undefined),
+        !isEnglishBook && certPhotos.length > 0
+          ? uploadImages(certPhotos)
+          : Promise.resolve(undefined),
       ]);
 
       await onSave({
@@ -148,6 +187,11 @@ function AddReadingRecord({
 
   return (
     <div className="w-full max-w-4xl mx-auto">
+      <CertificationPhotoIntervalModal
+        open={showPhotoIntervalModal}
+        onClose={() => setShowPhotoIntervalModal(false)}
+      />
+
       {/* 네비게이션 */}
       <div className="flex items-center justify-between mb-4">
         <button
@@ -228,7 +272,8 @@ function AddReadingRecord({
                 </label>
               )}
               <p className="text-xs text-gray-400">
-                전자책이라 인증 사진 찍기가 어려울 경우 전자책 어플 홈 화면 캡쳐로 대체 가능
+                전자책이라 인증 사진 찍기가 어려울 경우 전자책 어플 홈 화면
+                캡쳐로 대체 가능
               </p>
 
               {certPhotos.length > 0 && (
@@ -262,7 +307,8 @@ function AddReadingRecord({
               인증 스크린샷
             </label>
             <p className="text-xs text-gray-500 mb-3 leading-relaxed">
-              구글 클래스룸 오늘의 질문에 답변 후 &lsquo;제출 완료&rsquo; 화면 캡쳐
+              구글 클래스룸 오늘의 질문에 답변 후 &lsquo;제출 완료&rsquo; 화면
+              캡쳐
             </p>
             {screenshot ? (
               <div className="relative rounded-xl overflow-hidden border border-gray-200">
@@ -467,8 +513,12 @@ export default function BookDetail({
   const [showEdit, setShowEdit] = useState(false);
   const [editTitle, setEditTitle] = useState(book.title);
   const [editAuthor, setEditAuthor] = useState(book.author);
-  const [editTotalValue, setEditTotalValue] = useState(book.totalValue.toString());
-  const [editCoverImageUrl, setEditCoverImageUrl] = useState<string | null>(book.coverImageUrl);
+  const [editTotalValue, setEditTotalValue] = useState(
+    book.totalValue.toString(),
+  );
+  const [editCoverImageUrl, setEditCoverImageUrl] = useState<string | null>(
+    book.coverImageUrl,
+  );
   const [editUploading, setEditUploading] = useState(false);
   const editFileInputRef = useRef<HTMLInputElement>(null);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -585,7 +635,9 @@ export default function BookDetail({
     setShowEdit(true);
   };
 
-  const handleEditFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEditFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
@@ -690,7 +742,9 @@ export default function BookDetail({
             />
           </svg>
           <span className="text-sm">
-            {isEnglishBook ? "원서읽기 리추얼 관리로 돌아가기" : "독서 관리로 돌아가기"}
+            {isEnglishBook
+              ? "원서읽기 리추얼 관리로 돌아가기"
+              : "독서 관리로 돌아가기"}
           </span>
         </button>
         <button
@@ -984,91 +1038,91 @@ export default function BookDetail({
 
       {/* 나만의 독서기록 (원서읽기는 스크린샷 인증 방식이라 텍스트 기록 섹션 숨김) */}
       {!isEnglishBook && (
-      <div className="mb-4">
-        <h2 className="text-base font-semibold text-gray-900 mb-3">
-          나만의 독서기록
-        </h2>
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-gray-900 mb-3">
+            나만의 독서기록
+          </h2>
 
-        {records.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 text-center">
-            <p className="text-sm text-gray-400">
-              아직 독서 기록이 없어요.
-              <br />+ 기록 추가를 눌러 오늘 읽은 내용을 남겨보세요!
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {records.map((record) => {
-              const isExpanded = expandedIds.includes(record.id);
-              const unit = record.trackingType === "percent" ? "%" : "p";
-              return (
-                <div
-                  key={record.id}
-                  className="bg-white rounded-2xl border border-gray-200 overflow-hidden"
-                >
-                  <button
-                    type="button"
-                    onClick={() => toggleExpand(record.id)}
-                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
+          {records.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 text-center">
+              <p className="text-sm text-gray-400">
+                아직 독서 기록이 없어요.
+                <br />+ 기록 추가를 눌러 오늘 읽은 내용을 남겨보세요!
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {records.map((record) => {
+                const isExpanded = expandedIds.includes(record.id);
+                const unit = record.trackingType === "percent" ? "%" : "p";
+                return (
+                  <div
+                    key={record.id}
+                    className="bg-white rounded-2xl border border-gray-200 overflow-hidden"
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-gray-700">
-                        {formatDate(record.date)}
-                      </span>
-                      <span className="text-xs text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full font-medium">
-                        +{record.progressAmount}
-                        {unit}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        {record.noteType === "sentence"
-                          ? "오늘의 문장"
-                          : "내용 요약"}
-                      </span>
-                    </div>
-                    <ChevronDown
-                      className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${
-                        isExpanded ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-
-                  {isExpanded && (
-                    <div className="px-4 pb-4 pt-1 border-t border-gray-100 space-y-2">
-                      <div className="text-xs text-gray-400">
-                        {record.startValue}
-                        {unit} → {record.endValue}
-                        {unit}
+                    <button
+                      type="button"
+                      onClick={() => toggleExpand(record.id)}
+                      className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold text-gray-700">
+                          {formatDate(record.date)}
+                        </span>
+                        <span className="text-xs text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full font-medium">
+                          +{record.progressAmount}
+                          {unit}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {record.noteType === "sentence"
+                            ? "오늘의 문장"
+                            : "내용 요약"}
+                        </span>
                       </div>
-                      <div
-                        className={`text-sm text-gray-700 rounded-xl p-3 ${
-                          record.noteType === "sentence"
-                            ? "bg-orange-50 border-l-2 border-orange-300 italic"
-                            : "bg-gray-50"
+                      <ChevronDown
+                        className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${
+                          isExpanded ? "rotate-180" : ""
                         }`}
-                      >
-                        {record.noteType === "sentence" && (
-                          <Quote className="w-3 h-3 text-orange-300 inline-block mr-1 mb-0.5" />
-                        )}
-                        {record.note}
-                      </div>
-                      {record.thoughts && (
-                        <div className="bg-gray-50 rounded-xl p-3">
-                          <p className="text-xs text-gray-400 font-medium mb-1">
-                            나만의 생각
-                          </p>
-                          <p className="text-sm text-gray-700 leading-relaxed">
-                            {record.thoughts}
-                          </p>
+                      />
+                    </button>
+
+                    {isExpanded && (
+                      <div className="px-4 pb-4 pt-1 border-t border-gray-100 space-y-2">
+                        <div className="text-xs text-gray-400">
+                          {record.startValue}
+                          {unit} → {record.endValue}
+                          {unit}
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                        <div
+                          className={`text-sm text-gray-700 rounded-xl p-3 ${
+                            record.noteType === "sentence"
+                              ? "bg-orange-50 border-l-2 border-orange-300 italic"
+                              : "bg-gray-50"
+                          }`}
+                        >
+                          {record.noteType === "sentence" && (
+                            <Quote className="w-3 h-3 text-orange-300 inline-block mr-1 mb-0.5" />
+                          )}
+                          {record.note}
+                        </div>
+                        {record.thoughts && (
+                          <div className="bg-gray-50 rounded-xl p-3">
+                            <p className="text-xs text-gray-400 font-medium mb-1">
+                              나만의 생각
+                            </p>
+                            <p className="text-sm text-gray-700 leading-relaxed">
+                              {record.thoughts}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

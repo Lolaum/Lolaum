@@ -4,11 +4,13 @@ import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { getCurrentChallengeId } from "@/lib/current-challenge";
 import type { Book } from "@/types/supabase";
 
+type BookRoutineType = "reading" | "english_book";
+
 // ── 조회 ──────────────────────────────────────────────
 
 export async function getBooks(
   challengeId: string,
-  routineType: "reading" | "english_book" = "reading",
+  routineType: BookRoutineType = "reading",
 ): Promise<{ data?: Book[]; error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { error: "인증이 필요합니다." };
@@ -28,11 +30,21 @@ export async function getBooks(
 }
 
 export async function getBooksAuto(
-  routineType: "reading" | "english_book" = "reading",
+  routineType: BookRoutineType = "reading",
 ): Promise<{ data?: Book[]; error?: string }> {
-  const { challengeId, error } = await getCurrentChallengeId();
-  if (!challengeId) return { error: error ?? "챌린지를 찾을 수 없습니다." };
-  return getBooks(challengeId, routineType);
+  const user = await getCurrentUser();
+  if (!user) return { error: "인증이 필요합니다." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("books")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("routine_type", routineType)
+    .order("created_at", { ascending: false });
+
+  if (error) return { error: error.message };
+  return { data: data ?? [] };
 }
 
 export async function getBook(
@@ -51,11 +63,8 @@ export async function getBook(
 }
 
 export async function getCompletedBooksAuto(
-  routineType: "reading" | "english_book" = "reading",
+  routineType: BookRoutineType = "reading",
 ): Promise<{ data?: Book[]; error?: string }> {
-  const { challengeId, error } = await getCurrentChallengeId();
-  if (!challengeId) return { error: error ?? "챌린지를 찾을 수 없습니다." };
-
   const user = await getCurrentUser();
   if (!user) return { error: "인증이 필요합니다." };
 
@@ -65,7 +74,6 @@ export async function getCompletedBooksAuto(
     .from("books")
     .select("*")
     .eq("user_id", user.id)
-    .eq("challenge_id", challengeId)
     .eq("routine_type", routineType)
     .eq("is_completed", true)
     .order("updated_at", { ascending: false });
@@ -78,7 +86,7 @@ export async function getCompletedBooksAuto(
 
 export async function createBook(input: {
   challengeId: string;
-  routineType: "reading" | "english_book";
+  routineType: BookRoutineType;
   title: string;
   author: string;
   trackingType: "page" | "percent";
@@ -110,7 +118,7 @@ export async function createBook(input: {
 }
 
 export async function createBookAuto(input: {
-  routineType?: "reading" | "english_book";
+  routineType?: BookRoutineType;
   title: string;
   author: string;
   trackingType: "page" | "percent";
@@ -157,10 +165,13 @@ export async function updateBook(
   } = {};
   if (input.title !== undefined) updateData.title = input.title;
   if (input.author !== undefined) updateData.author = input.author;
-  if (input.currentValue !== undefined) updateData.current_value = input.currentValue;
+  if (input.currentValue !== undefined)
+    updateData.current_value = input.currentValue;
   if (input.totalValue !== undefined) updateData.total_value = input.totalValue;
-  if (input.coverImageUrl !== undefined) updateData.cover_image_url = input.coverImageUrl;
-  if (input.isCompleted !== undefined) updateData.is_completed = input.isCompleted;
+  if (input.coverImageUrl !== undefined)
+    updateData.cover_image_url = input.coverImageUrl;
+  if (input.isCompleted !== undefined)
+    updateData.is_completed = input.isCompleted;
 
   const { data, error } = await supabase
     .from("books")

@@ -279,7 +279,9 @@ export async function getProgressPageData(): Promise<{
     });
 
     // 나와 나머지 분리 (달성 합계 내림차순)
-    const me = allChallengers.find((c) => c.userId === user.id) ?? null;
+    const me = registeredUserIds.has(user.id)
+      ? (allChallengers.find((c) => c.userId === user.id) ?? null)
+      : null;
     const challengers = allChallengers
       .filter((c) => c.userId !== user.id && registeredUserIds.has(c.userId))
       .sort((a, b) => b.totalAchieved - a.totalAchieved);
