@@ -280,6 +280,12 @@ export default function FeedItem({ item, priority }: FeedItemProps) {
   const subText = getSubText(item);
   const images = getImages(item);
   const badgeLabel = getBadgeLabel(item);
+  const recordingEntries =
+    item.routineCategory === "기록" && item.routineData
+      ? normalizeRecordingFeedEntries(item.routineData as RecordingFeedData)
+      : [];
+  const showsWrittenContent =
+    recordingEntries[0]?.type === "write" && !!recordingEntries[0].content;
   const [profileOpen, setProfileOpen] = React.useState(false);
 
   return (
@@ -349,7 +355,11 @@ export default function FeedItem({ item, priority }: FeedItemProps) {
 
           {/* 미리보기 텍스트 */}
           {previewText && (
-            <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 pl-0.5">
+            <p
+              className={`whitespace-pre-wrap text-xs text-gray-500 leading-relaxed pl-0.5 ${
+                showsWrittenContent ? "line-clamp-4" : "line-clamp-2"
+              }`}
+            >
               {previewText}
             </p>
           )}

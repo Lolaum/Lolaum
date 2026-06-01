@@ -44,9 +44,9 @@ export default function TaskTabs({
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="contents md:flex md:flex-col md:gap-4">
       {/* 통계 카드 */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="order-5 grid w-full grid-cols-3 gap-3 md:order-1">
         {[
           {
             value: String(stats?.currentStreak ?? 0),
@@ -79,7 +79,7 @@ export default function TaskTabs({
       </div>
 
       {!isRitualPeriodEnded && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="order-6 grid w-full grid-cols-3 gap-3 md:order-2">
           {[
             {
               label: "리추얼선언",
@@ -111,7 +111,7 @@ export default function TaskTabs({
       )}
 
       {/* 리추얼 카드 */}
-      <div className="rounded-3xl bg-white shadow-sm border border-gray-100 p-5">
+      <div className="order-2 w-full rounded-3xl border border-gray-100 bg-white p-5 shadow-sm md:order-3">
         {/* 날짜 */}
         <div className="mb-5">
           <p className="text-xs text-gray-400 font-medium mb-0.5">

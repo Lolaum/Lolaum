@@ -172,6 +172,9 @@ export async function updateBook(
     updateData.cover_image_url = input.coverImageUrl;
   if (input.isCompleted !== undefined)
     updateData.is_completed = input.isCompleted;
+  if (input.isCompleted === true) {
+    updateData.updated_at = new Date().toISOString();
+  }
 
   const { data, error } = await supabase
     .from("books")

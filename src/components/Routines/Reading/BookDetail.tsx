@@ -13,6 +13,7 @@ import {
   X,
   ImagePlus,
   BookOpen,
+  Plus,
 } from "lucide-react";
 import {
   BookDetailProps,
@@ -522,6 +523,7 @@ export default function BookDetail({
   const [editUploading, setEditUploading] = useState(false);
   const editFileInputRef = useRef<HTMLInputElement>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [stoppingBook, setStoppingBook] = useState(false);
 
   // DB에서 이 책의 기존 기록 불러오기
   const fetchRecords = useCallback(async () => {
@@ -625,6 +627,13 @@ export default function BookDetail({
     setDeleting(true);
     await onDelete(book.id);
     setDeleting(false);
+  };
+
+  const handleStopReading = async () => {
+    if (!onUpdate || book.isCompleted || stoppingBook) return;
+    setStoppingBook(true);
+    await onUpdate(book.id, { isCompleted: true });
+    setStoppingBook(false);
   };
 
   const openEdit = () => {
@@ -951,20 +960,15 @@ export default function BookDetail({
           <div className="flex-1 flex flex-col justify-between py-1 gap-3">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-500">{book.author}</p>
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!onUpdate) return;
-                  await onUpdate(book.id, { isCompleted: !book.isCompleted });
-                }}
-                className={`text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${
+              <span
+                className={`text-xs font-medium px-2.5 py-1 rounded-full ${
                   book.isCompleted
-                    ? "bg-green-100 text-green-600 hover:bg-green-200"
-                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                    ? "bg-green-100 text-green-600"
+                    : "bg-gray-100 text-gray-500"
                 }`}
               >
                 {book.isCompleted ? "완독" : "읽는 중"}
-              </button>
+              </span>
             </div>
             <div>
               <div className="flex items-center justify-between text-sm text-gray-600 mb-1.5">
@@ -992,13 +996,36 @@ export default function BookDetail({
 
       {/* 기록 추가 버튼 */}
       <div className="mb-4">
-        <button
-          type="button"
-          onClick={() => setShowAddRecord(true)}
-          className="w-full py-3 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98] bg-orange-500 hover:bg-orange-600"
-        >
-          + 오늘 {isEnglishBook ? "원서" : "독서"} 기록하기
-        </button>
+        <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+          <button
+            type="button"
+            onClick={() => setShowAddRecord(true)}
+            className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-4 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-orange-600 hover:shadow-md active:scale-[0.98]"
+          >
+            <Plus className="h-4 w-4" />
+            오늘 {isEnglishBook ? "원서" : "독서"} 기록하기
+          </button>
+          {!book.isCompleted && (
+            <button
+              type="button"
+              onClick={handleStopReading}
+              disabled={stoppingBook}
+              className="group flex min-h-14 w-full items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-left shadow-sm transition-all hover:border-orange-200 hover:bg-orange-50/60 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 sm:w-56"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-500 transition-colors group-hover:bg-white group-hover:text-orange-500">
+                <BookOpen className="h-4 w-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-gray-700 group-hover:text-gray-900">
+                  {stoppingBook ? "처리 중..." : "책 그만읽기"}
+                </span>
+                <span className="mt-0.5 block text-[11px] font-medium text-gray-400">
+                  오늘 날짜로 완독 처리
+                </span>
+              </span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 이번 달 통계 */}

@@ -545,7 +545,9 @@ function RecordingContent({ data }: { data: RecordingFeedData }) {
         ) : (
           <div
             key={idx}
-            className="rounded-xl p-4 bg-rose-50 space-y-3 overflow-hidden"
+            className={`rounded-xl p-4 space-y-3 overflow-hidden ${
+              entry.content ? "bg-transparent" : "bg-rose-50"
+            }`}
           >
             <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md text-rose-600 bg-rose-100">
               글 작성 #{idx + 1}
@@ -553,7 +555,7 @@ function RecordingContent({ data }: { data: RecordingFeedData }) {
             {entry.content && (
               <div className="min-w-0">
                 <p className="text-xs text-rose-400 font-medium mb-1">
-                  오늘의 주제
+                  작성한 글
                 </p>
                 <LinkifiedText
                   text={entry.content}

@@ -140,22 +140,26 @@ export default function HomeContainer({
       <div className="mx-auto max-w-5xl">
         <div className="flex flex-col gap-4 md:flex-row md:gap-6">
           {/* 캘린더 섹션 */}
-          <div className="w-full md:w-1/2 lg:w-5/12">
-            <MemberProfile
-              initialMembers={initialData.challengers}
-              selectedMemberId={selectedMemberId}
-              onSelectMember={(id) =>
-                setSelectedMemberId((prev) => (prev === id ? undefined : id))
-              }
-              refreshKey={memberRefreshKey}
-            />
-            <Profile
-              initialProfile={initialData.profile}
-              stats={myPageStats}
-              completionRate={completionRate}
-              period={period}
-              onProfileUpdated={() => setMemberRefreshKey((k) => k + 1)}
-            />
+          <div className="contents md:order-1 md:block md:w-1/2 lg:w-5/12">
+            <div className="order-4 w-full md:order-none">
+              <MemberProfile
+                initialMembers={initialData.challengers}
+                selectedMemberId={selectedMemberId}
+                onSelectMember={(id) =>
+                  setSelectedMemberId((prev) => (prev === id ? undefined : id))
+                }
+                refreshKey={memberRefreshKey}
+              />
+            </div>
+            <div className="order-3 w-full md:order-none">
+              <Profile
+                initialProfile={initialData.profile}
+                stats={myPageStats}
+                completionRate={completionRate}
+                period={period}
+                onProfileUpdated={() => setMemberRefreshKey((k) => k + 1)}
+              />
+            </div>
             {/* <button
               type="button"
               onClick={() => router.push("/mid-review/write")}
@@ -179,7 +183,7 @@ export default function HomeContainer({
                 <span className="text-sm font-bold text-amber-800">작성</span>
               </div>
             </button> */}
-            <div className="sticky top-0 z-10 static">
+            <div className="static order-1 z-10 w-full md:sticky md:top-0 md:order-none">
               <HomCalendar
                 today={today}
                 selectedDate={selectedDate}
@@ -190,7 +194,7 @@ export default function HomeContainer({
           </div>
 
           {/* 태스크 탭 섹션 (리추얼/투두) */}
-          <div className="w-full md:w-1/2 lg:w-7/12">
+          <div className="contents md:order-2 md:block md:w-1/2 lg:w-7/12">
             <TaskTabs
               selectedDate={selectedDate}
               onTaskClick={handleTaskClick}
