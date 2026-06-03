@@ -4,10 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ContinuationChoice } from "@/types/routines/finalReview";
 import { createFinalReview } from "@/api/final-review";
+import type { PublicReviewQuestion } from "@/api/review-questions";
 
 const TOTAL_STEPS = 4;
 
-export default function FinalReviewWriteContainer() {
+export default function FinalReviewWriteContainer({
+  questions = {},
+}: {
+  questions?: Record<string, PublicReviewQuestion>;
+}) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [done, setDone] = useState(false);
@@ -115,15 +120,11 @@ export default function FinalReviewWriteContainer() {
             >
               결과물 점검
             </span>
-            <h2 className="text-base font-bold text-gray-800 leading-relaxed">
-              이번 달 하루 10분-30분 리추얼을 통해 만들어낸
-              <br />
-              눈에 보이는 결과물/행동 수치를 적어주세요.
+            <h2 className="text-base font-bold text-gray-800 leading-relaxed whitespace-pre-line">
+              {questions.results?.label ?? "이번 달 하루 10분-30분 리추얼을 통해 만들어낸\n눈에 보이는 결과물/행동 수치를 적어주세요."}
             </h2>
-            <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-              - 이번 달 내가 남긴 것
-              <br />
-              ex) 책 ___권 / 기록 ___개 / 운동 ___회 / 공부 ___회 등
+            <p className="text-xs text-gray-400 mt-2 leading-relaxed whitespace-pre-line">
+              {questions.results?.helperText || "- 이번 달 내가 남긴 것\nex) 책 ___권 / 기록 ___개 / 운동 ___회 / 공부 ___회 등"}
             </p>
           </div>
 
@@ -162,18 +163,11 @@ export default function FinalReviewWriteContainer() {
             >
               변화 점검
             </span>
-            <h2 className="text-base font-bold text-gray-800 leading-relaxed">
-              리추얼을 통해 실제 삶에서
-              <br />
-              바뀐 점이 있다면?
+            <h2 className="text-base font-bold text-gray-800 leading-relaxed whitespace-pre-line">
+              {questions.life_changes?.label ?? "리추얼을 통해 실제 삶에서\n바뀐 점이 있다면?"}
             </h2>
-            <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-              ex) 실제 성과, 생산성, 감정, 에너지, 집중력 등
-              <br />
-              <br />
-              챌린지 첫 날 적었던 리추얼 선언을 읽어보고,
-              <br />
-              기대하는 변화에 가까워지기 위해 노력한 스스로를 칭찬해주세요!
+            <p className="text-xs text-gray-400 mt-2 leading-relaxed whitespace-pre-line">
+              {questions.life_changes?.helperText || "ex) 실제 성과, 생산성, 감정, 에너지, 집중력 등\n\n챌린지 첫 날 적었던 리추얼 선언을 읽어보고,\n기대하는 변화에 가까워지기 위해 노력한 스스로를 칭찬해주세요!"}
             </p>
           </div>
 
@@ -212,10 +206,8 @@ export default function FinalReviewWriteContainer() {
             >
               방향 점검
             </span>
-            <h2 className="text-base font-bold text-gray-800 leading-relaxed">
-              이 리추얼을 지금 방식 그대로
-              <br />
-              1달 더 한다면?
+            <h2 className="text-base font-bold text-gray-800 leading-relaxed whitespace-pre-line">
+              {questions.continuation_choice?.label ?? "이 리추얼을 지금 방식 그대로\n1달 더 한다면?"}
             </h2>
           </div>
 
@@ -250,12 +242,12 @@ export default function FinalReviewWriteContainer() {
           {continuationChoice === "adjust" && (
             <div className="mb-6">
               <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                무엇을 바꾸면 나아질까요?
+                {questions.adjustment_note?.label ?? "무엇을 바꾸면 나아질까요?"}
               </label>
               <textarea
                 value={adjustmentNote}
                 onChange={(e) => setAdjustmentNote(e.target.value)}
-                placeholder="조정하고 싶은 점을 적어주세요"
+                placeholder={questions.adjustment_note?.helperText || "조정하고 싶은 점을 적어주세요"}
                 rows={4}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 resize-none focus:outline-none focus:border-yellow-300 bg-white"
               />
@@ -287,10 +279,8 @@ export default function FinalReviewWriteContainer() {
             >
               의견 보내기 (선택)
             </span>
-            <h2 className="text-base font-bold text-gray-800 leading-relaxed">
-              리추얼챌린지는 여러분의 의견을 받으며
-              <br />
-              쑥쑥 자랍니다 💛
+            <h2 className="text-base font-bold text-gray-800 leading-relaxed whitespace-pre-line">
+              {questions.feedback?.label ?? "리추얼챌린지는 여러분의 의견을 받으며\n쑥쑥 자랍니다 💛"}
             </h2>
             <p className="text-xs text-gray-400 mt-2 leading-relaxed">
               - 리추얼챌린지에 이런게 있으면 좋을 것 같아요!
@@ -308,7 +298,7 @@ export default function FinalReviewWriteContainer() {
             <textarea
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
-              placeholder="자유롭게 의견을 남겨주세요 (선택사항)"
+              placeholder={questions.feedback?.helperText || "자유롭게 의견을 남겨주세요 (선택사항)"}
               rows={6}
               className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 resize-none focus:outline-none focus:border-yellow-300 bg-white"
             />

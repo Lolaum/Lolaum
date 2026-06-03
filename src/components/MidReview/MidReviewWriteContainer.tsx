@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MidReviewCondition } from "@/types/routines/midReview";
 import { createMidReview } from "@/api/mid-review";
+import type { PublicReviewQuestion } from "@/api/review-questions";
 
 const CONDITIONS: MidReviewCondition[] = [
   "시간대",
@@ -23,7 +24,11 @@ const CONDITION_PROMPTS: Record<MidReviewCondition, string> = {
   "전날 행동": "전날 어떤 행동이 영향을 줬나요?",
 };
 
-export default function MidReviewWriteContainer() {
+export default function MidReviewWriteContainer({
+  questions = {},
+}: {
+  questions?: Record<string, PublicReviewQuestion>;
+}) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [done, setDone] = useState(false);
@@ -352,12 +357,12 @@ export default function MidReviewWriteContainer() {
           <div className="flex flex-col gap-5 mb-6">
             <div>
               <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                나는 왜 이 리추얼을 시작했나요?
+                {questions.why_started?.label ?? "나는 왜 이 리추얼을 시작했나요?"}
               </label>
               <textarea
                 value={whyStarted}
                 onChange={(e) => setWhyStarted(e.target.value)}
-                placeholder="처음 다짐했던 이유를 떠올려보세요"
+                placeholder={questions.why_started?.helperText || "처음 다짐했던 이유를 떠올려보세요"}
                 rows={3}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 resize-none focus:outline-none focus:border-yellow-300 bg-white"
               />
@@ -365,26 +370,26 @@ export default function MidReviewWriteContainer() {
 
             <div>
               <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                남은 기간 동안 유지할 것 1가지
+                {questions.keep_doing?.label ?? "남은 기간 동안 유지할 것 1가지"}
               </label>
               <input
                 type="text"
                 value={keepDoing}
                 onChange={(e) => setKeepDoing(e.target.value)}
-                placeholder="예: 기상 직후 물 한 잔"
+                placeholder={questions.keep_doing?.helperText || "예: 기상 직후 물 한 잔"}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-yellow-300 bg-white"
               />
             </div>
 
             <div>
               <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                남은 기간 동안 바꿀 것 1가지
+                {questions.will_change?.label ?? "남은 기간 동안 바꿀 것 1가지"}
               </label>
               <input
                 type="text"
                 value={willChange}
                 onChange={(e) => setWillChange(e.target.value)}
-                placeholder="예: 스트레칭 5분 → 10분으로 늘리기"
+                placeholder={questions.will_change?.helperText || "예: 스트레칭 5분 → 10분으로 늘리기"}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-yellow-300 bg-white"
               />
             </div>

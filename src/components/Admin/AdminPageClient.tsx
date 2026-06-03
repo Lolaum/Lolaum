@@ -5,13 +5,13 @@ import {
   Alert,
   Box,
   Button,
+  CssBaseline,
   Card,
   CardContent,
   Chip,
   Container,
   Divider,
   FormControlLabel,
-  Grid,
   Stack,
   Switch,
   Tab,
@@ -22,8 +22,11 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  MenuItem,
   TextField,
+  ThemeProvider,
   Typography,
+  createTheme,
 } from "@mui/material";
 import {
   adminLogin,
@@ -38,6 +41,16 @@ import {
 } from "@/api/admin";
 
 type Initial = Awaited<ReturnType<typeof getAdminDashboardData>>;
+
+const adminTheme = createTheme({
+  palette: {
+    primary: { main: "#eab32e", dark: "#c99315", contrastText: "#ffffff" },
+    secondary: { main: "#ff9c28" },
+    background: { default: "#fef7e6", paper: "#ffffff" },
+  },
+  shape: { borderRadius: 18 },
+  typography: { fontFamily: "Arial, Helvetica, sans-serif" },
+});
 
 const defaultQuestions = [
   { reviewType: "mid" as const, questionKey: "why_started", label: "처음 시작한 이유", helperText: "초심을 점검하는 질문", sortOrder: 10, isActive: true },
@@ -91,7 +104,7 @@ function AuthPanel({ onReload }: { onReload: () => void }) {
       const result = mode === "login"
         ? await adminLogin({ email, password })
         : await adminSignup({ username, email, password, inviteCode });
-      if (result.error) {
+      if ("error" in result && result.error) {
         setMessage(result.error);
         return;
       }
@@ -104,8 +117,11 @@ function AuthPanel({ onReload }: { onReload: () => void }) {
     <Container maxWidth="sm" sx={{ py: 8 }}>
       <Card sx={{ borderRadius: 4 }}>
         <CardContent sx={{ p: 4 }}>
-          <Typography variant="h4" fontWeight={800} gutterBottom>Lolaum Admin</Typography>
-          <Typography color="text.secondary" sx={{ mb: 3 }}>관리자 이메일 허용 목록과 초대 코드로 보호됩니다.</Typography>
+          <Stack spacing={1} sx={{ alignItems: "center", mb: 3 }}>
+            <Box component="img" src="/images/common/LolaumLogoWeb.png" alt="Lolaum" sx={{ width: 180, maxWidth: "70%" }} />
+            <Typography variant="h4" sx={{ fontWeight: 800 }}>Lolaum Admin</Typography>
+            <Typography color="text.secondary">관리자 이메일 허용 목록과 초대 코드로 보호됩니다.</Typography>
+          </Stack>
           <Tabs value={mode} onChange={(_, value) => setMode(value)} sx={{ mb: 3 }}>
             <Tab value="login" label="로그인" />
             <Tab value="signup" label="관리자 가입" />
@@ -146,29 +162,62 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
     logs: data?.errorLogs.filter((log) => !log.resolved_at).length ?? 0,
   }), [data]);
 
-  if (!data) return <AuthPanel onReload={reload} />;
+  if (!data) return (
+    <ThemeProvider theme={adminTheme}>
+      <CssBaseline />
+      <AuthPanel onReload={reload} />
+    </ThemeProvider>
+  );
+
+
+  const displayedQuestions: Array<{
+    id: string;
+    review_type: "mid" | "final";
+    question_key: string;
+    label: string;
+    helper_text: string | null;
+    sort_order: number;
+    is_active: boolean;
+    updated_at: string;
+  }> = data.reviewQuestions.length
+    ? data.reviewQuestions
+    : defaultQuestions.map((q) => ({
+        id: q.questionKey,
+        review_type: q.reviewType,
+        question_key: q.questionKey,
+        helper_text: q.helperText,
+        sort_order: q.sortOrder,
+        is_active: q.isActive,
+        label: q.label,
+        updated_at: "기본값",
+      }));
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f7f4ec", py: 4 }}>
+    <ThemeProvider theme={adminTheme}>
+      <CssBaseline />
+      <Box sx={{ minHeight: "100vh", bgcolor: "#f7f4ec", py: 4 }}>
       <Container maxWidth="xl">
         <Stack spacing={3}>
-          <Box>
-            <Typography variant="h3" fontWeight={900}>Lolaum Admin</Typography>
-            <Typography color="text.secondary">{data.adminEmail} · 리추얼 운영 대시보드</Typography>
-          </Box>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: { xs: "flex-start", sm: "center" } }}>
+            <Box component="img" src="/images/common/LolaumLogoWeb.png" alt="Lolaum" sx={{ width: 160 }} />
+            <Box>
+              <Typography variant="h3" sx={{ fontWeight: 900 }}>Lolaum Admin</Typography>
+              <Typography color="text.secondary">{data.adminEmail} · 리추얼 운영 대시보드</Typography>
+            </Box>
+          </Stack>
           {error && <Alert severity="error">{error}</Alert>}
           {data.unsupportedTables.length > 0 && (
             <Alert severity="warning">
               Supabase에 선택 admin 테이블이 아직 없습니다: {data.unsupportedTables.join(", ")}. UI는 표시되지만 해당 기능 저장은 테이블 생성 후 활성화됩니다.
             </Alert>
           )}
-          <Grid container spacing={2}>
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(4, 1fr)" }, gap: 2 }}>
             {[ ["활성 기간", stats.activePeriods], ["사용자", stats.users], ["비활성 사용자", stats.deactivated], ["미해결 로그", stats.logs] ].map(([label, value]) => (
-              <Grid item xs={12} md={3} key={label}>
-                <Card><CardContent><Typography color="text.secondary">{label}</Typography><Typography variant="h4" fontWeight={800}>{value}</Typography></CardContent></Card>
-              </Grid>
+              <Box key={label}>
+                <Card><CardContent><Typography color="text.secondary">{label}</Typography><Typography variant="h4" sx={{ fontWeight: 800 }}>{value}</Typography></CardContent></Card>
+              </Box>
             ))}
-          </Grid>
+          </Box>
           <Card>
             <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="scrollable">
               <Tab label="리추얼 기간" /><Tab label="비활성 사용자" /><Tab label="회고 질문" /><Tab label="오류 로그" /><Tab label="다운로드" />
@@ -176,38 +225,38 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
             <Divider />
             <CardContent>
               {tab === 0 && <Stack spacing={2}>
-                <Typography variant="h6" fontWeight={800}>리추얼 기간 관리</Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={3}><TextField fullWidth label="라벨" value={period.label} onChange={(e) => setPeriod({ ...period, label: e.target.value })} /></Grid>
-                  <Grid item xs={12} md={3}><TextField fullWidth type="date" label="시작일" InputLabelProps={{ shrink: true }} value={period.startDate} onChange={(e) => setPeriod({ ...period, startDate: e.target.value })} /></Grid>
-                  <Grid item xs={12} md={3}><TextField fullWidth type="date" label="종료일" InputLabelProps={{ shrink: true }} value={period.endDate} onChange={(e) => setPeriod({ ...period, endDate: e.target.value })} /></Grid>
-                  <Grid item xs={12} md={3}><FormControlLabel control={<Switch checked={period.isActive} onChange={(e) => setPeriod({ ...period, isActive: e.target.checked })} />} label="활성화" /></Grid>
-                </Grid>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>리추얼 기간 관리</Typography>
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(4, 1fr)" }, gap: 2 }}>
+                  <Box><TextField fullWidth label="라벨" value={period.label} onChange={(e) => setPeriod({ ...period, label: e.target.value })} /></Box>
+                  <Box><TextField fullWidth type="date" label="시작일" slotProps={{ inputLabel: { shrink: true } }} value={period.startDate} onChange={(e) => setPeriod({ ...period, startDate: e.target.value })} /></Box>
+                  <Box><TextField fullWidth type="date" label="종료일" slotProps={{ inputLabel: { shrink: true } }} value={period.endDate} onChange={(e) => setPeriod({ ...period, endDate: e.target.value })} /></Box>
+                  <Box><FormControlLabel control={<Switch checked={period.isActive} onChange={(e) => setPeriod({ ...period, isActive: e.target.checked })} />} label="활성화" /></Box>
+                </Box>
                 <Button variant="contained" disabled={isPending} onClick={() => startTransition(async () => { const res = await upsertChallengePeriod(period); if (res.error) setError(res.error); else reload(); })}>기간 저장</Button>
                 <TableContainer><Table size="small"><TableHead><TableRow><TableCell>라벨</TableCell><TableCell>시작</TableCell><TableCell>종료</TableCell><TableCell>상태</TableCell></TableRow></TableHead><TableBody>{data.periods.map((p) => <TableRow key={p.id}><TableCell>{p.label ?? "-"}</TableCell><TableCell>{p.start_date}</TableCell><TableCell>{p.end_date}</TableCell><TableCell><Chip label={p.is_active ? "active" : "inactive"} color={p.is_active ? "success" : "default"} /></TableCell></TableRow>)}</TableBody></Table></TableContainer>
               </Stack>}
               {tab === 1 && <Stack spacing={2}>
-                <Typography variant="h6" fontWeight={800}>사용자 비활성화 · 리추얼 추가 차단</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>사용자 비활성화 · 리추얼 추가 차단</Typography>
                 <TableContainer><Table size="small"><TableHead><TableRow><TableCell>사용자</TableCell><TableCell>이메일</TableCell><TableCell>리추얼</TableCell><TableCell>상태</TableCell><TableCell>사유</TableCell><TableCell>액션</TableCell></TableRow></TableHead><TableBody>{data.users.map((u) => <TableRow key={u.id}><TableCell>{u.name} ({u.username})</TableCell><TableCell>{u.email}</TableCell><TableCell>{u.routineCount}</TableCell><TableCell><Chip label={u.deactivated ? "차단" : "정상"} color={u.deactivated ? "error" : "success"} /></TableCell><TableCell><TextField size="small" value={reasonByUser[u.id] ?? u.deactivated?.reason ?? ""} onChange={(e) => setReasonByUser({ ...reasonByUser, [u.id]: e.target.value })} /></TableCell><TableCell><Button size="small" disabled={isPending} onClick={() => startTransition(async () => { const res = await setUserDeactivated({ userId: u.id, reason: reasonByUser[u.id] ?? "", deactivated: !u.deactivated }); if (res.error) setError(res.error); else reload(); })}>{u.deactivated ? "해제" : "차단"}</Button></TableCell></TableRow>)}</TableBody></Table></TableContainer>
               </Stack>}
               {tab === 2 && <Stack spacing={2}>
-                <Typography variant="h6" fontWeight={800}>중간/최종 회고 질문 편집</Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={2}><TextField select fullWidth label="종류" value={question.reviewType} onChange={(e) => setQuestion({ ...question, reviewType: e.target.value as "mid" | "final" })} SelectProps={{ native: true }}><option value="mid">중간</option><option value="final">최종</option></TextField></Grid>
-                  <Grid item xs={12} md={2}><TextField fullWidth label="키" value={question.questionKey} onChange={(e) => setQuestion({ ...question, questionKey: e.target.value })} /></Grid>
-                  <Grid item xs={12} md={4}><TextField fullWidth label="질문 라벨" value={question.label} onChange={(e) => setQuestion({ ...question, label: e.target.value })} /></Grid>
-                  <Grid item xs={12} md={3}><TextField fullWidth label="도움말" value={question.helperText} onChange={(e) => setQuestion({ ...question, helperText: e.target.value })} /></Grid>
-                  <Grid item xs={12} md={1}><TextField fullWidth type="number" label="순서" value={question.sortOrder} onChange={(e) => setQuestion({ ...question, sortOrder: Number(e.target.value) })} /></Grid>
-                </Grid>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>중간/최종 회고 질문 편집</Typography>
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(4, 1fr)" }, gap: 2 }}>
+                  <Box><TextField select fullWidth label="종류" value={question.reviewType} onChange={(e) => setQuestion({ ...question, reviewType: e.target.value as "mid" | "final" })}><MenuItem value="mid">중간</MenuItem><MenuItem value="final">최종</MenuItem></TextField></Box>
+                  <Box><TextField fullWidth label="키" value={question.questionKey} onChange={(e) => setQuestion({ ...question, questionKey: e.target.value })} /></Box>
+                  <Box><TextField fullWidth label="질문 라벨" value={question.label} onChange={(e) => setQuestion({ ...question, label: e.target.value })} /></Box>
+                  <Box><TextField fullWidth label="도움말" value={question.helperText} onChange={(e) => setQuestion({ ...question, helperText: e.target.value })} /></Box>
+                  <Box><TextField fullWidth type="number" label="순서" value={question.sortOrder} onChange={(e) => setQuestion({ ...question, sortOrder: Number(e.target.value) })} /></Box>
+                </Box>
                 <Button variant="contained" disabled={isPending} onClick={() => startTransition(async () => { const res = await upsertReviewQuestion(question); if (res.error) setError(res.error); else reload(); })}>질문 저장</Button>
-                <TableContainer><Table size="small"><TableHead><TableRow><TableCell>종류</TableCell><TableCell>키</TableCell><TableCell>라벨</TableCell><TableCell>도움말</TableCell><TableCell>활성</TableCell></TableRow></TableHead><TableBody>{[...data.reviewQuestions, ...(data.reviewQuestions.length ? [] : defaultQuestions.map((q) => ({ ...q, id: q.questionKey, review_type: q.reviewType, question_key: q.questionKey, helper_text: q.helperText, sort_order: q.sortOrder, is_active: q.isActive, label: q.label, updated_at: "기본값" })) as any)].map((q: any) => <TableRow key={`${q.review_type}-${q.question_key}`}><TableCell>{q.review_type}</TableCell><TableCell>{q.question_key}</TableCell><TableCell>{q.label}</TableCell><TableCell>{q.helper_text}</TableCell><TableCell>{q.is_active ? "Y" : "N"}</TableCell></TableRow>)}</TableBody></Table></TableContainer>
+                <TableContainer><Table size="small"><TableHead><TableRow><TableCell>종류</TableCell><TableCell>키</TableCell><TableCell>라벨</TableCell><TableCell>도움말</TableCell><TableCell>활성</TableCell></TableRow></TableHead><TableBody>{displayedQuestions.map((q) => <TableRow key={`${q.review_type}-${q.question_key}`}><TableCell>{q.review_type}</TableCell><TableCell>{q.question_key}</TableCell><TableCell>{q.label}</TableCell><TableCell>{q.helper_text}</TableCell><TableCell>{q.is_active ? "Y" : "N"}</TableCell></TableRow>)}</TableBody></Table></TableContainer>
               </Stack>}
               {tab === 3 && <Stack spacing={2}>
-                <Typography variant="h6" fontWeight={800}>오류 로그</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>오류 로그</Typography>
                 <TableContainer><Table size="small"><TableHead><TableRow><TableCell>시간</TableCell><TableCell>소스</TableCell><TableCell>메시지</TableCell><TableCell>상태</TableCell><TableCell /></TableRow></TableHead><TableBody>{data.errorLogs.map((log) => <TableRow key={log.id}><TableCell>{log.created_at}</TableCell><TableCell>{log.source}</TableCell><TableCell>{log.message}</TableCell><TableCell>{log.resolved_at ? "해결" : "미해결"}</TableCell><TableCell><Button size="small" disabled={Boolean(log.resolved_at) || isPending} onClick={() => startTransition(async () => { const res = await resolveErrorLog(log.id); if (res.error) setError(res.error); else reload(); })}>해결</Button></TableCell></TableRow>)}</TableBody></Table></TableContainer>
               </Stack>}
               {tab === 4 && <Stack spacing={2}>
-                <Typography variant="h6" fontWeight={800}>CSV / Excel 다운로드</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>CSV / Excel 다운로드</Typography>
                 <Typography color="text.secondary">사용자, 챌린지, 등록 리추얼, 기록 수를 통합한 운영용 내보내기입니다.</Typography>
                 <Stack direction="row" spacing={2}><Button variant="contained" onClick={() => downloadCsv(data.exportRows)}>CSV 다운로드</Button><Button variant="outlined" onClick={() => downloadExcel(data.exportRows)}>Excel 다운로드</Button></Stack>
               </Stack>}
@@ -215,6 +264,7 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
           </Card>
         </Stack>
       </Container>
-    </Box>
+      </Box>
+    </ThemeProvider>
   );
 }

@@ -7,6 +7,7 @@ import {
   getCurrentChallengeId,
   isChallengePeriodEnded,
 } from "@/lib/current-challenge";
+import { isUserDeactivatedForRitual } from "@/api/admin";
 import type { ChallengeRegistration, RoutineTypeDB } from "@/types/supabase";
 
 export async function getRoutines(
@@ -46,6 +47,11 @@ export async function createRoutine(input: {
   const user = await getCurrentUser();
   if (!user) {
     return { error: "인증이 필요합니다." };
+  }
+
+  const deactivation = await isUserDeactivatedForRitual(user.id);
+  if (deactivation.deactivated) {
+    return { error: "관리자에 의해 리추얼 추가가 비활성화된 계정입니다." };
   }
 
   const supabase = await createClient();
