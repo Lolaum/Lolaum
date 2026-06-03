@@ -53,13 +53,124 @@ const adminTheme = createTheme({
 });
 
 const defaultQuestions = [
-  { reviewType: "mid" as const, questionKey: "why_started", label: "처음 시작한 이유", helperText: "초심을 점검하는 질문", sortOrder: 10, isActive: true },
-  { reviewType: "mid" as const, questionKey: "keep_doing", label: "계속 유지할 것", helperText: "효과가 있었던 행동", sortOrder: 20, isActive: true },
-  { reviewType: "mid" as const, questionKey: "will_change", label: "바꿔볼 것", helperText: "다음 주기 개선점", sortOrder: 30, isActive: true },
-  { reviewType: "final" as const, questionKey: "results", label: "가장 큰 결과", helperText: "이번 리추얼의 성과", sortOrder: 10, isActive: true },
-  { reviewType: "final" as const, questionKey: "life_changes", label: "생활의 변화", helperText: "몸/마음/생활 변화", sortOrder: 20, isActive: true },
-  { reviewType: "final" as const, questionKey: "feedback", label: "다음 운영 피드백", helperText: "관리자가 볼 피드백", sortOrder: 30, isActive: true },
+  {
+    reviewType: "mid" as const,
+    questionKey: "why_started",
+    displayName: "중간회고 3단계 · 시작 이유",
+    description: "참여자가 처음 리추얼을 시작한 이유를 적는 긴 답변 질문입니다.",
+    label: "나는 왜 이 리추얼을 시작했나요?",
+    helperText: "처음 다짐했던 이유를 떠올려보세요",
+    sortOrder: 10,
+    isActive: true,
+  },
+  {
+    reviewType: "mid" as const,
+    questionKey: "keep_doing",
+    displayName: "중간회고 3단계 · 유지할 것",
+    description: "남은 기간 계속 유지할 행동 1가지를 적는 짧은 답변 질문입니다.",
+    label: "남은 기간 동안 유지할 것 1가지",
+    helperText: "예: 기상 직후 물 한 잔",
+    sortOrder: 20,
+    isActive: true,
+  },
+  {
+    reviewType: "mid" as const,
+    questionKey: "will_change",
+    displayName: "중간회고 3단계 · 바꿀 것",
+    description: "남은 기간 바꿔볼 행동 1가지를 적는 짧은 답변 질문입니다.",
+    label: "남은 기간 동안 바꿀 것 1가지",
+    helperText: "예: 스트레칭 5분 → 10분으로 늘리기",
+    sortOrder: 30,
+    isActive: true,
+  },
+  {
+    reviewType: "final" as const,
+    questionKey: "results",
+    displayName: "최종회고 1단계 · 결과물/행동 수치",
+    description: "이번 리추얼로 남긴 결과물과 행동 수치를 적는 질문입니다.",
+    label: `이번 달 하루 10분-30분 리추얼을 통해 만들어낸
+눈에 보이는 결과물/행동 수치를 적어주세요.`,
+    helperText: `- 이번 달 내가 남긴 것
+ex) 책 ___권 / 기록 ___개 / 운동 ___회 / 공부 ___회 등`,
+    sortOrder: 10,
+    isActive: true,
+  },
+  {
+    reviewType: "final" as const,
+    questionKey: "life_changes",
+    displayName: "최종회고 2단계 · 삶의 변화",
+    description: "실제 삶에서 바뀐 점을 적는 질문입니다.",
+    label: `리추얼을 통해 실제 삶에서
+바뀐 점이 있다면?`,
+    helperText: `ex) 실제 성과, 생산성, 감정, 에너지, 집중력 등
+
+챌린지 첫 날 적었던 리추얼 선언을 읽어보고,
+기대하는 변화에 가까워지기 위해 노력한 스스로를 칭찬해주세요!`,
+    sortOrder: 20,
+    isActive: true,
+  },
+  {
+    reviewType: "final" as const,
+    questionKey: "continuation_choice",
+    displayName: "최종회고 3단계 · 유지/조정 선택",
+    description: "유지하고 싶은지, 조정이 필요한지 선택하기 전 보여주는 질문입니다.",
+    label: `이 리추얼을 지금 방식 그대로
+1달 더 한다면?`,
+    helperText: "",
+    sortOrder: 30,
+    isActive: true,
+  },
+  {
+    reviewType: "final" as const,
+    questionKey: "adjustment_note",
+    displayName: "최종회고 3단계 · 조정 내용",
+    description: "‘조정이 필요하다’를 선택했을 때 추가로 보여주는 질문입니다.",
+    label: "무엇을 바꾸면 나아질까요?",
+    helperText: "조정하고 싶은 점을 적어주세요",
+    sortOrder: 40,
+    isActive: true,
+  },
+  {
+    reviewType: "final" as const,
+    questionKey: "feedback",
+    displayName: "최종회고 4단계 · 운영 피드백",
+    description: "서비스/운영진에게 남기는 선택 질문입니다.",
+    label: `리추얼챌린지는 여러분의 의견을 받으며
+쑥쑥 자랍니다 💛`,
+    helperText: "자유롭게 의견을 남겨주세요 (선택사항)",
+    sortOrder: 50,
+    isActive: true,
+  },
 ];
+
+
+type ReviewQuestionDraft = (typeof defaultQuestions)[number];
+type EditableReviewQuestion = {
+  reviewType: "mid" | "final";
+  questionKey: string;
+  label: string;
+  helperText: string;
+  sortOrder: number;
+  isActive: boolean;
+};
+
+function questionDisplayName(reviewType: "mid" | "final", questionKey: string) {
+  return (
+    defaultQuestions.find(
+      (question) =>
+        question.reviewType === reviewType && question.questionKey === questionKey,
+    )?.displayName ?? questionKey
+  );
+}
+
+function questionDescription(reviewType: "mid" | "final", questionKey: string) {
+  return (
+    defaultQuestions.find(
+      (question) =>
+        question.reviewType === reviewType && question.questionKey === questionKey,
+    )?.description ?? "관리자가 추가한 질문입니다."
+  );
+}
 
 function toCsv(rows: AdminExportRow[]) {
   const headers = ["userId", "name", "username", "email", "challengeId", "periodId", "routineType", "recordCount", "createdAt"];
@@ -147,7 +258,7 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
   const [isPending, startTransition] = useTransition();
   const [period, setPeriod] = useState({ label: "", startDate: "", endDate: "", isActive: true });
   const [reasonByUser, setReasonByUser] = useState<Record<string, string>>({});
-  const [question, setQuestion] = useState(defaultQuestions[0]);
+  const [question, setQuestion] = useState<EditableReviewQuestion>(defaultQuestions[0]);
 
   const reload = () => startTransition(async () => {
     const next = await getAdminDashboardData();
@@ -179,8 +290,14 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
     sort_order: number;
     is_active: boolean;
     updated_at: string;
+    display_name: string;
+    description: string;
   }> = data.reviewQuestions.length
-    ? data.reviewQuestions
+    ? data.reviewQuestions.map((q) => ({
+        ...q,
+        display_name: questionDisplayName(q.review_type, q.question_key),
+        description: questionDescription(q.review_type, q.question_key),
+      }))
     : defaultQuestions.map((q) => ({
         id: q.questionKey,
         review_type: q.reviewType,
@@ -190,7 +307,29 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
         is_active: q.isActive,
         label: q.label,
         updated_at: "기본값",
+        display_name: q.displayName,
+        description: q.description,
       }));
+
+  const questionOptions = defaultQuestions.filter(
+    (option) => option.reviewType === question.reviewType,
+  );
+
+  const loadQuestion = (draft: ReviewQuestionDraft) => {
+    const saved = displayedQuestions.find(
+      (item) =>
+        item.review_type === draft.reviewType &&
+        item.question_key === draft.questionKey,
+    );
+    setQuestion({
+      reviewType: draft.reviewType,
+      questionKey: draft.questionKey,
+      label: saved?.label ?? draft.label,
+      helperText: saved?.helper_text ?? draft.helperText,
+      sortOrder: saved?.sort_order ?? draft.sortOrder,
+      isActive: saved?.is_active ?? draft.isActive,
+    });
+  };
 
   return (
     <ThemeProvider theme={adminTheme}>
@@ -239,17 +378,153 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
                 <Typography variant="h6" sx={{ fontWeight: 800 }}>사용자 비활성화 · 리추얼 추가 차단</Typography>
                 <TableContainer><Table size="small"><TableHead><TableRow><TableCell>사용자</TableCell><TableCell>이메일</TableCell><TableCell>리추얼</TableCell><TableCell>상태</TableCell><TableCell>사유</TableCell><TableCell>액션</TableCell></TableRow></TableHead><TableBody>{data.users.map((u) => <TableRow key={u.id}><TableCell>{u.name} ({u.username})</TableCell><TableCell>{u.email}</TableCell><TableCell>{u.routineCount}</TableCell><TableCell><Chip label={u.deactivated ? "차단" : "정상"} color={u.deactivated ? "error" : "success"} /></TableCell><TableCell><TextField size="small" value={reasonByUser[u.id] ?? u.deactivated?.reason ?? ""} onChange={(e) => setReasonByUser({ ...reasonByUser, [u.id]: e.target.value })} /></TableCell><TableCell><Button size="small" disabled={isPending} onClick={() => startTransition(async () => { const res = await setUserDeactivated({ userId: u.id, reason: reasonByUser[u.id] ?? "", deactivated: !u.deactivated }); if (res.error) setError(res.error); else reload(); })}>{u.deactivated ? "해제" : "차단"}</Button></TableCell></TableRow>)}</TableBody></Table></TableContainer>
               </Stack>}
-              {tab === 2 && <Stack spacing={2}>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>중간/최종 회고 질문 편집</Typography>
-                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(4, 1fr)" }, gap: 2 }}>
-                  <Box><TextField select fullWidth label="종류" value={question.reviewType} onChange={(e) => setQuestion({ ...question, reviewType: e.target.value as "mid" | "final" })}><MenuItem value="mid">중간</MenuItem><MenuItem value="final">최종</MenuItem></TextField></Box>
-                  <Box><TextField fullWidth label="키" value={question.questionKey} onChange={(e) => setQuestion({ ...question, questionKey: e.target.value })} /></Box>
-                  <Box><TextField fullWidth label="질문 라벨" value={question.label} onChange={(e) => setQuestion({ ...question, label: e.target.value })} /></Box>
-                  <Box><TextField fullWidth label="도움말" value={question.helperText} onChange={(e) => setQuestion({ ...question, helperText: e.target.value })} /></Box>
-                  <Box><TextField fullWidth type="number" label="순서" value={question.sortOrder} onChange={(e) => setQuestion({ ...question, sortOrder: Number(e.target.value) })} /></Box>
+              {tab === 2 && <Stack spacing={3}>
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 800 }}>중간/최종 회고 질문 수정</Typography>
+                  <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+                    실제 앱에 보이는 질문 문구와 입력칸 안내문을 수정합니다. 개발용 키는 자동으로 관리됩니다.
+                  </Typography>
                 </Box>
-                <Button variant="contained" disabled={isPending} onClick={() => startTransition(async () => { const res = await upsertReviewQuestion(question); if (res.error) setError(res.error); else reload(); })}>질문 저장</Button>
-                <TableContainer><Table size="small"><TableHead><TableRow><TableCell>종류</TableCell><TableCell>키</TableCell><TableCell>라벨</TableCell><TableCell>도움말</TableCell><TableCell>활성</TableCell></TableRow></TableHead><TableBody>{displayedQuestions.map((q) => <TableRow key={`${q.review_type}-${q.question_key}`}><TableCell>{q.review_type}</TableCell><TableCell>{q.question_key}</TableCell><TableCell>{q.label}</TableCell><TableCell>{q.helper_text}</TableCell><TableCell>{q.is_active ? "Y" : "N"}</TableCell></TableRow>)}</TableBody></Table></TableContainer>
+
+                <Alert severity="info">
+                  먼저 “중간회고/최종회고”와 “수정할 질문 위치”를 고르면 현재 저장된 문구가 아래 입력칸에 채워집니다.
+                </Alert>
+
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 2fr" }, gap: 2 }}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="회고 종류"
+                    value={question.reviewType}
+                    onChange={(e) => {
+                      const reviewType = e.target.value as "mid" | "final";
+                      const first = defaultQuestions.find((item) => item.reviewType === reviewType);
+                      if (first) loadQuestion(first);
+                    }}
+                  >
+                    <MenuItem value="mid">중간회고</MenuItem>
+                    <MenuItem value="final">최종회고</MenuItem>
+                  </TextField>
+                  <TextField
+                    select
+                    fullWidth
+                    label="수정할 질문 위치"
+                    value={question.questionKey}
+                    helperText={questionDescription(question.reviewType, question.questionKey)}
+                    onChange={(e) => {
+                      const next = questionOptions.find((item) => item.questionKey === e.target.value);
+                      if (next) loadQuestion(next);
+                    }}
+                  >
+                    {questionOptions.map((option) => (
+                      <MenuItem key={option.questionKey} value={option.questionKey}>
+                        {option.displayName}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Box>
+
+                <Card variant="outlined" sx={{ bgcolor: "#fffaf0" }}>
+                  <CardContent>
+                    <Stack spacing={2}>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">현재 수정 중</Typography>
+                        <Typography sx={{ fontWeight: 800 }}>
+                          {questionDisplayName(question.reviewType, question.questionKey)}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {questionDescription(question.reviewType, question.questionKey)}
+                        </Typography>
+                      </Box>
+                      <TextField
+                        fullWidth
+                        multiline
+                        minRows={2}
+                        label="앱에 표시될 질문 문구"
+                        value={question.label}
+                        onChange={(e) => setQuestion({ ...question, label: e.target.value })}
+                        helperText="줄바꿈도 그대로 반영됩니다. 사용자가 실제로 읽는 질문입니다."
+                      />
+                      <TextField
+                        fullWidth
+                        multiline
+                        minRows={2}
+                        label="입력칸 안내문 / 예시 문구"
+                        value={question.helperText}
+                        onChange={(e) => setQuestion({ ...question, helperText: e.target.value })}
+                        helperText="답변칸 placeholder 또는 질문 아래 설명으로 표시됩니다. 필요 없으면 비워도 됩니다."
+                      />
+                      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: { sm: "center" } }}>
+                        <TextField
+                          type="number"
+                          label="표시 순서"
+                          value={question.sortOrder}
+                          onChange={(e) => setQuestion({ ...question, sortOrder: Number(e.target.value) })}
+                          sx={{ maxWidth: 160 }}
+                        />
+                        <FormControlLabel
+                          control={<Switch checked={question.isActive} onChange={(e) => setQuestion({ ...question, isActive: e.target.checked })} />}
+                          label="사용 중"
+                        />
+                        <Button
+                          variant="contained"
+                          disabled={isPending || !question.label.trim()}
+                          onClick={() => startTransition(async () => {
+                            const res = await upsertReviewQuestion(question);
+                            if (res.error) setError(res.error);
+                            else reload();
+                          })}
+                        >
+                          이 질문 저장
+                        </Button>
+                      </Stack>
+                    </Stack>
+                  </CardContent>
+                </Card>
+
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>회고</TableCell>
+                        <TableCell>질문 위치</TableCell>
+                        <TableCell>현재 질문 문구</TableCell>
+                        <TableCell>입력 안내</TableCell>
+                        <TableCell>상태</TableCell>
+                        <TableCell />
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {displayedQuestions.map((q) => (
+                        <TableRow key={`${q.review_type}-${q.question_key}`} hover>
+                          <TableCell>{q.review_type === "mid" ? "중간" : "최종"}</TableCell>
+                          <TableCell>
+                            <Typography sx={{ fontWeight: 700 }}>{q.display_name}</Typography>
+                            <Typography variant="caption" color="text.secondary">{q.description}</Typography>
+                          </TableCell>
+                          <TableCell sx={{ whiteSpace: "pre-line", minWidth: 240 }}>{q.label}</TableCell>
+                          <TableCell sx={{ whiteSpace: "pre-line", minWidth: 220 }}>{q.helper_text || "-"}</TableCell>
+                          <TableCell>{q.is_active ? "사용 중" : "숨김"}</TableCell>
+                          <TableCell>
+                            <Button
+                              size="small"
+                              onClick={() => setQuestion({
+                                reviewType: q.review_type,
+                                questionKey: q.question_key,
+                                label: q.label,
+                                helperText: q.helper_text ?? "",
+                                sortOrder: q.sort_order,
+                                isActive: q.is_active,
+                              })}
+                            >
+                              수정
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
               </Stack>}
               {tab === 3 && <Stack spacing={2}>
                 <Typography variant="h6" sx={{ fontWeight: 800 }}>오류 로그</Typography>
