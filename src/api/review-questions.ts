@@ -12,6 +12,14 @@ export interface PublicReviewQuestion {
 }
 
 const FALLBACK_QUESTIONS: PublicReviewQuestion[] = [
+  { reviewType: "mid", questionKey: "good_pattern_title", label: "리추얼이 가장 잘 작동했던 날,\n어떤 조건이 갖춰져 있었나요?", helperText: "2~3가지를 선택해주세요" },
+  { reviewType: "mid", questionKey: "hard_pattern_title", label: "리추얼이 가장 힘들었던 날,\n무엇이 걸림돌이 됐나요?", helperText: "1~2가지를 선택해주세요" },
+  { reviewType: "mid", questionKey: "condition_time", label: "어떤 시간대였나요?", helperText: "구체적으로 적어주세요" },
+  { reviewType: "mid", questionKey: "condition_place", label: "어떤 장소였나요?", helperText: "구체적으로 적어주세요" },
+  { reviewType: "mid", questionKey: "condition_habit", label: "어떤 습관이 도움이 됐나요?", helperText: "구체적으로 적어주세요" },
+  { reviewType: "mid", questionKey: "condition_body", label: "컨디션이 어땠나요?", helperText: "구체적으로 적어주세요" },
+  { reviewType: "mid", questionKey: "condition_emotion", label: "어떤 감정 상태였나요?", helperText: "구체적으로 적어주세요" },
+  { reviewType: "mid", questionKey: "condition_previous_action", label: "전날 어떤 행동이 영향을 줬나요?", helperText: "구체적으로 적어주세요" },
   { reviewType: "mid", questionKey: "why_started", label: "나는 왜 이 리추얼을 시작했나요?", helperText: "처음 다짐했던 이유를 떠올려보세요" },
   { reviewType: "mid", questionKey: "keep_doing", label: "남은 기간 동안 유지할 것 1가지", helperText: "예: 기상 직후 물 한 잔" },
   { reviewType: "mid", questionKey: "will_change", label: "남은 기간 동안 바꿀 것 1가지", helperText: "예: 스트레칭 5분 → 10분으로 늘리기" },

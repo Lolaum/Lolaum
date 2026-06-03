@@ -24,6 +24,15 @@ const CONDITION_PROMPTS: Record<MidReviewCondition, string> = {
   "전날 행동": "전날 어떤 행동이 영향을 줬나요?",
 };
 
+const CONDITION_QUESTION_KEYS: Record<MidReviewCondition, string> = {
+  시간대: "condition_time",
+  장소: "condition_place",
+  습관: "condition_habit",
+  컨디션: "condition_body",
+  감정: "condition_emotion",
+  "전날 행동": "condition_previous_action",
+};
+
 export default function MidReviewWriteContainer({
   questions = {},
 }: {
@@ -175,12 +184,13 @@ export default function MidReviewWriteContainer({
             >
               패턴 점검
             </span>
-            <h2 className="text-base font-bold text-gray-800 leading-relaxed">
-              리추얼이 가장 잘 작동했던 날,
-              <br />
-              어떤 조건이 갖춰져 있었나요?
+            <h2 className="text-base font-bold text-gray-800 leading-relaxed whitespace-pre-line">
+              {questions.good_pattern_title?.label ??
+                "리추얼이 가장 잘 작동했던 날,\n어떤 조건이 갖춰져 있었나요?"}
             </h2>
-            <p className="text-xs text-gray-400 mt-1">2~3가지를 선택해주세요</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {questions.good_pattern_title?.helperText || "2~3가지를 선택해주세요"}
+            </p>
           </div>
 
           <div className="flex flex-wrap gap-2 mb-6">
@@ -220,14 +230,14 @@ export default function MidReviewWriteContainer({
               {goodConditions.map((c) => (
                 <div key={c}>
                   <label className="text-xs font-semibold text-gray-500 mb-1.5 block">
-                    {CONDITION_PROMPTS[c]}
+                    {questions[CONDITION_QUESTION_KEYS[c]]?.label ?? CONDITION_PROMPTS[c]}
                   </label>
                   <textarea
                     value={goodDetails[c] ?? ""}
                     onChange={(e) =>
                       setGoodDetails({ ...goodDetails, [c]: e.target.value })
                     }
-                    placeholder="구체적으로 적어주세요"
+                    placeholder={questions[CONDITION_QUESTION_KEYS[c]]?.helperText || "구체적으로 적어주세요"}
                     rows={2}
                     className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 resize-none focus:outline-none focus:border-yellow-300 bg-white"
                   />
@@ -261,12 +271,13 @@ export default function MidReviewWriteContainer({
             >
               패턴 점검
             </span>
-            <h2 className="text-base font-bold text-gray-800 leading-relaxed">
-              리추얼이 가장 힘들었던 날,
-              <br />
-              무엇이 걸림돌이 됐나요?
+            <h2 className="text-base font-bold text-gray-800 leading-relaxed whitespace-pre-line">
+              {questions.hard_pattern_title?.label ??
+                "리추얼이 가장 힘들었던 날,\n무엇이 걸림돌이 됐나요?"}
             </h2>
-            <p className="text-xs text-gray-400 mt-1">1~2가지를 선택해주세요</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {questions.hard_pattern_title?.helperText || "1~2가지를 선택해주세요"}
+            </p>
           </div>
 
           <div className="flex flex-wrap gap-2 mb-6">
@@ -306,14 +317,14 @@ export default function MidReviewWriteContainer({
               {hardConditions.map((c) => (
                 <div key={c}>
                   <label className="text-xs font-semibold text-gray-500 mb-1.5 block">
-                    {CONDITION_PROMPTS[c]}
+                    {questions[CONDITION_QUESTION_KEYS[c]]?.label ?? CONDITION_PROMPTS[c]}
                   </label>
                   <textarea
                     value={hardDetails[c] ?? ""}
                     onChange={(e) =>
                       setHardDetails({ ...hardDetails, [c]: e.target.value })
                     }
-                    placeholder="구체적으로 적어주세요"
+                    placeholder={questions[CONDITION_QUESTION_KEYS[c]]?.helperText || "구체적으로 적어주세요"}
                     rows={2}
                     className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 resize-none focus:outline-none focus:border-yellow-300 bg-white"
                   />
