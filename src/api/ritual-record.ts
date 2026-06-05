@@ -15,38 +15,6 @@ import type { Json, RitualRecord, RoutineTypeDB } from "@/types/supabase";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseAnyClient = { from: (...args: any[]) => any };
 
-const PHOTO_DUPLICATE_WINDOW_MINUTES = 10;
-const PHOTO_DUPLICATE_MESSAGE =
-  "사진 인증 리추얼은 10분 이내 중복 업로드할 수 없어요. 잠시 후 다시 시도해주세요.";
-
-function hasPhotoCertification(recordData: Json): boolean {
-  if (
-    !recordData ||
-    typeof recordData !== "object" ||
-    Array.isArray(recordData)
-  ) {
-    return false;
-  }
-
-  const data = recordData as Record<string, Json | undefined>;
-  const photoFields = [
-    data.certPhotos,
-    data.images,
-    data.image,
-    data.screenshot,
-  ];
-
-  return photoFields.some((value) => {
-    if (typeof value === "string") return value.trim().length > 0;
-    if (Array.isArray(value)) {
-      return value.some(
-        (item) => typeof item === "string" && item.trim().length > 0,
-      );
-    }
-    return false;
-  });
-}
-
 const ROUTINE_HOME_PATH: Record<RoutineTypeDB, string> = {
   morning: "/home/morning",
   exercise: "/home/exercise",
@@ -289,31 +257,6 @@ export async function createRitualRecord(input: {
     recordData,
   });
   if (limitError) return { error: limitError };
-
-  if (hasPhotoCertification(recordData)) {
-    const duplicateSince = new Date(
-      Date.now() - PHOTO_DUPLICATE_WINDOW_MINUTES * 60 * 1000,
-    ).toISOString();
-    const { data: recentPhotoRecords, error: recentError } = await supabase
-      .from("ritual_records")
-      .select("id, record_data")
-      .eq("user_id", user.id)
-      .eq("challenge_id", input.challengeId)
-      .eq("routine_type", input.routineType)
-      .eq("record_date", input.recordDate)
-      .gte("created_at", duplicateSince)
-      .order("created_at", { ascending: false })
-      .limit(5);
-
-    if (recentError) return { error: recentError.message };
-    if (
-      (recentPhotoRecords ?? []).some((r) =>
-        hasPhotoCertification(r.record_data as Json),
-      )
-    ) {
-      return { error: PHOTO_DUPLICATE_MESSAGE };
-    }
-  }
 
   // 하루에 여러 기록 허용 (INSERT), 달성률은 Set으로 하루 1회만 인정
   const { data, error } = await supabase
