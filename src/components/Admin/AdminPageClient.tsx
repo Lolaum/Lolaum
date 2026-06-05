@@ -64,7 +64,8 @@ const defaultQuestions = [
     reviewType: "mid" as const,
     questionKey: "good_pattern_title",
     displayName: "중간회고 1단계 · 잘 작동한 날 질문",
-    description: "리추얼이 잘 된 날의 조건을 고르기 전에 보여주는 제목 질문입니다.",
+    description:
+      "리추얼이 잘 된 날의 조건을 고르기 전에 보여주는 제목 질문입니다.",
     label: `리추얼이 가장 잘 작동했던 날,
 어떤 조건이 갖춰져 있었나요?`,
     helperText: "2~3가지를 선택해주세요",
@@ -74,7 +75,8 @@ const defaultQuestions = [
     reviewType: "mid" as const,
     questionKey: "hard_pattern_title",
     displayName: "중간회고 2단계 · 힘들었던 날 질문",
-    description: "리추얼이 힘들었던 날의 걸림돌을 고르기 전에 보여주는 제목 질문입니다.",
+    description:
+      "리추얼이 힘들었던 날의 걸림돌을 고르기 전에 보여주는 제목 질문입니다.",
     label: `리추얼이 가장 힘들었던 날,
 무엇이 걸림돌이 됐나요?`,
     helperText: "1~2가지를 선택해주세요",
@@ -278,12 +280,22 @@ function downloadBlob(filename: string, blob: Blob) {
   URL.revokeObjectURL(url);
 }
 
-function exportFilename(kind: ExportKind, periodLabel: string, extension: "csv" | "xlsx") {
-  const safePeriod = periodLabel.replace(/[^\p{L}\p{N}._-]+/gu, "-").replace(/^-|-$/g, "");
+function exportFilename(
+  kind: ExportKind,
+  periodLabel: string,
+  extension: "csv" | "xlsx",
+) {
+  const safePeriod = periodLabel
+    .replace(/[^\p{L}\p{N}._-]+/gu, "-")
+    .replace(/^-|-$/g, "");
   return `lolaum-${exportKindLabels[kind]}-${safePeriod || "period"}.${extension}`;
 }
 
-function downloadCsv(rows: AdminExportRow[], kind: ExportKind, periodLabel: string) {
+function downloadCsv(
+  rows: AdminExportRow[],
+  kind: ExportKind,
+  periodLabel: string,
+) {
   downloadFile(
     exportFilename(kind, periodLabel, "csv"),
     `\uFEFF${toCsv(rows)}`,
@@ -347,7 +359,9 @@ function createZip(entries: { name: string; content: string }[]) {
     writeUint16(localHeader, nameBytes.length);
     writeUint16(localHeader, 0);
 
-    const local = new Uint8Array(localHeader.length + nameBytes.length + contentBytes.length);
+    const local = new Uint8Array(
+      localHeader.length + nameBytes.length + contentBytes.length,
+    );
     local.set(localHeader, 0);
     local.set(nameBytes, localHeader.length);
     local.set(contentBytes, localHeader.length + nameBytes.length);
@@ -392,11 +406,17 @@ function createZip(entries: { name: string; content: string }[]) {
   writeUint16(endHeader, 0);
 
   const toBlobPart = (bytes: Uint8Array): ArrayBuffer =>
-    bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+    bytes.buffer.slice(
+      bytes.byteOffset,
+      bytes.byteOffset + bytes.byteLength,
+    ) as ArrayBuffer;
 
-  return new Blob([...fileParts, ...centralParts, new Uint8Array(endHeader)].map(toBlobPart), {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
+  return new Blob(
+    [...fileParts, ...centralParts, new Uint8Array(endHeader)].map(toBlobPart),
+    {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    },
+  );
 }
 
 function columnName(index: number) {
@@ -412,7 +432,10 @@ function columnName(index: number) {
 
 function createXlsxBlob(rows: AdminExportRow[]) {
   const headers = getExportHeaders(rows);
-  const sheetRows = [headers, ...rows.map((row) => headers.map((header) => row[header]))];
+  const sheetRows = [
+    headers,
+    ...rows.map((row) => headers.map((header) => row[header])),
+  ];
   const sheetData = sheetRows
     .map((row, rowIndex) => {
       const cells = row
@@ -439,11 +462,12 @@ function createXlsxBlob(rows: AdminExportRow[]) {
   ]);
 }
 
-function downloadExcel(rows: AdminExportRow[], kind: ExportKind, periodLabel: string) {
-  downloadBlob(
-    exportFilename(kind, periodLabel, "xlsx"),
-    createXlsxBlob(rows),
-  );
+function downloadExcel(
+  rows: AdminExportRow[],
+  kind: ExportKind,
+  periodLabel: string,
+) {
+  downloadBlob(exportFilename(kind, periodLabel, "xlsx"), createXlsxBlob(rows));
 }
 
 function AuthPanel({ onReload }: { onReload: () => void }) {
@@ -638,10 +662,19 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
   const selectedExportRows = exportSourceRows[exportKind].filter(
     (row) => row.periodId === exportPeriodId,
   );
-  const labelFor = (reviewType: "mid" | "final", questionKey: string, fallback: string) =>
-    (displayedQuestions.find(
-      (item) => item.review_type === reviewType && item.question_key === questionKey,
-    )?.label ?? fallback).replace(/\s+/g, " ").trim();
+  const labelFor = (
+    reviewType: "mid" | "final",
+    questionKey: string,
+    fallback: string,
+  ) =>
+    (
+      displayedQuestions.find(
+        (item) =>
+          item.review_type === reviewType && item.question_key === questionKey,
+      )?.label ?? fallback
+    )
+      .replace(/\s+/g, " ")
+      .trim();
   const selectedDownloadRows: AdminExportRow[] =
     exportKind === "donation"
       ? selectedExportRows.map((row) => ({
@@ -677,10 +710,16 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
               "results",
               "이번 달 하루 10분-30분 리추얼을 통해 만들어낸 눈에 보이는 결과물/행동 수치를 적어주세요.",
             )]: row.results,
-            [labelFor("final", "life_changes", "리추얼을 통해 실제 삶에서 바뀐 점이 있다면?")]:
-              row.lifeChanges,
-            [labelFor("final", "continuation_choice", "이 리추얼을 지금 방식 그대로 1달 더 한다면?")]:
-              row.continuationChoice,
+            [labelFor(
+              "final",
+              "life_changes",
+              "리추얼을 통해 실제 삶에서 바뀐 점이 있다면?",
+            )]: row.lifeChanges,
+            [labelFor(
+              "final",
+              "continuation_choice",
+              "이 리추얼을 지금 방식 그대로 1달 더 한다면?",
+            )]: row.continuationChoice,
             [labelFor("final", "adjustment_note", "무엇을 바꾸면 나아질까요?")]:
               row.adjustmentNote,
             [labelFor(
@@ -1207,7 +1246,7 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
                 {tab === 4 && (
                   <Stack spacing={3}>
                     <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                      CSV / Excel 다운로드
+                      데이터 다운로드
                     </Typography>
                     <Typography color="text.secondary">
                       리추얼 기간과 다운로드 종류를 선택하면 해당 기간 데이터만
@@ -1223,7 +1262,8 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
                       >
                         {data.periods.map((item) => (
                           <MenuItem key={item.id} value={item.id}>
-                            {item.label || `${item.start_date} ~ ${item.end_date}`}
+                            {item.label ||
+                              `${item.start_date} ~ ${item.end_date}`}
                             {item.is_active ? " · 활성" : ""}
                           </MenuItem>
                         ))}
@@ -1242,26 +1282,22 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
                         <MenuItem value="finalReview">최종회고</MenuItem>
                       </TextField>
                     </Stack>
-                    <Alert severity={selectedExportRows.length ? "info" : "warning"}>
-                      {selectedExportPeriodLabel} · {exportKindLabels[exportKind]}{" "}
+                    <Alert
+                      severity={selectedExportRows.length ? "info" : "warning"}
+                    >
+                      {selectedExportPeriodLabel} ·{" "}
+                      {exportKindLabels[exportKind]}{" "}
                       {selectedExportRows.length.toLocaleString()}건
                     </Alert>
                     <Stack direction="row" spacing={2}>
                       <Button
                         variant="contained"
-                        disabled={!selectedExportRows.length}
-                        onClick={() =>
-                          downloadCsv(
-                            selectedDownloadRows,
-                            exportKind,
-                            selectedExportPeriodLabel,
-                          )
-                        }
-                      >
-                        CSV 다운로드
-                      </Button>
-                      <Button
-                        variant="outlined"
+                        sx={{
+                          bgcolor: "#eab32e",
+                          boxShadow: "none",
+                          color: "#fff",
+                          "&:hover": { bgcolor: "#c99315", boxShadow: "none" },
+                        }}
                         disabled={!selectedExportRows.length}
                         onClick={() =>
                           downloadExcel(
@@ -1272,6 +1308,19 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
                         }
                       >
                         Excel 다운로드
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        disabled={!selectedExportRows.length}
+                        onClick={() =>
+                          downloadCsv(
+                            selectedDownloadRows,
+                            exportKind,
+                            selectedExportPeriodLabel,
+                          )
+                        }
+                      >
+                        CSV 다운로드
                       </Button>
                     </Stack>
                   </Stack>

@@ -10,7 +10,7 @@ export interface MorningRecord {
   sleepImprovement?: string; // 수면 7시간 미만 시 원인과 개선 방법
   condition: ConditionLevel; // 컨디션 (상/중/하)
   success: string; // 오늘의 작은 성공 (오늘 한 일)
-  reflection: string; // 한 줄 회고
+  reflection: string; // 한 줄 다짐
 }
 
 export interface MorningContainerProps {

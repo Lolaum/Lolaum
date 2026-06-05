@@ -110,7 +110,9 @@ export default function RecordMorning({
                   </p>
                 </div>
                 <div className="flex items-center gap-3 ml-4">
-                  <span className="text-xs text-yellow-500 font-medium">{group.sleepHours}h</span>
+                  <span className="text-xs text-yellow-500 font-medium">
+                    {group.sleepHours}h
+                  </span>
                   <span className="text-sm text-yellow-500 font-medium">
                     {group.condition}
                   </span>
@@ -144,19 +146,32 @@ export default function RecordMorning({
                     {/* 수면 시간 & 컨디션 */}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-yellow-50 rounded-xl p-3">
-                        <p className="text-xs text-yellow-500 font-medium mb-1">수면 시간</p>
-                        <p className="text-2xl font-bold text-gray-800">{group.sleepHours}<span className="text-sm font-medium text-gray-500">h</span></p>
+                        <p className="text-xs text-yellow-500 font-medium mb-1">
+                          수면 시간
+                        </p>
+                        <p className="text-2xl font-bold text-gray-800">
+                          {group.sleepHours}
+                          <span className="text-sm font-medium text-gray-500">
+                            h
+                          </span>
+                        </p>
                       </div>
                       <div className="bg-yellow-50 rounded-xl p-3">
-                        <p className="text-xs text-yellow-500 font-medium mb-1">컨디션</p>
-                        <p className="text-2xl font-bold text-gray-800">{group.condition}</p>
+                        <p className="text-xs text-yellow-500 font-medium mb-1">
+                          컨디션
+                        </p>
+                        <p className="text-2xl font-bold text-gray-800">
+                          {group.condition}
+                        </p>
                       </div>
                     </div>
 
                     {/* 수면 부족 원인 & 개선 방법 */}
                     {group.sleepImprovement && (
                       <div className="bg-orange-50 rounded-xl p-4">
-                        <p className="text-xs text-orange-500 font-medium mb-1">수면 부족 원인 & 개선 방법</p>
+                        <p className="text-xs text-orange-500 font-medium mb-1">
+                          수면 부족 원인 & 개선 방법
+                        </p>
                         <p className="text-sm text-gray-700 leading-relaxed">
                           {group.sleepImprovement}
                         </p>
@@ -165,15 +180,19 @@ export default function RecordMorning({
 
                     {/* 오늘의 작은 성공 */}
                     <div className="bg-gray-50 rounded-xl p-4">
-                      <p className="text-xs text-gray-400 font-medium mb-1">오늘의 작은 성공 (오늘 한 일)</p>
+                      <p className="text-xs text-gray-400 font-medium mb-1">
+                        오늘의 작은 성공 (오늘 한 일)
+                      </p>
                       <p className="text-sm text-gray-700 leading-relaxed">
                         {group.success}
                       </p>
                     </div>
 
-                    {/* 한 줄 회고 */}
+                    {/* 한 줄 다짐 */}
                     <div className="bg-gray-50 rounded-xl p-4">
-                      <p className="text-xs text-gray-400 font-medium mb-1">한 줄 회고</p>
+                      <p className="text-xs text-gray-400 font-medium mb-1">
+                        한 줄 다짐
+                      </p>
                       <p className="text-sm text-gray-700 leading-relaxed">
                         {group.reflection}
                       </p>

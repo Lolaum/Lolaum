@@ -24,7 +24,8 @@ interface Props {
   onCancel: () => void;
 }
 
-const fieldLabel = "block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5";
+const fieldLabel =
+  "block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5";
 const textareaCls =
   "w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-300 resize-none";
 const inputCls =
@@ -38,10 +39,14 @@ export default function EditFeedRecord({ item, onCancel }: Props) {
 
   // 카테고리별 상태
   const [exerciseDraft, setExerciseDraft] = useState<ExerciseFeedData | null>(
-    item.routineCategory === "운동" && data ? { ...(data as ExerciseFeedData) } : null,
+    item.routineCategory === "운동" && data
+      ? { ...(data as ExerciseFeedData) }
+      : null,
   );
   const [morningDraft, setMorningDraft] = useState<MorningFeedData | null>(
-    item.routineCategory === "모닝" && data ? { ...(data as MorningFeedData) } : null,
+    item.routineCategory === "모닝" && data
+      ? { ...(data as MorningFeedData) }
+      : null,
   );
   const [financeDraft, setFinanceDraft] = useState<FinanceFeedData | null>(
     item.routineCategory === "자산관리" && data
@@ -55,23 +60,28 @@ export default function EditFeedRecord({ item, onCancel }: Props) {
       : null,
   );
   const [languageDraft, setLanguageDraft] = useState<LanguageFeedData | null>(
-    (item.routineCategory === "영어" || item.routineCategory === "제2외국어") && data
+    (item.routineCategory === "영어" || item.routineCategory === "제2외국어") &&
+      data
       ? {
           ...(data as LanguageFeedData),
-          expressions: (data as LanguageFeedData).expressions.map((e) => ({ ...e })),
+          expressions: (data as LanguageFeedData).expressions.map((e) => ({
+            ...e,
+          })),
         }
       : null,
   );
   const [readingDraft, setReadingDraft] = useState<ReadingFeedData | null>(
-    (item.routineCategory === "독서" || item.routineCategory === "원서읽기") && data
+    (item.routineCategory === "독서" || item.routineCategory === "원서읽기") &&
+      data
       ? { ...(data as ReadingFeedData) }
       : null,
   );
-  const [recordingDraft, setRecordingDraft] = useState<RecordingFeedData | null>(
-    item.routineCategory === "기록" && data
-      ? { entries: normalizeRecordingFeedEntries(data as RecordingFeedData) }
-      : null,
-  );
+  const [recordingDraft, setRecordingDraft] =
+    useState<RecordingFeedData | null>(
+      item.routineCategory === "기록" && data
+        ? { entries: normalizeRecordingFeedEntries(data as RecordingFeedData) }
+        : null,
+    );
 
   if (!data || !recordId) {
     return (
@@ -118,12 +128,17 @@ export default function EditFeedRecord({ item, onCancel }: Props) {
     // 사진 필드는 기존 값 유지 (이미 draft에 복사돼 있지만 명시적으로)
     const orig = data as unknown as Record<string, unknown>;
     if (orig.certPhotos !== undefined) next.certPhotos = orig.certPhotos;
-    if (orig.images !== undefined && next.images === undefined) next.images = orig.images;
-    if (orig.image !== undefined && next.image === undefined) next.image = orig.image;
+    if (orig.images !== undefined && next.images === undefined)
+      next.images = orig.images;
+    if (orig.image !== undefined && next.image === undefined)
+      next.image = orig.image;
     if (orig.bookCover !== undefined && next.bookCover === undefined)
       next.bookCover = orig.bookCover;
 
-    const { error } = await updateRitualRecord(recordId, next as unknown as Json);
+    const { error } = await updateRitualRecord(
+      recordId,
+      next as unknown as Json,
+    );
     setSaving(false);
 
     if (error) {
@@ -145,15 +160,24 @@ export default function EditFeedRecord({ item, onCancel }: Props) {
       {item.routineCategory === "자산관리" && financeDraft && (
         <FinanceEditor draft={financeDraft} onChange={setFinanceDraft} />
       )}
-      {(item.routineCategory === "영어" || item.routineCategory === "제2외국어") &&
+      {(item.routineCategory === "영어" ||
+        item.routineCategory === "제2외국어") &&
         languageDraft && (
           <LanguageEditor draft={languageDraft} onChange={setLanguageDraft} />
         )}
       {item.routineCategory === "독서" && readingDraft && (
-        <ReadingEditor draft={readingDraft} onChange={setReadingDraft} isEnglishBook={false} />
+        <ReadingEditor
+          draft={readingDraft}
+          onChange={setReadingDraft}
+          isEnglishBook={false}
+        />
       )}
       {item.routineCategory === "원서읽기" && readingDraft && (
-        <ReadingEditor draft={readingDraft} onChange={setReadingDraft} isEnglishBook={true} />
+        <ReadingEditor
+          draft={readingDraft}
+          onChange={setReadingDraft}
+          isEnglishBook={true}
+        />
       )}
       {item.routineCategory === "기록" && recordingDraft && (
         <RecordingEditor draft={recordingDraft} onChange={setRecordingDraft} />
@@ -262,7 +286,10 @@ function MorningEditor({
             step="0.5"
             value={draft.sleepHours}
             onChange={(e) =>
-              onChange({ ...draft, sleepHours: parseFloat(e.target.value) || 0 })
+              onChange({
+                ...draft,
+                sleepHours: parseFloat(e.target.value) || 0,
+              })
             }
             className={inputCls}
           />
@@ -308,7 +335,7 @@ function MorningEditor({
         />
       </div>
       <div>
-        <label className={fieldLabel}>한 줄 회고</label>
+        <label className={fieldLabel}>한 줄 다짐</label>
         <textarea
           value={draft.reflection}
           onChange={(e) => onChange({ ...draft, reflection: e.target.value })}
@@ -384,7 +411,10 @@ function FinanceEditor({
           <p className="text-xs font-semibold text-gray-600 mb-2">{day.date}</p>
           <div className="space-y-2">
             {day.expenses.map((exp, eIdx) => (
-              <div key={exp.id} className="bg-white rounded-lg p-2 flex items-center gap-2">
+              <div
+                key={exp.id}
+                className="bg-white rounded-lg p-2 flex items-center gap-2"
+              >
                 <select
                   value={exp.type}
                   onChange={(e) =>
@@ -488,7 +518,10 @@ function LanguageEditor({
   const addExpr = () => {
     onChange({
       ...draft,
-      expressions: [...draft.expressions, { word: "", meaning: "", example: "" }],
+      expressions: [
+        ...draft.expressions,
+        { word: "", meaning: "", example: "" },
+      ],
     });
   };
 
@@ -497,7 +530,9 @@ function LanguageEditor({
       {draft.expressions.map((expr, idx) => (
         <div key={idx} className="bg-gray-50 rounded-xl p-3 space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-gray-500">표현 {idx + 1}</p>
+            <p className="text-xs font-semibold text-gray-500">
+              표현 {idx + 1}
+            </p>
             {draft.expressions.length > 1 && (
               <button
                 type="button"
@@ -558,7 +593,9 @@ function ReadingEditor({
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={fieldLabel}>{isPercent ? "현재 %" : "현재 페이지"}</label>
+          <label className={fieldLabel}>
+            {isPercent ? "현재 %" : "현재 페이지"}
+          </label>
           <input
             type="number"
             value={draft.pagesRead ?? 0}
@@ -749,7 +786,9 @@ function RecordingEditor({
                   </label>
                   <textarea
                     value={entry.content}
-                    onChange={(e) => updateEntry(idx, { content: e.target.value })}
+                    onChange={(e) =>
+                      updateEntry(idx, { content: e.target.value })
+                    }
                     rows={3}
                     className={textareaCls}
                   />

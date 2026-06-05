@@ -3,7 +3,15 @@
 /* eslint-disable @next/next/no-img-element */
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, User, X, ChevronLeft, ChevronRight, Pencil, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  User,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import {
   BookText,
   Dumbbell,
@@ -31,7 +39,9 @@ import { deleteRitualRecord } from "@/api/ritual-record";
 import dynamic from "next/dynamic";
 import CommentSection from "./CommentSection";
 import ChallengerRitualsPopover from "./ChallengerRitualsPopover";
-const EditFeedRecord = dynamic(() => import("./EditFeedRecord"), { ssr: false });
+const EditFeedRecord = dynamic(() => import("./EditFeedRecord"), {
+  ssr: false,
+});
 import LinkifiedText from "@/components/common/LinkifiedText";
 
 interface FeedDetailProps {
@@ -183,7 +193,7 @@ function MorningContent({ data }: { data: MorningFeedData }) {
         <p className="text-sm text-gray-700 leading-relaxed">{data.success}</p>
       </div>
       <div className="bg-gray-50 rounded-xl p-4">
-        <p className="text-xs text-gray-400 font-medium mb-1">한 줄 회고</p>
+        <p className="text-xs text-gray-400 font-medium mb-1">한 줄 다짐</p>
         <p className="text-sm text-gray-700 leading-relaxed">
           {data.reflection}
         </p>
