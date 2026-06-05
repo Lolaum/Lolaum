@@ -3,8 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { login, signup } from "@/api/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getEffectiveStart } from "@/lib/current-challenge";
+import { getKoreaTodayWithinRange } from "@/lib/korea-date";
+import { calculatePenaltyAccounting } from "@/lib/progress-accounting";
 import { getCurrentUser } from "@/lib/supabase/server";
-import type { Database, Json, Profile, RoutineTypeDB } from "@/types/supabase";
+import { calculateWeeklyRoutineProgress } from "@/lib/weekly-routine-progress";
+import type { Database, Json, Profile } from "@/types/supabase";
 
 type ChallengePeriod = Database["public"]["Tables"]["challenge_periods"]["Row"];
 type AdminDeactivatedUser = Database["public"]["Tables"]["admin_deactivated_users"]["Row"];
@@ -17,14 +21,48 @@ export interface AdminUserStatus extends Profile {
 }
 
 export interface AdminExportRow {
+  [key: string]: string | number | boolean | null;
+}
+
+export interface AdminDonationExportRow extends AdminExportRow {
+  periodId: string;
+  name: string;
+  penaltyAmount: number;
+}
+
+export interface AdminMidReviewExportRow extends AdminExportRow {
+  periodId: string;
+  periodLabel: string;
   userId: string;
   name: string;
   username: string;
   email: string;
   challengeId: string;
+  reviewId: string;
+  goodConditions: string;
+  goodConditionDetails: string;
+  hardConditions: string;
+  hardConditionDetails: string;
+  whyStarted: string;
+  keepDoing: string;
+  willChange: string;
+  createdAt: string;
+}
+
+export interface AdminFinalReviewExportRow extends AdminExportRow {
   periodId: string;
-  routineType: RoutineTypeDB | "";
-  recordCount: number;
+  periodLabel: string;
+  userId: string;
+  name: string;
+  username: string;
+  email: string;
+  challengeId: string;
+  reviewId: string;
+  results: string;
+  lifeChanges: string;
+  continuationChoice: string;
+  adjustmentNote: string;
+  feedback: string;
   createdAt: string;
 }
 
@@ -34,7 +72,9 @@ export interface AdminDashboardData {
   users: AdminUserStatus[];
   reviewQuestions: AdminReviewQuestion[];
   errorLogs: AdminErrorLog[];
-  exportRows: AdminExportRow[];
+  donationExportRows: AdminDonationExportRow[];
+  midReviewExportRows: AdminMidReviewExportRow[];
+  finalReviewExportRows: AdminFinalReviewExportRow[];
   unsupportedTables: string[];
 }
 
@@ -143,20 +183,31 @@ export async function getAdminDashboardData(): Promise<{
   const admin = createAdminClient();
   const unsupportedTables: string[] = [];
 
-  const [periodsRes, profilesRes, registrationsRes, challengesRes, recordsRes] =
-    await Promise.all([
-      admin.from("challenge_periods").select("*").order("start_date", { ascending: false }),
-      admin.from("profiles").select("*").order("created_at", { ascending: false }),
-      admin.from("challenge_registrations").select("id, user_id, challenge_id, routine_type"),
-      admin.from("challenges").select("id, user_id, period_id, created_at"),
-      admin.from("ritual_records").select("id, user_id, challenge_id, routine_type"),
-    ]);
+  const [
+    periodsRes,
+    profilesRes,
+    registrationsRes,
+    challengesRes,
+    recordsRes,
+    midReviewsRes,
+    finalReviewsRes,
+  ] = await Promise.all([
+    admin.from("challenge_periods").select("*").order("start_date", { ascending: false }),
+    admin.from("profiles").select("*").order("created_at", { ascending: false }),
+    admin.from("challenge_registrations").select("id, user_id, challenge_id, routine_type"),
+    admin.from("challenges").select("id, user_id, period_id, created_at, reset_at"),
+    admin.from("ritual_records").select("id, user_id, challenge_id, routine_type, record_date"),
+    admin.from("mid_reviews").select("*").order("created_at", { ascending: false }),
+    admin.from("final_reviews").select("*").order("created_at", { ascending: false }),
+  ]);
 
   if (periodsRes.error) return { error: periodsRes.error.message };
   if (profilesRes.error) return { error: profilesRes.error.message };
   if (registrationsRes.error) return { error: registrationsRes.error.message };
   if (challengesRes.error) return { error: challengesRes.error.message };
   if (recordsRes.error) return { error: recordsRes.error.message };
+  if (midReviewsRes.error) return { error: midReviewsRes.error.message };
+  if (finalReviewsRes.error) return { error: finalReviewsRes.error.message };
 
   const [deactivatedRes, questionsRes, logsRes] = await Promise.all([
     admin
@@ -167,8 +218,7 @@ export async function getAdminDashboardData(): Promise<{
     admin
       .from("admin_review_questions")
       .select("*")
-      .order("review_type", { ascending: true })
-      .order("sort_order", { ascending: true }),
+      .order("review_type", { ascending: true }),
     admin
       .from("admin_error_logs")
       .select("*")
@@ -207,40 +257,126 @@ export async function getAdminDashboardData(): Promise<{
   }));
 
   const profileById = new Map((profilesRes.data ?? []).map((profile) => [profile.id, profile]));
-  const recordCountByChallengeRoutine = new Map<string, number>();
-  for (const record of recordsRes.data ?? []) {
-    const key = `${record.challenge_id}:${record.routine_type}`;
-    recordCountByChallengeRoutine.set(key, (recordCountByChallengeRoutine.get(key) ?? 0) + 1);
+  const periods = periodsRes.data ?? [];
+  const periodById = new Map(periods.map((period) => [period.id, period]));
+  const periodLabel = (periodId: string) => {
+    const period = periodById.get(periodId);
+    if (!period) return periodId;
+    return period.label || `${period.start_date} ~ ${period.end_date}`;
+  };
+  const challengeById = new Map((challengesRes.data ?? []).map((challenge) => [challenge.id, challenge]));
+  const challengesByPeriod = new Map<string, typeof challengesRes.data>();
+  for (const challenge of challengesRes.data ?? []) {
+    const list = challengesByPeriod.get(challenge.period_id) ?? [];
+    list.push(challenge);
+    challengesByPeriod.set(challenge.period_id, list);
   }
 
-  const challengeById = new Map((challengesRes.data ?? []).map((challenge) => [challenge.id, challenge]));
-  const exportRows: AdminExportRow[] = (registrationsRes.data ?? []).map((registration) => {
-    const profile = profileById.get(registration.user_id);
+  const userRegisteredTypesByChallenge = new Map<string, Set<string>>();
+  for (const registration of registrationsRes.data ?? []) {
     const challenge = challengeById.get(registration.challenge_id);
+    if (!challenge?.user_id) continue;
+
+    const challengeTypes = userRegisteredTypesByChallenge.get(registration.challenge_id) ?? new Set<string>();
+    challengeTypes.add(registration.routine_type);
+    userRegisteredTypesByChallenge.set(registration.challenge_id, challengeTypes);
+  }
+
+  const userRecordTypesByDatePeriod = new Map<string, Map<string, Set<string>>>();
+  for (const record of recordsRes.data ?? []) {
+    const challenge = challengeById.get(record.challenge_id);
+    if (!challenge) continue;
+    const key = `${challenge.period_id}:${record.user_id}`;
+    const dateMap = userRecordTypesByDatePeriod.get(key) ?? new Map<string, Set<string>>();
+    const types = dateMap.get(record.record_date) ?? new Set<string>();
+    types.add(record.routine_type);
+    dateMap.set(record.record_date, types);
+    userRecordTypesByDatePeriod.set(key, dateMap);
+  }
+
+  const donationExportRows: AdminDonationExportRow[] = [];
+  for (const period of periods) {
+    const periodChallenges = challengesByPeriod.get(period.id) ?? [];
+    for (const challenge of periodChallenges) {
+      if (!challenge.user_id) continue;
+      const profile = profileById.get(challenge.user_id);
+      const registeredTypes = userRegisteredTypesByChallenge.get(challenge.id) ?? new Set<string>();
+      if (registeredTypes.size === 0) continue;
+      const effectiveStart = getEffectiveStart(period.start_date, challenge.reset_at);
+      const rangeEnd = getKoreaTodayWithinRange(period.end_date);
+      const progress = calculateWeeklyRoutineProgress({
+        dateMap: userRecordTypesByDatePeriod.get(`${period.id}:${challenge.user_id}`) ?? new Map(),
+        registeredTypes,
+        rangeStart: effectiveStart,
+        rangeEnd,
+      });
+      const { penaltyAmount } = calculatePenaltyAccounting(progress.weekdayMissed, 0);
+      donationExportRows.push({
+        name: profile?.name ?? "",
+        penaltyAmount,
+        periodId: period.id,
+      });
+    }
+  }
+
+  const midReviewExportRows: AdminMidReviewExportRow[] = (midReviewsRes.data ?? []).map((review) => {
+    const challenge = challengeById.get(review.challenge_id);
+    if (!challenge || !userRegisteredTypesByChallenge.has(review.challenge_id)) return null;
+    const profile = profileById.get(review.user_id);
+    const periodId = challenge.period_id;
     return {
-      userId: registration.user_id,
+      periodId,
+      periodLabel: periodLabel(periodId),
+      userId: review.user_id,
       name: profile?.name ?? "",
       username: profile?.username ?? "",
       email: profile?.email ?? "",
-      challengeId: registration.challenge_id,
-      periodId: challenge?.period_id ?? "",
-      routineType: registration.routine_type,
-      recordCount:
-        recordCountByChallengeRoutine.get(
-          `${registration.challenge_id}:${registration.routine_type}`,
-        ) ?? 0,
-      createdAt: challenge?.created_at ?? "",
+      challengeId: review.challenge_id,
+      reviewId: review.id,
+      goodConditions: review.good_conditions.join(", "),
+      goodConditionDetails: JSON.stringify(review.good_condition_details ?? {}),
+      hardConditions: review.hard_conditions.join(", "),
+      hardConditionDetails: JSON.stringify(review.hard_condition_details ?? {}),
+      whyStarted: review.why_started,
+      keepDoing: review.keep_doing,
+      willChange: review.will_change,
+      createdAt: review.created_at,
     };
-  });
+  }).filter((row): row is AdminMidReviewExportRow => row !== null);
+
+  const finalReviewExportRows: AdminFinalReviewExportRow[] = (finalReviewsRes.data ?? []).map((review) => {
+    const challenge = challengeById.get(review.challenge_id);
+    if (!challenge || !userRegisteredTypesByChallenge.has(review.challenge_id)) return null;
+    const profile = profileById.get(review.user_id);
+    const periodId = challenge.period_id;
+    return {
+      periodId,
+      periodLabel: periodLabel(periodId),
+      userId: review.user_id,
+      name: profile?.name ?? "",
+      username: profile?.username ?? "",
+      email: profile?.email ?? "",
+      challengeId: review.challenge_id,
+      reviewId: review.id,
+      results: review.results,
+      lifeChanges: review.life_changes,
+      continuationChoice: review.continuation_choice === "keep" ? "유지하고 싶다" : "조정이 필요하다",
+      adjustmentNote: review.adjustment_note,
+      feedback: review.feedback,
+      createdAt: review.created_at,
+    };
+  }).filter((row): row is AdminFinalReviewExportRow => row !== null);
 
   return {
     data: {
       adminEmail: user.email ?? "",
-      periods: periodsRes.data ?? [],
+      periods,
       users,
       reviewQuestions,
       errorLogs,
-      exportRows,
+      donationExportRows,
+      midReviewExportRows,
+      finalReviewExportRows,
       unsupportedTables,
     },
   };
@@ -329,7 +465,6 @@ export async function upsertReviewQuestion(input: {
   questionKey: string;
   label: string;
   helperText: string;
-  sortOrder: number;
   isActive: boolean;
 }) {
   const { user, error } = await requireAdmin();
@@ -343,7 +478,6 @@ export async function upsertReviewQuestion(input: {
     question_key: input.questionKey.trim(),
     label: input.label.trim(),
     helper_text: input.helperText.trim() || null,
-    sort_order: Number.isFinite(input.sortOrder) ? input.sortOrder : 0,
     is_active: input.isActive,
     updated_at: new Date().toISOString(),
   };

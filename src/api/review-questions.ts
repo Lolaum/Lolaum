@@ -44,8 +44,7 @@ export async function getPublicReviewQuestions(reviewType: ReviewType): Promise<
       .from("admin_review_questions")
       .select("review_type, question_key, label, helper_text")
       .eq("review_type", reviewType)
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true });
+      .eq("is_active", true);
 
     if (error || !data?.length) return fallback;
 
