@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import GenerateRoutine from "./GenerateRoutine";
-import { Plus, X, ChevronRight, Trash2, RotateCcw } from "lucide-react";
+import { Plus, X, ChevronRight } from "lucide-react";
 import { RoutineListProps } from "@/types/home/todo";
-import { getMyRoutines, deleteRoutine, resetChallenge } from "@/api/routine";
+import { getMyRoutines } from "@/api/routine";
 import type { ChallengeRegistration, RoutineTypeDB } from "@/types/supabase";
 import { ROUTINE_TYPE_LABEL } from "@/types/supabase";
 
@@ -48,10 +48,6 @@ export default function RoutineList({
   );
   const [loading, setLoading] = useState(false);
   const [showGenerateRoutine, setShowGenerateRoutine] = useState(false);
-  const [deleteTarget, setDeleteTarget] =
-    useState<ChallengeRegistration | null>(null);
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [resetting, setResetting] = useState(false);
 
   const fetchRoutines = useCallback(async () => {
     setLoading(true);
@@ -60,41 +56,8 @@ export default function RoutineList({
     setLoading(false);
   }, []);
 
-  const handleDeleteClick = (
-    e: React.MouseEvent,
-    routine: ChallengeRegistration,
-  ) => {
-    e.stopPropagation();
-    setDeleteTarget(routine);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!deleteTarget) return;
-    const id = deleteTarget.id;
-    setDeleteTarget(null);
-    setRoutines((prev) => prev.filter((r) => r.id !== id));
-    const { error } = await deleteRoutine(id);
-    if (error) {
-      fetchRoutines();
-    }
-  };
-
   const handleCreated = () => {
     setShowGenerateRoutine(false);
-    fetchRoutines();
-  };
-
-  const handleConfirmReset = async () => {
-    if (resetting) return;
-    setResetting(true);
-    const { error } = await resetChallenge();
-    setResetting(false);
-    if (error) {
-      alert(`다시 시작에 실패했어요: ${error}`);
-      return;
-    }
-    setShowResetConfirm(false);
-    setRoutines([]);
     fetchRoutines();
   };
 
@@ -181,15 +144,8 @@ export default function RoutineList({
                     </div>
                   </div>
 
-                  {/* 삭제 + 화살표 */}
+                  {/* 화살표 */}
                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <button
-                      onClick={(e) => handleDeleteClick(e, routine)}
-                      className="text-gray-300 hover:text-red-400 transition-colors p-1"
-                      aria-label="삭제"
-                    >
-                      <Trash2 size={13} strokeWidth={1.5} />
-                    </button>
                     <ChevronRight size={14} className="text-gray-300" />
                   </div>
                 </div>
@@ -199,94 +155,6 @@ export default function RoutineList({
         </div>
       )}
 
-      {/* 이번 챌린지 다시 시작 */}
-      {routines.length > 0 && (
-        <div className="mt-5 flex justify-center">
-          <button
-            type="button"
-            onClick={() => setShowResetConfirm(true)}
-            className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <RotateCcw size={12} strokeWidth={1.5} />
-            이번 챌린지 다시 시작
-          </button>
-        </div>
-      )}
-
-      {/* 다시 시작 확인 모달 */}
-      {showResetConfirm && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6"
-          onClick={() => !resetting && setShowResetConfirm(false)}
-        >
-          <div
-            className="w-full max-w-xs rounded-2xl bg-white p-5 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-base font-semibold text-gray-900">
-              이번 챌린지를 다시 시작할까요?
-            </h3>
-            <ul className="mt-3 space-y-1.5 text-sm text-gray-500">
-              <li>• 지금까지 작성한 리추얼 기록은 통계에서 제외됩니다</li>
-              <li>• 등록한 리추얼과 선언은 모두 삭제됩니다</li>
-              <li>• 기록 자체는 나의 리추얼 기록에서 볼 수 있습니다</li>
-            </ul>
-            <div className="mt-5 flex gap-2">
-              <button
-                onClick={() => setShowResetConfirm(false)}
-                disabled={resetting}
-                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleConfirmReset}
-                disabled={resetting}
-                className="flex-1 rounded-xl py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{ backgroundColor: "#eab32e" }}
-              >
-                {resetting ? "처리 중..." : "다시 시작"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 삭제 확인 모달 */}
-      {deleteTarget && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6"
-          onClick={() => setDeleteTarget(null)}
-        >
-          <div
-            className="w-full max-w-xs rounded-2xl bg-white p-5 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-base font-semibold text-gray-900">
-              리추얼을 삭제하시겠습니까?
-            </h3>
-            <p className="mt-2 text-sm text-gray-500">
-              {ROUTINE_TYPE_LABEL[deleteTarget.routine_type]} 리추얼이
-              삭제됩니다. 이 작업은 되돌릴 수 없습니다.
-            </p>
-            <div className="mt-5 flex gap-2">
-              <button
-                onClick={() => setDeleteTarget(null)}
-                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                className="flex-1 rounded-xl py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
-                style={{ backgroundColor: "#eab32e" }}
-              >
-                삭제
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

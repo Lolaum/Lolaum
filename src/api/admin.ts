@@ -8,16 +8,32 @@ import { getKoreaTodayWithinRange } from "@/lib/korea-date";
 import { calculatePenaltyAccounting } from "@/lib/progress-accounting";
 import { getCurrentUser } from "@/lib/supabase/server";
 import { calculateWeeklyRoutineProgress } from "@/lib/weekly-routine-progress";
-import type { Database, Json, Profile } from "@/types/supabase";
+import {
+  ROUTINE_TYPE_LABEL,
+  type Database,
+  type Json,
+  type Profile,
+  type RoutineTypeDB,
+} from "@/types/supabase";
 
 type ChallengePeriod = Database["public"]["Tables"]["challenge_periods"]["Row"];
 type AdminDeactivatedUser = Database["public"]["Tables"]["admin_deactivated_users"]["Row"];
 type AdminReviewQuestion = Database["public"]["Tables"]["admin_review_questions"]["Row"];
 type AdminErrorLog = Database["public"]["Tables"]["admin_error_logs"]["Row"];
 
+export interface AdminRegisteredRoutine {
+  id: string;
+  challengeId: string;
+  periodId: string | null;
+  periodLabel: string;
+  routineType: RoutineTypeDB;
+  routineLabel: string;
+}
+
 export interface AdminUserStatus extends Profile {
   deactivated?: AdminDeactivatedUser | null;
   routineCount: number;
+  routines: AdminRegisteredRoutine[];
 }
 
 export interface AdminExportRow {
@@ -244,18 +260,6 @@ export async function getAdminDashboardData(): Promise<{
     unsupportedTables.push("admin_error_logs");
   }
 
-  const deactivatedByUser = new Map(deactivatedUsers.map((row) => [row.user_id, row]));
-  const routineCountByUser = new Map<string, number>();
-  for (const row of registrationsRes.data ?? []) {
-    routineCountByUser.set(row.user_id, (routineCountByUser.get(row.user_id) ?? 0) + 1);
-  }
-
-  const users = (profilesRes.data ?? []).map((profile) => ({
-    ...profile,
-    deactivated: deactivatedByUser.get(profile.id) ?? null,
-    routineCount: routineCountByUser.get(profile.id) ?? 0,
-  }));
-
   const profileById = new Map((profilesRes.data ?? []).map((profile) => [profile.id, profile]));
   const periods = periodsRes.data ?? [];
   const periodById = new Map(periods.map((period) => [period.id, period]));
@@ -265,6 +269,34 @@ export async function getAdminDashboardData(): Promise<{
     return period.label || `${period.start_date} ~ ${period.end_date}`;
   };
   const challengeById = new Map((challengesRes.data ?? []).map((challenge) => [challenge.id, challenge]));
+  const deactivatedByUser = new Map(deactivatedUsers.map((row) => [row.user_id, row]));
+  const routinesByUser = new Map<string, AdminRegisteredRoutine[]>();
+  for (const row of registrationsRes.data ?? []) {
+    const challenge = challengeById.get(row.challenge_id);
+    const periodId = challenge?.period_id ?? null;
+    const routineType = row.routine_type as RoutineTypeDB;
+    const list = routinesByUser.get(row.user_id) ?? [];
+    list.push({
+      id: row.id,
+      challengeId: row.challenge_id,
+      periodId,
+      periodLabel: periodId ? periodLabel(periodId) : "기간 없음",
+      routineType,
+      routineLabel: ROUTINE_TYPE_LABEL[routineType],
+    });
+    routinesByUser.set(row.user_id, list);
+  }
+
+  const users = (profilesRes.data ?? []).map((profile) => {
+    const routines = routinesByUser.get(profile.id) ?? [];
+    return {
+      ...profile,
+      deactivated: deactivatedByUser.get(profile.id) ?? null,
+      routineCount: routines.length,
+      routines,
+    };
+  });
+
   const challengesByPeriod = new Map<string, typeof challengesRes.data>();
   for (const challenge of challengesRes.data ?? []) {
     const list = challengesByPeriod.get(challenge.period_id) ?? [];
@@ -456,6 +488,59 @@ export async function setUserDeactivated(input: {
   }
 
   revalidatePath("/admin");
+  return { success: true };
+}
+
+export async function deleteRegisteredRoutine(input: {
+  registrationId: string;
+}): Promise<{ success?: boolean; error?: string }> {
+  const { user, error } = await requireAdmin();
+  if (!user) return { error: error ?? "관리자 권한이 없습니다." };
+
+  const admin = createAdminClient();
+  const { data: registration, error: fetchError } = await admin
+    .from("challenge_registrations")
+    .select("id, user_id, challenge_id, routine_type")
+    .eq("id", input.registrationId)
+    .maybeSingle();
+
+  if (fetchError) {
+    await logAdminError("admin.routine.delete.fetch", fetchError.message, {
+      registrationId: input.registrationId,
+    });
+    return { error: fetchError.message };
+  }
+  if (!registration) return { error: "삭제할 리추얼 신청을 찾을 수 없습니다." };
+
+  const { error: deleteError } = await admin
+    .from("challenge_registrations")
+    .delete()
+    .eq("id", input.registrationId);
+
+  if (deleteError) {
+    await logAdminError("admin.routine.delete", deleteError.message, {
+      registrationId: input.registrationId,
+    });
+    return { error: deleteError.message };
+  }
+
+  const { error: declarationError } = await admin
+    .from("declarations")
+    .delete()
+    .eq("user_id", registration.user_id)
+    .eq("challenge_id", registration.challenge_id)
+    .eq("routine_type", registration.routine_type);
+
+  if (declarationError) {
+    await logAdminError("admin.routine.delete.declaration", declarationError.message, {
+      registrationId: input.registrationId,
+    });
+    return { error: declarationError.message };
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  revalidatePath("/ritual");
   return { success: true };
 }
 

@@ -26,11 +26,15 @@ export default function AddNewExercise({
   initialImages,
   weeklyDietCount = 0,
   weeklyDietLimit = 2,
+  weeklyDietCanAdd,
   weeklyDietLoading = false,
 }: AddNewExerciseProps) {
   const [images, setImages] = useState<string[]>(initialImages ?? []);
   const [imageTakenAtTimes, setImageTakenAtTimes] = useState<number[]>([]);
-  const dietLimitReached = weeklyDietCount >= weeklyDietLimit;
+  const dietLimitReached =
+    weeklyDietCanAdd === undefined
+      ? weeklyDietCount >= weeklyDietLimit
+      : !weeklyDietCanAdd;
   const dietSelectDisabled = weeklyDietLoading || dietLimitReached;
   const [recordType, setRecordType] = useState<ExerciseRecordType>("exercise");
   const [exerciseName, setExerciseName] = useState("");
@@ -238,9 +242,9 @@ export default function AddNewExercise({
             aria-disabled={dietSelectDisabled}
             title={
               dietLimitReached
-                ? "식단 기록은 주 2회까지 달성할 수 있어요"
+                ? "식단 기록은 일주일 중 2일까지만 달성할 수 있어요"
                 : weeklyDietLoading
-                  ? "식단 기록 인증 횟수를 확인하는 중이에요"
+                  ? "식단 기록 인증 날짜를 확인하는 중이에요"
                 : undefined
             }
             className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
@@ -255,7 +259,7 @@ export default function AddNewExercise({
 
         {dietLimitReached && (
           <p className="-mt-3 mb-4 rounded-xl bg-orange-50 px-3 py-2 text-xs font-medium text-orange-600">
-            이번 주 식단 기록을 2회 달성했어요. 다음 주에 다시 선택할 수 있어요.
+            이번 주 식단 기록을 2일 달성했어요. 다음 주에 다시 선택할 수 있어요.
           </p>
         )}
 

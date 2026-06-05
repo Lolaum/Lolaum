@@ -30,6 +30,7 @@ const textareaCls =
   "w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-300 resize-none";
 const inputCls =
   "w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-300";
+const MACROS_OPTIONS = ["1:1:1", "2:1:1", "3:2:1", "4:3:3", "5:3:2"];
 
 export default function EditFeedRecord({ item, onCancel }: Props) {
   const router = useRouter();
@@ -99,24 +100,36 @@ export default function EditFeedRecord({ item, onCancel }: Props) {
 
     switch (item.routineCategory) {
       case "운동":
-        next = exerciseDraft as unknown as Record<string, unknown>;
+        next = exerciseDraft
+          ? ({ ...exerciseDraft } as unknown as Record<string, unknown>)
+          : null;
         break;
       case "모닝":
-        next = morningDraft as unknown as Record<string, unknown>;
+        next = morningDraft
+          ? ({ ...morningDraft } as unknown as Record<string, unknown>)
+          : null;
         break;
       case "자산관리":
-        next = financeDraft as unknown as Record<string, unknown>;
+        next = financeDraft
+          ? ({ ...financeDraft } as unknown as Record<string, unknown>)
+          : null;
         break;
       case "영어":
       case "제2외국어":
-        next = languageDraft as unknown as Record<string, unknown>;
+        next = languageDraft
+          ? ({ ...languageDraft } as unknown as Record<string, unknown>)
+          : null;
         break;
       case "독서":
       case "원서읽기":
-        next = readingDraft as unknown as Record<string, unknown>;
+        next = readingDraft
+          ? ({ ...readingDraft } as unknown as Record<string, unknown>)
+          : null;
         break;
       case "기록":
-        next = recordingDraft as unknown as Record<string, unknown>;
+        next = recordingDraft
+          ? ({ ...recordingDraft } as unknown as Record<string, unknown>)
+          : null;
         break;
     }
 
@@ -234,10 +247,12 @@ function ExerciseEditor({
   draft: ExerciseFeedData;
   onChange: (d: ExerciseFeedData) => void;
 }) {
+  const isDiet = draft.recordType === "diet";
+
   return (
     <div className="space-y-3">
       <div>
-        <label className={fieldLabel}>운동/식단명</label>
+        <label className={fieldLabel}>{isDiet ? "식단 기록" : "운동 종류"}</label>
         <input
           type="text"
           value={draft.exerciseName}
@@ -245,17 +260,54 @@ function ExerciseEditor({
           className={inputCls}
         />
       </div>
-      <div>
-        <label className={fieldLabel}>운동 시간 (분)</label>
-        <input
-          type="number"
-          value={draft.duration}
-          onChange={(e) =>
-            onChange({ ...draft, duration: parseInt(e.target.value) || 0 })
-          }
-          className={inputCls}
-        />
-      </div>
+      {isDiet ? (
+        <div>
+          <label className={fieldLabel}>탄:단:지 비율</label>
+          <div className="mb-2 flex flex-wrap gap-2">
+            {MACROS_OPTIONS.map((ratio) => (
+              <button
+                key={ratio}
+                type="button"
+                onClick={() =>
+                  onChange({
+                    ...draft,
+                    duration: 0,
+                    macros: draft.macros === ratio ? "" : ratio,
+                  })
+                }
+                className={`rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
+                  draft.macros === ratio
+                    ? "bg-orange-500 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {ratio}
+              </button>
+            ))}
+          </div>
+          <input
+            type="text"
+            value={draft.macros ?? ""}
+            onChange={(e) =>
+              onChange({ ...draft, duration: 0, macros: e.target.value })
+            }
+            placeholder="직접 입력 (예: 3:2:1)"
+            className={inputCls}
+          />
+        </div>
+      ) : (
+        <div>
+          <label className={fieldLabel}>운동 시간 (분)</label>
+          <input
+            type="number"
+            value={draft.duration}
+            onChange={(e) =>
+              onChange({ ...draft, duration: parseInt(e.target.value) || 0 })
+            }
+            className={inputCls}
+          />
+        </div>
+      )}
       <div>
         <label className={fieldLabel}>오늘의 작은 성공</label>
         <textarea

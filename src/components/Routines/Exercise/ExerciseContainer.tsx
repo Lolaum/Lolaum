@@ -23,6 +23,7 @@ export default function ExerciseContainer({ mode = "main" }: ExerciseContainerPr
   const [exerciseRecords, setExerciseRecords] = useState<ExerciseRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [weeklyDietCount, setWeeklyDietCount] = useState(0);
+  const [weeklyDietCanAdd, setWeeklyDietCanAdd] = useState(true);
   const [weeklyDietLoading, setWeeklyDietLoading] = useState(true);
 
   const goHome = () => router.push("/home");
@@ -59,11 +60,15 @@ export default function ExerciseContainer({ mode = "main" }: ExerciseContainerPr
       routineType: "exercise",
       currentPeriodOnly: true,
     });
-    const count = (data ?? []).filter((r) => {
+    const today = formatDateKey(new Date());
+    const dietDates = new Set<string>();
+    for (const r of data ?? []) {
+      if (!isDateInCurrentKoreaWeek(r.record_date)) continue;
       const d = r.record_data as unknown as ExerciseRecordData;
-      return d.recordType === "diet" && isDateInCurrentKoreaWeek(r.record_date);
-    }).length;
-    setWeeklyDietCount(count);
+      if (d.recordType === "diet") dietDates.add(r.record_date);
+    }
+    setWeeklyDietCount(dietDates.size);
+    setWeeklyDietCanAdd(dietDates.size < 2 || dietDates.has(today));
     setWeeklyDietLoading(false);
   }, []);
 
@@ -112,6 +117,7 @@ export default function ExerciseContainer({ mode = "main" }: ExerciseContainerPr
           onSubmit={handleSubmit}
           weeklyDietCount={weeklyDietCount}
           weeklyDietLimit={2}
+          weeklyDietCanAdd={weeklyDietCanAdd}
           weeklyDietLoading={weeklyDietLoading}
         />
       </div>

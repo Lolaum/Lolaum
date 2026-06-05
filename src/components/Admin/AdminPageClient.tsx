@@ -31,6 +31,7 @@ import {
 import {
   adminLogin,
   adminSignup,
+  deleteRegisteredRoutine,
   getAdminDashboardData,
   resolveErrorLog,
   setUserDeactivated,
@@ -650,6 +651,17 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
   const selectedExportPeriod = data.periods.find(
     (item) => item.id === exportPeriodId,
   );
+  const activePeriod = data.periods.find((item) => item.is_active);
+  const activeRoutineRows = activePeriod
+    ? data.users
+        .map((user) => ({
+          user,
+          routines: user.routines.filter(
+            (routine) => routine.periodId === activePeriod.id,
+          ),
+        }))
+        .filter((row) => row.routines.length > 0)
+    : [];
   const selectedExportPeriodLabel = selectedExportPeriod
     ? selectedExportPeriod.label ||
       `${selectedExportPeriod.start_date} ~ ${selectedExportPeriod.end_date}`
@@ -744,6 +756,19 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
     });
   };
 
+  const handleDeleteRoutine = (registrationId: string, routineLabel: string) => {
+    const confirmed = window.confirm(
+      `${routineLabel} 신청을 삭제할까요? 연결된 리추얼 선언도 함께 삭제됩니다.`,
+    );
+    if (!confirmed) return;
+
+    startTransition(async () => {
+      const res = await deleteRegisteredRoutine({ registrationId });
+      if (res.error) setError(res.error);
+      else reload();
+    });
+  };
+
   return (
     <ThemeProvider theme={adminTheme}>
       <CssBaseline />
@@ -783,6 +808,7 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
               >
                 <Tab label="리추얼 기간" />
                 <Tab label="비활성 사용자" />
+                <Tab label="활성 리추얼" />
                 <Tab label="회고 질문" />
                 <Tab label="오류 로그" />
                 <Tab label="다운로드" />
@@ -908,7 +934,7 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
                           <TableRow>
                             <TableCell>사용자</TableCell>
                             <TableCell>이메일</TableCell>
-                            <TableCell>리추얼</TableCell>
+                            <TableCell>신청 수</TableCell>
                             <TableCell>상태</TableCell>
                             <TableCell>사유</TableCell>
                             <TableCell>액션</TableCell>
@@ -971,6 +997,79 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
                   </Stack>
                 )}
                 {tab === 2 && (
+                  <Stack spacing={2}>
+                    <Box>
+                      <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                        활성 기간 신청 리추얼
+                      </Typography>
+                      <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+                        {activePeriod
+                          ? `${activePeriod.label || `${activePeriod.start_date} ~ ${activePeriod.end_date}`} 기간에 신청된 리추얼만 표시합니다.`
+                          : "현재 active 상태인 리추얼 기간이 없습니다."}
+                      </Typography>
+                    </Box>
+                    <TableContainer>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>사용자</TableCell>
+                            <TableCell>이메일</TableCell>
+                            <TableCell>신청 리추얼</TableCell>
+                            <TableCell>기간</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {activeRoutineRows.map(({ user, routines }) => (
+                            <TableRow key={user.id}>
+                              <TableCell>
+                                {user.name} ({user.username})
+                              </TableCell>
+                              <TableCell>{user.email}</TableCell>
+                              <TableCell>
+                                <Box
+                                  sx={{
+                                    display: "grid",
+                                    gridAutoFlow: "column",
+                                    gridTemplateRows: "repeat(2, auto)",
+                                    gap: 1,
+                                    justifyContent: "flex-start",
+                                  }}
+                                >
+                                  {routines.map((routine) => (
+                                    <Chip
+                                      key={routine.id}
+                                      label={routine.routineLabel}
+                                      onDelete={() =>
+                                        handleDeleteRoutine(
+                                          routine.id,
+                                          routine.routineLabel,
+                                        )
+                                      }
+                                      disabled={isPending}
+                                      color="primary"
+                                      variant="outlined"
+                                    />
+                                  ))}
+                                </Box>
+                              </TableCell>
+                              <TableCell>{routines[0]?.periodLabel ?? "-"}</TableCell>
+                            </TableRow>
+                          ))}
+                          {activeRoutineRows.length === 0 && (
+                            <TableRow>
+                              <TableCell colSpan={4}>
+                                <Typography color="text.secondary">
+                                  표시할 신청 리추얼이 없습니다.
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Stack>
+                )}
+                {tab === 3 && (
                   <Stack spacing={3}>
                     <Box>
                       <Typography variant="h6" sx={{ fontWeight: 800 }}>
@@ -1194,7 +1293,7 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
                     </TableContainer>
                   </Stack>
                 )}
-                {tab === 3 && (
+                {tab === 4 && (
                   <Stack spacing={2}>
                     <Typography variant="h6" sx={{ fontWeight: 800 }}>
                       오류 로그
@@ -1243,7 +1342,7 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
                     </TableContainer>
                   </Stack>
                 )}
-                {tab === 4 && (
+                {tab === 5 && (
                   <Stack spacing={3}>
                     <Typography variant="h6" sx={{ fontWeight: 800 }}>
                       데이터 다운로드

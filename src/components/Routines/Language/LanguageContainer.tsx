@@ -51,6 +51,7 @@ export default function LanguageContainer({
         return {
           id: r.id as unknown as number,
           date: `${date.getMonth() + 1}월 ${date.getDate()}일`,
+          images: d.images ?? [],
           achievement: d.achievement,
           expressions: d.expressions ?? [],
           expressionCount: d.expressions?.length ?? 0,
@@ -223,6 +224,7 @@ export default function LanguageContainer({
           <RecordStudy
             languageRecords={languageRecords}
             onChanged={fetchRecords}
+            routineCategory={languageType}
           />
         )}
       </div>

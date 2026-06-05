@@ -2,8 +2,10 @@
 
 import { useState, useMemo } from "react";
 import { ChevronDown, Pencil, Trash2 } from "lucide-react";
+import EditFeedRecord from "@/components/Feed/EditFeedRecord";
 import { MorningRecord, ConditionLevel } from "@/types/routines/morning";
 import { deleteRitualRecord } from "@/api/ritual-record";
+import type { FeedItem, MorningFeedData } from "@/types/feed";
 
 interface GroupedRecord {
   date: string;
@@ -13,6 +15,7 @@ interface GroupedRecord {
   condition: ConditionLevel;
   success: string;
   reflection: string;
+  records: MorningRecord[];
   recordIds: string[];
 }
 
@@ -26,6 +29,7 @@ export default function RecordMorning({
   onChanged,
 }: RecordMorningProps) {
   const [expandedDates, setExpandedDates] = useState<string[]>([]);
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [deleteTargetIds, setDeleteTargetIds] = useState<string[] | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -42,9 +46,11 @@ export default function RecordMorning({
             condition: record.condition,
             success: record.success,
             reflection: record.reflection,
+            records: [],
             recordIds: [],
           };
         }
+        acc[record.date].records.push(record);
         acc[record.date].recordIds.push(String(record.id));
 
         return acc;
@@ -77,6 +83,25 @@ export default function RecordMorning({
     }
     onChanged?.();
   };
+
+  const makeFeedItem = (record: MorningRecord): FeedItem => ({
+    id: String(record.id),
+    odOriginalId: String(record.id),
+    userId: "",
+    userName: "",
+    date: record.date,
+    routineCategory: "모닝",
+    routineId: 0,
+    recordId: 0,
+    routineData: {
+      image: record.image,
+      sleepHours: record.sleepHours,
+      sleepImprovement: record.sleepImprovement,
+      condition: record.condition,
+      success: record.success,
+      reflection: record.reflection,
+    } satisfies MorningFeedData,
+  });
 
   return (
     <>
@@ -129,6 +154,16 @@ export default function RecordMorning({
                 <div className="px-4 pb-4 pt-2 border-t border-gray-100">
                   {/* 모닝 상세 정보 */}
                   <div className="space-y-3">
+                    {editingRecordId === group.recordIds[0] && group.records[0] ? (
+                      <EditFeedRecord
+                        item={makeFeedItem(group.records[0])}
+                        onCancel={() => {
+                          setEditingRecordId(null);
+                          onChanged?.();
+                        }}
+                      />
+                    ) : (
+                      <>
                     {/* 인증 사진 */}
                     {group.image && (
                       <div className="mb-3">
@@ -198,15 +233,20 @@ export default function RecordMorning({
                       </p>
                     </div>
 
-                    {/* 삭제 버튼 */}
+                    {/* 수정/삭제 버튼 */}
                     <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
-                      <a
-                        href={`/feeds/${group.recordIds[0]}`}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditingRecordId((current) =>
+                            current === group.recordIds[0] ? null : group.recordIds[0],
+                          )
+                        }
                         className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
                       >
                         <Pencil className="w-3.5 h-3.5" />
-                        수정
-                      </a>
+                        {editingRecordId === group.recordIds[0] ? "수정 닫기" : "수정"}
+                      </button>
                       <button
                         type="button"
                         onClick={() => setDeleteTargetIds(group.recordIds)}
@@ -216,6 +256,8 @@ export default function RecordMorning({
                         삭제
                       </button>
                     </div>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
