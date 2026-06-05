@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Trash2 } from "lucide-react";
+import { ChevronDown, Pencil, Trash2 } from "lucide-react";
 import { RecordFinanceProps } from "@/types/routines/finance";
 import { deleteRitualRecord } from "@/api/ritual-record";
 
@@ -360,8 +360,15 @@ export default function RecordFinance({
                       </div>
                     )}
 
-                    {/* 삭제 버튼 */}
-                    <div className="flex items-center justify-end pt-2 border-t border-gray-100">
+                    {/* 수정/삭제 버튼 */}
+                    <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+                      <a
+                        href={`/feeds/${String(record.id)}`}
+                        className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        수정
+                      </a>
                       <button
                         type="button"
                         onClick={() => setDeleteTargetId(String(record.id))}

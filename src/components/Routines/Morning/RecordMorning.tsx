@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ChevronDown, Trash2 } from "lucide-react";
+import { ChevronDown, Pencil, Trash2 } from "lucide-react";
 import { MorningRecord, ConditionLevel } from "@/types/routines/morning";
 import { deleteRitualRecord } from "@/api/ritual-record";
 
@@ -199,7 +199,14 @@ export default function RecordMorning({
                     </div>
 
                     {/* 삭제 버튼 */}
-                    <div className="flex items-center justify-end pt-2 border-t border-gray-100">
+                    <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+                      <a
+                        href={`/feeds/${group.recordIds[0]}`}
+                        className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        수정
+                      </a>
                       <button
                         type="button"
                         onClick={() => setDeleteTargetIds(group.recordIds)}

@@ -3,7 +3,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Loader2, ExternalLink, X, Plus, Trash2, Upload } from "lucide-react";
+import {
+  Loader2,
+  ExternalLink,
+  X,
+  Plus,
+  Pencil,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import LinkifiedText from "@/components/common/LinkifiedText";
 import {
   createRitualRecordAuto,
@@ -521,7 +529,14 @@ export default function RecordingContainer({
                   ))}
                 </div>
               )}
-              <div className="flex items-center justify-end mt-3 pt-3 border-t border-gray-100">
+              <div className="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-gray-100">
+                <a
+                  href={`/feeds/${record.id}`}
+                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  수정
+                </a>
                 <button
                   type="button"
                   onClick={() => setDeleteTargetId(record.id)}
