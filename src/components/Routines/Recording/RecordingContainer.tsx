@@ -79,6 +79,7 @@ export default function RecordingContainer({
   const [entries, setEntries] = useState<RecordingEntry[]>([emptyWrite()]);
   const [certPhotos, setCertPhotos] = useState<string[]>([]);
   const [weeklyReadCount, setWeeklyReadCount] = useState(0);
+  const [weeklyReadLoading, setWeeklyReadLoading] = useState(true);
 
   const goHome = () => router.push("/home");
   const goMain = () => router.push("/home/recording");
@@ -104,6 +105,7 @@ export default function RecordingContainer({
   }, []);
 
   const fetchWeeklyReadCount = useCallback(async () => {
+    setWeeklyReadLoading(true);
     const { data } = await getMyRitualRecords({
       routineType: "recording",
       currentPeriodOnly: true,
@@ -118,6 +120,7 @@ export default function RecordingContainer({
       );
     }, 0);
     setWeeklyReadCount(count);
+    setWeeklyReadLoading(false);
   }, []);
 
   useEffect(() => {
@@ -142,9 +145,17 @@ export default function RecordingContainer({
   };
 
   const readLimitReached = weeklyReadCount >= WEEKLY_READ_LIMIT;
+  const readSelectDisabled = weeklyReadLoading || readLimitReached;
+
+  useEffect(() => {
+    if (formMode !== "read" || !readLimitReached) return;
+    setFormMode("write");
+    setEntries([emptyWrite()]);
+    setCertPhotos([]);
+  }, [formMode, readLimitReached]);
 
   const switchFormMode = (next: RecordingMode) => {
-    if (next === "read" && readLimitReached) return;
+    if (next === "read" && readSelectDisabled) return;
     if (next === formMode) return;
     setFormMode(next);
     setEntries([next === "write" ? emptyWrite() : emptyRead()]);
@@ -190,7 +201,10 @@ export default function RecordingContainer({
     setCertPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const canSubmit = entries.length > 0 && entries.every(isEntryValid);
+  const canSubmit =
+    entries.length > 0 &&
+    entries.every(isEntryValid) &&
+    !(formMode === "read" && readLimitReached);
 
   const handleSubmit = async () => {
     if (submittingRef.current) return;
@@ -312,11 +326,13 @@ export default function RecordingContainer({
           <button
             type="button"
             onClick={() => switchFormMode("read")}
-            disabled={readLimitReached}
-            aria-disabled={readLimitReached}
+            disabled={readSelectDisabled}
+            aria-disabled={readSelectDisabled}
             title={
               readLimitReached
                 ? "글 읽기 대체는 주 2회까지 달성할 수 있어요"
+                : weeklyReadLoading
+                  ? "글 읽기 대체 인증 횟수를 확인하는 중이에요"
                 : undefined
             }
             className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
@@ -325,7 +341,7 @@ export default function RecordingContainer({
                 : "bg-gray-100 text-gray-500 hover:bg-gray-200"
             }`}
           >
-            글 읽기 대체
+            {weeklyReadLoading ? "확인 중..." : "글 읽기 대체"}
           </button>
         </div>
 

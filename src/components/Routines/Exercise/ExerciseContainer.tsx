@@ -23,6 +23,7 @@ export default function ExerciseContainer({ mode = "main" }: ExerciseContainerPr
   const [exerciseRecords, setExerciseRecords] = useState<ExerciseRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [weeklyDietCount, setWeeklyDietCount] = useState(0);
+  const [weeklyDietLoading, setWeeklyDietLoading] = useState(true);
 
   const goHome = () => router.push("/home");
   const goMain = () => router.push("/home/exercise");
@@ -53,6 +54,7 @@ export default function ExerciseContainer({ mode = "main" }: ExerciseContainerPr
 
 
   const fetchWeeklyDietCount = useCallback(async () => {
+    setWeeklyDietLoading(true);
     const { data } = await getMyRitualRecords({
       routineType: "exercise",
       currentPeriodOnly: true,
@@ -62,6 +64,7 @@ export default function ExerciseContainer({ mode = "main" }: ExerciseContainerPr
       return d.recordType === "diet" && isDateInCurrentKoreaWeek(r.record_date);
     }).length;
     setWeeklyDietCount(count);
+    setWeeklyDietLoading(false);
   }, []);
 
   useEffect(() => {
@@ -109,6 +112,7 @@ export default function ExerciseContainer({ mode = "main" }: ExerciseContainerPr
           onSubmit={handleSubmit}
           weeklyDietCount={weeklyDietCount}
           weeklyDietLimit={2}
+          weeklyDietLoading={weeklyDietLoading}
         />
       </div>
     );

@@ -26,10 +26,12 @@ export default function AddNewExercise({
   initialImages,
   weeklyDietCount = 0,
   weeklyDietLimit = 2,
+  weeklyDietLoading = false,
 }: AddNewExerciseProps) {
   const [images, setImages] = useState<string[]>(initialImages ?? []);
   const [imageTakenAtTimes, setImageTakenAtTimes] = useState<number[]>([]);
   const dietLimitReached = weeklyDietCount >= weeklyDietLimit;
+  const dietSelectDisabled = weeklyDietLoading || dietLimitReached;
   const [recordType, setRecordType] = useState<ExerciseRecordType>("exercise");
   const [exerciseName, setExerciseName] = useState("");
   const [duration, setDuration] = useState<number | null>(null);
@@ -42,6 +44,13 @@ export default function AddNewExercise({
   const [showPhotoIntervalModal, setShowPhotoIntervalModal] = useState(false);
   const [showRatioTip, setShowRatioTip] = useState(false);
   const ratioTipRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (recordType !== "diet" || !dietLimitReached) return;
+    setRecordType("exercise");
+    setImages((prev) => prev.slice(0, 2));
+    setImageTakenAtTimes((prev) => prev.slice(0, 2));
+  }, [dietLimitReached, recordType]);
 
   useEffect(() => {
     if (!showRatioTip) return;
@@ -121,6 +130,7 @@ export default function AddNewExercise({
 
   const canSubmit =
     exerciseName.trim() &&
+    !(recordType === "diet" && dietLimitReached) &&
     (recordType === "exercise" ? finalDuration > 0 : !!finalMacros);
 
   const handleSubmit = async () => {
@@ -219,16 +229,18 @@ export default function AddNewExercise({
           <button
             type="button"
             onClick={() => {
-              if (dietLimitReached) return;
+              if (dietSelectDisabled) return;
               setRecordType("diet");
               setImages((prev) => prev.slice(0, 1));
               setImageTakenAtTimes((prev) => prev.slice(0, 1));
             }}
-            disabled={dietLimitReached}
-            aria-disabled={dietLimitReached}
+            disabled={dietSelectDisabled}
+            aria-disabled={dietSelectDisabled}
             title={
               dietLimitReached
                 ? "식단 기록은 주 2회까지 달성할 수 있어요"
+                : weeklyDietLoading
+                  ? "식단 기록 인증 횟수를 확인하는 중이에요"
                 : undefined
             }
             className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
@@ -237,7 +249,7 @@ export default function AddNewExercise({
                 : "bg-gray-100 text-gray-500 hover:bg-gray-200"
             }`}
           >
-            식단 기록
+            {weeklyDietLoading ? "확인 중..." : "식단 기록"}
           </button>
         </div>
 
