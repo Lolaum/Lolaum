@@ -7,7 +7,7 @@ import {
   getCurrentChallengeId,
   isChallengePeriodEnded,
 } from "@/lib/current-challenge";
-import { isUserDeactivatedForRitual } from "@/api/admin";
+import { deleteRegisteredRoutine, isUserDeactivatedForRitual } from "@/api/admin";
 import type { ChallengeRegistration, RoutineTypeDB } from "@/types/supabase";
 
 export async function getRoutines(
@@ -87,33 +87,7 @@ export async function createRoutine(input: {
 export async function deleteRoutine(
   id: string,
 ): Promise<{ success?: boolean; error?: string }> {
-  const supabase = await createClient();
-
-  const { data: registration, error: fetchError } = await supabase
-    .from("challenge_registrations")
-    .select("user_id, challenge_id, routine_type")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (fetchError) return { error: fetchError.message };
-
-  const { error } = await supabase
-    .from("challenge_registrations")
-    .delete()
-    .eq("id", id);
-
-  if (error) return { error: error.message };
-
-  if (registration) {
-    await supabase
-      .from("declarations")
-      .delete()
-      .eq("user_id", registration.user_id)
-      .eq("challenge_id", registration.challenge_id)
-      .eq("routine_type", registration.routine_type);
-  }
-
-  return { success: true };
+  return deleteRegisteredRoutine({ registrationId: id });
 }
 
 /** 내 리추얼 목록 가져오기 (challengeId 자동) */
@@ -159,56 +133,14 @@ export async function createRoutineAuto(
  * - challenges.reset_at = 오늘 (이후 진행률은 이 날짜부터 집계)
  * - 등록한 리추얼(challenge_registrations)과 선언(declarations) 삭제
  * - ritual_records 는 보존 → "나의 리추얼 기록"에서 계속 조회 가능
+ *
+ * 신청 리추얼 삭제는 관리자만 수행할 수 있으므로 사용자 액션에서는 중단한다.
  */
 export async function resetChallenge(): Promise<{
   success?: boolean;
   error?: string;
 }> {
-  const user = await getCurrentUser();
-  if (!user) return { error: "인증이 필요합니다." };
-
-  const { period, error: periodError } = await getActivePeriod();
-  if (!period) return { error: periodError ?? "활성 챌린지 기간이 없습니다." };
-  if (isChallengePeriodEnded(period)) {
-    return { success: true };
-  }
-
-  const { challengeId, error: challengeError } = await getCurrentChallengeId();
-  if (!challengeId) {
-    return { error: challengeError ?? "챌린지를 찾을 수 없습니다." };
-  }
-
-  const supabase = await createClient();
-
-  const today = new Date();
-  const y = today.getFullYear();
-  const m = String(today.getMonth() + 1).padStart(2, "0");
-  const d = String(today.getDate()).padStart(2, "0");
-  const todayStr = `${y}-${m}-${d}`;
-
-  const [resetRes, regRes, declRes] = await Promise.all([
-    supabase
-      .from("challenges")
-      .update({ reset_at: todayStr })
-      .eq("id", challengeId)
-      .eq("user_id", user.id),
-    supabase
-      .from("challenge_registrations")
-      .delete()
-      .eq("challenge_id", challengeId)
-      .eq("user_id", user.id),
-    supabase
-      .from("declarations")
-      .delete()
-      .eq("challenge_id", challengeId)
-      .eq("user_id", user.id),
-  ]);
-
-  if (resetRes.error) return { error: resetRes.error.message };
-  if (regRes.error) return { error: regRes.error.message };
-  if (declRes.error) return { error: declRes.error.message };
-
-  return { success: true };
+  return { error: "신청 리추얼 삭제는 관리자만 할 수 있습니다." };
 }
 
 

@@ -53,7 +53,7 @@ export interface CompletedBook {
   id: string;
   title: string;
   coverImageUrl: string | null;
-  completedDate: string; // YYYY-MM-DD (updated_at)
+  completedDate: string; // YYYY-MM-DD
   routineType?: "reading" | "english_book";
 }
 

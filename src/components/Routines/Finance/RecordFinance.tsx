@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Trash2 } from "lucide-react";
+import { ChevronDown, Pencil, Trash2 } from "lucide-react";
+import EditFeedRecord from "@/components/Feed/EditFeedRecord";
 import { RecordFinanceProps } from "@/types/routines/finance";
 import { deleteRitualRecord } from "@/api/ritual-record";
+import type { FeedItem, FinanceFeedData } from "@/types/feed";
+import type { FinanceRecord } from "@/types/routines/finance";
 
 interface RecordFinancePropsWithCallback extends RecordFinanceProps {
   onChanged?: () => void;
@@ -14,6 +17,7 @@ export default function RecordFinance({
   onChanged,
 }: RecordFinancePropsWithCallback) {
   const [expandedIds, setExpandedIds] = useState<number[]>([]);
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -40,6 +44,23 @@ export default function RecordFinance({
     const date = new Date(dateString);
     return `${date.getMonth() + 1}/${date.getDate()}`;
   };
+
+  const makeFeedItem = (record: FinanceRecord): FeedItem => ({
+    id: String(record.id),
+    odOriginalId: String(record.id),
+    userId: "",
+    userName: "",
+    date: record.recordDate,
+    routineCategory: "자산관리",
+    routineId: 0,
+    recordId: 0,
+    routineData: {
+      dailyExpenses: record.dailyExpenses,
+      studyContent: record.studyContent,
+      practice: record.practice,
+      certPhotos: record.certPhotos,
+    } satisfies FinanceFeedData,
+  });
 
   return (
     <>
@@ -104,6 +125,16 @@ export default function RecordFinance({
                 <div className="px-4 pb-4 pt-2 border-t border-gray-100">
                   {/* 자산관리 상세 정보 */}
                   <div className="space-y-3">
+                    {editingRecordId === String(record.id) ? (
+                      <EditFeedRecord
+                        item={makeFeedItem(record)}
+                        onCancel={() => {
+                          setEditingRecordId(null);
+                          onChanged?.();
+                        }}
+                      />
+                    ) : (
+                      <>
                     {/* 날짜별 소비 기록 */}
                     <div>
                       <h4 className="text-sm font-semibold text-gray-700 mb-3">
@@ -360,8 +391,20 @@ export default function RecordFinance({
                       </div>
                     )}
 
-                    {/* 삭제 버튼 */}
-                    <div className="flex items-center justify-end pt-2 border-t border-gray-100">
+                    {/* 수정/삭제 버튼 */}
+                    <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditingRecordId((current) =>
+                            current === String(record.id) ? null : String(record.id),
+                          )
+                        }
+                        className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        {editingRecordId === String(record.id) ? "수정 닫기" : "수정"}
+                      </button>
                       <button
                         type="button"
                         onClick={() => setDeleteTargetId(String(record.id))}
@@ -371,6 +414,8 @@ export default function RecordFinance({
                         삭제
                       </button>
                     </div>
+                      </>
+                    )}
                   </div>
                 </div>
               )}

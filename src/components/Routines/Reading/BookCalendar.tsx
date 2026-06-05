@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, BookCheck } from "lucide-react";
 import {
-  ReadingRecord,
   BookCalendarProps,
   CompletedBook,
 } from "@/types/routines/reading";
@@ -19,7 +18,6 @@ export default function BookCalendar({
   completedBooks = [],
 }: BookCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [readingRecords, setReadingRecords] = useState<ReadingRecord[]>([]);
   const [calendarCompletedBooks, setCalendarCompletedBooks] = useState<
     CompletedBook[]
   >([]);
@@ -54,6 +52,7 @@ export default function BookCalendar({
           title: string;
           coverImageUrl: string | null;
           routineType: "reading" | "english_book";
+          totalValue: number;
         }
       > = {};
       for (const book of allBooks) {
@@ -61,8 +60,22 @@ export default function BookCalendar({
           title: book.title,
           coverImageUrl: book.cover_image_url,
           routineType: book.routine_type,
+          totalValue: book.total_value,
         };
       }
+
+      const completedDateByBookId: Record<string, string> = {};
+      for (const record of recordsResult.data ?? []) {
+        const data = record.record_data as unknown as ReadingRecordData;
+        const bookId = data?.bookId;
+        const book = bookId ? map[bookId] : undefined;
+        if (!book || data.endValue < book.totalValue) continue;
+        const previousDate = completedDateByBookId[bookId];
+        if (!previousDate || record.record_date < previousDate) {
+          completedDateByBookId[bookId] = record.record_date;
+        }
+      }
+
       setCalendarCompletedBooks(
         allBooks
           .filter((book) => book.is_completed)
@@ -70,27 +83,11 @@ export default function BookCalendar({
             id: book.id,
             title: book.title,
             coverImageUrl: book.cover_image_url,
-            completedDate: book.updated_at.slice(0, 10),
+            completedDate:
+              completedDateByBookId[book.id] ?? book.updated_at.slice(0, 10),
             routineType: book.routine_type,
           })),
       );
-
-      // ritual_records에서 독서 기록 추출
-      const records: ReadingRecord[] = [];
-      for (const record of recordsResult.data ?? []) {
-        const data = record.record_data as unknown as ReadingRecordData;
-        const bookId = data?.bookId;
-        if (bookId && map[bookId]) {
-          records.push({
-            date: record.record_date,
-            bookCover: map[bookId].coverImageUrl ?? "",
-            bookId,
-            bookTitle: map[bookId].title,
-            routineType: map[bookId].routineType,
-          });
-        }
-      }
-      setReadingRecords(records);
 
       setLoading(false);
     }
@@ -114,12 +111,6 @@ export default function BookCalendar({
   // 다음 달로 이동
   const goToNextMonth = () => {
     setCurrentDate(new Date(year, month + 1, 1));
-  };
-
-  // 해당 날짜의 독서 기록 찾기
-  const getReadingRecords = (day: number) => {
-    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    return readingRecords.filter((record) => record.date === dateStr);
   };
 
   // 해당 날짜에 완독된 책 찾기
@@ -288,9 +279,7 @@ export default function BookCalendar({
           const dayOfWeek = index % 7;
           const isSunday = dayOfWeek === 0;
           const isSaturday = dayOfWeek === 6;
-          const records = day ? getReadingRecords(day) : [];
           const completedBook = day ? getCompletedBook(day) : undefined;
-          const visibleRecords = records.slice(0, 3);
 
           return (
             <div
@@ -360,45 +349,6 @@ export default function BookCalendar({
                         </svg>
                       </div>
                     </button>
-                  ) : records.length > 0 ? (
-                    <div className="flex flex-wrap justify-center gap-1">
-                      {visibleRecords.map((record) => (
-                        <button
-                          key={`${record.date}-${record.bookId}-${record.routineType}`}
-                          type="button"
-                          onClick={() =>
-                            onBookSelect?.({
-                              bookId: record.bookId,
-                              routineType: record.routineType,
-                            })
-                          }
-                          className="w-8 h-11 rounded overflow-hidden shadow-sm hover:scale-110 hover:shadow-md transition-transform"
-                          title={record.bookTitle}
-                        >
-                          {record.bookCover ? (
-                            <Image
-                              src={record.bookCover}
-                              alt={record.bookTitle}
-                              width={32}
-                              height={44}
-                              className="w-full h-full object-cover"
-                              unoptimized
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center">
-                              <span className="text-white text-[7px]">
-                                표지
-                              </span>
-                            </div>
-                          )}
-                        </button>
-                      ))}
-                      {records.length > visibleRecords.length && (
-                        <span className="mt-0.5 text-[10px] font-semibold text-gray-400">
-                          +{records.length - visibleRecords.length}
-                        </span>
-                      )}
-                    </div>
                   ) : null}
                 </>
               )}

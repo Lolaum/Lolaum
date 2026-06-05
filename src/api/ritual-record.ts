@@ -15,38 +15,6 @@ import type { Json, RitualRecord, RoutineTypeDB } from "@/types/supabase";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseAnyClient = { from: (...args: any[]) => any };
 
-const PHOTO_DUPLICATE_WINDOW_MINUTES = 10;
-const PHOTO_DUPLICATE_MESSAGE =
-  "사진 인증 리추얼은 10분 이내 중복 업로드할 수 없어요. 잠시 후 다시 시도해주세요.";
-
-function hasPhotoCertification(recordData: Json): boolean {
-  if (
-    !recordData ||
-    typeof recordData !== "object" ||
-    Array.isArray(recordData)
-  ) {
-    return false;
-  }
-
-  const data = recordData as Record<string, Json | undefined>;
-  const photoFields = [
-    data.certPhotos,
-    data.images,
-    data.image,
-    data.screenshot,
-  ];
-
-  return photoFields.some((value) => {
-    if (typeof value === "string") return value.trim().length > 0;
-    if (Array.isArray(value)) {
-      return value.some(
-        (item) => typeof item === "string" && item.trim().length > 0,
-      );
-    }
-    return false;
-  });
-}
-
 const ROUTINE_HOME_PATH: Record<RoutineTypeDB, string> = {
   morning: "/home/morning",
   exercise: "/home/exercise",
@@ -76,34 +44,34 @@ function getRecordDataObject(recordData: Json): Record<string, unknown> {
     : {};
 }
 
-function getRecordingReadEntryCount(recordData: Json): number {
+function hasRecordingReadEntry(recordData: Json): boolean {
   const data = getRecordDataObject(recordData);
   const entries = data.entries;
 
   if (Array.isArray(entries)) {
-    return entries.filter(
+    return entries.some(
       (entry) =>
         entry &&
         typeof entry === "object" &&
         (entry as Record<string, unknown>).type === "read",
-    ).length;
+    );
   }
 
-  return data.recordType === "read" ? 1 : 0;
+  return data.recordType === "read";
 }
 
-async function getWeeklySpecialRitualCount(input: {
+async function getWeeklySpecialRitualDates(input: {
   supabase: SupabaseAnyClient;
   userId: string;
   challengeId: string;
   routineType: "exercise" | "recording";
   recordDate: string;
   excludeRecordId?: string;
-}): Promise<{ count?: number; error?: string }> {
+}): Promise<{ dates?: Set<string>; error?: string }> {
   const { start, end } = getCurrentKoreaWeekRange(input.recordDate);
   let query = input.supabase
     .from("ritual_records")
-    .select("id, record_data")
+    .select("id, record_date, record_data")
     .eq("user_id", input.userId)
     .eq("challenge_id", input.challengeId)
     .eq("routine_type", input.routineType)
@@ -117,20 +85,20 @@ async function getWeeklySpecialRitualCount(input: {
   const { data, error } = await query;
   if (error) return { error: error.message };
 
-  const count = (data ?? []).reduce(
-    (sum: number, row: { record_data: Json }) => {
-      const recordData = row.record_data;
-      if (input.routineType === "exercise") {
-        return (
-          sum + (getRecordDataObject(recordData).recordType === "diet" ? 1 : 0)
-        );
-      }
-      return sum + getRecordingReadEntryCount(recordData);
-    },
-    0,
-  );
+  const dates = new Set<string>();
+  for (const row of data ?? []) {
+    const recordData = row.record_data as Json;
+    const isSpecial =
+      input.routineType === "exercise"
+        ? getRecordDataObject(recordData).recordType === "diet"
+        : hasRecordingReadEntry(recordData);
 
-  return { count };
+    if (isSpecial) {
+      dates.add(row.record_date as string);
+    }
+  }
+
+  return { dates };
 }
 
 async function validateWeeklySpecialRitualLimit(input: {
@@ -145,15 +113,14 @@ async function validateWeeklySpecialRitualLimit(input: {
   const isDietRecord =
     input.routineType === "exercise" &&
     getRecordDataObject(input.recordData).recordType === "diet";
-  const readEntryCount =
-    input.routineType === "recording"
-      ? getRecordingReadEntryCount(input.recordData)
-      : 0;
+  const hasReadRecord =
+    input.routineType === "recording" &&
+    hasRecordingReadEntry(input.recordData);
 
-  if (!isDietRecord && readEntryCount === 0) return {};
+  if (!isDietRecord && !hasReadRecord) return {};
 
   const routineType = isDietRecord ? "exercise" : "recording";
-  const { count, error } = await getWeeklySpecialRitualCount({
+  const { dates, error } = await getWeeklySpecialRitualDates({
     supabase: input.supabase,
     userId: input.userId,
     challengeId: input.challengeId,
@@ -163,12 +130,14 @@ async function validateWeeklySpecialRitualLimit(input: {
   });
   if (error) return { error };
 
-  const nextCount = (count ?? 0) + (isDietRecord ? 1 : readEntryCount);
-  if (nextCount > 2) {
+  const nextDates = new Set(dates ?? []);
+  nextDates.add(input.recordDate);
+
+  if (nextDates.size > 2) {
     return {
       error: isDietRecord
-        ? "식단 기록은 주 2회까지만 선택할 수 있습니다."
-        : "글 읽기 대체는 주 2회까지만 선택할 수 있습니다.",
+        ? "식단 기록은 일주일 중 2일까지만 선택할 수 있습니다."
+        : "글 읽기 대체는 일주일 중 2일까지만 선택할 수 있습니다.",
     };
   }
 
@@ -289,31 +258,6 @@ export async function createRitualRecord(input: {
     recordData,
   });
   if (limitError) return { error: limitError };
-
-  if (hasPhotoCertification(recordData)) {
-    const duplicateSince = new Date(
-      Date.now() - PHOTO_DUPLICATE_WINDOW_MINUTES * 60 * 1000,
-    ).toISOString();
-    const { data: recentPhotoRecords, error: recentError } = await supabase
-      .from("ritual_records")
-      .select("id, record_data")
-      .eq("user_id", user.id)
-      .eq("challenge_id", input.challengeId)
-      .eq("routine_type", input.routineType)
-      .eq("record_date", input.recordDate)
-      .gte("created_at", duplicateSince)
-      .order("created_at", { ascending: false })
-      .limit(5);
-
-    if (recentError) return { error: recentError.message };
-    if (
-      (recentPhotoRecords ?? []).some((r) =>
-        hasPhotoCertification(r.record_data as Json),
-      )
-    ) {
-      return { error: PHOTO_DUPLICATE_MESSAGE };
-    }
-  }
 
   // 하루에 여러 기록 허용 (INSERT), 달성률은 Set으로 하루 1회만 인정
   const { data, error } = await supabase

@@ -22,7 +22,9 @@ import {
 } from "@/types/routines/reading";
 import {
   createRitualRecordAuto,
+  deleteRitualRecord,
   getMyRitualRecords,
+  updateRitualRecord,
 } from "@/api/ritual-record";
 import { uploadBookCover } from "@/api/book";
 import {
@@ -524,6 +526,14 @@ export default function BookDetail({
   const editFileInputRef = useRef<HTMLInputElement>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [stoppingBook, setStoppingBook] = useState(false);
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
+  const [recordEditDraft, setRecordEditDraft] =
+    useState<DailyReadingRecord | null>(null);
+  const [savingRecordEdit, setSavingRecordEdit] = useState(false);
+  const [deleteRecordTargetId, setDeleteRecordTargetId] = useState<
+    string | null
+  >(null);
+  const [deletingRecord, setDeletingRecord] = useState(false);
 
   // DB에서 이 책의 기존 기록 불러오기
   const fetchRecords = useCallback(async () => {
@@ -548,6 +558,7 @@ export default function BookDetail({
             noteType: d.noteType,
             note: d.note,
             thoughts: d.thoughts,
+            certPhotos: d.certPhotos,
           };
         })
         .sort((a, b) => b.date.localeCompare(a.date));
@@ -570,6 +581,64 @@ export default function BookDetail({
     setExpandedIds((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
+  };
+
+  const startEditRecord = (record: DailyReadingRecord) => {
+    setEditingRecordId(String(record.id));
+    setRecordEditDraft({ ...record });
+  };
+
+  const cancelEditRecord = () => {
+    setEditingRecordId(null);
+    setRecordEditDraft(null);
+  };
+
+  const handleUpdateRecord = async () => {
+    if (!editingRecordId || !recordEditDraft || savingRecordEdit) return;
+    const startValue = Number(recordEditDraft.startValue) || 0;
+    const endValue = Number(recordEditDraft.endValue) || 0;
+    if (endValue < startValue) {
+      alert("종료 위치는 시작 위치보다 크거나 같아야 합니다.");
+      return;
+    }
+
+    setSavingRecordEdit(true);
+    const recordData: ReadingRecordData = {
+      bookId: book.id,
+      trackingType: recordEditDraft.trackingType,
+      startValue,
+      endValue,
+      progressAmount: Math.max(0, endValue - startValue),
+      noteType: recordEditDraft.noteType,
+      note: recordEditDraft.note.trim(),
+      thoughts: recordEditDraft.thoughts?.trim() || undefined,
+      certPhotos: recordEditDraft.certPhotos,
+    };
+    const { error } = await updateRitualRecord(
+      editingRecordId,
+      recordData as unknown as Json,
+    );
+    setSavingRecordEdit(false);
+    if (error) {
+      alert(`기록 수정 실패: ${error}`);
+      return;
+    }
+    cancelEditRecord();
+    fetchRecords();
+  };
+
+  const handleDeleteRecord = async () => {
+    if (!deleteRecordTargetId || deletingRecord) return;
+    setDeletingRecord(true);
+    const { error } = await deleteRitualRecord(deleteRecordTargetId);
+    setDeletingRecord(false);
+    setDeleteRecordTargetId(null);
+    if (error) {
+      alert(`기록 삭제 실패: ${error}`);
+      return;
+    }
+    if (editingRecordId === deleteRecordTargetId) cancelEditRecord();
+    fetchRecords();
   };
 
   const handleSave = async (record: Omit<DailyReadingRecord, "id">) => {
@@ -1115,32 +1184,171 @@ export default function BookDetail({
 
                     {isExpanded && (
                       <div className="px-4 pb-4 pt-1 border-t border-gray-100 space-y-2">
-                        <div className="text-xs text-gray-400">
-                          {record.startValue}
-                          {unit} → {record.endValue}
-                          {unit}
-                        </div>
-                        <div
-                          className={`text-sm text-gray-700 rounded-xl p-3 ${
-                            record.noteType === "sentence"
-                              ? "bg-orange-50 border-l-2 border-orange-300 italic"
-                              : "bg-gray-50"
-                          }`}
-                        >
-                          {record.noteType === "sentence" && (
-                            <Quote className="w-3 h-3 text-orange-300 inline-block mr-1 mb-0.5" />
-                          )}
-                          {record.note}
-                        </div>
-                        {record.thoughts && (
-                          <div className="bg-gray-50 rounded-xl p-3">
-                            <p className="text-xs text-gray-400 font-medium mb-1">
-                              나만의 생각
-                            </p>
-                            <p className="text-sm text-gray-700 leading-relaxed">
-                              {record.thoughts}
-                            </p>
+                        {editingRecordId === String(record.id) &&
+                        recordEditDraft ? (
+                          <div className="space-y-3 rounded-xl bg-gray-50 p-3">
+                            <div className="grid grid-cols-2 gap-2">
+                              <label className="block">
+                                <span className="mb-1 block text-xs font-medium text-gray-500">
+                                  시작 위치
+                                </span>
+                                <input
+                                  type="number"
+                                  value={recordEditDraft.startValue}
+                                  onChange={(e) =>
+                                    setRecordEditDraft({
+                                      ...recordEditDraft,
+                                      startValue:
+                                        Number(e.target.value) || 0,
+                                    })
+                                  }
+                                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                                />
+                              </label>
+                              <label className="block">
+                                <span className="mb-1 block text-xs font-medium text-gray-500">
+                                  종료 위치
+                                </span>
+                                <input
+                                  type="number"
+                                  value={recordEditDraft.endValue}
+                                  onChange={(e) => {
+                                    const endValue =
+                                      Number(e.target.value) || 0;
+                                    setRecordEditDraft({
+                                      ...recordEditDraft,
+                                      endValue,
+                                      progressAmount: Math.max(
+                                        0,
+                                        endValue -
+                                          recordEditDraft.startValue,
+                                      ),
+                                    });
+                                  }}
+                                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                                />
+                              </label>
+                            </div>
+                            <label className="block">
+                              <span className="mb-1 block text-xs font-medium text-gray-500">
+                                기록 종류
+                              </span>
+                              <select
+                                value={recordEditDraft.noteType}
+                                onChange={(e) =>
+                                  setRecordEditDraft({
+                                    ...recordEditDraft,
+                                    noteType: e.target.value as NoteType,
+                                  })
+                                }
+                                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                              >
+                                <option value="sentence">오늘의 문장</option>
+                                <option value="summary">내용 요약</option>
+                              </select>
+                            </label>
+                            <label className="block">
+                              <span className="mb-1 block text-xs font-medium text-gray-500">
+                                문장 / 요약
+                              </span>
+                              <textarea
+                                value={recordEditDraft.note}
+                                onChange={(e) =>
+                                  setRecordEditDraft({
+                                    ...recordEditDraft,
+                                    note: e.target.value,
+                                  })
+                                }
+                                rows={4}
+                                className="w-full resize-none rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                              />
+                            </label>
+                            <label className="block">
+                              <span className="mb-1 block text-xs font-medium text-gray-500">
+                                나만의 생각
+                              </span>
+                              <textarea
+                                value={recordEditDraft.thoughts ?? ""}
+                                onChange={(e) =>
+                                  setRecordEditDraft({
+                                    ...recordEditDraft,
+                                    thoughts: e.target.value,
+                                  })
+                                }
+                                rows={3}
+                                className="w-full resize-none rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                              />
+                            </label>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={cancelEditRecord}
+                                disabled={savingRecordEdit}
+                                className="flex-1 rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-medium text-gray-700 disabled:opacity-50"
+                              >
+                                취소
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleUpdateRecord}
+                                disabled={savingRecordEdit}
+                                className="flex-1 rounded-xl py-2.5 text-sm font-bold text-white disabled:opacity-50"
+                                style={{ backgroundColor: "#f97316" }}
+                              >
+                                {savingRecordEdit ? "저장 중..." : "저장"}
+                              </button>
+                            </div>
                           </div>
+                        ) : (
+                          <>
+                            <div className="text-xs text-gray-400">
+                              {record.startValue}
+                              {unit} → {record.endValue}
+                              {unit}
+                            </div>
+                            <div
+                              className={`text-sm text-gray-700 rounded-xl p-3 ${
+                                record.noteType === "sentence"
+                                  ? "bg-orange-50 border-l-2 border-orange-300 italic"
+                                  : "bg-gray-50"
+                              }`}
+                            >
+                              {record.noteType === "sentence" && (
+                                <Quote className="w-3 h-3 text-orange-300 inline-block mr-1 mb-0.5" />
+                              )}
+                              {record.note}
+                            </div>
+                            {record.thoughts && (
+                              <div className="bg-gray-50 rounded-xl p-3">
+                                <p className="text-xs text-gray-400 font-medium mb-1">
+                                  나만의 생각
+                                </p>
+                                <p className="text-sm text-gray-700 leading-relaxed">
+                                  {record.thoughts}
+                                </p>
+                              </div>
+                            )}
+                            <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+                              <button
+                                type="button"
+                                onClick={() => startEditRecord(record)}
+                                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                                수정
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setDeleteRecordTargetId(String(record.id))
+                                }
+                                className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition-colors"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                삭제
+                              </button>
+                            </div>
+                          </>
                         )}
                       </div>
                     )}
@@ -1149,6 +1357,42 @@ export default function BookDetail({
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {deleteRecordTargetId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6"
+          onClick={() => !deletingRecord && setDeleteRecordTargetId(null)}
+        >
+          <div
+            className="w-full max-w-xs rounded-2xl bg-white p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-semibold text-gray-900">
+              독서 기록을 삭제하시겠습니까?
+            </h3>
+            <p className="mt-2 text-sm text-gray-500">
+              인증 게시글과 댓글도 함께 사라집니다. 이 작업은 되돌릴 수 없습니다.
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setDeleteRecordTargetId(null)}
+                disabled={deletingRecord}
+                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleDeleteRecord}
+                disabled={deletingRecord}
+                className="flex-1 rounded-xl py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: "#ef4444" }}
+              >
+                {deletingRecord ? "삭제 중..." : "삭제"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

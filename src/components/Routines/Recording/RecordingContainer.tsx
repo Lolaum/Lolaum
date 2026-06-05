@@ -3,8 +3,17 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Loader2, ExternalLink, X, Plus, Trash2, Upload } from "lucide-react";
+import {
+  Loader2,
+  ExternalLink,
+  X,
+  Plus,
+  Pencil,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import LinkifiedText from "@/components/common/LinkifiedText";
+import EditFeedRecord from "@/components/Feed/EditFeedRecord";
 import {
   createRitualRecordAuto,
   deleteRitualRecord,
@@ -21,6 +30,7 @@ import {
   type RecordingRecordData,
   type Json,
 } from "@/types/supabase";
+import type { FeedItem, RecordingFeedData } from "@/types/feed";
 
 interface RecordingContainerProps {
   mode?: "main" | "new";
@@ -56,7 +66,11 @@ const isEntryValid = (e: RecordingEntry): boolean => {
   if (e.type === "write") {
     return (!!e.content.trim() || !!(e.link ?? "").trim()) && !!e.duration;
   }
-  return !!e.readSourceTitle.trim() && !!e.readResonatedPart.trim();
+  return (
+    !!e.readSourceTitle.trim() &&
+    !!e.readResonatedPart.trim() &&
+    !!e.readReason.trim()
+  );
 };
 
 export default function RecordingContainer({
@@ -69,6 +83,7 @@ export default function RecordingContainer({
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   // 폼 상태: 모드(글 작성/글 읽기 대체) + 항목 묶음
@@ -78,7 +93,8 @@ export default function RecordingContainer({
   );
   const [entries, setEntries] = useState<RecordingEntry[]>([emptyWrite()]);
   const [certPhotos, setCertPhotos] = useState<string[]>([]);
-  const [weeklyReadCount, setWeeklyReadCount] = useState(0);
+  const [weeklyReadDates, setWeeklyReadDates] = useState<string[]>([]);
+  const [weeklyReadLoading, setWeeklyReadLoading] = useState(true);
 
   const goHome = () => router.push("/home");
   const goMain = () => router.push("/home/recording");
@@ -104,20 +120,21 @@ export default function RecordingContainer({
   }, []);
 
   const fetchWeeklyReadCount = useCallback(async () => {
+    setWeeklyReadLoading(true);
     const { data } = await getMyRitualRecords({
       routineType: "recording",
       currentPeriodOnly: true,
     });
-    const count = (data ?? []).reduce((sum, r) => {
-      if (!isDateInCurrentKoreaWeek(r.record_date)) return sum;
+    const readDates = new Set<string>();
+    for (const r of data ?? []) {
+      if (!isDateInCurrentKoreaWeek(r.record_date)) continue;
       const d = r.record_data as unknown as RecordingRecordData;
-      return (
-        sum +
-        normalizeRecordingEntries(d).filter((entry) => entry.type === "read")
-          .length
-      );
-    }, 0);
-    setWeeklyReadCount(count);
+      if (normalizeRecordingEntries(d).some((entry) => entry.type === "read")) {
+        readDates.add(r.record_date);
+      }
+    }
+    setWeeklyReadDates([...readDates]);
+    setWeeklyReadLoading(false);
   }, []);
 
   useEffect(() => {
@@ -141,10 +158,21 @@ export default function RecordingContainer({
     fetchRecords();
   };
 
-  const readLimitReached = weeklyReadCount >= WEEKLY_READ_LIMIT;
+  const today = formatDateKey(new Date());
+  const readLimitReached =
+    weeklyReadDates.length >= WEEKLY_READ_LIMIT &&
+    !weeklyReadDates.includes(today);
+  const readSelectDisabled = weeklyReadLoading || readLimitReached;
+
+  useEffect(() => {
+    if (formMode !== "read" || !readLimitReached) return;
+    setFormMode("write");
+    setEntries([emptyWrite()]);
+    setCertPhotos([]);
+  }, [formMode, readLimitReached]);
 
   const switchFormMode = (next: RecordingMode) => {
-    if (next === "read" && readLimitReached) return;
+    if (next === "read" && readSelectDisabled) return;
     if (next === formMode) return;
     setFormMode(next);
     setEntries([next === "write" ? emptyWrite() : emptyRead()]);
@@ -165,11 +193,7 @@ export default function RecordingContainer({
   };
 
   const addReadEntry = () => {
-    setEntries((prev) => {
-      const remaining = WEEKLY_READ_LIMIT - weeklyReadCount - prev.length;
-      if (remaining <= 0) return prev;
-      return [...prev, emptyRead()];
-    });
+    setEntries((prev) => [...prev, emptyRead()]);
   };
 
   const handlePhotoFiles = async (files: FileList | null) => {
@@ -190,7 +214,10 @@ export default function RecordingContainer({
     setCertPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const canSubmit = entries.length > 0 && entries.every(isEntryValid);
+  const canSubmit =
+    entries.length > 0 &&
+    entries.every(isEntryValid) &&
+    !(formMode === "read" && readLimitReached);
 
   const handleSubmit = async () => {
     if (submittingRef.current) return;
@@ -247,6 +274,21 @@ export default function RecordingContainer({
     const s = sec % 60;
     return `${m}분 ${s}초`;
   };
+
+  const makeFeedItem = (record: RecordingRecord): FeedItem => ({
+    id: record.id,
+    odOriginalId: record.id,
+    userId: "",
+    userName: "",
+    date: record.date,
+    routineCategory: "기록",
+    routineId: 0,
+    recordId: 0,
+    routineData: {
+      entries: record.entries,
+      certPhotos: record.photos,
+    } satisfies RecordingFeedData,
+  });
 
   if (mode === "new") {
     return (
@@ -312,11 +354,13 @@ export default function RecordingContainer({
           <button
             type="button"
             onClick={() => switchFormMode("read")}
-            disabled={readLimitReached}
-            aria-disabled={readLimitReached}
+            disabled={readSelectDisabled}
+            aria-disabled={readSelectDisabled}
             title={
               readLimitReached
-                ? "글 읽기 대체는 주 2회까지 달성할 수 있어요"
+                ? "글 읽기 대체는 일주일 중 2일까지만 달성할 수 있어요"
+                : weeklyReadLoading
+                  ? "글 읽기 대체 인증 날짜를 확인하는 중이에요"
                 : undefined
             }
             className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
@@ -325,13 +369,13 @@ export default function RecordingContainer({
                 : "bg-gray-100 text-gray-500 hover:bg-gray-200"
             }`}
           >
-            글 읽기 대체
+            {weeklyReadLoading ? "확인 중..." : "글 읽기 대체"}
           </button>
         </div>
 
         {readLimitReached && (
           <p className="-mt-3 mb-4 rounded-xl bg-rose-50 px-3 py-2 text-xs font-medium text-rose-600">
-            이번 주 글 읽기 대체를 2회 달성했어요. 다음 주에 다시 선택할 수
+            이번 주 글 읽기 대체를 2일 달성했어요. 다음 주에 다시 선택할 수
             있어요.
           </p>
         )}
@@ -374,15 +418,15 @@ export default function RecordingContainer({
             <button
               type="button"
               onClick={addReadEntry}
-              disabled={weeklyReadCount + entries.length >= WEEKLY_READ_LIMIT}
+              disabled={readLimitReached}
               className="w-full py-3 rounded-xl text-xs font-bold border-2 border-dashed border-violet-200 text-violet-500 hover:bg-violet-50 transition-colors flex items-center justify-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-45"
             >
               <Plus className="w-4 h-4" />
-              다른 챌린저 글 후기 추가
+              다른 사람 글 읽기 추가
             </button>
-            {weeklyReadCount + entries.length >= WEEKLY_READ_LIMIT && (
+            {readLimitReached && (
               <p className="mt-2 text-center text-xs text-violet-500">
-                글 읽기 대체는 주 2회까지만 추가할 수 있어요.
+                글 읽기 대체는 일주일 중 2일까지만 추가할 수 있어요.
               </p>
             )}
           </div>
@@ -483,6 +527,16 @@ export default function RecordingContainer({
               <p className="text-[10px] text-gray-300 font-medium mb-3">
                 {record.date}
               </p>
+              {editingRecordId === record.id ? (
+                <EditFeedRecord
+                  item={makeFeedItem(record)}
+                  onCancel={() => {
+                    setEditingRecordId(null);
+                    fetchRecords();
+                  }}
+                />
+              ) : (
+                <>
               <div className="space-y-3">
                 {record.entries.map((entry, i) => (
                   <RecordEntryView key={i} entry={entry} />
@@ -505,7 +559,19 @@ export default function RecordingContainer({
                   ))}
                 </div>
               )}
-              <div className="flex items-center justify-end mt-3 pt-3 border-t border-gray-100">
+              <div className="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEditingRecordId((current) =>
+                      current === record.id ? null : record.id,
+                    )
+                  }
+                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  {editingRecordId === record.id ? "수정 닫기" : "수정"}
+                </button>
                 <button
                   type="button"
                   onClick={() => setDeleteTargetId(record.id)}
@@ -515,6 +581,8 @@ export default function RecordingContainer({
                   삭제
                 </button>
               </div>
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -581,7 +649,7 @@ function RecordEntryView({ entry }: { entry: RecordingEntry }) {
         {entry.readResonatedPart && (
           <div className="min-w-0">
             <p className="text-[10px] text-gray-400 font-medium">
-              마음에 닿은 부분과 그 이유
+              마음에 닿은 부분
             </p>
             <LinkifiedText
               text={entry.readResonatedPart}
@@ -901,21 +969,44 @@ function ReadFields({
   onChange: (patch: Partial<RecordingEntry>) => void;
 }) {
   return (
-    <div className="flex gap-2">
-      <input
-        type="text"
-        value={entry.readSourceTitle}
-        onChange={(e) => onChange({ readSourceTitle: e.target.value })}
-        placeholder="챌린저 닉네임"
-        className="w-28 shrink-0 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] transition-all"
-      />
-      <textarea
-        value={entry.readResonatedPart}
-        onChange={(e) => onChange({ readResonatedPart: e.target.value })}
-        placeholder="마음에 닿은 부분과 그 이유"
-        rows={3}
-        className="flex-1 min-w-0 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] transition-all"
-      />
+    <div className="space-y-3">
+      <div>
+        <label className="mb-1.5 block text-xs font-semibold text-gray-500">
+          오늘 읽은 다른 챌린저 글 <span className="text-red-400">*</span>
+        </label>
+        <input
+          type="text"
+          value={entry.readSourceTitle}
+          onChange={(e) => onChange({ readSourceTitle: e.target.value })}
+          placeholder="챌린저 닉네임"
+          className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] transition-all"
+        />
+      </div>
+      <div>
+        <label className="mb-1.5 block text-xs font-semibold text-gray-500">
+          1. 마음에 닿은 부분 <span className="text-red-400">*</span>
+        </label>
+        <textarea
+          value={entry.readResonatedPart}
+          onChange={(e) => onChange({ readResonatedPart: e.target.value })}
+          placeholder="마음에 닿은 부분"
+          rows={3}
+          className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 resize-y focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] transition-all"
+        />
+      </div>
+      <div>
+        <label className="mb-1.5 block text-xs font-semibold text-gray-500">
+          2. 마음에 닿았던 이유 / 닮고 싶은 부분{" "}
+          <span className="text-red-400">*</span>
+        </label>
+        <textarea
+          value={entry.readReason}
+          onChange={(e) => onChange({ readReason: e.target.value })}
+          placeholder="마음에 닿았던 이유 / 닮고 싶은 부분"
+          rows={3}
+          className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 resize-y focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] transition-all"
+        />
+      </div>
     </div>
   );
 }
