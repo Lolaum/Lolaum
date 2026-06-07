@@ -35,7 +35,7 @@ import {
   resizeImageFile,
 } from "@/lib/utils";
 import { uploadImage, uploadImages } from "@/lib/upload-image";
-import { formatDateKey } from "@/lib/date";
+import { formatKoreaDateKey } from "@/lib/korea-date";
 import CertificationPhotoIntervalModal from "@/components/common/CertificationPhotoIntervalModal";
 import type { ReadingRecordData, Json } from "@/types/supabase";
 
@@ -159,7 +159,7 @@ function AddReadingRecord({
     if (submittingRef.current || !canSave) return;
     submittingRef.current = true;
     setSubmitting(true);
-    const today = formatDateKey(new Date());
+    const today = formatKoreaDateKey();
     try {
       const [screenshotUrl, certPhotoUrls] = await Promise.all([
         isEnglishBook && screenshot

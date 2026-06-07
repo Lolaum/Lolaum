@@ -913,12 +913,24 @@ export async function getHomeStats(): Promise<{
     return true;
   });
 
-  // myPage stats (현재 챌린지 기준으로 스트릭 계산)
+  const { data: archivedRecords, error: archivedRecordsError } = await supabase
+    .from("ritual_records")
+    .select("record_date")
+    .eq("user_id", user.id);
+
+  if (archivedRecordsError) return { error: archivedRecordsError.message };
+
+  // myPage stats
+  // - 연속 실천: 현재 챌린지 기준으로 초기화
+  // - 최장 기록/총 완료: 유저 전체 기록 기준으로 누적 아카이빙
   const currentDates = [...new Set(currentRecords.map((r) => r.record_date))];
+  const archivedDates = [
+    ...new Set((archivedRecords ?? []).map((r) => r.record_date)),
+  ];
   const myPage: MyPageStats = {
     currentStreak: calcStreak(currentDates),
-    longestStreak: calcLongestStreak(currentDates),
-    totalCompletions: currentRecords.length,
+    longestStreak: calcLongestStreak(archivedDates),
+    totalCompletions: archivedRecords?.length ?? 0,
   };
 
   // completion stats (오늘/주말 인증도 포함한 완료 횟수 — 진행표와 동일 로직)
@@ -1038,25 +1050,36 @@ export async function getMyPageStats(): Promise<{
   const effectiveStart = getEffectiveStart(period.start_date, resetAt);
   const supabase = await createClient();
 
-  // 활성 기간 안의 기록만 조회 (연속 실천, 최장 기록, 총 완료 모두 기간 단위 리셋)
-  const { data, error } = await supabase
-    .from("ritual_records")
-    .select("record_date")
-    .eq("user_id", user.id)
-    .eq("challenge_id", challengeId)
-    .gte("record_date", effectiveStart)
-    .lte("record_date", period.end_date);
+  const [currentRes, archivedRes] = await Promise.all([
+    supabase
+      .from("ritual_records")
+      .select("record_date")
+      .eq("user_id", user.id)
+      .eq("challenge_id", challengeId)
+      .gte("record_date", effectiveStart)
+      .lte("record_date", period.end_date),
+    supabase
+      .from("ritual_records")
+      .select("record_date")
+      .eq("user_id", user.id),
+  ]);
 
-  if (error) return { error: error.message };
+  if (currentRes.error) return { error: currentRes.error.message };
+  if (archivedRes.error) return { error: archivedRes.error.message };
 
-  const records = data ?? [];
-  const dates = [...new Set(records.map((r) => r.record_date))];
+  const currentDates = [
+    ...new Set((currentRes.data ?? []).map((r) => r.record_date)),
+  ];
+  const archivedRecords = archivedRes.data ?? [];
+  const archivedDates = [
+    ...new Set(archivedRecords.map((r) => r.record_date)),
+  ];
 
   return {
     data: {
-      currentStreak: calcStreak(dates),
-      longestStreak: calcLongestStreak(dates),
-      totalCompletions: records.length,
+      currentStreak: calcStreak(currentDates),
+      longestStreak: calcLongestStreak(archivedDates),
+      totalCompletions: archivedRecords.length,
     },
   };
 }

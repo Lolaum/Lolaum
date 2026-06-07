@@ -10,8 +10,8 @@ import {
   ExerciseFormData,
 } from "@/types/routines/exercise";
 import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
-import { formatDateKey } from "@/lib/date";
 import { isDateInCurrentKoreaWeek } from "@/lib/current-week";
+import { formatKoreaDateKey } from "@/lib/korea-date";
 import type { ExerciseRecordData, Json } from "@/types/supabase";
 
 interface ExerciseContainerProps {
@@ -60,7 +60,7 @@ export default function ExerciseContainer({ mode = "main" }: ExerciseContainerPr
       routineType: "exercise",
       currentPeriodOnly: true,
     });
-    const today = formatDateKey(new Date());
+    const today = formatKoreaDateKey();
     const dietDates = new Set<string>();
     for (const r of data ?? []) {
       if (!isDateInCurrentKoreaWeek(r.record_date)) continue;
@@ -81,7 +81,7 @@ export default function ExerciseContainer({ mode = "main" }: ExerciseContainerPr
   }, [fetchRecords, fetchWeeklyDietCount, mode]);
 
   const handleSubmit = async (formData: ExerciseFormData) => {
-    const today = formatDateKey(new Date());
+    const today = formatKoreaDateKey();
     const recordData: ExerciseRecordData = {
       recordType: formData.recordType,
       exerciseName: formData.exerciseName,

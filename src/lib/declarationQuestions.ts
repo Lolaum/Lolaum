@@ -27,9 +27,9 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
       },
       {
         id: "timetable",
-        label: "타임테이블 (6:00-6:30 or 7:00-7:30)",
+        label: "타임테이블 (7:00-7:30)",
         placeholder:
-          "5:50 - 6:00 물 마시기 -> 6:00 - 6:15 15분 스트레칭 -> 6:15-6:30 독서",
+          "6:50 - 7:00 물 마시기 -> 7:00 - 7:15 15분 스트레칭 -> 7:15-7:30 독서",
       },
       {
         id: "sleep_goal",
@@ -188,8 +188,7 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
       },
       {
         id: "this_month_goal",
-        label:
-          "이번 달 기록 목표!\n3주치 목차/주제 리스트업\n(최소 9개 완성)",
+        label: "이번 달 기록 목표!\n3주치 목차/주제 리스트업\n(최소 9개 완성)",
         exampleLineIndex: 1,
         description:
           "*미리 목차 리스트업을 해두면 3주간 글쓰기에 대한 부담이 훨씬 줄어듭니다. 추후 주제가 변경되어도 괜찮습니다.\n*일기 형식으로 쓰시는 분들은 주제를 모두 작성해두지 않으셔도 됩니다.",
