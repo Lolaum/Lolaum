@@ -1,5 +1,8 @@
 import { Declaration } from "@/types/routines/declaration";
 
+const MORNING_CERT_METHOD =
+  "1. 시작인증: 정각 7시에 모닝리추얼 Live 링크에서 출석체크\n2. 종료인증: 롤라움 웹에 모닝리추얼 회고 기록 남기기";
+
 export const myDeclarations: Declaration[] = [
   {
     id: "my-morning",
@@ -22,7 +25,7 @@ export const myDeclarations: Declaration[] = [
         answer:
           "목표 취침 11시. 전날 밤에 옷 미리 꺼내두기, 내일 할 일 노트에 적기",
       },
-      { questionId: "cert_method", answer: "기상 직후 시계와 함께 셀카 인증" },
+      { questionId: "cert_method", answer: MORNING_CERT_METHOD },
     ],
     createdAt: "2026-03-01",
   },
@@ -66,7 +69,7 @@ export const challengerDeclarations: Declaration[] = [
         answer: "7:00 기상 → 7:10 명상 5분 → 7:15 일기 쓰기 → 7:25 준비",
       },
       { questionId: "sleep_goal", answer: "10시 30분 취침, 전날 책상 정리" },
-      { questionId: "cert_method", answer: "아침 일기 사진 인증" },
+      { questionId: "cert_method", answer: MORNING_CERT_METHOD },
     ],
     createdAt: "2026-03-01",
   },
@@ -87,7 +90,7 @@ export const challengerDeclarations: Declaration[] = [
           "7:00 기상 → 7:05 레몬 물 → 7:10 요가 10분 → 7:20 오늘 감사 3가지 기록",
       },
       { questionId: "sleep_goal", answer: "11시 취침, 핸드폰 멀리 두고 자기" },
-      { questionId: "cert_method", answer: "아침 요가 매트 사진 인증" },
+      { questionId: "cert_method", answer: MORNING_CERT_METHOD },
     ],
     createdAt: "2026-03-01",
   },
@@ -110,7 +113,7 @@ export const challengerDeclarations: Declaration[] = [
         questionId: "sleep_goal",
         answer: "11시 30분 취침, 자기 전 다음날 할 일 3가지 적기",
       },
-      { questionId: "cert_method", answer: "하루 계획 노트 캡처 인증" },
+      { questionId: "cert_method", answer: MORNING_CERT_METHOD },
     ],
     createdAt: "2026-03-01",
   },
@@ -130,7 +133,7 @@ export const challengerDeclarations: Declaration[] = [
         answer: "7:00 기상 → 7:05 따뜻한 물 → 7:10 저널링 10분 → 7:20 샤워",
       },
       { questionId: "sleep_goal", answer: "10시 취침, 자기 전 내일 옷 준비" },
-      { questionId: "cert_method", answer: "저널 페이지 사진 인증" },
+      { questionId: "cert_method", answer: MORNING_CERT_METHOD },
     ],
     createdAt: "2026-03-01",
   },
@@ -153,7 +156,7 @@ export const challengerDeclarations: Declaration[] = [
         questionId: "sleep_goal",
         answer: "11시 취침, 블루라이트 차단 안경 착용",
       },
-      { questionId: "cert_method", answer: "기상 시각 알람 화면 캡처" },
+      { questionId: "cert_method", answer: MORNING_CERT_METHOD },
     ],
     createdAt: "2026-03-01",
   },
@@ -173,7 +176,7 @@ export const challengerDeclarations: Declaration[] = [
         answer: "7:00 기상 → 7:05 비전보드 보기 → 7:10 간단 운동 → 7:20 준비",
       },
       { questionId: "sleep_goal", answer: "10시 30분 취침, 수면 앱으로 기록" },
-      { questionId: "cert_method", answer: "기상 후 비전보드 사진 인증" },
+      { questionId: "cert_method", answer: MORNING_CERT_METHOD },
     ],
     createdAt: "2026-03-01",
   },

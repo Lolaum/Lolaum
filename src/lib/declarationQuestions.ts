@@ -44,8 +44,8 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
         description: "*챌린저 모두 동일",
         readOnly: true,
         isConfirmation: true,
-        defaultValue: `1. 시작인증: 리더가 정각에 한번에 사진촬영 (출석체크)
-2. 종료인증: 오늘의 모닝리추얼 완료 사진 (내가 아침 시간을 계획한대로 보낼 수 있는 종료 인증 사진 생각해보기)`,
+        defaultValue: `1. 시작인증: 정각 7시에 모닝리추얼 Live 링크에서 출석체크
+2. 종료인증: 롤라움 웹에 모닝리추얼 회고 기록 남기기`,
       },
     ],
     운동리추얼: [
