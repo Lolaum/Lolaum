@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { formatDateKey } from "@/lib/date";
+import { formatKoreaDateKey } from "@/lib/korea-date";
 import { DAYS } from "@/lib/constants";
 import { Check, Trash2 } from "lucide-react";
 import { TodoListProps } from "@/types/home/todo";
@@ -18,7 +19,7 @@ function formatDayLabel(dateStr: string): string {
 
 /** 오늘 날짜인지 확인 */
 function isToday(dateStr: string): boolean {
-  return dateStr === formatDateKey(new Date());
+  return dateStr === formatKoreaDateKey();
 }
 
 export default function TodoList({ selectedDate }: TodoListProps) {

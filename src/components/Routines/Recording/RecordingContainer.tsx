@@ -19,8 +19,8 @@ import {
   deleteRitualRecord,
   getMyRitualRecords,
 } from "@/api/ritual-record";
-import { formatDateKey } from "@/lib/date";
 import { isDateInCurrentKoreaWeek } from "@/lib/current-week";
+import { formatKoreaDateKey } from "@/lib/korea-date";
 import { fileToBase64 } from "@/lib/utils";
 import { uploadImages } from "@/lib/upload-image";
 import {
@@ -158,7 +158,7 @@ export default function RecordingContainer({
     fetchRecords();
   };
 
-  const today = formatDateKey(new Date());
+  const today = formatKoreaDateKey();
   const readLimitReached =
     weeklyReadDates.length >= WEEKLY_READ_LIMIT &&
     !weeklyReadDates.includes(today);
@@ -227,7 +227,7 @@ export default function RecordingContainer({
     setSubmitting(true);
 
     try {
-      const today = formatDateKey(new Date());
+      const today = formatKoreaDateKey();
       const cleaned: RecordingEntry[] = entries.map((e) =>
         e.type === "write"
           ? {
