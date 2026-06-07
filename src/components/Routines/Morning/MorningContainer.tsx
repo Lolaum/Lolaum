@@ -126,7 +126,7 @@ export default function MorningContainer({ mode = "main" }: MorningContainerProp
 
       {/* 구글밋 링크 */}
       <a
-        href="https://meet.google.com/jyu-vutu-zpq"
+        href="https://meet.google.com/unv-mznh-uts"
         target="_blank"
         rel="noopener noreferrer"
         className="w-full flex items-center gap-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"

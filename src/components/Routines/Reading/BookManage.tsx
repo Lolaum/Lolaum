@@ -191,7 +191,7 @@ export default function BookManage({
       {/* 영어원서: 외부 링크 */}
       {isEnglishBook && (
         <a
-          href="https://classroom.google.com/c/ODM2ODc5NDYwMzY2?cjc=bgggatyj"
+          href="https://classroom.google.com/c/ODYzNzQ5MDAyNDAy?cjc=czx37u3l"
           target="_blank"
           rel="noopener noreferrer"
           className="w-full flex items-center gap-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
