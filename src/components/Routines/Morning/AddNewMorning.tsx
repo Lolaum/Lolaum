@@ -1,9 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, X } from "lucide-react";
-import { applyTimestamp, fileToBase64 } from "@/lib/utils";
-import { uploadImage } from "@/lib/upload-image";
 import {
   AddNewMorningProps,
   MorningFormData,
@@ -15,7 +12,6 @@ export default function AddNewMorning({
   onBackToHome,
   onSubmit,
 }: AddNewMorningProps) {
-  const [image, setImage] = useState("");
   const [sleepHours, setSleepHours] = useState("");
   const [sleepImprovement, setSleepImprovement] = useState("");
   const [condition, setCondition] = useState<ConditionLevel | "">("");
@@ -26,30 +22,6 @@ export default function AddNewMorning({
 
   const sleepHoursNum = sleepHours ? parseFloat(sleepHours) : NaN;
   const showSleepImprovement = !Number.isNaN(sleepHoursNum) && sleepHoursNum < 7;
-
-  const handleImageFiles = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-
-    const file = Array.from(files).find((item) => item.type.startsWith("image/"));
-    if (!file) return;
-
-    const stamped = await applyTimestamp(file).catch(() => fileToBase64(file));
-    setImage(stamped);
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    await handleImageFiles(e.target.files);
-    e.target.value = "";
-  };
-
-  const handleImageDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    await handleImageFiles(e.dataTransfer.files);
-  };
-
-  const removeImage = () => {
-    setImage("");
-  };
 
   const isValid =
     !!sleepHours &&
@@ -63,10 +35,7 @@ export default function AddNewMorning({
     submittingRef.current = true;
     setSubmitting(true);
 
-    const imageUrl = image ? await uploadImage(image) : "";
-
     const recordData: MorningFormData = {
-      image: imageUrl,
       sleepHours: sleepHoursNum,
       condition: condition as ConditionLevel,
       success: success.trim(),
@@ -137,54 +106,6 @@ export default function AddNewMorning({
       <div className="max-w-2xl bg-white rounded-2xl border border-gray-200 p-4 mx-auto">
         {/* 헤더 */}
         <h2 className="text-xl font-bold text-gray-900 mb-4">모닝 기록</h2>
-
-        {/* 인증 사진 */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            오늘의 모닝리추얼 완료 인증 사진
-          </label>
-          <div className="space-y-3">
-            {/* 이미지 업로드 영역 */}
-            {!image && (
-              <label
-                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-orange-400 transition-colors bg-gray-50"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={handleImageDrop}
-              >
-                <div className="flex flex-col items-center justify-center">
-                  <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-500">
-                    이미지 업로드 또는 드래그
-                  </p>
-                </div>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                />
-              </label>
-            )}
-
-            {/* 업로드된 이미지 미리보기 */}
-            {image && (
-              <div className="relative">
-                <img
-                  src={image}
-                  alt="업로드 이미지"
-                  className="w-full h-48 object-cover rounded-xl"
-                />
-                <button
-                  type="button"
-                  onClick={removeImage}
-                  className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-black bg-opacity-50 rounded-full text-white hover:bg-opacity-70"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
 
         {/* 수면 시간 + 컨디션 */}
         <div className="mb-4 grid grid-cols-2 gap-3">

@@ -15,7 +15,7 @@ export const myDeclarations: Declaration[] = [
       {
         questionId: "timetable",
         answer:
-          "6:00 기상 → 6:05 물 한 잔 → 6:10 스트레칭 5분 → 6:15 오늘 할 일 3가지 메모 → 6:25 샤워 준비",
+          "7:00 기상 → 7:05 물 한 잔 → 7:10 스트레칭 5분 → 7:15 오늘 할 일 3가지 메모 → 7:25 샤워 준비",
       },
       {
         questionId: "sleep_goal",
@@ -63,7 +63,7 @@ export const challengerDeclarations: Declaration[] = [
       },
       {
         questionId: "timetable",
-        answer: "6:00 기상 → 6:10 명상 5분 → 6:15 일기 쓰기 → 6:25 준비",
+        answer: "7:00 기상 → 7:10 명상 5분 → 7:15 일기 쓰기 → 7:25 준비",
       },
       { questionId: "sleep_goal", answer: "10시 30분 취침, 전날 책상 정리" },
       { questionId: "cert_method", answer: "아침 일기 사진 인증" },
@@ -84,7 +84,7 @@ export const challengerDeclarations: Declaration[] = [
       {
         questionId: "timetable",
         answer:
-          "6:00 기상 → 6:05 레몬 물 → 6:10 요가 10분 → 6:20 오늘 감사 3가지 기록",
+          "7:00 기상 → 7:05 레몬 물 → 7:10 요가 10분 → 7:20 오늘 감사 3가지 기록",
       },
       { questionId: "sleep_goal", answer: "11시 취침, 핸드폰 멀리 두고 자기" },
       { questionId: "cert_method", answer: "아침 요가 매트 사진 인증" },
@@ -104,7 +104,7 @@ export const challengerDeclarations: Declaration[] = [
       },
       {
         questionId: "timetable",
-        answer: "6:00 기상 → 6:10 독서 15분 → 6:25 하루 계획 노트 작성",
+        answer: "7:00 기상 → 7:10 독서 15분 → 7:25 하루 계획 노트 작성",
       },
       {
         questionId: "sleep_goal",
@@ -127,7 +127,7 @@ export const challengerDeclarations: Declaration[] = [
       },
       {
         questionId: "timetable",
-        answer: "6:00 기상 → 6:05 따뜻한 물 → 6:10 저널링 10분 → 6:20 샤워",
+        answer: "7:00 기상 → 7:05 따뜻한 물 → 7:10 저널링 10분 → 7:20 샤워",
       },
       { questionId: "sleep_goal", answer: "10시 취침, 자기 전 내일 옷 준비" },
       { questionId: "cert_method", answer: "저널 페이지 사진 인증" },
@@ -147,7 +147,7 @@ export const challengerDeclarations: Declaration[] = [
       },
       {
         questionId: "timetable",
-        answer: "6:00 기상 → 6:10 스트레칭 → 6:15 영어 팟캐스트 15분",
+        answer: "7:00 기상 → 7:10 스트레칭 → 7:15 영어 팟캐스트 15분",
       },
       {
         questionId: "sleep_goal",
@@ -170,7 +170,7 @@ export const challengerDeclarations: Declaration[] = [
       },
       {
         questionId: "timetable",
-        answer: "6:00 기상 → 6:05 비전보드 보기 → 6:10 간단 운동 → 6:20 준비",
+        answer: "7:00 기상 → 7:05 비전보드 보기 → 7:10 간단 운동 → 7:20 준비",
       },
       { questionId: "sleep_goal", answer: "10시 30분 취침, 수면 앱으로 기록" },
       { questionId: "cert_method", answer: "기상 후 비전보드 사진 인증" },

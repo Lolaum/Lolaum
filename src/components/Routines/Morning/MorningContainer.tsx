@@ -60,7 +60,6 @@ export default function MorningContainer({ mode = "main" }: MorningContainerProp
       condition: formData.condition,
       success: formData.success,
       reflection: formData.reflection,
-      image: formData.image || undefined,
     };
     const { error } = await createRitualRecordAuto({
       routineType: "morning",

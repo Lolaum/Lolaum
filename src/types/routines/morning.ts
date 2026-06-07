@@ -19,7 +19,6 @@ export interface MorningContainerProps {
 }
 
 export interface MorningFormData {
-  image: string;
   sleepHours: number;
   sleepImprovement?: string;
   condition: ConditionLevel;
