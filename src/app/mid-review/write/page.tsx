@@ -1,10 +1,12 @@
 import Layout from "@/components/Layout/Layout";
 import MidReviewWriteContainer from "@/components/MidReview/MidReviewWriteContainer";
+import { getPublicReviewQuestions } from "@/api/review-questions";
 
-export default function MidReviewWritePage() {
+export default async function MidReviewWritePage() {
+  const questions = await getPublicReviewQuestions("mid");
   return (
     <Layout>
-      <MidReviewWriteContainer />
+      <MidReviewWriteContainer questions={questions} />
     </Layout>
   );
 }

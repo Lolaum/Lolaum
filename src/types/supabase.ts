@@ -451,6 +451,91 @@ export interface Database {
         };
         Relationships: [];
       };
+      admin_deactivated_users: {
+        Row: {
+          id: string;
+          user_id: string;
+          reason: string | null;
+          deactivated_by: string | null;
+          deactivated_at: string;
+          reactivated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          reason?: string | null;
+          deactivated_by?: string | null;
+          deactivated_at?: string;
+          reactivated_at?: string | null;
+        };
+        Update: {
+          reason?: string | null;
+          deactivated_by?: string | null;
+          deactivated_at?: string;
+          reactivated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      admin_review_questions: {
+        Row: {
+          id: string;
+          review_type: "mid" | "final";
+          question_key: string;
+          label: string;
+          helper_text: string | null;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          review_type: "mid" | "final";
+          question_key: string;
+          label: string;
+          helper_text?: string | null;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          review_type?: "mid" | "final";
+          question_key?: string;
+          label?: string;
+          helper_text?: string | null;
+          sort_order?: number;
+          is_active?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      admin_error_logs: {
+        Row: {
+          id: string;
+          source: string;
+          message: string;
+          metadata: Json | null;
+          created_at: string;
+          resolved_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          source: string;
+          message: string;
+          metadata?: Json | null;
+          created_at?: string;
+          resolved_at?: string | null;
+        };
+        Update: {
+          source?: string;
+          message?: string;
+          metadata?: Json | null;
+          created_at?: string;
+          resolved_at?: string | null;
+        };
+        Relationships: [];
+      };
       notifications: {
         Row: {
           id: string;
@@ -508,6 +593,12 @@ export type DailyCompletion =
 export type Todo = Database["public"]["Tables"]["todos"]["Row"];
 export type Notification =
   Database["public"]["Tables"]["notifications"]["Row"];
+export type AdminDeactivatedUser =
+  Database["public"]["Tables"]["admin_deactivated_users"]["Row"];
+export type AdminReviewQuestion =
+  Database["public"]["Tables"]["admin_review_questions"]["Row"];
+export type AdminErrorLog =
+  Database["public"]["Tables"]["admin_error_logs"]["Row"];
 
 // record_data JSONB 타입들
 export interface MorningRecordData {

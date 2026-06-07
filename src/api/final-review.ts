@@ -5,7 +5,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   getCurrentChallengeId,
   getActivePeriod,
-  isChallengePeriodEnded,
 } from "@/lib/current-challenge";
 import type {
   ContinuationChoice,
@@ -48,7 +47,6 @@ async function getCurrentPeriodChallengeIds(): Promise<string[]> {
   try {
     const { period } = await getActivePeriod();
     if (!period) return [];
-    if (isChallengePeriodEnded(period)) return [];
     const admin = createAdminClient();
     const { data } = await admin
       .from("challenges")

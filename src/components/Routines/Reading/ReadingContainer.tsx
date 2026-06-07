@@ -10,11 +10,13 @@ import type { BookFormData } from "@/types/routines/reading";
 interface ReadingContainerProps {
   mode?: "main" | "new";
   isEnglishBook?: boolean;
+  initialBookId?: string;
 }
 
 export default function ReadingContainer({
   mode = "main",
   isEnglishBook,
+  initialBookId,
 }: ReadingContainerProps) {
   const router = useRouter();
   const basePath = isEnglishBook ? "/home/english-book" : "/home/reading";
@@ -54,6 +56,7 @@ export default function ReadingContainer({
         onBackToHome={goHome}
         onAddBook={goNew}
         isEnglishBook={isEnglishBook}
+        initialBookId={initialBookId}
       />
     </div>
   );

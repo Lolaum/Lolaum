@@ -11,6 +11,7 @@ import {
 } from "@/types/routines/exercise";
 import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
 import { formatDateKey } from "@/lib/date";
+import { isDateInCurrentKoreaWeek } from "@/lib/current-week";
 import type { ExerciseRecordData, Json } from "@/types/supabase";
 
 interface ExerciseContainerProps {
@@ -21,6 +22,9 @@ export default function ExerciseContainer({ mode = "main" }: ExerciseContainerPr
   const router = useRouter();
   const [exerciseRecords, setExerciseRecords] = useState<ExerciseRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [weeklyDietCount, setWeeklyDietCount] = useState(0);
+  const [weeklyDietCanAdd, setWeeklyDietCanAdd] = useState(true);
+  const [weeklyDietLoading, setWeeklyDietLoading] = useState(true);
 
   const goHome = () => router.push("/home");
   const goMain = () => router.push("/home/exercise");
@@ -49,9 +53,32 @@ export default function ExerciseContainer({ mode = "main" }: ExerciseContainerPr
     setLoading(false);
   }, []);
 
+
+  const fetchWeeklyDietCount = useCallback(async () => {
+    setWeeklyDietLoading(true);
+    const { data } = await getMyRitualRecords({
+      routineType: "exercise",
+      currentPeriodOnly: true,
+    });
+    const today = formatDateKey(new Date());
+    const dietDates = new Set<string>();
+    for (const r of data ?? []) {
+      if (!isDateInCurrentKoreaWeek(r.record_date)) continue;
+      const d = r.record_data as unknown as ExerciseRecordData;
+      if (d.recordType === "diet") dietDates.add(r.record_date);
+    }
+    setWeeklyDietCount(dietDates.size);
+    setWeeklyDietCanAdd(dietDates.size < 2 || dietDates.has(today));
+    setWeeklyDietLoading(false);
+  }, []);
+
   useEffect(() => {
-    if (mode === "main") fetchRecords();
-  }, [fetchRecords, mode]);
+    void Promise.resolve().then(() => {
+      if (mode === "main") return fetchRecords();
+      if (mode === "new") return fetchWeeklyDietCount();
+      return undefined;
+    });
+  }, [fetchRecords, fetchWeeklyDietCount, mode]);
 
   const handleSubmit = async (formData: ExerciseFormData) => {
     const today = formatDateKey(new Date());
@@ -88,6 +115,10 @@ export default function ExerciseContainer({ mode = "main" }: ExerciseContainerPr
           onCancel={goMain}
           onBackToHome={goHome}
           onSubmit={handleSubmit}
+          weeklyDietCount={weeklyDietCount}
+          weeklyDietLimit={2}
+          weeklyDietCanAdd={weeklyDietCanAdd}
+          weeklyDietLoading={weeklyDietLoading}
         />
       </div>
     );

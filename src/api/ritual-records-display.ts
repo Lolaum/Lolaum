@@ -2,7 +2,7 @@
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getActivePeriod, isChallengePeriodEnded } from "@/lib/current-challenge";
+import { getActivePeriod } from "@/lib/current-challenge";
 import type { RoutineTypeDB, RitualRecord } from "@/types/supabase";
 import type {
   FeedItem,
@@ -47,9 +47,11 @@ function transformRecordData(
   switch (record.routine_type) {
     case "exercise":
       return {
+        recordType: (data.recordType as ExerciseFeedData["recordType"]) ?? "exercise",
         images: (data.images as string[]) ?? [],
         exerciseName: (data.exerciseName as string) ?? "",
         duration: (data.duration as number) ?? 0,
+        macros: data.macros as string | undefined,
         achievement: (data.achievement as string) ?? "",
         certPhotos: (data.certPhotos as string[]) ?? undefined,
       } satisfies ExerciseFeedData;
@@ -270,7 +272,7 @@ export async function getRecordById(
     const isMine = record.user_id === user.id;
     if (!isMine) {
       const { period } = await getActivePeriod();
-      if (!period || isChallengePeriodEnded(period)) {
+      if (!period) {
         return { data: null, error: "현재 표시할 인증 게시글이 없습니다." };
       }
 
@@ -379,7 +381,7 @@ export async function getAllRecordsForDisplay(options?: {
 
     // 활성 기간의 challenge_id 목록 (이전 기간 인증 게시글은 피드에서 자동으로 사라짐)
     const { period } = await getActivePeriod();
-    if (!period || isChallengePeriodEnded(period)) {
+    if (!period) {
       return { data: [], total: 0 };
     }
     const { data: periodChallenges } = await admin

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { ChevronDown, Clock, Utensils, Pencil, Trash2 } from "lucide-react";
+import EditFeedRecord from "@/components/Feed/EditFeedRecord";
 import { ExerciseRecord } from "@/types/routines/exercise";
 import { deleteRitualRecord } from "@/api/ritual-record";
+import type { ExerciseFeedData, FeedItem } from "@/types/feed";
 
 interface GroupedRecord {
   date: string;
@@ -21,8 +22,8 @@ export default function RecordExercise({
   exerciseRecords,
   onChanged,
 }: RecordExerciseProps) {
-  const router = useRouter();
   const [expandedDates, setExpandedDates] = useState<string[]>([]);
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -68,6 +69,25 @@ export default function RecordExercise({
       prev.includes(date) ? prev.filter((d) => d !== date) : [...prev, date],
     );
   };
+
+  const makeFeedItem = (record: ExerciseRecord): FeedItem => ({
+    id: String(record.id),
+    odOriginalId: String(record.id),
+    userId: "",
+    userName: "",
+    date: record.date,
+    routineCategory: "운동",
+    routineId: 0,
+    recordId: 0,
+    routineData: {
+      recordType: record.recordType,
+      exerciseName: record.exerciseName,
+      duration: record.duration,
+      macros: record.macros,
+      images: record.images ?? [],
+      achievement: record.achievement ?? "",
+    } satisfies ExerciseFeedData,
+  });
 
   return (
     <>
@@ -117,6 +137,16 @@ export default function RecordExercise({
                   <div className="space-y-3">
                     {group.exercises.map((exercise, index) => (
                       <div key={index}>
+                        {editingRecordId === String(exercise.id) ? (
+                          <EditFeedRecord
+                            item={makeFeedItem(exercise)}
+                            onCancel={() => {
+                              setEditingRecordId(null);
+                              onChanged?.();
+                            }}
+                          />
+                        ) : (
+                          <>
                         <div className="bg-gray-50 rounded-xl p-3 mb-2">
                           <div className="flex items-center justify-between mb-1">
                             <div className="flex items-center gap-2">
@@ -145,29 +175,6 @@ export default function RecordExercise({
                                 탄:단:지 {exercise.macros}
                               </div>
                             )}
-                          </div>
-                          {/* 수정/삭제 버튼 */}
-                          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-200/70">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                router.push(`/feeds/${String(exercise.id)}`)
-                              }
-                              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                              수정
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setDeleteTargetId(String(exercise.id))
-                              }
-                              className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition-colors ml-auto"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              삭제
-                            </button>
                           </div>
                         </div>
 
@@ -198,6 +205,37 @@ export default function RecordExercise({
                               {exercise.achievement}
                             </p>
                           </div>
+                        )}
+
+                        <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditingRecordId((current) =>
+                                current === String(exercise.id)
+                                  ? null
+                                  : String(exercise.id),
+                              )
+                            }
+                            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            {editingRecordId === String(exercise.id)
+                              ? "수정 닫기"
+                              : "수정"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setDeleteTargetId(String(exercise.id))
+                            }
+                            className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            삭제
+                          </button>
+                        </div>
+                          </>
                         )}
                       </div>
                     ))}

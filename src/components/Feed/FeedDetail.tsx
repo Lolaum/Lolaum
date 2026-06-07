@@ -3,7 +3,15 @@
 /* eslint-disable @next/next/no-img-element */
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, User, X, ChevronLeft, ChevronRight, Pencil, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  User,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import {
   BookText,
   Dumbbell,
@@ -30,7 +38,10 @@ import { addComment, deleteComment, updateComment } from "@/api/comment";
 import { deleteRitualRecord } from "@/api/ritual-record";
 import dynamic from "next/dynamic";
 import CommentSection from "./CommentSection";
-const EditFeedRecord = dynamic(() => import("./EditFeedRecord"), { ssr: false });
+import ChallengerRitualsPopover from "./ChallengerRitualsPopover";
+const EditFeedRecord = dynamic(() => import("./EditFeedRecord"), {
+  ssr: false,
+});
 import LinkifiedText from "@/components/common/LinkifiedText";
 
 interface FeedDetailProps {
@@ -182,7 +193,7 @@ function MorningContent({ data }: { data: MorningFeedData }) {
         <p className="text-sm text-gray-700 leading-relaxed">{data.success}</p>
       </div>
       <div className="bg-gray-50 rounded-xl p-4">
-        <p className="text-xs text-gray-400 font-medium mb-1">한 줄 회고</p>
+        <p className="text-xs text-gray-400 font-medium mb-1">한 줄 다짐</p>
         <p className="text-sm text-gray-700 leading-relaxed">
           {data.reflection}
         </p>
@@ -544,7 +555,9 @@ function RecordingContent({ data }: { data: RecordingFeedData }) {
         ) : (
           <div
             key={idx}
-            className="rounded-xl p-4 bg-rose-50 space-y-3 overflow-hidden"
+            className={`rounded-xl p-4 space-y-3 overflow-hidden ${
+              entry.content ? "bg-transparent" : "bg-rose-50"
+            }`}
           >
             <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md text-rose-600 bg-rose-100">
               글 작성 #{idx + 1}
@@ -552,7 +565,7 @@ function RecordingContent({ data }: { data: RecordingFeedData }) {
             {entry.content && (
               <div className="min-w-0">
                 <p className="text-xs text-rose-400 font-medium mb-1">
-                  오늘의 주제
+                  작성한 글
                 </p>
                 <LinkifiedText
                   text={entry.content}
@@ -828,6 +841,7 @@ export default function FeedDetail({ item, isMine = false }: FeedDetailProps) {
   const [comments, setComments] = useState<Comment[]>(item.comments ?? []);
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const meta = getCategoryMeta(item.routineCategory);
   const recordId = item.odOriginalId;
@@ -967,7 +981,12 @@ export default function FeedDetail({ item, isMine = false }: FeedDetailProps) {
         {/* 본문 카드 */}
         <div className="bg-white rounded-2xl shadow-md p-6">
           {/* 유저 정보 */}
-          <div className="flex items-center gap-3 mb-5">
+          <button
+            type="button"
+            onClick={() => setProfileOpen(true)}
+            className="flex items-center gap-3 mb-5 text-left rounded-xl hover:bg-gray-50 transition-colors"
+            aria-label={`${item.userName} 신청 리추얼 보기`}
+          >
             <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
               {item.userProfileImage ? (
                 <img
@@ -988,7 +1007,14 @@ export default function FeedDetail({ item, isMine = false }: FeedDetailProps) {
                 {item.createdAt && ` · ${formatTime(item.createdAt)}`}
               </p>
             </div>
-          </div>
+          </button>
+
+          <ChallengerRitualsPopover
+            userId={String(item.userId)}
+            userName={item.userName}
+            open={profileOpen}
+            onClose={() => setProfileOpen(false)}
+          />
 
           {/* 인증 사진 (수정 모드에서도 표시 — 사진은 수정 불가, 참고용) */}
           <CertPhotoGrid

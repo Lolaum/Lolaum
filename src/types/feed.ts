@@ -14,9 +14,11 @@ export type RoutineCategory =
 
 // 리추얼별 게시글 데이터 타입
 export interface ExerciseFeedData {
+  recordType?: "exercise" | "diet";
   images: string[];
   exerciseName: string;
   duration: number;
+  macros?: string;
   achievement: string;
   certPhotos?: string[];
 }

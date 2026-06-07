@@ -6,8 +6,8 @@ import {
   getActivePeriod,
   getCurrentChallengeId,
   getEffectiveStart,
-  isChallengePeriodEnded,
 } from "@/lib/current-challenge";
+import { getCurrentKoreaWeekRange } from "@/lib/current-week";
 import { normalizeRecordDataImages } from "@/lib/record-data-images";
 import { insertRitualCompletionNotifications } from "@/lib/notifications/insert";
 import type { Json, RitualRecord, RoutineTypeDB } from "@/types/supabase";
@@ -34,6 +34,114 @@ function revalidateRitualSurfaces(routineType?: RoutineTypeDB) {
   if (routineType) {
     revalidatePath(ROUTINE_HOME_PATH[routineType]);
   }
+}
+
+function getRecordDataObject(recordData: Json): Record<string, unknown> {
+  return recordData &&
+    typeof recordData === "object" &&
+    !Array.isArray(recordData)
+    ? (recordData as Record<string, unknown>)
+    : {};
+}
+
+function hasRecordingReadEntry(recordData: Json): boolean {
+  const data = getRecordDataObject(recordData);
+  const entries = data.entries;
+
+  if (Array.isArray(entries)) {
+    return entries.some(
+      (entry) =>
+        entry &&
+        typeof entry === "object" &&
+        (entry as Record<string, unknown>).type === "read",
+    );
+  }
+
+  return data.recordType === "read";
+}
+
+async function getWeeklySpecialRitualDates(input: {
+  supabase: SupabaseAnyClient;
+  userId: string;
+  challengeId: string;
+  routineType: "exercise" | "recording";
+  recordDate: string;
+  excludeRecordId?: string;
+}): Promise<{ dates?: Set<string>; error?: string }> {
+  const { start, end } = getCurrentKoreaWeekRange(input.recordDate);
+  let query = input.supabase
+    .from("ritual_records")
+    .select("id, record_date, record_data")
+    .eq("user_id", input.userId)
+    .eq("challenge_id", input.challengeId)
+    .eq("routine_type", input.routineType)
+    .gte("record_date", start)
+    .lte("record_date", end);
+
+  if (input.excludeRecordId) {
+    query = query.neq("id", input.excludeRecordId);
+  }
+
+  const { data, error } = await query;
+  if (error) return { error: error.message };
+
+  const dates = new Set<string>();
+  for (const row of data ?? []) {
+    const recordData = row.record_data as Json;
+    const isSpecial =
+      input.routineType === "exercise"
+        ? getRecordDataObject(recordData).recordType === "diet"
+        : hasRecordingReadEntry(recordData);
+
+    if (isSpecial) {
+      dates.add(row.record_date as string);
+    }
+  }
+
+  return { dates };
+}
+
+async function validateWeeklySpecialRitualLimit(input: {
+  supabase: SupabaseAnyClient;
+  userId: string;
+  challengeId: string;
+  routineType: RoutineTypeDB;
+  recordDate: string;
+  recordData: Json;
+  excludeRecordId?: string;
+}): Promise<{ error?: string }> {
+  const isDietRecord =
+    input.routineType === "exercise" &&
+    getRecordDataObject(input.recordData).recordType === "diet";
+  const hasReadRecord =
+    input.routineType === "recording" &&
+    hasRecordingReadEntry(input.recordData);
+
+  if (!isDietRecord && !hasReadRecord) return {};
+
+  const routineType = isDietRecord ? "exercise" : "recording";
+  const { dates, error } = await getWeeklySpecialRitualDates({
+    supabase: input.supabase,
+    userId: input.userId,
+    challengeId: input.challengeId,
+    routineType,
+    recordDate: input.recordDate,
+    excludeRecordId: input.excludeRecordId,
+  });
+  if (error) return { error };
+
+  const nextDates = new Set(dates ?? []);
+  nextDates.add(input.recordDate);
+
+  if (nextDates.size > 2) {
+    return {
+      error: isDietRecord
+        ? "식단 기록은 일주일 중 2일까지만 선택할 수 있습니다."
+        : "글 읽기 대체는 일주일 중 2일까지만 선택할 수 있습니다.",
+    };
+  }
+
+  return {};
 }
 
 async function recomputeDailyCompletion(input: {
@@ -141,6 +249,15 @@ export async function createRitualRecord(input: {
 
   const supabase = await createClient();
   const recordData = await normalizeRecordDataImages(input.recordData, user.id);
+  const { error: limitError } = await validateWeeklySpecialRitualLimit({
+    supabase,
+    userId: user.id,
+    challengeId: input.challengeId,
+    routineType: input.routineType,
+    recordDate: input.recordDate,
+    recordData,
+  });
+  if (limitError) return { error: limitError };
 
   // 하루에 여러 기록 허용 (INSERT), 달성률은 Set으로 하루 1회만 인정
   const { data, error } = await supabase
@@ -213,17 +330,38 @@ export async function updateRitualRecord(
     recordData,
     user.id,
   );
-  const { data: updated, error } = await supabase
+
+  const { data: target, error: fetchErr } = await supabase
+    .from("ritual_records")
+    .select("challenge_id, record_date, routine_type")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (fetchErr) return { error: fetchErr.message };
+  if (!target) return { error: "기록을 찾을 수 없습니다." };
+
+  const { error: limitError } = await validateWeeklySpecialRitualLimit({
+    supabase,
+    userId: user.id,
+    challengeId: target.challenge_id,
+    routineType: target.routine_type,
+    recordDate: target.record_date,
+    recordData: normalizedRecordData,
+    excludeRecordId: id,
+  });
+  if (limitError) return { error: limitError };
+
+  const { error } = await supabase
     .from("ritual_records")
     .update({ record_data: normalizedRecordData })
     .eq("id", id)
     .eq("user_id", user.id)
-    .select("routine_type")
-    .maybeSingle();
+    .select()
+    .single();
 
   if (error) return { error: error.message };
-  if (!updated) return { error: "기록을 찾을 수 없습니다." };
-  revalidateRitualSurfaces(updated.routine_type);
+  revalidateRitualSurfaces(target.routine_type);
   return {};
 }
 
@@ -280,14 +418,13 @@ export async function getMyRitualRecords(input: {
   if (input.currentPeriodOnly) {
     if (!period)
       return { error: periodError ?? "활성 챌린지 기간이 없습니다." };
-    if (isChallengePeriodEnded(period)) return { data: [] };
   }
 
   const {
     challengeId,
     resetAt,
     error: challengeError,
-  } = await getCurrentChallengeId();
+  } = await getCurrentChallengeId({ allowEnded: true });
 
   if (!challengeId) {
     return { error: challengeError ?? "챌린지를 찾을 수 없습니다." };
@@ -303,4 +440,25 @@ export async function getMyRitualRecords(input: {
         : undefined,
     dateTo: input.currentPeriodOnly && period ? period.end_date : undefined,
   });
+}
+
+export async function getMyRitualRecordsAcrossChallenges(input: {
+  routineTypes: RoutineTypeDB[];
+}): Promise<{ data?: RitualRecord[]; error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { error: "인증이 필요합니다." };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("ritual_records")
+    .select("*")
+    .eq("user_id", user.id)
+    .in("routine_type", input.routineTypes)
+    .order("record_date", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error) return { error: error.message };
+  return { data: data ?? [] };
 }

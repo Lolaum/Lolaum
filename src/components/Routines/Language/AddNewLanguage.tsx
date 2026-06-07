@@ -2,8 +2,14 @@
 
 import { useState, useRef } from "react";
 import { Plus, X, Upload } from "lucide-react";
-import { applyTimestamp, fileToBase64 } from "@/lib/utils";
+import {
+  applyTimestamp,
+  fileToBase64,
+  getPhotoTakenAt,
+  hasMinimumPhotoInterval,
+} from "@/lib/utils";
 import { uploadImages } from "@/lib/upload-image";
+import CertificationPhotoIntervalModal from "@/components/common/CertificationPhotoIntervalModal";
 import {
   AddNewLanguageProps,
   LanguageFormData,
@@ -19,11 +25,13 @@ export default function AddNewLanguage({
 }: AddNewLanguageProps) {
   const isEnglish = languageType === "영어";
   const [images, setImages] = useState<string[]>(initialImages ?? []);
+  const [imageTakenAtTimes, setImageTakenAtTimes] = useState<number[]>([]);
   const [expressions, setExpressions] = useState<Expression[]>([
     { id: 1, word: "", meaning: "", example: "" },
   ]);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const [showPhotoIntervalModal, setShowPhotoIntervalModal] = useState(false);
 
   const addExpression = () => {
     const newId = Math.max(...expressions.map((e) => e.id), 0) + 1;
@@ -55,10 +63,32 @@ export default function AddNewLanguage({
     const newFiles = Array.from(files)
       .filter((file) => file.type.startsWith("image/"))
       .slice(0, 2 - images.length);
-    const stampedImages = await Promise.all(
-      newFiles.map((f) => applyTimestamp(f).catch(() => fileToBase64(f))),
+    const imageDrafts = await Promise.all(
+      newFiles.map(async (file) => {
+        const takenAt = await getPhotoTakenAt(file);
+        const image = await applyTimestamp(file, takenAt).catch(() =>
+          fileToBase64(file),
+        );
+        return { image, takenAtTime: takenAt.getTime() };
+      }),
     );
-    setImages([...images, ...stampedImages].slice(0, 2));
+    const nextTakenAtTimes = [
+      ...imageTakenAtTimes,
+      ...imageDrafts.map((draft) => draft.takenAtTime),
+    ].slice(0, 2);
+
+    if (
+      nextTakenAtTimes.length >= 2 &&
+      !hasMinimumPhotoInterval(nextTakenAtTimes)
+    ) {
+      setShowPhotoIntervalModal(true);
+      return;
+    }
+
+    setImages(
+      [...images, ...imageDrafts.map((draft) => draft.image)].slice(0, 2),
+    );
+    setImageTakenAtTimes(nextTakenAtTimes);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,6 +103,7 @@ export default function AddNewLanguage({
 
   const removeImage = (index: number) => {
     setImages(images.filter((_, i) => i !== index));
+    setImageTakenAtTimes((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
@@ -111,6 +142,11 @@ export default function AddNewLanguage({
 
   return (
     <div className="w-full max-w-3xl mx-auto">
+      <CertificationPhotoIntervalModal
+        open={showPhotoIntervalModal}
+        onClose={() => setShowPhotoIntervalModal(false)}
+      />
+
       {/* 백 네비게이션 및 x버튼 */}
       <div className="flex items-center justify-between mb-2">
         <button

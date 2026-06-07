@@ -2,8 +2,14 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Upload, X, Info } from "lucide-react";
-import { applyTimestamp, fileToBase64 } from "@/lib/utils";
+import {
+  applyTimestamp,
+  fileToBase64,
+  getPhotoTakenAt,
+  hasMinimumPhotoInterval,
+} from "@/lib/utils";
 import { uploadImages } from "@/lib/upload-image";
+import CertificationPhotoIntervalModal from "@/components/common/CertificationPhotoIntervalModal";
 import {
   AddNewExerciseProps,
   ExerciseFormData,
@@ -18,8 +24,18 @@ export default function AddNewExercise({
   onBackToHome,
   onSubmit,
   initialImages,
+  weeklyDietCount = 0,
+  weeklyDietLimit = 2,
+  weeklyDietCanAdd,
+  weeklyDietLoading = false,
 }: AddNewExerciseProps) {
   const [images, setImages] = useState<string[]>(initialImages ?? []);
+  const [imageTakenAtTimes, setImageTakenAtTimes] = useState<number[]>([]);
+  const dietLimitReached =
+    weeklyDietCanAdd === undefined
+      ? weeklyDietCount >= weeklyDietLimit
+      : !weeklyDietCanAdd;
+  const dietSelectDisabled = weeklyDietLoading || dietLimitReached;
   const [recordType, setRecordType] = useState<ExerciseRecordType>("exercise");
   const [exerciseName, setExerciseName] = useState("");
   const [duration, setDuration] = useState<number | null>(null);
@@ -29,13 +45,24 @@ export default function AddNewExercise({
   const [achievement, setAchievement] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const [showPhotoIntervalModal, setShowPhotoIntervalModal] = useState(false);
   const [showRatioTip, setShowRatioTip] = useState(false);
   const ratioTipRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (recordType !== "diet" || !dietLimitReached) return;
+    setRecordType("exercise");
+    setImages((prev) => prev.slice(0, 2));
+    setImageTakenAtTimes((prev) => prev.slice(0, 2));
+  }, [dietLimitReached, recordType]);
+
+  useEffect(() => {
     if (!showRatioTip) return;
     const handler = (e: MouseEvent | TouchEvent) => {
-      if (ratioTipRef.current && !ratioTipRef.current.contains(e.target as Node)) {
+      if (
+        ratioTipRef.current &&
+        !ratioTipRef.current.contains(e.target as Node)
+      ) {
         setShowRatioTip(false);
       }
     };
@@ -54,10 +81,36 @@ export default function AddNewExercise({
     const newFiles = Array.from(files)
       .filter((file) => file.type.startsWith("image/"))
       .slice(0, maxImages - images.length);
-    const stampedImages = await Promise.all(
-      newFiles.map((f) => applyTimestamp(f).catch(() => fileToBase64(f))),
+    const imageDrafts = await Promise.all(
+      newFiles.map(async (file) => {
+        const takenAt = await getPhotoTakenAt(file);
+        const image = await applyTimestamp(file, takenAt).catch(() =>
+          fileToBase64(file),
+        );
+        return { image, takenAtTime: takenAt.getTime() };
+      }),
     );
-    setImages([...images, ...stampedImages].slice(0, maxImages));
+    const nextTakenAtTimes = [
+      ...imageTakenAtTimes,
+      ...imageDrafts.map((draft) => draft.takenAtTime),
+    ].slice(0, maxImages);
+
+    if (
+      recordType === "exercise" &&
+      nextTakenAtTimes.length >= 2 &&
+      !hasMinimumPhotoInterval(nextTakenAtTimes)
+    ) {
+      setShowPhotoIntervalModal(true);
+      return;
+    }
+
+    setImages(
+      [...images, ...imageDrafts.map((draft) => draft.image)].slice(
+        0,
+        maxImages,
+      ),
+    );
+    setImageTakenAtTimes(nextTakenAtTimes);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,6 +125,7 @@ export default function AddNewExercise({
 
   const removeImage = (index: number) => {
     setImages(images.filter((_, i) => i !== index));
+    setImageTakenAtTimes((prev) => prev.filter((_, i) => i !== index));
   };
 
   const finalDuration =
@@ -80,6 +134,7 @@ export default function AddNewExercise({
 
   const canSubmit =
     exerciseName.trim() &&
+    !(recordType === "diet" && dietLimitReached) &&
     (recordType === "exercise" ? finalDuration > 0 : !!finalMacros);
 
   const handleSubmit = async () => {
@@ -112,6 +167,11 @@ export default function AddNewExercise({
 
   return (
     <div className="w-full max-w-4xl mx-auto">
+      <CertificationPhotoIntervalModal
+        open={showPhotoIntervalModal}
+        onClose={() => setShowPhotoIntervalModal(false)}
+      />
+
       {/* 백 네비게이션 및 x버튼 */}
       <div className="flex items-center justify-between mb-4">
         <button
@@ -173,18 +233,35 @@ export default function AddNewExercise({
           <button
             type="button"
             onClick={() => {
+              if (dietSelectDisabled) return;
               setRecordType("diet");
               setImages((prev) => prev.slice(0, 1));
+              setImageTakenAtTimes((prev) => prev.slice(0, 1));
             }}
-            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors ${
+            disabled={dietSelectDisabled}
+            aria-disabled={dietSelectDisabled}
+            title={
+              dietLimitReached
+                ? "식단 기록은 일주일 중 2일까지만 달성할 수 있어요"
+                : weeklyDietLoading
+                  ? "식단 기록 인증 날짜를 확인하는 중이에요"
+                : undefined
+            }
+            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
               recordType === "diet"
                 ? "bg-orange-500 text-white"
                 : "bg-gray-100 text-gray-500 hover:bg-gray-200"
             }`}
           >
-            식단 기록
+            {weeklyDietLoading ? "확인 중..." : "식단 기록"}
           </button>
         </div>
+
+        {dietLimitReached && (
+          <p className="-mt-3 mb-4 rounded-xl bg-orange-50 px-3 py-2 text-xs font-medium text-orange-600">
+            이번 주 식단 기록을 2일 달성했어요. 다음 주에 다시 선택할 수 있어요.
+          </p>
+        )}
 
         {/* 인증 사진 */}
         <div className="mb-4">

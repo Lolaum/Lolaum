@@ -2,7 +2,15 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { List, Plus, LayoutGrid, BookOpen } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  CalendarDays,
+  ChevronRight,
+  List,
+  Plus,
+  LayoutGrid,
+  BookOpen,
+} from "lucide-react";
 import BookDetail from "./BookDetail";
 import { Book, ViewMode } from "@/types/routines/reading";
 import { getBooksAuto, deleteBook, updateBook } from "@/api/book";
@@ -33,7 +41,9 @@ function BookCover({
     );
   }
   return (
-    <div className={`${className} bg-gray-100 flex items-center justify-center`}>
+    <div
+      className={`${className} bg-gray-100 flex items-center justify-center`}
+    >
       <BookOpen className={`${iconSize} text-gray-300`} />
     </div>
   );
@@ -44,6 +54,7 @@ interface BookManageProps {
   onAddBook: () => void;
   isEnglishBook?: boolean;
   certificationPhotos?: string[];
+  initialBookId?: string;
 }
 
 /** DB Row → 프론트엔드 Book 변환 */
@@ -66,11 +77,14 @@ export default function BookManage({
   onAddBook,
   isEnglishBook,
   certificationPhotos,
+  initialBookId,
 }: BookManageProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const router = useRouter();
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCompletedBooks, setShowCompletedBooks] = useState(false);
   const fetchBooks = useCallback(async () => {
     setLoading(true);
     const result = await getBooksAuto(
@@ -83,13 +97,20 @@ export default function BookManage({
   }, [isEnglishBook]);
 
   useEffect(() => {
-    fetchBooks();
+    void Promise.resolve().then(() => fetchBooks());
   }, [fetchBooks]);
 
   const calculateProgress = (current: number, total: number) => {
     if (total === 0) return 0;
     return Math.round((current / total) * 100);
   };
+  const activeBook =
+    selectedBook ?? books.find((item) => item.id === initialBookId) ?? null;
+  const completedBooks = books.filter((book) => book.isCompleted);
+  const currentBooks = books.filter((book) => !book.isCompleted);
+  const calendarPath = isEnglishBook
+    ? "/home/english-book/calendar"
+    : "/home/reading/calendar";
 
   const handleBookDeleted = async (bookId: string) => {
     const result = await deleteBook(bookId);
@@ -119,12 +140,19 @@ export default function BookManage({
   };
 
   // 책 상세 화면
-  if (selectedBook) {
+  if (activeBook) {
     return (
       <div className="w-full">
         <BookDetail
-          book={selectedBook}
-          onBack={() => setSelectedBook(null)}
+          book={activeBook}
+          onBack={() => {
+            setSelectedBook(null);
+            if (initialBookId) {
+              router.replace(
+                isEnglishBook ? "/home/english-book" : "/home/reading",
+              );
+            }
+          }}
           onBackToHome={onBackToHome}
           onDelete={handleBookDeleted}
           onUpdate={handleBookUpdated}
@@ -214,7 +242,7 @@ export default function BookManage({
           <p className="text-sm text-gray-500">
             {loading
               ? "불러오는 중..."
-              : `현재 ${books.length}권의 책을 읽고 있습니다`}
+              : `현재 ${currentBooks.length}권의 책을 읽고 있습니다`}
           </p>
         </div>
 
@@ -266,7 +294,7 @@ export default function BookManage({
           </button>
 
           {/* 책 카드들 */}
-          {books.map((book) => {
+          {currentBooks.map((book) => {
             const progress = calculateProgress(
               book.currentValue,
               book.totalValue,
@@ -293,7 +321,9 @@ export default function BookManage({
                     <h3 className="text-base font-bold text-gray-900 mb-1 line-clamp-2">
                       {book.title}
                     </h3>
-                    <p className="text-sm text-gray-500 truncate">{book.author}</p>
+                    <p className="text-sm text-gray-500 truncate">
+                      {book.author}
+                    </p>
                   </div>
 
                   {/* 진행률 정보 */}
@@ -341,7 +371,7 @@ export default function BookManage({
           </button>
 
           {/* 책 리스트 */}
-          {books.map((book) => {
+          {currentBooks.map((book) => {
             const progress = calculateProgress(
               book.currentValue,
               book.totalValue,
@@ -394,6 +424,112 @@ export default function BookManage({
           })}
         </div>
       )}
+
+      <div className="mt-8 space-y-4">
+        <section className="rounded-2xl bg-white p-4 shadow-sm border border-gray-100">
+          <button
+            type="button"
+            onClick={() => setShowCompletedBooks((prev) => !prev)}
+            className="flex w-full items-center justify-between gap-3 text-left"
+            aria-expanded={showCompletedBooks}
+          >
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">
+                완독한 책
+              </h2>
+              <p className="mt-1 text-xs text-gray-400">
+                끝까지 읽은 책을 모아봅니다
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-orange-500">
+                {completedBooks.length}권
+              </span>
+              <ChevronRight
+                className={`h-4 w-4 text-gray-300 transition-transform ${
+                  showCompletedBooks ? "rotate-90" : ""
+                }`}
+              />
+            </div>
+          </button>
+
+          {showCompletedBooks && completedBooks.length === 0 ? (
+            <div className="rounded-xl bg-gray-50 px-4 py-5 text-center">
+              <p className="text-sm text-gray-400">
+                아직 완독한 책이 없습니다.
+              </p>
+            </div>
+          ) : null}
+
+          {showCompletedBooks && completedBooks.length > 0 ? (
+            <div className="mt-3 space-y-2">
+              {completedBooks.map((book) => (
+                <button
+                  key={book.id}
+                  type="button"
+                  onClick={() => setSelectedBook(book)}
+                  className="w-full rounded-xl border border-gray-100 p-3 text-left transition-colors hover:bg-gray-50"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-md">
+                      <BookCover
+                        url={book.coverImageUrl}
+                        alt={book.title}
+                        className="object-cover rounded-md"
+                        iconSize="w-4 h-4"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-gray-900">
+                        {book.title}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs text-gray-500">
+                        {book.author}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-orange-50 px-2 py-1 text-[11px] font-semibold text-orange-500">
+                      완독
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </section>
+
+        <button
+          type="button"
+          onClick={() => router.push(calendarPath)}
+          className="w-full rounded-2xl bg-white p-4 text-left shadow-sm border border-gray-100 transition-all hover:-translate-y-0.5 hover:shadow-md"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50">
+              <CalendarDays className="h-5 w-5 text-orange-500" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base font-semibold text-gray-900">
+                독서 달력
+              </h2>
+              <p className="mt-1 text-xs text-gray-400">
+                독서와 원서읽기에 기록한 책을 함께 봅니다
+              </p>
+            </div>
+            <svg
+              className="h-4 w-4 text-gray-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </div>
+        </button>
+      </div>
     </div>
   );
 }

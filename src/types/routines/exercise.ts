@@ -35,4 +35,8 @@ export interface AddNewExerciseProps {
   onSubmit?: (recordData: ExerciseFormData) => void | Promise<void>;
   initialImages?: string[]; // 인증 사진 자동 주입
   initialDuration?: number; // 타이머 시간 자동 주입 (분)
+  weeklyDietCount?: number;
+  weeklyDietLimit?: number;
+  weeklyDietCanAdd?: boolean;
+  weeklyDietLoading?: boolean;
 }

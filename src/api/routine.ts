@@ -1,11 +1,13 @@
 "use server";
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   getActivePeriod,
   getCurrentChallengeId,
   isChallengePeriodEnded,
 } from "@/lib/current-challenge";
+import { deleteRegisteredRoutine, isUserDeactivatedForRitual } from "@/api/admin";
 import type { ChallengeRegistration, RoutineTypeDB } from "@/types/supabase";
 
 export async function getRoutines(
@@ -47,6 +49,11 @@ export async function createRoutine(input: {
     return { error: "인증이 필요합니다." };
   }
 
+  const deactivation = await isUserDeactivatedForRitual(user.id);
+  if (deactivation.deactivated) {
+    return { error: "관리자에 의해 리추얼 추가가 비활성화된 계정입니다." };
+  }
+
   const supabase = await createClient();
 
   // 이미 등록된 리추얼인지 확인
@@ -80,33 +87,7 @@ export async function createRoutine(input: {
 export async function deleteRoutine(
   id: string,
 ): Promise<{ success?: boolean; error?: string }> {
-  const supabase = await createClient();
-
-  const { data: registration, error: fetchError } = await supabase
-    .from("challenge_registrations")
-    .select("user_id, challenge_id, routine_type")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (fetchError) return { error: fetchError.message };
-
-  const { error } = await supabase
-    .from("challenge_registrations")
-    .delete()
-    .eq("id", id);
-
-  if (error) return { error: error.message };
-
-  if (registration) {
-    await supabase
-      .from("declarations")
-      .delete()
-      .eq("user_id", registration.user_id)
-      .eq("challenge_id", registration.challenge_id)
-      .eq("routine_type", registration.routine_type);
-  }
-
-  return { success: true };
+  return deleteRegisteredRoutine({ registrationId: id });
 }
 
 /** 내 리추얼 목록 가져오기 (challengeId 자동) */
@@ -116,9 +97,10 @@ export async function getMyRoutines(): Promise<{
 }> {
   const { period, error: periodError } = await getActivePeriod();
   if (!period) return { error: periodError ?? "활성 챌린지 기간이 없습니다." };
-  if (isChallengePeriodEnded(period)) return { data: [] };
 
-  const { challengeId, error: challengeError } = await getCurrentChallengeId();
+  const { challengeId, error: challengeError } = await getCurrentChallengeId({
+    allowEnded: true,
+  });
 
   if (!challengeId) {
     return { error: challengeError ?? "챌린지를 찾을 수 없습니다." };
@@ -151,54 +133,51 @@ export async function createRoutineAuto(
  * - challenges.reset_at = 오늘 (이후 진행률은 이 날짜부터 집계)
  * - 등록한 리추얼(challenge_registrations)과 선언(declarations) 삭제
  * - ritual_records 는 보존 → "나의 리추얼 기록"에서 계속 조회 가능
+ *
+ * 신청 리추얼 삭제는 관리자만 수행할 수 있으므로 사용자 액션에서는 중단한다.
  */
 export async function resetChallenge(): Promise<{
   success?: boolean;
   error?: string;
 }> {
-  const user = await getCurrentUser();
-  if (!user) return { error: "인증이 필요합니다." };
+  return { error: "신청 리추얼 삭제는 관리자만 할 수 있습니다." };
+}
+
+
+export async function getChallengerRoutines(userId: string): Promise<{
+  data?: RoutineTypeDB[];
+  error?: string;
+}> {
+  const viewer = await getCurrentUser();
+  if (!viewer) return { error: "인증이 필요합니다." };
 
   const { period, error: periodError } = await getActivePeriod();
   if (!period) return { error: periodError ?? "활성 챌린지 기간이 없습니다." };
-  if (isChallengePeriodEnded(period)) {
-    return { success: true };
+
+  const admin = createAdminClient();
+  const { data: challenges, error: challengeError } = await admin
+    .from("challenges")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("period_id", period.id);
+
+  if (challengeError) return { error: challengeError.message };
+  const challengeIds = (challenges ?? []).map((challenge) => challenge.id);
+  if (challengeIds.length === 0) return { data: [] };
+
+  const { data, error } = await admin
+    .from("challenge_registrations")
+    .select("routine_type, registered_at")
+    .eq("user_id", userId)
+    .in("challenge_id", challengeIds)
+    .order("registered_at", { ascending: true });
+
+  if (error) return { error: error.message };
+
+  const seen = new Set<RoutineTypeDB>();
+  for (const row of data ?? []) {
+    seen.add(row.routine_type as RoutineTypeDB);
   }
 
-  const { challengeId, error: challengeError } = await getCurrentChallengeId();
-  if (!challengeId) {
-    return { error: challengeError ?? "챌린지를 찾을 수 없습니다." };
-  }
-
-  const supabase = await createClient();
-
-  const today = new Date();
-  const y = today.getFullYear();
-  const m = String(today.getMonth() + 1).padStart(2, "0");
-  const d = String(today.getDate()).padStart(2, "0");
-  const todayStr = `${y}-${m}-${d}`;
-
-  const [resetRes, regRes, declRes] = await Promise.all([
-    supabase
-      .from("challenges")
-      .update({ reset_at: todayStr })
-      .eq("id", challengeId)
-      .eq("user_id", user.id),
-    supabase
-      .from("challenge_registrations")
-      .delete()
-      .eq("challenge_id", challengeId)
-      .eq("user_id", user.id),
-    supabase
-      .from("declarations")
-      .delete()
-      .eq("challenge_id", challengeId)
-      .eq("user_id", user.id),
-  ]);
-
-  if (resetRes.error) return { error: resetRes.error.message };
-  if (regRes.error) return { error: regRes.error.message };
-  if (declRes.error) return { error: declRes.error.message };
-
-  return { success: true };
+  return { data: [...seen] };
 }

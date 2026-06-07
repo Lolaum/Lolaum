@@ -20,7 +20,6 @@ interface TaskTabsProps {
   stats?: MyPageStats | null;
   isPastDate?: boolean;
   isOutsidePeriod?: boolean;
-  isRitualPeriodEnded?: boolean;
   routineCompletionMap?: Record<string, number>;
   totalRoutineDays?: number;
   initialRoutines?: ChallengeRegistration[];
@@ -32,7 +31,6 @@ export default function TaskTabs({
   stats,
   isPastDate,
   isOutsidePeriod,
-  isRitualPeriodEnded = false,
   routineCompletionMap,
   totalRoutineDays,
   initialRoutines,
@@ -44,9 +42,9 @@ export default function TaskTabs({
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="contents md:flex md:flex-col md:gap-4">
       {/* 통계 카드 */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="order-5 grid w-full grid-cols-3 gap-3 md:order-1">
         {[
           {
             value: String(stats?.currentStreak ?? 0),
@@ -78,40 +76,38 @@ export default function TaskTabs({
         ))}
       </div>
 
-      {!isRitualPeriodEnded && (
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            {
-              label: "리추얼선언",
-              icon: Flag,
-              onClick: () => router.push("/declaration"),
-            },
-            {
-              label: "중간회고",
-              icon: ClipboardCheck,
-              onClick: () => router.push("/mid-review"),
-            },
-            {
-              label: "최종회고",
-              icon: Trophy,
-              onClick: () => router.push("/final-review"),
-            },
-          ].map(({ label, icon: Icon, onClick }) => (
-            <button
-              key={label}
-              type="button"
-              onClick={onClick}
-              className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 flex flex-col items-center justify-center gap-1.5 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors"
-            >
-              <Icon className="w-4 h-4 text-gray-400" strokeWidth={2} />
-              <span>{label}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="order-6 grid w-full grid-cols-3 gap-3 md:order-2">
+        {[
+          {
+            label: "리추얼선언",
+            icon: Flag,
+            onClick: () => router.push("/declaration"),
+          },
+          {
+            label: "중간회고",
+            icon: ClipboardCheck,
+            onClick: () => router.push("/mid-review"),
+          },
+          {
+            label: "최종회고",
+            icon: Trophy,
+            onClick: () => router.push("/final-review"),
+          },
+        ].map(({ label, icon: Icon, onClick }) => (
+          <button
+            key={label}
+            type="button"
+            onClick={onClick}
+            className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 flex flex-col items-center justify-center gap-1.5 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors"
+          >
+            <Icon className="w-4 h-4 text-gray-400" strokeWidth={2} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </div>
 
       {/* 리추얼 카드 */}
-      <div className="rounded-3xl bg-white shadow-sm border border-gray-100 p-5">
+      <div className="order-2 w-full rounded-3xl border border-gray-100 bg-white p-5 shadow-sm md:order-3">
         {/* 날짜 */}
         <div className="mb-5">
           <p className="text-xs text-gray-400 font-medium mb-0.5">

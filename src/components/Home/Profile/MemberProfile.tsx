@@ -30,6 +30,8 @@ export default function MemberProfile({
     });
   }, [refreshKey]);
 
+  const selectedMember = members.find((member) => member.id === selectedMemberId);
+
   return (
     <div className="rounded-3xl bg-white shadow-sm border border-gray-100 p-4 mb-4">
       {/* 헤더 */}
@@ -99,6 +101,28 @@ export default function MemberProfile({
           })}
         </div>
       </div>
+
+      {selectedMember && (
+        <div className="mt-4 rounded-2xl bg-amber-50/70 p-3">
+          <p className="mb-2 text-xs font-semibold text-amber-700">
+            {selectedMember.name}님이 신청한 리추얼
+          </p>
+          {selectedMember.registeredRituals?.length ? (
+            <div className="flex flex-wrap gap-1.5">
+              {selectedMember.registeredRituals.map((ritual) => (
+                <span
+                  key={ritual}
+                  className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700 shadow-sm"
+                >
+                  {ritual}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-amber-600">신청한 리추얼이 없습니다.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

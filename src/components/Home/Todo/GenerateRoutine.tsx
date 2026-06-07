@@ -155,7 +155,7 @@ export default function GenerateRoutine({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center"
+      className="fixed inset-0 z-[60] flex items-start justify-center pt-4 sm:items-end sm:pt-0"
       onClick={handleClose}
     >
       {/* 배경 오버레이 */}
@@ -168,10 +168,9 @@ export default function GenerateRoutine({
 
       {/* 바텀시트 */}
       <div
-        className="relative w-full max-w-lg bg-white rounded-t-3xl shadow-2xl transition-transform duration-250 ease-out max-h-[85vh] flex flex-col"
-        style={{
-          transform: visible ? "translateY(0)" : "translateY(100%)",
-        }}
+        className={`relative w-full max-w-lg bg-white rounded-b-3xl rounded-t-3xl sm:rounded-b-none shadow-2xl transition-transform duration-250 ease-out max-h-[calc(100vh-1rem)] sm:max-h-[85vh] flex flex-col ${
+          visible ? "translate-y-0" : "-translate-y-full sm:translate-y-full"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* 핸들바 */}

@@ -21,7 +21,8 @@ export default function AddNewMorning({
   const submittingRef = useRef(false);
 
   const sleepHoursNum = sleepHours ? parseFloat(sleepHours) : NaN;
-  const showSleepImprovement = !Number.isNaN(sleepHoursNum) && sleepHoursNum < 7;
+  const showSleepImprovement =
+    !Number.isNaN(sleepHoursNum) && sleepHoursNum < 7;
 
   const isValid =
     !!sleepHours &&
@@ -131,7 +132,9 @@ export default function AddNewMorning({
             <div className="relative">
               <select
                 value={condition}
-                onChange={(e) => setCondition(e.target.value as ConditionLevel | "")}
+                onChange={(e) =>
+                  setCondition(e.target.value as ConditionLevel | "")
+                }
                 className="w-full px-4 py-4 pr-10 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 appearance-none cursor-pointer"
               >
                 <option value="">선택</option>
@@ -145,7 +148,12 @@ export default function AddNewMorning({
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </div>
           </div>
@@ -181,15 +189,15 @@ export default function AddNewMorning({
           />
         </div>
 
-        {/* 한 줄 회고 */}
+        {/* 한 줄 다짐 */}
         <div className="mb-8">
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            한 줄 회고
+            한 줄 다짐
           </label>
           <textarea
             value={reflection}
             onChange={(e) => setReflection(e.target.value)}
-            placeholder="오늘을 한 줄로 돌아본다면?"
+            placeholder="오늘은 어떤 하루를 보내고 싶으신가요?"
             rows={2}
             className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400 resize-none"
           />

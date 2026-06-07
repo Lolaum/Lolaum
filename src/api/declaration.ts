@@ -5,7 +5,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   getCurrentChallengeId,
   getActivePeriod,
-  isChallengePeriodEnded,
 } from "@/lib/current-challenge";
 import type { RoutineTypeDB, Json } from "@/types/supabase";
 import { ROUTINE_TYPE_LABEL } from "@/types/supabase";
@@ -40,7 +39,7 @@ export async function getMyDeclarations(): Promise<{
   error?: string;
 }> {
   const [{ challengeId, error: cError }, user] = await Promise.all([
-    getCurrentChallengeId(),
+    getCurrentChallengeId({ allowEnded: true }),
     getCurrentUser(),
   ]);
   if (!user) return { error: "인증이 필요합니다." };
@@ -109,7 +108,6 @@ async function getCurrentPeriodChallengeIds(): Promise<string[]> {
   try {
     const { period } = await getActivePeriod();
     if (!period) return [];
-    if (isChallengePeriodEnded(period)) return [];
     const admin = createAdminClient();
     const { data } = await admin
       .from("challenges")
