@@ -659,7 +659,8 @@ export type RecordingMode = "write" | "read";
 
 export interface RecordingWriteEntry {
   type: "write";
-  content: string; // 오늘의 주제 (글 or 영상 제목)
+  title?: string; // 글 제목
+  content: string; // 작성한 글
   link?: string; // 작성 링크
   duration?: number; // 작성에 걸린 시간 (분)
 }
@@ -678,6 +679,7 @@ export interface RecordingRecordData {
   entries?: RecordingEntry[];
   // 레거시 단일 항목 필드 (하위 호환)
   recordType?: RecordingMode;
+  title?: string;
   content?: string;
   link?: string;
   duration?: number;
@@ -692,6 +694,7 @@ export function normalizeRecordingEntries(
     RecordingRecordData,
     | "entries"
     | "recordType"
+    | "title"
     | "content"
     | "link"
     | "duration"
@@ -718,6 +721,7 @@ export function normalizeRecordingEntries(
     return [
       {
         type: "write",
+        title: d.title ?? "",
         content: d.content ?? "",
         link: d.link,
         duration: d.duration,

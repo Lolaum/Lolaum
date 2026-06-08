@@ -1179,7 +1179,7 @@ function RecordPreviewCard({ item }: { item: FeedItem }) {
           ? ""
           : first.type === "read"
             ? first.readResonatedPart || first.readSourceTitle
-            : first.content;
+            : first.title || first.content;
         return (
           <div className="space-y-1.5">
             {entries.length > 1 && (

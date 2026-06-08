@@ -44,6 +44,7 @@ export type RecordingMode = "write" | "read";
 
 export interface RecordingWriteEntry {
   type: "write";
+  title?: string;
   content: string;
   link?: string;
   duration?: number;
@@ -63,6 +64,7 @@ export interface RecordingFeedData {
   entries?: RecordingEntry[];
   // 레거시 단일 항목 필드 (하위 호환)
   recordType?: RecordingMode;
+  title?: string;
   content?: string;
   link?: string;
   duration?: number;
@@ -93,6 +95,7 @@ export function normalizeRecordingFeedEntries(
     return [
       {
         type: "write",
+        title: d.title ?? "",
         content: d.content ?? "",
         link: d.link,
         duration: d.duration,
