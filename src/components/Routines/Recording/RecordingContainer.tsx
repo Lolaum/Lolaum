@@ -50,6 +50,7 @@ const WEEKLY_READ_LIMIT = 2;
 
 const emptyWrite = (): RecordingEntry => ({
   type: "write",
+  title: "",
   content: "",
   link: "",
   duration: undefined,
@@ -64,7 +65,11 @@ const emptyRead = (): RecordingEntry => ({
 
 const isEntryValid = (e: RecordingEntry): boolean => {
   if (e.type === "write") {
-    return (!!e.content.trim() || !!(e.link ?? "").trim()) && !!e.duration;
+    return (
+      !!(e.title ?? "").trim() &&
+      (!!e.content.trim() || !!(e.link ?? "").trim()) &&
+      !!e.duration
+    );
   }
   return (
     !!e.readSourceTitle.trim() &&
@@ -232,6 +237,7 @@ export default function RecordingContainer({
         e.type === "write"
           ? {
               type: "write",
+              title: (e.title ?? "").trim(),
               content: e.content.trim(),
               link: (e.link ?? "").trim(),
               duration: e.duration,
@@ -676,6 +682,15 @@ function RecordEntryView({ entry }: { entry: RecordingEntry }) {
       <span className="inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded-md text-rose-600 bg-rose-100">
         글 작성
       </span>
+      {entry.title && (
+        <div className="min-w-0">
+          <p className="text-[10px] text-gray-400 font-medium">제목</p>
+          <LinkifiedText
+            text={entry.title}
+            className="text-sm font-semibold text-gray-800"
+          />
+        </div>
+      )}
       {entry.content && (
         <div className="min-w-0">
           <p className="text-[10px] text-gray-400 font-medium">작성한 글</p>
@@ -868,30 +883,58 @@ function WriteFields({
       </div>
 
       {writeInputMode === "link" ? (
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-            작성 링크 <span className="text-red-400">*</span>
-          </label>
-          <input
-            type="url"
-            value={entry.link ?? ""}
-            onChange={(e) => onChange({ link: e.target.value })}
-            placeholder="https://..."
-            className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] transition-all"
-          />
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+              제목 <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              value={entry.title ?? ""}
+              onChange={(e) => onChange({ title: e.target.value })}
+              placeholder="오늘 작성한 글 제목"
+              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+              작성 링크 <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="url"
+              value={entry.link ?? ""}
+              onChange={(e) => onChange({ link: e.target.value })}
+              placeholder="https://..."
+              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] transition-all"
+            />
+          </div>
         </div>
       ) : (
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-            글 작성 <span className="text-red-400">*</span>
-          </label>
-          <textarea
-            value={entry.content}
-            onChange={(e) => onChange({ content: e.target.value })}
-            placeholder="오늘 작성한 글을 자유롭게 적어주세요"
-            rows={8}
-            className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 resize-y focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] transition-all"
-          />
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+              제목 <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              value={entry.title ?? ""}
+              onChange={(e) => onChange({ title: e.target.value })}
+              placeholder="오늘 작성한 글 제목"
+              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+              글 작성 <span className="text-red-400">*</span>
+            </label>
+            <textarea
+              value={entry.content}
+              onChange={(e) => onChange({ content: e.target.value })}
+              placeholder="오늘 작성한 글을 자유롭게 적어주세요"
+              rows={8}
+              className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 resize-y focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] transition-all"
+            />
+          </div>
         </div>
       )}
 

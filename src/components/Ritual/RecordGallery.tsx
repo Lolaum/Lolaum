@@ -435,6 +435,11 @@ function RecordingCardContent({ data }: { data: RecordingFeedData }) {
         </>
       ) : (
         <>
+          {first.title && (
+            <p className="text-xs font-semibold text-gray-700 line-clamp-2">
+              {first.title}
+            </p>
+          )}
           {first.content && (
             <p className="text-xs text-gray-600 leading-relaxed line-clamp-4">
               {first.content}

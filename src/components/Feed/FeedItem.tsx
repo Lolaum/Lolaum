@@ -99,7 +99,7 @@ function getPreviewText(item: FeedItemType): string | null {
       if (first.type === "read") {
         return first.readResonatedPart || first.readSourceTitle || null;
       }
-      return first.content || null;
+      return first.title || first.content || null;
     }
     case "원서읽기": {
       const d = data as ReadingFeedData;
@@ -166,7 +166,9 @@ function getSubText(item: FeedItemType): string | null {
       if (first.type === "read") {
         return first.readSourceTitle || null;
       }
-      return first.link || (first.duration ? `${first.duration}분` : null);
+      return (
+        first.title || first.link || (first.duration ? `${first.duration}분` : null)
+      );
     }
     case "원서읽기": {
       const d = data as ReadingFeedData;

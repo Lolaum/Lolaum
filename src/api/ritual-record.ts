@@ -228,9 +228,9 @@ export async function getRitualRecords(input: {
     query = query.eq("routine_type", input.routineType);
   }
 
-  const { data, error } = await query.order("created_at", {
-    ascending: true,
-  });
+  const { data, error } = await query
+    .order("record_date", { ascending: false })
+    .order("created_at", { ascending: false });
 
   if (error) return { error: error.message };
   return { data: data ?? [] };

@@ -731,7 +731,13 @@ function RecordingEditor({
     if (next === mode) return;
     const newEntry: RecordingEntry =
       next === "write"
-        ? { type: "write", content: "", link: "", duration: undefined }
+        ? {
+            type: "write",
+            title: "",
+            content: "",
+            link: "",
+            duration: undefined,
+          }
         : {
             type: "read",
             readSourceTitle: "",
@@ -833,9 +839,18 @@ function RecordingEditor({
             {entry.type === "write" ? (
               <div className="space-y-2">
                 <div>
-                  <label className={fieldLabel}>
-                    오늘의 주제(글 or 영상 제목)
-                  </label>
+                  <label className={fieldLabel}>제목</label>
+                  <input
+                    type="text"
+                    value={entry.title ?? ""}
+                    onChange={(e) =>
+                      updateEntry(idx, { title: e.target.value })
+                    }
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={fieldLabel}>작성한 글</label>
                   <textarea
                     value={entry.content}
                     onChange={(e) =>

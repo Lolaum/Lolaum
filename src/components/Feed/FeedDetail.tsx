@@ -562,6 +562,15 @@ function RecordingContent({ data }: { data: RecordingFeedData }) {
             <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md text-rose-600 bg-rose-100">
               글 작성 #{idx + 1}
             </span>
+            {entry.title && (
+              <div className="min-w-0">
+                <p className="text-xs text-rose-400 font-medium mb-1">제목</p>
+                <LinkifiedText
+                  text={entry.title}
+                  className="text-sm font-semibold text-gray-800 leading-relaxed"
+                />
+              </div>
+            )}
             {entry.content && (
               <div className="min-w-0">
                 <p className="text-xs text-rose-400 font-medium mb-1">
