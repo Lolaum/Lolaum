@@ -13,6 +13,7 @@ import {
   Pen,
   BookOpen,
   Flame,
+  Grid3x3,
   Loader2,
 } from "lucide-react";
 import { getMyRecordsForDisplay } from "@/api/ritual-records-display";
@@ -703,6 +704,7 @@ function LanguageInsightView({
   refreshKey?: number;
   goalDays: number;
 }) {
+  const router = useRouter();
   const [data, setData] = useState<{
     totalExpressions: number;
     totalDays: number;
@@ -732,6 +734,10 @@ function LanguageInsightView({
 
   const bgColor = routineType === "english" ? "#f0f9ff" : "#f5f3ff";
   const textColor = routineType === "english" ? "#0369a1" : "#6d28d9";
+  const reviewPath =
+    routineType === "english" ? "/home/english/review" : "/home/second-language/review";
+  const reviewAccentColor = routineType === "english" ? "#0ea5e9" : "#10b981";
+  const reviewAccentBg = routineType === "english" ? "#f0f9ff" : "#ecfdf5";
 
   return (
     <div className="space-y-4">
@@ -741,6 +747,44 @@ function LanguageInsightView({
         routines={routines}
         goalDays={goalDays}
       />
+      <button
+        type="button"
+        onClick={() => router.push(reviewPath)}
+        className="w-full flex items-center justify-between bg-white rounded-2xl shadow-sm border border-gray-100 p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{ backgroundColor: reviewAccentBg }}
+          >
+            <Grid3x3
+              className="w-5 h-5"
+              style={{ color: reviewAccentColor }}
+            />
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-semibold text-gray-900">
+              단어 카드로 복습하기
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              월별 복습 목록 보기
+            </p>
+          </div>
+        </div>
+        <svg
+          className="w-4 h-4 text-gray-300"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 5l7 7-7 7"
+          />
+        </svg>
+      </button>
       <div className="grid grid-cols-2 gap-3">
         {[
           { label: "학습 표현", value: `${data.totalExpressions}개`, color },
