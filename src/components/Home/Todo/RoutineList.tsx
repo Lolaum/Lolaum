@@ -146,6 +146,13 @@ export default function RoutineList({
 
                   {/* 화살표 */}
                   <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span
+                      className="text-sm font-bold tabular-nums"
+                      style={{ color: colors.color }}
+                      aria-label={`${title} 인증 횟수 ${completedDays}/${goalDays}`}
+                    >
+                      {completedDays}/{goalDays}
+                    </span>
                     <ChevronRight size={14} className="text-gray-300" />
                   </div>
                 </div>
