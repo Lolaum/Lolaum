@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { ContinuationChoice, FinalReview } from "@/types/routines/finalReview";
 import UserAvatar from "@/components/common/UserAvatar";
-import { updateFinalReview } from "@/api/final-review";
+import { deleteFinalReview, updateFinalReview } from "@/api/final-review";
 
 interface FinalReviewDetailProps {
   review: FinalReview;
@@ -17,11 +17,15 @@ const formatFullDate = (dateString: string) => {
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
 };
 
-export default function FinalReviewDetail({ review, isMine }: FinalReviewDetailProps) {
+export default function FinalReviewDetail({
+  review,
+  isMine,
+}: FinalReviewDetailProps) {
   const router = useRouter();
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [results, setResults] = useState(review.results);
   const [lifeChanges, setLifeChanges] = useState(review.lifeChanges);
   const [continuationChoice, setContinuationChoice] =
@@ -56,6 +60,21 @@ export default function FinalReviewDetail({ review, isMine }: FinalReviewDetailP
     router.refresh();
   };
 
+  const handleDelete = async () => {
+    const confirmed = window.confirm("최종회고를 삭제하시겠습니까?");
+    if (!confirmed) return;
+
+    setDeleting(true);
+    const { error } = await deleteFinalReview(review.id);
+    setDeleting(false);
+    if (error) {
+      alert(`삭제 실패: ${error}`);
+      return;
+    }
+    router.push("/ritual");
+    router.refresh();
+  };
+
   const choiceLabel =
     continuationChoice === "keep" ? "유지하고 싶다" : "조정이 필요하다";
 
@@ -71,14 +90,26 @@ export default function FinalReviewDetail({ review, isMine }: FinalReviewDetailP
         </button>
         <h1 className="text-lg font-bold text-gray-800">최종 회고</h1>
         {isMine && !editing && (
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-            수정
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              disabled={deleting}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-colors"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              수정
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 disabled:opacity-50 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              {deleting ? "삭제 중" : "삭제"}
+            </button>
+          </div>
         )}
       </div>
 
@@ -86,10 +117,16 @@ export default function FinalReviewDetail({ review, isMine }: FinalReviewDetailP
       <div className="bg-white rounded-2xl shadow-md p-6">
         {/* 유저 정보 */}
         <div className="flex items-center gap-3 mb-5">
-          <UserAvatar avatarUrl={review.avatarUrl} emoji={review.userEmoji} size={48} />
+          <UserAvatar
+            avatarUrl={review.avatarUrl}
+            emoji={review.userEmoji}
+            size={48}
+          />
           <div>
             <div className="flex items-center gap-1.5">
-              <p className="text-base font-bold text-gray-900">{review.userName}</p>
+              <p className="text-base font-bold text-gray-900">
+                {review.userName}
+              </p>
               {isMine && (
                 <span
                   className="text-xs font-semibold px-1.5 py-0.5 rounded-md text-white"
@@ -99,7 +136,9 @@ export default function FinalReviewDetail({ review, isMine }: FinalReviewDetailP
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-400">{formatFullDate(review.createdAt)}</p>
+            <p className="text-xs text-gray-400">
+              {formatFullDate(review.createdAt)}
+            </p>
           </div>
         </div>
 
@@ -110,7 +149,10 @@ export default function FinalReviewDetail({ review, isMine }: FinalReviewDetailP
             <p className="text-xs font-semibold text-gray-400 mb-2">
               이번 달 내가 남긴 것
             </p>
-            <div className="rounded-xl p-4" style={{ backgroundColor: "#fef3c7" }}>
+            <div
+              className="rounded-xl p-4"
+              style={{ backgroundColor: "#fef3c7" }}
+            >
               {editing ? (
                 <textarea
                   value={results}

@@ -13,6 +13,7 @@ import {
   CircleDollarSign,
   Pen,
   BookOpen,
+  ClipboardCheck,
 } from "lucide-react";
 import {
   FeedItem as FeedItemType,
@@ -55,6 +56,11 @@ const CATEGORY_CONFIG: Record<
     color: "#ec4899",
     bgColor: "#fdf2f8",
     icon: <BookOpen size={13} />,
+  },
+  회고: {
+    color: "#eab32e",
+    bgColor: "#fefce8",
+    icon: <ClipboardCheck size={13} />,
   },
 };
 
@@ -167,7 +173,9 @@ function getSubText(item: FeedItemType): string | null {
         return first.readSourceTitle || null;
       }
       return (
-        first.title || first.link || (first.duration ? `${first.duration}분` : null)
+        first.title ||
+        first.link ||
+        (first.duration ? `${first.duration}분` : null)
       );
     }
     case "원서읽기": {

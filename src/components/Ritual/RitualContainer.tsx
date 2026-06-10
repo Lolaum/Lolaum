@@ -23,8 +23,7 @@ function deriveOverall(initial: RitualInitialData): RitualOverallStats | null {
   if (!initial.overall) return null;
   return {
     ...initial.overall,
-    completionRate:
-      initial.completion?.rate ?? initial.overall.completionRate,
+    completionRate: initial.completion?.rate ?? initial.overall.completionRate,
   };
 }
 
@@ -37,7 +36,8 @@ type TabId =
   | "제2외국어"
   | "기록"
   | "자산관리"
-  | "원서읽기";
+  | "원서읽기"
+  | "회고";
 
 const TABS: TabId[] = [
   "아카이빙",
@@ -49,6 +49,7 @@ const TABS: TabId[] = [
   "기록",
   "자산관리",
   "원서읽기",
+  "회고",
 ];
 
 const TAB_COLORS: Record<TabId, string> = {
@@ -61,6 +62,7 @@ const TAB_COLORS: Record<TabId, string> = {
   기록: "#8b5cf6",
   자산관리: "#10b981",
   원서읽기: "#ec4899",
+  회고: "#eab32e",
 };
 
 const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
@@ -262,6 +264,8 @@ export default function RitualContainer({
       {/* ── 탭 콘텐츠 ── */}
       {activeTab === "아카이빙" ? (
         <RecordGallery refreshKey={refreshKey} />
+      ) : activeTab === "회고" ? (
+        <RecordGallery refreshKey={refreshKey} fixedFilter="회고" />
       ) : (
         <RoutineInsights
           activeTab={activeTab}

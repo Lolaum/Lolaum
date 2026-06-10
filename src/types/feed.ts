@@ -10,7 +10,8 @@ export type RoutineCategory =
   | "제2외국어"
   | "기록"
   | "자산관리"
-  | "원서읽기";
+  | "원서읽기"
+  | "회고";
 
 // 리추얼별 게시글 데이터 타입
 export interface ExerciseFeedData {
@@ -128,13 +129,24 @@ export interface ReadingFeedData {
   certPhotos?: string[];
 }
 
+export type ReflectionFeedKind = "declaration" | "mid-review" | "final-review";
+
+export interface ReflectionFeedData {
+  kind: ReflectionFeedKind;
+  title: string;
+  subtitle?: string;
+  preview: string;
+  chips?: string[];
+}
+
 export type FeedRoutineData =
   | ExerciseFeedData
   | MorningFeedData
   | FinanceFeedData
   | LanguageFeedData
   | ReadingFeedData
-  | RecordingFeedData;
+  | RecordingFeedData
+  | ReflectionFeedData;
 
 // 댓글 타입
 export interface Comment {
@@ -159,8 +171,7 @@ export interface FeedItem {
   recordId: number;
   routineData?: FeedRoutineData;
   comments?: Comment[];
+  archiveHref?: string;
 }
 
-export interface FeedContainerProps {
-  // 필요시 추가
-}
+export type FeedContainerProps = Record<string, never>;
