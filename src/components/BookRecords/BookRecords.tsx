@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Loader2, Quote } from "lucide-react";
-import { getMyRitualRecords } from "@/api/ritual-record";
+import { getMyRitualRecordsAcrossChallenges } from "@/api/ritual-record";
 import type { Book, ReadingRecordData } from "@/types/supabase";
 
 interface BookRecordsProps {
@@ -20,6 +21,7 @@ interface RecordItem {
   noteType: "sentence" | "summary";
   note: string;
   thoughts?: string;
+  certPhotos?: string[];
 }
 
 export default function BookRecords({ book }: BookRecordsProps) {
@@ -38,8 +40,8 @@ export default function BookRecords({ book }: BookRecordsProps) {
   useEffect(() => {
     async function fetch() {
       setLoading(true);
-      const { data } = await getMyRitualRecords({
-        routineType: book.routine_type as "reading" | "english_book",
+      const { data } = await getMyRitualRecordsAcrossChallenges({
+        routineTypes: [book.routine_type as "reading" | "english_book"],
       });
       if (data) {
         const list: RecordItem[] = data
@@ -59,6 +61,7 @@ export default function BookRecords({ book }: BookRecordsProps) {
               noteType: d.noteType,
               note: d.note,
               thoughts: d.thoughts,
+              certPhotos: d.certPhotos,
             };
           })
           .sort((a, b) => b.date.localeCompare(a.date));
@@ -101,10 +104,9 @@ export default function BookRecords({ book }: BookRecordsProps) {
         <p className="text-sm text-gray-500 mt-0.5">{book.author}</p>
       </div>
 
-      {/* 독서 기록 (원서읽기는 스크린샷 인증 방식이라 텍스트 기록 섹션 숨김) */}
-      {!isEnglishBook && (
-        <>
-      <h2 className="text-sm font-semibold text-gray-700 mb-3">나만의 독서기록</h2>
+      <h2 className="text-sm font-semibold text-gray-700 mb-3">
+        {isEnglishBook ? "원서읽기 기록" : "나만의 독서기록"}
+      </h2>
       {loading ? (
         <div className="text-center py-12 text-gray-400">
           <Loader2 size={20} className="animate-spin mx-auto mb-2" />
@@ -157,6 +159,25 @@ export default function BookRecords({ book }: BookRecordsProps) {
                       {unit} → {record.endValue}
                       {unit}
                     </div>
+                    {record.certPhotos?.length ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        {record.certPhotos.map((photo, index) => (
+                          <div
+                            key={`${record.id}-${index}`}
+                            className="relative h-36 overflow-hidden rounded-xl bg-gray-100"
+                          >
+                            <Image
+                              src={photo}
+                              alt={`${formatDate(record.date)} 인증 ${index + 1}`}
+                              fill
+                              sizes="(max-width: 768px) 50vw, 240px"
+                              className="object-cover"
+                              unoptimized
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
                     <div
                       className={`text-sm text-gray-700 rounded-xl p-3 ${
                         record.noteType === "sentence"
@@ -185,8 +206,6 @@ export default function BookRecords({ book }: BookRecordsProps) {
             );
           })}
         </div>
-      )}
-        </>
       )}
     </div>
   );

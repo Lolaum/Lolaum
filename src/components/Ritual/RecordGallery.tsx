@@ -12,6 +12,10 @@ import {
   Pen,
   BookOpen,
   Loader2,
+  ClipboardCheck,
+  Check,
+  Trash2,
+  X,
 } from "lucide-react";
 import {
   FeedItem,
@@ -22,9 +26,14 @@ import {
   LanguageFeedData,
   FinanceFeedData,
   RecordingFeedData,
+  ReflectionFeedData,
   normalizeRecordingFeedEntries,
 } from "@/types/feed";
-import { getMyRecordsForDisplay } from "@/api/ritual-records-display";
+import {
+  deleteMyArchiveItems,
+  getMyRecordsForDisplay,
+  type ArchiveDeleteTarget,
+} from "@/api/ritual-records-display";
 
 const CATEGORY_CONFIG: Record<
   RoutineCategory,
@@ -78,10 +87,17 @@ const CATEGORY_CONFIG: Record<
     label: "원서읽기",
     icon: <BookOpen size={14} />,
   },
+  회고: {
+    color: "#eab32e",
+    bgColor: "#fefce8",
+    label: "회고",
+    icon: <ClipboardCheck size={14} />,
+  },
 };
 
 const FILTERS: (RoutineCategory | "전체")[] = [
   "전체",
+  "회고",
   "독서",
   "운동",
   "모닝",
@@ -98,6 +114,22 @@ const formatDate = (dateString: string) => {
   const day = String(date.getDate()).padStart(2, "0");
   return `${month}.${day}`;
 };
+
+function getArchiveDeleteTarget(item: FeedItem): ArchiveDeleteTarget | null {
+  const id = item.odOriginalId ? String(item.odOriginalId) : null;
+  if (!id) return null;
+
+  if (item.archiveHref?.startsWith("/declaration/")) {
+    return { kind: "declaration", id };
+  }
+  if (item.archiveHref?.startsWith("/mid-review/")) {
+    return { kind: "mid_review", id };
+  }
+  if (item.archiveHref?.startsWith("/final-review/")) {
+    return { kind: "final_review", id };
+  }
+  return { kind: "ritual_record", id };
+}
 
 // ── 카드 내용 렌더러 ──
 
@@ -225,9 +257,7 @@ function MorningCardContent({ data }: { data: MorningFeedData }) {
                 className="w-5 h-1.5 rounded-full mr-0.5"
                 style={{
                   backgroundColor:
-                    i < conditionBars
-                      ? conditionColor
-                      : "#e5e7eb",
+                    i < conditionBars ? conditionColor : "#e5e7eb",
                 }}
               />
             ))}
@@ -295,8 +325,7 @@ function FinanceCardContent({ data }: { data: FinanceFeedData }) {
     total > 0 ? Math.round((necessary / total) * 100) : 0;
   const emotionalPercent =
     total > 0 ? Math.round((emotional / total) * 100) : 0;
-  const valuePercent =
-    total > 0 ? Math.round((value / total) * 100) : 0;
+  const valuePercent = total > 0 ? Math.round((value / total) * 100) : 0;
 
   return (
     <div className="space-y-3">
@@ -446,7 +475,9 @@ function RecordingCardContent({ data }: { data: RecordingFeedData }) {
             </p>
           )}
           {first.duration ? (
-            <p className="text-xs text-gray-400">작성 시간 {first.duration}분</p>
+            <p className="text-xs text-gray-400">
+              작성 시간 {first.duration}분
+            </p>
           ) : null}
           {first.link && (
             <p className="text-xs text-violet-500 truncate">{first.link}</p>
@@ -457,9 +488,50 @@ function RecordingCardContent({ data }: { data: RecordingFeedData }) {
   );
 }
 
+function ReflectionCardContent({ data }: { data: ReflectionFeedData }) {
+  return (
+    <div className="space-y-2.5">
+      <div>
+        <p className="text-sm font-semibold text-gray-900">{data.title}</p>
+        {data.subtitle && (
+          <p className="text-xs text-gray-400 mt-0.5">{data.subtitle}</p>
+        )}
+      </div>
+
+      {data.chips && data.chips.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {data.chips.slice(0, 3).map((chip) => (
+            <span
+              key={chip}
+              className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: "#fef3c7", color: "#d97706" }}
+            >
+              {chip}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <p className="text-xs text-gray-500 leading-relaxed line-clamp-3">
+        {data.preview}
+      </p>
+    </div>
+  );
+}
+
 // ── 아카이빙 카드 ──
 
-function GalleryCard({ item }: { item: FeedItem }) {
+function GalleryCard({
+  item,
+  selectionMode,
+  selected,
+  onToggleSelect,
+}: {
+  item: FeedItem;
+  selectionMode: boolean;
+  selected: boolean;
+  onToggleSelect: () => void;
+}) {
   const config = CATEGORY_CONFIG[item.routineCategory];
 
   const renderContent = () => {
@@ -493,17 +565,19 @@ function GalleryCard({ item }: { item: FeedItem }) {
         return (
           <EnglishBookCardContent data={item.routineData as ReadingFeedData} />
         );
+      case "회고":
+        return (
+          <ReflectionCardContent
+            data={item.routineData as ReflectionFeedData}
+          />
+        );
       default:
         return null;
     }
   };
 
-  return (
-    <Link
-      href={`/feeds/${item.odOriginalId ?? item.id}`}
-      className="block bg-white rounded-2xl p-4 shadow-sm border border-gray-100 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
-      style={{ borderTop: `3px solid ${config.color}` }}
-    >
+  const cardContent = (
+    <>
       {/* 카드 헤더 */}
       <div className="flex items-center justify-between mb-3">
         <span
@@ -518,70 +592,205 @@ function GalleryCard({ item }: { item: FeedItem }) {
 
       {/* 카드 내용 */}
       {item.routineData && renderContent()}
+    </>
+  );
+
+  const className = `relative block w-full bg-white rounded-2xl p-4 text-left shadow-sm border transition-all duration-200 ${
+    selected ? "border-red-200 ring-2 ring-red-100" : "border-gray-100"
+  } ${selectionMode ? "hover:bg-red-50/30" : "hover:shadow-md hover:-translate-y-0.5"}`;
+
+  if (selectionMode) {
+    return (
+      <button
+        type="button"
+        onClick={onToggleSelect}
+        className={className}
+        style={{ borderTop: `3px solid ${config.color}` }}
+        aria-pressed={selected}
+      >
+        <span
+          className={`absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full border text-white transition-colors ${
+            selected ? "border-red-500 bg-red-500" : "border-gray-200 bg-white"
+          }`}
+          aria-hidden="true"
+        >
+          {selected && <Check className="h-3.5 w-3.5" />}
+        </span>
+        <div className="pr-8">{cardContent}</div>
+      </button>
+    );
+  }
+
+  return (
+    <Link
+      href={item.archiveHref ?? `/feeds/${item.odOriginalId ?? item.id}`}
+      className={className}
+      style={{ borderTop: `3px solid ${config.color}` }}
+    >
+      {cardContent}
     </Link>
   );
 }
 
 // ── 메인 아카이빙 ──
 
-export default function RecordGallery({ refreshKey = 0 }: { refreshKey?: number } = {}) {
+export default function RecordGallery({
+  refreshKey = 0,
+  fixedFilter,
+}: { refreshKey?: number; fixedFilter?: RoutineCategory } = {}) {
   const [activeFilter, setActiveFilter] = useState<RoutineCategory | "전체">(
     "전체",
   );
   const [records, setRecords] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [deleting, setDeleting] = useState(false);
+  const effectiveFilter = fixedFilter ?? activeFilter;
 
   useEffect(() => {
     async function fetchRecords() {
       setLoading(true);
       const { data } = await getMyRecordsForDisplay();
       setRecords(data);
+      setSelectedIds(new Set());
+      setSelectionMode(false);
       setLoading(false);
     }
     fetchRecords();
   }, [refreshKey]);
 
   const filtered =
-    activeFilter === "전체"
+    effectiveFilter === "전체"
       ? records
-      : records.filter((r) => r.routineCategory === activeFilter);
+      : records.filter((r) => r.routineCategory === effectiveFilter);
+
+  const selectedCount = selectedIds.size;
+
+  const toggleSelectionMode = () => {
+    setSelectionMode((prev) => !prev);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelect = (item: FeedItem) => {
+    const key = String(item.id);
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    const selectedItems = records.filter((item) =>
+      selectedIds.has(String(item.id)),
+    );
+    const targets = selectedItems
+      .map(getArchiveDeleteTarget)
+      .filter((target): target is ArchiveDeleteTarget => target !== null);
+
+    if (targets.length === 0) return;
+
+    const confirmed = window.confirm(
+      `선택한 게시글 ${targets.length}개를 삭제하시겠습니까?`,
+    );
+    if (!confirmed) return;
+
+    setDeleting(true);
+    const { error } = await deleteMyArchiveItems(targets);
+    setDeleting(false);
+
+    if (error) {
+      alert(`삭제 실패: ${error}`);
+      return;
+    }
+
+    const deletedKeys = new Set(selectedItems.map((item) => String(item.id)));
+    setRecords((prev) =>
+      prev.filter((item) => !deletedKeys.has(String(item.id))),
+    );
+    setSelectedIds(new Set());
+    setSelectionMode(false);
+  };
 
   return (
     <div>
-      {/* 필터 */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 mb-4 scrollbar-hide">
-        {FILTERS.map((f) => {
-          const isActive = activeFilter === f;
-          const config = f !== "전체" ? CATEGORY_CONFIG[f] : null;
-          return (
-            <button
-              key={f}
-              onClick={() => setActiveFilter(f)}
-              className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200"
-              style={
-                isActive
-                  ? {
-                      backgroundColor: config ? config.color : "#eab32e",
-                      color: "#fff",
-                    }
-                  : {
-                      backgroundColor: "#f3f4f6",
-                      color: "#6b7280",
-                    }
-              }
-            >
-              {f}
-            </button>
-          );
-        })}
-      </div>
+      {!fixedFilter && (
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 mb-4 scrollbar-hide">
+          {FILTERS.map((f) => {
+            const isActive = activeFilter === f;
+            const config = f !== "전체" ? CATEGORY_CONFIG[f] : null;
+            return (
+              <button
+                key={f}
+                onClick={() => setActiveFilter(f)}
+                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200"
+                style={
+                  isActive
+                    ? {
+                        backgroundColor: config ? config.color : "#eab32e",
+                        color: "#fff",
+                      }
+                    : {
+                        backgroundColor: "#f3f4f6",
+                        color: "#6b7280",
+                      }
+                }
+              >
+                {f}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
-      {/* 기록 수 */}
-      <p className="text-xs text-gray-400 mb-3 px-1">
-        총{" "}
-        <span className="font-semibold text-gray-600">{filtered.length}</span>
-        개의 기록
-      </p>
+      {/* 기록 수 / 삭제 액션 */}
+      <div className="mb-3 flex items-center justify-between gap-3 px-1">
+        <p className="text-xs text-gray-400">
+          총{" "}
+          <span className="font-semibold text-gray-600">{filtered.length}</span>
+          개의 기록
+        </p>
+        {!loading && filtered.length > 0 && (
+          <div className="flex items-center gap-2">
+            {selectionMode ? (
+              <>
+                <button
+                  type="button"
+                  onClick={toggleSelectionMode}
+                  disabled={deleting}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full bg-gray-100 px-3 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-200 disabled:opacity-50"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkDelete}
+                  disabled={selectedCount === 0 || deleting}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full bg-red-500 px-3 text-xs font-semibold text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  {deleting ? "삭제 중" : `선택 삭제 ${selectedCount}`}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={toggleSelectionMode}
+                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-red-50 px-3 text-xs font-semibold text-red-500 transition-colors hover:bg-red-100"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                삭제하기
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* 2열 그리드 */}
       {loading ? (
@@ -598,7 +807,13 @@ export default function RecordGallery({ refreshKey = 0 }: { refreshKey?: number 
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {filtered.map((item) => (
-            <GalleryCard key={item.id} item={item} />
+            <GalleryCard
+              key={item.id}
+              item={item}
+              selectionMode={selectionMode}
+              selected={selectedIds.has(String(item.id))}
+              onToggleSelect={() => toggleSelect(item)}
+            />
           ))}
         </div>
       )}

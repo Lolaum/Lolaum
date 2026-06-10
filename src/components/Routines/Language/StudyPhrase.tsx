@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { LanguageRecord } from "@/types/routines/language";
+import { useState } from "react";
+import type { LanguageRecord } from "@/types/routines/language";
 
 interface StudyPhraseProps {
-  languageRecords: LanguageRecord[];
+  cards?: FlashCard[];
+  languageRecords?: LanguageRecord[];
   onClose: () => void;
   accentColor: string;
+  maxCards?: number;
+  title?: string;
 }
 
 interface FlashCard {
@@ -15,36 +18,46 @@ interface FlashCard {
   example: string;
 }
 
+type ReviewMode = "word-to-meaning" | "meaning-to-word";
+
 export default function StudyPhrase({
+  cards,
   languageRecords,
   onClose,
   accentColor,
+  maxCards,
+  title,
 }: StudyPhraseProps) {
-  // 모든 레코드의 expressions를 펼쳐서 셔플된 카드 배열로 만듦
-  const allCards = useMemo(() => {
-    const cards: FlashCard[] = [];
-    languageRecords.forEach((record) => {
-      record.expressions.forEach((expr) => {
-        cards.push({
-          word: expr.word,
-          meaning: expr.meaning,
-          example: expr.example,
-        });
-      });
-    });
-    // Fisher-Yates 셔플
-    for (let i = cards.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [cards[i], cards[j]] = [cards[j], cards[i]];
-    }
-    return cards;
-  }, [languageRecords]);
+  const resolvedCards =
+    cards ??
+    languageRecords?.flatMap((record) =>
+      record.expressions.map((expression) => ({
+        word: expression.word,
+        meaning: expression.meaning,
+        example: expression.example,
+      })),
+    ) ??
+    [];
+  const visibleCards =
+    typeof maxCards === "number"
+      ? resolvedCards.slice(0, maxCards)
+      : resolvedCards;
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [reviewMode, setReviewMode] = useState<ReviewMode>("word-to-meaning");
 
-  const totalCards = allCards.length;
-  const currentCard = allCards[currentIndex];
+  const totalCards = visibleCards.length;
+  const currentCard = visibleCards[currentIndex];
+  const isMeaningToWord = reviewMode === "meaning-to-word";
+  const frontText = isMeaningToWord ? currentCard.meaning : currentCard.word;
+  const backPrimaryText = isMeaningToWord
+    ? currentCard.word
+    : currentCard.meaning;
+  const backSecondaryText = isMeaningToWord
+    ? currentCard.meaning
+    : currentCard.word;
+  const flipHint = isMeaningToWord ? "탭하여 단어 보기" : "탭하여 의미 보기";
 
   const handleNext = () => {
     if (currentIndex < totalCards - 1) {
@@ -62,6 +75,13 @@ export default function StudyPhrase({
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
+  };
+
+  const toggleReviewMode = () => {
+    setReviewMode((current) =>
+      current === "word-to-meaning" ? "meaning-to-word" : "word-to-meaning",
+    );
+    setIsFlipped(false);
   };
 
   if (totalCards === 0) {
@@ -98,8 +118,13 @@ export default function StudyPhrase({
       <div className="w-full max-w-2xl mx-4">
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-4">
-          <div className="text-sm text-gray-500">
-            {currentIndex + 1} / {totalCards}
+          <div>
+            {title && (
+              <p className="text-sm font-semibold text-white mb-1">{title}</p>
+            )}
+            <div className="text-sm text-gray-200">
+              {currentIndex + 1} / {totalCards}
+            </div>
           </div>
           <button
             type="button"
@@ -110,16 +135,41 @@ export default function StudyPhrase({
           </button>
         </div>
 
+        <div className="mb-3 flex items-center justify-between gap-3 rounded-xl bg-white px-4 py-3 shadow-sm">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-gray-400">학습 유형</p>
+            <p className="text-sm font-bold text-gray-900 break-keep">
+              {isMeaningToWord ? "뜻 보고 단어 맞추기" : "단어 보고 뜻 맞추기"}
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isMeaningToWord}
+            aria-label="학습 유형 전환"
+            onClick={toggleReviewMode}
+            className="relative inline-flex h-8 w-16 shrink-0 items-center rounded-full p-1 transition-colors"
+            style={{
+              backgroundColor: isMeaningToWord ? accentColor : "#e5e7eb",
+            }}
+          >
+            <span
+              className={`h-6 w-6 rounded-full bg-white shadow-sm transition-transform ${
+                isMeaningToWord ? "translate-x-8" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
+
         {/* 카드 */}
         <div
           onClick={handleFlip}
           className="bg-white rounded-3xl shadow-xl p-12 min-h-[400px] flex flex-col items-center justify-center cursor-pointer mb-3 transition-all hover:shadow-2xl"
         >
           {!isFlipped ? (
-            // 앞면: 단어
             <div className="text-center w-full">
-              <h2 className="text-4xl font-bold text-gray-900 mb-6">
-                {currentCard.word}
+              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6 break-words">
+                {frontText}
               </h2>
               <button
                 type="button"
@@ -129,19 +179,18 @@ export default function StudyPhrase({
                 }}
                 className="text-sm text-gray-400 hover:text-gray-700 transition-colors"
               >
-                탭하여 의미 보기
+                {flipHint}
               </button>
             </div>
           ) : (
-            // 뒷면: 의미와 예문
             <div className="text-center w-full">
               <div className="mb-3">
-                <div className="text-3xl font-bold text-[var(--gold-400)] mb-4">
-                  {currentCard.meaning}
+                <div className="text-2xl sm:text-3xl font-bold text-[var(--gold-400)] mb-4 break-words">
+                  {backPrimaryText}
                 </div>
               </div>
-              <div className="text-gray-500 text-lg mb-4">
-                {currentCard.word}
+              <div className="text-gray-500 text-base sm:text-lg mb-4 break-words">
+                {backSecondaryText}
               </div>
               {currentCard.example && (
                 <div className="text-sm text-gray-600 italic mt-4 pt-4 border-t border-gray-200">

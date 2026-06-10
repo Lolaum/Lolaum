@@ -85,7 +85,7 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
         id: "expected_change",
         label: "기대하는 변화",
         description:
-          "이번 달 독서를 통해 '어떤 사람'이 되고 싶은가를 작성해주세요.",
+          "이번 챌린지에서 독서를 통해 '어떤 사람'이 되고 싶은가를 작성해주세요.",
         placeholder:
           "독서를 통해 얻은 인사이트를 실제 일과 삶에 적용할 수 있는 사람",
       },
@@ -96,8 +96,8 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
       },
       {
         id: "this_month_book",
-        label: "이번 달의 책 (권수/분량 자율)",
-        description: "이번 달에 읽을 책을 구체적으로 정해주세요.",
+        label: "이번 챌린지의 책 (권수/분량 자율)",
+        description: "이번 챌린지에서 읽을 책을 구체적으로 정해주세요.",
         placeholder: "예) 아주 작은 습관의 힘 1권 완독",
       },
       {
@@ -273,7 +273,7 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
       },
       {
         id: "this_month_goal",
-        label: "이번 달 원서읽기 목표",
+        label: "이번 챌린지 원서읽기 목표",
         description:
           "이번 원서읽기 리추얼을 통해 어떤 경험을 만들고 싶은지를 구체적으로 작성해주세요.",
         placeholder: "예) 원서 한 권을 깊게 완독하는 경험",

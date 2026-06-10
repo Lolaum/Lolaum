@@ -602,6 +602,7 @@ export type AdminErrorLog =
 
 // record_data JSONB 타입들
 export interface MorningRecordData {
+  recordType?: "weekday" | "weekend";
   sleepHours: number;
   sleepImprovement?: string;
   condition: "상" | "중" | "하";

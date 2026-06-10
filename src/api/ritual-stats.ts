@@ -30,6 +30,9 @@ import {
   parseDateKey,
 } from "@/lib/korea-date";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SupabaseAnyClient = { from: (...args: any[]) => any };
+
 // ── 타입 ──────────────────────────────────────────────
 
 export interface RitualOverallStats {
@@ -131,6 +134,37 @@ function countWeekdaysInRange(startDate: string, endDate: string): number {
 
 function getAccountingUpperDate(endDate: string): string {
   return getKoreaTodayWithinRange(endDate);
+}
+
+function getRitualStartDateKey(input: {
+  ritual_start_year: number | null;
+  ritual_start_month: number | null;
+}): string | undefined {
+  if (!input.ritual_start_year || !input.ritual_start_month) return undefined;
+  if (input.ritual_start_month < 1 || input.ritual_start_month > 12) {
+    return undefined;
+  }
+
+  return `${input.ritual_start_year}-${String(input.ritual_start_month).padStart(2, "0")}-01`;
+}
+
+async function countRitualRecordsSinceProfileStart(
+  supabase: SupabaseAnyClient,
+  userId: string,
+): Promise<number> {
+  const ritualStart = await getProfileRitualStart(userId);
+  const ritualStartDate = getRitualStartDateKey(ritualStart);
+  let query = supabase
+    .from("ritual_records")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId);
+
+  if (ritualStartDate) {
+    query = query.gte("record_date", ritualStartDate);
+  }
+
+  const { count } = await query;
+  return count ?? 0;
 }
 
 function calcCompletionAccounting(
@@ -239,11 +273,11 @@ export async function getRitualPageData(): Promise<{
 
   const supabase = await createClient();
 
-  // 4개 쿼리를 한 번에 병렬 실행
-  // daily_completions로 fullyCompleteDays/streak 계산, ritual_records는 routines 카드용으로만 사용
+  // 통계에 필요한 조회를 한 번에 병렬 실행
+  // daily_completions는 완료율용, ritual_records는 총기록/연속 실천/리추얼 카드용으로 사용
   const [
     dailyRes,
-    recordsCountRes,
+    totalRecords,
     routineRecordsRes,
     registrationsRes,
     declarationsRes,
@@ -260,14 +294,7 @@ export async function getRitualPageData(): Promise<{
         .eq("is_fully_complete", true)
         .gte("completion_date", effectiveStart)
         .lte("completion_date", period.end_date),
-      // 전체 리추얼 기록 수 (totalRecords용 — count only)
-      supabase
-        .from("ritual_records")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("challenge_id", challengeId)
-        .gte("record_date", effectiveStart)
-        .lte("record_date", period.end_date),
+      countRitualRecordsSinceProfileStart(supabase, user.id),
       // routines 카드용: routine_type, record_date만 (record_data 제외)
       supabase
         .from("ritual_records")
@@ -300,11 +327,13 @@ export async function getRitualPageData(): Promise<{
 
   const fullyCompleteDates = (dailyRes.data ?? []).map((r) => r.completion_date);
   const fullyCompleteDays = fullyCompleteDates.length;
-  const totalRecords = recordsCountRes.count ?? 0;
   const routineRecords = routineRecordsRes.data ?? [];
   const registrations = registrationsRes.data ?? [];
 
-  const currentStreak = calcStreak(fullyCompleteDates);
+  const currentRecordDates = [
+    ...new Set(routineRecords.map((r) => r.record_date)),
+  ];
+  const currentStreak = calcStreak(currentRecordDates);
 
   // overall stats
   const totalDaysWithRecords = fullyCompleteDays || 1;
@@ -406,8 +435,8 @@ export async function getRitualStats(): Promise<{
   const effectiveStart = getEffectiveStart(period.start_date, resetAt);
   const supabase = await createClient();
 
-  // daily_completions로 overall 계산, routine_records는 routines 카드용으로만 사용
-  const [dailyRes, recordsCountRes, routineRecordsRes, registrationsRes] =
+  // daily_completions는 완료율용, ritual_records는 총기록/연속 실천/리추얼 카드용으로 사용
+  const [dailyRes, totalRecords, routineRecordsRes, registrationsRes] =
     await Promise.all([
       // 완전 달성일 목록 (fullyCompleteDays, streak 계산용)
       supabase
@@ -418,14 +447,7 @@ export async function getRitualStats(): Promise<{
         .eq("is_fully_complete", true)
         .gte("completion_date", effectiveStart)
         .lte("completion_date", period.end_date),
-      // 전체 리추얼 기록 수 (totalRecords용 — count only)
-      supabase
-        .from("ritual_records")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("challenge_id", challengeId)
-        .gte("record_date", effectiveStart)
-        .lte("record_date", period.end_date),
+      countRitualRecordsSinceProfileStart(supabase, user.id),
       // routines 카드용: routine_type, record_date만 (record_data 제외)
       supabase
         .from("ritual_records")
@@ -443,12 +465,14 @@ export async function getRitualStats(): Promise<{
 
   const fullyCompleteDates = (dailyRes.data ?? []).map((r) => r.completion_date);
   const fullyCompleteDays = fullyCompleteDates.length;
-  const totalRecords = recordsCountRes.count ?? 0;
   const routineRecords = routineRecordsRes.data ?? [];
   const registrations = registrationsRes.data ?? [];
 
   // 전체 통계
-  const currentStreak = calcStreak(fullyCompleteDates);
+  const currentRecordDates = [
+    ...new Set(routineRecords.map((r) => r.record_date)),
+  ];
+  const currentStreak = calcStreak(currentRecordDates);
   const totalDaysWithRecords = fullyCompleteDays || 1;
   const completionRate = Math.round(
     (fullyCompleteDays / totalDaysWithRecords) * 100,

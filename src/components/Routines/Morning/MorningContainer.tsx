@@ -35,6 +35,8 @@ export default function MorningContainer({ mode = "main" }: MorningContainerProp
           id: r.id as unknown as number,
           date: `${date.getMonth() + 1}월 ${date.getDate()}일`,
           image: d.image ?? "",
+          recordType: d.recordType,
+          certPhotos: d.certPhotos,
           sleepHours: d.sleepHours,
           sleepImprovement: d.sleepImprovement,
           condition: d.condition,
@@ -55,6 +57,8 @@ export default function MorningContainer({ mode = "main" }: MorningContainerProp
     setSubmitting(true);
     const today = formatKoreaDateKey();
     const recordData: MorningRecordData = {
+      recordType: formData.recordType,
+      certPhotos: formData.certPhotos,
       sleepHours: formData.sleepHours,
       sleepImprovement: formData.sleepImprovement,
       condition: formData.condition,

@@ -1,8 +1,10 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getActivePeriod } from "@/lib/current-challenge";
+import { ROUTINE_TYPE_LABEL } from "@/types/supabase";
 import type { RoutineTypeDB, RitualRecord } from "@/types/supabase";
 import type {
   FeedItem,
@@ -15,6 +17,7 @@ import type {
   LanguageFeedData,
   FinanceFeedData,
   RecordingFeedData,
+  ReflectionFeedData,
 } from "@/types/feed";
 
 // routine_type → RoutineCategory 매핑
@@ -36,6 +39,47 @@ interface BookInfo {
   cover_image_url: string | null;
 }
 
+interface ProfileInfo {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+}
+
+interface DeclarationArchiveRow {
+  id: string;
+  user_id: string;
+  routine_type: RoutineTypeDB;
+  answers: unknown;
+  created_at: string;
+}
+
+interface MidReviewArchiveRow {
+  id: string;
+  user_id: string;
+  good_conditions: string[];
+  hard_conditions: string[];
+  why_started: string;
+  keep_doing: string;
+  will_change: string;
+  created_at: string;
+}
+
+interface FinalReviewArchiveRow {
+  id: string;
+  user_id: string;
+  results: string;
+  life_changes: string;
+  continuation_choice: "keep" | "adjust";
+  adjustment_note: string;
+  feedback: string;
+  created_at: string;
+}
+
+interface DeletedRitualRecordInfo {
+  challenge_id: string;
+  record_date: string;
+}
+
 // DB record_data → FeedRoutineData 변환 (책 정보는 사전 조회된 map에서 lookup)
 function transformRecordData(
   record: RitualRecord,
@@ -47,7 +91,8 @@ function transformRecordData(
   switch (record.routine_type) {
     case "exercise":
       return {
-        recordType: (data.recordType as ExerciseFeedData["recordType"]) ?? "exercise",
+        recordType:
+          (data.recordType as ExerciseFeedData["recordType"]) ?? "exercise",
         images: (data.images as string[]) ?? [],
         exerciseName: (data.exerciseName as string) ?? "",
         duration: (data.duration as number) ?? 0,
@@ -58,6 +103,8 @@ function transformRecordData(
 
     case "morning":
       return {
+        recordType:
+          (data.recordType as MorningFeedData["recordType"]) ?? undefined,
         image: data.image as string | undefined,
         sleepHours: (data.sleepHours as number) ?? 0,
         sleepImprovement: (data.sleepImprovement as string) ?? undefined,
@@ -93,7 +140,11 @@ function transformRecordData(
         images: (data.images as string[]) ?? [],
         achievement: (data.achievement as string) ?? "",
         expressions:
-          (data.expressions as { word: string; meaning: string; example: string }[]) ?? [],
+          (data.expressions as {
+            word: string;
+            meaning: string;
+            example: string;
+          }[]) ?? [],
         certPhotos: (data.certPhotos as string[]) ?? undefined,
       } satisfies LanguageFeedData;
 
@@ -128,6 +179,17 @@ function transformRecordData(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseAnyClient = { from: (...args: any[]) => any };
 
+export type ArchiveDeleteKind =
+  | "ritual_record"
+  | "declaration"
+  | "mid_review"
+  | "final_review";
+
+export interface ArchiveDeleteTarget {
+  kind: ArchiveDeleteKind;
+  id: string;
+}
+
 // records에 등장하는 모든 bookId를 한 번의 쿼리로 일괄 조회
 async function fetchBookMap(
   records: RitualRecord[],
@@ -135,7 +197,8 @@ async function fetchBookMap(
 ): Promise<Map<string, BookInfo>> {
   const bookIds = new Set<string>();
   for (const r of records) {
-    if (r.routine_type !== "reading" && r.routine_type !== "english_book") continue;
+    if (r.routine_type !== "reading" && r.routine_type !== "english_book")
+      continue;
     const data = r.record_data as Record<string, unknown> | null;
     const bookId = data?.bookId as string | undefined;
     if (bookId) bookIds.add(bookId);
@@ -163,7 +226,7 @@ async function fetchBookMap(
 // DB RitualRecord → FeedItem 변환
 function recordToFeedItem(
   record: RitualRecord,
-  profile: { id: string; name: string; avatar_url: string | null } | null,
+  profile: ProfileInfo | null,
   bookMap: Map<string, BookInfo>,
 ): FeedItem | null {
   const category = ROUTINE_TO_CATEGORY[record.routine_type];
@@ -186,6 +249,175 @@ function recordToFeedItem(
   } as FeedItem;
 }
 
+function firstText(values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
+
+function declarationToFeedItem(
+  row: DeclarationArchiveRow,
+  profile: ProfileInfo | null,
+): FeedItem {
+  const answers = Array.isArray(row.answers)
+    ? (row.answers as { answer?: unknown }[])
+    : [];
+  const preview =
+    firstText(answers.map((answer) => answer.answer)) ||
+    "리추얼을 시작하는 마음을 남겼어요.";
+  const routineLabel = ROUTINE_TO_CATEGORY[row.routine_type] ?? "리추얼";
+  const routineTitle = ROUTINE_TYPE_LABEL[row.routine_type] ?? routineLabel;
+  const routineData: ReflectionFeedData = {
+    kind: "declaration",
+    title: "리추얼 선언",
+    subtitle: routineTitle,
+    preview,
+    chips: [routineLabel],
+  };
+
+  return {
+    id: `declaration-${row.id}`,
+    odOriginalId: row.id,
+    userId: row.user_id,
+    userName: profile?.name ?? "알 수 없음",
+    userProfileImage: profile?.avatar_url ?? undefined,
+    date: row.created_at,
+    createdAt: row.created_at,
+    routineCategory: "회고",
+    routineId: 0,
+    recordId: 0,
+    routineData,
+    comments: [],
+    archiveHref: `/declaration/${row.id}`,
+  };
+}
+
+function midReviewToFeedItem(
+  row: MidReviewArchiveRow,
+  profile: ProfileInfo | null,
+): FeedItem {
+  const preview =
+    firstText([row.keep_doing, row.why_started, row.will_change]) ||
+    "챌린지 중간 지점을 돌아봤어요.";
+  const routineData: ReflectionFeedData = {
+    kind: "mid-review",
+    title: "중간회고",
+    preview,
+    chips: [
+      ...row.good_conditions.slice(0, 2),
+      ...row.hard_conditions.slice(0, 1),
+    ],
+  };
+
+  return {
+    id: `mid-review-${row.id}`,
+    odOriginalId: row.id,
+    userId: row.user_id,
+    userName: profile?.name ?? "알 수 없음",
+    userProfileImage: profile?.avatar_url ?? undefined,
+    date: row.created_at,
+    createdAt: row.created_at,
+    routineCategory: "회고",
+    routineId: 0,
+    recordId: 0,
+    routineData,
+    comments: [],
+    archiveHref: `/mid-review/${row.id}`,
+  };
+}
+
+function finalReviewToFeedItem(
+  row: FinalReviewArchiveRow,
+  profile: ProfileInfo | null,
+): FeedItem {
+  const preview =
+    firstText([
+      row.results,
+      row.life_changes,
+      row.feedback,
+      row.adjustment_note,
+    ]) || "챌린지를 마무리하며 기록을 남겼어요.";
+  const routineData: ReflectionFeedData = {
+    kind: "final-review",
+    title: "최종회고",
+    preview,
+    chips: [row.continuation_choice === "keep" ? "유지" : "조정"],
+  };
+
+  return {
+    id: `final-review-${row.id}`,
+    odOriginalId: row.id,
+    userId: row.user_id,
+    userName: profile?.name ?? "알 수 없음",
+    userProfileImage: profile?.avatar_url ?? undefined,
+    date: row.created_at,
+    createdAt: row.created_at,
+    routineCategory: "회고",
+    routineId: 0,
+    recordId: 0,
+    routineData,
+    comments: [],
+    archiveHref: `/final-review/${row.id}`,
+  };
+}
+
+async function recomputeDailyCompletion(input: {
+  supabase: SupabaseAnyClient;
+  userId: string;
+  challengeId: string;
+  recordDate: string;
+}) {
+  const [registrationsRes, recordsRes] = await Promise.all([
+    input.supabase
+      .from("challenge_registrations")
+      .select("routine_type")
+      .eq("user_id", input.userId)
+      .eq("challenge_id", input.challengeId),
+    input.supabase
+      .from("ritual_records")
+      .select("routine_type")
+      .eq("user_id", input.userId)
+      .eq("challenge_id", input.challengeId)
+      .eq("record_date", input.recordDate),
+  ]);
+
+  const registeredTypes = new Set(
+    (registrationsRes.data ?? []).map(
+      (r: { routine_type: RoutineTypeDB }) => r.routine_type,
+    ),
+  );
+  const completedTypes = new Set(
+    (recordsRes.data ?? []).map(
+      (r: { routine_type: RoutineTypeDB }) => r.routine_type,
+    ),
+  );
+  const totalRegistered = registeredTypes.size;
+  const totalCompleted = Array.from(registeredTypes).filter((routineType) =>
+    completedTypes.has(routineType),
+  ).length;
+
+  if (totalRegistered > 0) {
+    await input.supabase.from("daily_completions").upsert(
+      {
+        user_id: input.userId,
+        challenge_id: input.challengeId,
+        completion_date: input.recordDate,
+        total_registered: totalRegistered,
+        total_completed: totalCompleted,
+      },
+      { onConflict: "user_id,challenge_id,completion_date" },
+    );
+  }
+}
+
+function revalidateArchiveSurfaces() {
+  revalidatePath("/home");
+  revalidatePath("/feeds");
+  revalidatePath("/progress");
+  revalidatePath("/ritual");
+}
+
 /** 내 리추얼 기록 가져오기 (아카이빙용) */
 export async function getMyRecordsForDisplay(options?: {
   routineType?: RoutineTypeDB;
@@ -199,7 +431,7 @@ export async function getMyRecordsForDisplay(options?: {
 
     const supabase = await createClient();
 
-    // 프로필 + 기록 동시 조회
+    // 프로필 + 기록/회고 동시 조회
     const profilePromise = supabase
       .from("profiles")
       .select("id, name, avatar_url")
@@ -208,7 +440,9 @@ export async function getMyRecordsForDisplay(options?: {
 
     let query = supabase
       .from("ritual_records")
-      .select("id, user_id, routine_type, record_date, record_data, challenge_id, created_at")
+      .select(
+        "id, user_id, routine_type, record_date, record_data, challenge_id, created_at",
+      )
       .eq("user_id", user.id)
       .order("record_date", { ascending: false });
 
@@ -219,31 +453,201 @@ export async function getMyRecordsForDisplay(options?: {
       query = query.limit(options.limit);
     }
 
-    const [{ data: profile }, { data: records, error }] = await Promise.all([
+    const shouldIncludeReflections = !options?.routineType;
+
+    const declarationPromise = shouldIncludeReflections
+      ? supabase
+          .from("declarations")
+          .select("id, user_id, routine_type, answers, created_at")
+          .eq("user_id", user.id)
+      : Promise.resolve({ data: [] as DeclarationArchiveRow[], error: null });
+    const midReviewPromise = shouldIncludeReflections
+      ? supabase
+          .from("mid_reviews")
+          .select(
+            "id, user_id, good_conditions, hard_conditions, why_started, keep_doing, will_change, created_at",
+          )
+          .eq("user_id", user.id)
+      : Promise.resolve({ data: [] as MidReviewArchiveRow[], error: null });
+    const finalReviewPromise = shouldIncludeReflections
+      ? supabase
+          .from("final_reviews")
+          .select(
+            "id, user_id, results, life_changes, continuation_choice, adjustment_note, feedback, created_at",
+          )
+          .eq("user_id", user.id)
+      : Promise.resolve({ data: [] as FinalReviewArchiveRow[], error: null });
+
+    const [
+      { data: profile },
+      { data: records, error },
+      declarationsRes,
+      midReviewsRes,
+      finalReviewsRes,
+    ] = await Promise.all([
       profilePromise,
       query,
+      declarationPromise,
+      midReviewPromise,
+      finalReviewPromise,
     ]);
 
     if (error) return { data: [], error: error.message };
-    if (!records?.length) return { data: [] };
-
-    // 필요한 모든 책을 한 번에 조회
-    const bookMap = await fetchBookMap(records as RitualRecord[], supabase);
-
-    const feedItems: FeedItem[] = [];
-    for (const record of records as RitualRecord[]) {
-      const item = recordToFeedItem(
-        record,
-        profile ? { id: profile.id, name: profile.name, avatar_url: profile.avatar_url } : null,
-        bookMap,
-      );
-      if (item) feedItems.push(item);
+    if (declarationsRes.error) {
+      return { data: [], error: declarationsRes.error.message };
+    }
+    if (midReviewsRes.error) {
+      return { data: [], error: midReviewsRes.error.message };
+    }
+    if (finalReviewsRes.error) {
+      return { data: [], error: finalReviewsRes.error.message };
     }
 
-    return { data: feedItems };
+    // 필요한 모든 책을 한 번에 조회
+    const recordRows = (records ?? []) as RitualRecord[];
+    const bookMap = await fetchBookMap(recordRows, supabase);
+    const profileInfo = profile
+      ? { id: profile.id, name: profile.name, avatar_url: profile.avatar_url }
+      : null;
+
+    const feedItems: FeedItem[] = [];
+    for (const record of recordRows) {
+      const item = recordToFeedItem(record, profileInfo, bookMap);
+      if (item) feedItems.push(item);
+    }
+    for (const declaration of (declarationsRes.data ??
+      []) as DeclarationArchiveRow[]) {
+      feedItems.push(declarationToFeedItem(declaration, profileInfo));
+    }
+    for (const review of (midReviewsRes.data ?? []) as MidReviewArchiveRow[]) {
+      feedItems.push(midReviewToFeedItem(review, profileInfo));
+    }
+    for (const review of (finalReviewsRes.data ??
+      []) as FinalReviewArchiveRow[]) {
+      feedItems.push(finalReviewToFeedItem(review, profileInfo));
+    }
+
+    feedItems.sort((a, b) => {
+      const dateCompare = b.date.localeCompare(a.date);
+      if (dateCompare !== 0) return dateCompare;
+      return (b.createdAt ?? "").localeCompare(a.createdAt ?? "");
+    });
+
+    return {
+      data: options?.limit ? feedItems.slice(0, options.limit) : feedItems,
+    };
   } catch (e) {
     console.error("getMyRecordsForDisplay error:", e);
     return { data: [], error: "기록 조회 중 오류가 발생했습니다." };
+  }
+}
+
+/** 내 아카이빙 항목 다중 삭제 */
+export async function deleteMyArchiveItems(
+  targets: ArchiveDeleteTarget[],
+): Promise<{ deleted: number; error?: string }> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return { deleted: 0, error: "인증이 필요합니다." };
+    }
+
+    const uniqueTargets = Array.from(
+      new Map(
+        targets
+          .filter((target) => target.id)
+          .map((target) => [`${target.kind}:${target.id}`, target]),
+      ).values(),
+    );
+    if (uniqueTargets.length === 0) return { deleted: 0 };
+
+    const supabase = await createClient();
+    const idsByKind = uniqueTargets.reduce(
+      (acc, target) => {
+        acc[target.kind].push(target.id);
+        return acc;
+      },
+      {
+        ritual_record: [] as string[],
+        declaration: [] as string[],
+        mid_review: [] as string[],
+        final_review: [] as string[],
+      },
+    );
+
+    let deleted = 0;
+    const completionTargets: DeletedRitualRecordInfo[] = [];
+
+    if (idsByKind.ritual_record.length > 0) {
+      const { data: records, error: fetchError } = await supabase
+        .from("ritual_records")
+        .select("id, challenge_id, record_date")
+        .eq("user_id", user.id)
+        .in("id", idsByKind.ritual_record);
+      if (fetchError) return { deleted, error: fetchError.message };
+
+      completionTargets.push(...((records ?? []) as DeletedRitualRecordInfo[]));
+
+      const { error } = await supabase
+        .from("ritual_records")
+        .delete()
+        .eq("user_id", user.id)
+        .in("id", idsByKind.ritual_record);
+      if (error) return { deleted, error: error.message };
+      deleted += records?.length ?? 0;
+    }
+
+    if (idsByKind.declaration.length > 0) {
+      const { data, error } = await supabase
+        .from("declarations")
+        .delete()
+        .eq("user_id", user.id)
+        .in("id", idsByKind.declaration)
+        .select("id");
+      if (error) return { deleted, error: error.message };
+      deleted += data?.length ?? 0;
+    }
+
+    if (idsByKind.mid_review.length > 0) {
+      const { data, error } = await supabase
+        .from("mid_reviews")
+        .delete()
+        .eq("user_id", user.id)
+        .in("id", idsByKind.mid_review)
+        .select("id");
+      if (error) return { deleted, error: error.message };
+      deleted += data?.length ?? 0;
+    }
+
+    if (idsByKind.final_review.length > 0) {
+      const { data, error } = await supabase
+        .from("final_reviews")
+        .delete()
+        .eq("user_id", user.id)
+        .in("id", idsByKind.final_review)
+        .select("id");
+      if (error) return { deleted, error: error.message };
+      deleted += data?.length ?? 0;
+    }
+
+    const completionKeys = new Set<string>();
+    for (const target of completionTargets) {
+      const key = `${target.challenge_id}:${target.record_date}`;
+      if (completionKeys.has(key)) continue;
+      completionKeys.add(key);
+      await recomputeDailyCompletion({
+        supabase,
+        userId: user.id,
+        challengeId: target.challenge_id,
+        recordDate: target.record_date,
+      });
+    }
+
+    revalidateArchiveSurfaces();
+    return { deleted };
+  } catch (e) {
+    console.error("deleteMyArchiveItems error:", e);
+    return { deleted: 0, error: "기록 삭제 중 오류가 발생했습니다." };
   }
 }
 
@@ -261,12 +665,17 @@ export async function getRecordById(
     const admin = createAdminClient();
     const { data: record, error } = await admin
       .from("ritual_records")
-      .select("id, user_id, routine_type, record_date, record_data, challenge_id, created_at")
+      .select(
+        "id, user_id, routine_type, record_date, record_data, challenge_id, created_at",
+      )
       .eq("id", id)
       .single();
 
     if (error || !record) {
-      return { data: null, error: error?.message ?? "기록을 찾을 수 없습니다." };
+      return {
+        data: null,
+        error: error?.message ?? "기록을 찾을 수 없습니다.",
+      };
     }
 
     const isMine = record.user_id === user.id;
@@ -331,14 +740,16 @@ export async function getRecordById(
           (commentProfiles ?? []).map((p) => [p.id, p.name]),
         );
 
-        item.comments = rawComments.map((c): Comment => ({
-          id: c.id as unknown as number,
-          odOriginalId: c.id,
-          userId: c.user_id as unknown as number,
-          userName: nameMap.get(c.user_id) ?? "알 수 없음",
-          text: c.text,
-          date: c.created_at,
-        }));
+        item.comments = rawComments.map(
+          (c): Comment => ({
+            id: c.id as unknown as number,
+            odOriginalId: c.id,
+            userId: c.user_id as unknown as number,
+            userName: nameMap.get(c.user_id) ?? "알 수 없음",
+            text: c.text,
+            date: c.created_at,
+          }),
+        );
       }
     }
 
@@ -404,7 +815,9 @@ export async function getAllRecordsForDisplay(options?: {
 
     let query = admin
       .from("ritual_records")
-      .select("id, user_id, routine_type, record_date, record_data, challenge_id, created_at")
+      .select(
+        "id, user_id, routine_type, record_date, record_data, challenge_id, created_at",
+      )
       .in("challenge_id", periodChallengeIds)
       .gte("record_date", period.start_date)
       .lte("record_date", period.end_date)
@@ -450,9 +863,7 @@ export async function getAllRecordsForDisplay(options?: {
       fetchBookMap(uniqueRecords, admin),
     ]);
 
-    const profileMap = new Map(
-      (profilesRes.data ?? []).map((p) => [p.id, p]),
-    );
+    const profileMap = new Map((profilesRes.data ?? []).map((p) => [p.id, p]));
 
     const feedItems: FeedItem[] = [];
     for (const record of uniqueRecords) {

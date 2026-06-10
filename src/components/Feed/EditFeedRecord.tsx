@@ -237,6 +237,8 @@ function getCategoryColor(category: RoutineCategory): string {
       return "#ec4899";
     case "기록":
       return "#8b5cf6";
+    case "회고":
+      return "#eab32e";
   }
 }
 
@@ -252,7 +254,9 @@ function ExerciseEditor({
   return (
     <div className="space-y-3">
       <div>
-        <label className={fieldLabel}>{isDiet ? "식단 기록" : "운동 종류"}</label>
+        <label className={fieldLabel}>
+          {isDiet ? "식단 기록" : "운동 종류"}
+        </label>
         <input
           type="text"
           value={draft.exerciseName}
