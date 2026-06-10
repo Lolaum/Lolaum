@@ -45,11 +45,13 @@ function AchievementCard({
   color,
   routines,
   goalDays,
+  periodLabel = "이달",
 }: {
   name: string;
   color: string;
   routines: RoutineCardStats[];
   goalDays: number;
+  periodLabel?: string;
 }) {
   const stat = routines.find((r) => r.name === name);
   const streak = stat?.streak ?? 0;
@@ -61,7 +63,7 @@ function AchievementCard({
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
       <h3 className="text-sm font-semibold text-gray-700 mb-3">
-        이달의 {name} 리추얼 달성
+        {periodLabel} {name} 리추얼 달성
       </h3>
       <div className="flex items-center gap-4">
         <div className="relative w-20 h-20 flex-shrink-0">
@@ -102,7 +104,7 @@ function AchievementCard({
             </span>
           </div>
           <p className="text-xs text-gray-400 leading-relaxed">
-            이달 목표 {safeGoal}일 중 {totalDays}일 달성!
+            {periodLabel} 목표 {safeGoal}일 중 {totalDays}일 달성!
             <br />
             {remaining}일 남았어요
           </p>
@@ -120,11 +122,13 @@ function InsightLoading({
   color,
   routines,
   goalDays,
+  periodLabel,
 }: {
   name: string;
   color: string;
   routines: RoutineCardStats[];
   goalDays: number;
+  periodLabel?: string;
 }) {
   return (
     <div className="space-y-4">
@@ -133,6 +137,7 @@ function InsightLoading({
         color={color}
         routines={routines}
         goalDays={goalDays}
+        periodLabel={periodLabel}
       />
       <div className="text-center py-8 text-gray-400">
         <Loader2 size={20} className="animate-spin mx-auto mb-2" />
@@ -215,6 +220,7 @@ function ReadingInsight({
         color={color}
         routines={routines}
         goalDays={goalDays}
+        periodLabel="챌린지"
       />
     );
 
@@ -225,6 +231,7 @@ function ReadingInsight({
         color={color}
         routines={routines}
         goalDays={goalDays}
+        periodLabel="챌린지"
       />
       {routineType !== "english_book" && (
         <div className="grid grid-cols-2 gap-3">
@@ -270,7 +277,6 @@ function ReadingInsight({
                 book.totalValue > 0
                   ? Math.round((book.currentValue / book.totalValue) * 100)
                   : 0;
-              const isClickable = routineType !== "english_book";
               const content = (
                 <>
                   <div className="w-10 h-14 rounded overflow-hidden flex-shrink-0 bg-gray-100">
@@ -319,7 +325,7 @@ function ReadingInsight({
                 </>
               );
 
-              return isClickable ? (
+              return (
                 <button
                   key={book.id}
                   type="button"
@@ -328,10 +334,6 @@ function ReadingInsight({
                 >
                   {content}
                 </button>
-              ) : (
-                <div key={book.id} className="w-full flex gap-3">
-                  {content}
-                </div>
               );
             })}
           </div>
