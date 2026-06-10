@@ -24,6 +24,7 @@ export interface ExerciseFeedData {
 }
 
 export interface MorningFeedData {
+  recordType?: "weekday" | "weekend";
   image?: string;
   sleepHours: number;
   sleepImprovement?: string;

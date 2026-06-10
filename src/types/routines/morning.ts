@@ -1,11 +1,14 @@
 // 모닝 리추얼 관련 타입 정의
 
 export type ConditionLevel = "상" | "중" | "하";
+export type MorningRecordType = "weekday" | "weekend";
 
 export interface MorningRecord {
   id: number;
   date: string;
   image?: string; // 인증 사진 1장
+  recordType?: MorningRecordType;
+  certPhotos?: string[];
   sleepHours: number; // 수면 시간 (시간 단위)
   sleepImprovement?: string; // 수면 7시간 미만 시 원인과 개선 방법
   condition: ConditionLevel; // 컨디션 (상/중/하)
@@ -19,6 +22,8 @@ export interface MorningContainerProps {
 }
 
 export interface MorningFormData {
+  recordType: MorningRecordType;
+  certPhotos?: string[];
   sleepHours: number;
   sleepImprovement?: string;
   condition: ConditionLevel;

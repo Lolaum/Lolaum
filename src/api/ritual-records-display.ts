@@ -58,6 +58,7 @@ function transformRecordData(
 
     case "morning":
       return {
+        recordType: (data.recordType as MorningFeedData["recordType"]) ?? undefined,
         image: data.image as string | undefined,
         sleepHours: (data.sleepHours as number) ?? 0,
         sleepImprovement: (data.sleepImprovement as string) ?? undefined,
