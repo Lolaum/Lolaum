@@ -1,11 +1,9 @@
 "use server";
 
+import { logAdminError } from "@/lib/admin-error-log";
 import { getCurrentUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  getActivePeriod,
-  getEffectiveStart,
-} from "@/lib/current-challenge";
+import { getActivePeriod, getEffectiveStart } from "@/lib/current-challenge";
 import { isAllRoutinesCovered } from "@/lib/declarations";
 import { calculatePenaltyAccounting } from "@/lib/progress-accounting";
 import { calculateWeeklyRoutineProgress } from "@/lib/weekly-routine-progress";
@@ -54,9 +52,12 @@ export async function getProgressPageData(): Promise<{
   data?: ProgressPageData;
   error?: string;
 }> {
+  let currentUserId: string | null = null;
+
   try {
     const user = await getCurrentUser();
     if (!user) return { error: "인증이 필요합니다." };
+    currentUserId = user.id;
 
     // 진행표는 모든 챌린저의 데이터를 보여주므로 admin 클라이언트 사용
     const admin = createAdminClient();
@@ -80,7 +81,13 @@ export async function getProgressPageData(): Promise<{
       )
       .eq("period_id", period.id);
 
-    if (cError) return { error: cError.message };
+    if (cError) {
+      await logAdminError("api.progress.challenges.fetch", cError.message, {
+        periodId: period.id,
+        userId: user.id,
+      });
+      return { error: cError.message };
+    }
     if (!challenges || challenges.length === 0) {
       return {
         data: {
@@ -134,11 +141,66 @@ export async function getProgressPageData(): Promise<{
           .in("challenge_id", challengeIds),
       ]);
 
-    if (regRes.error) return { error: regRes.error.message };
-    if (recordsRes.error) return { error: recordsRes.error.message };
-    if (declRes.error) return { error: declRes.error.message };
-    if (midRevRes.error) return { error: midRevRes.error.message };
-    if (finalRevRes.error) return { error: finalRevRes.error.message };
+    if (regRes.error) {
+      await logAdminError(
+        "api.progress.registrations.fetch",
+        regRes.error.message,
+        {
+          periodId: period.id,
+          userId: user.id,
+          challengeCount: challengeIds.length,
+        },
+      );
+      return { error: regRes.error.message };
+    }
+    if (recordsRes.error) {
+      await logAdminError(
+        "api.progress.records.fetch",
+        recordsRes.error.message,
+        {
+          periodId: period.id,
+          userId: user.id,
+          challengeCount: challengeIds.length,
+        },
+      );
+      return { error: recordsRes.error.message };
+    }
+    if (declRes.error) {
+      await logAdminError(
+        "api.progress.declarations.fetch",
+        declRes.error.message,
+        {
+          periodId: period.id,
+          userId: user.id,
+          challengeCount: challengeIds.length,
+        },
+      );
+      return { error: declRes.error.message };
+    }
+    if (midRevRes.error) {
+      await logAdminError(
+        "api.progress.mid-reviews.fetch",
+        midRevRes.error.message,
+        {
+          periodId: period.id,
+          userId: user.id,
+          challengeCount: challengeIds.length,
+        },
+      );
+      return { error: midRevRes.error.message };
+    }
+    if (finalRevRes.error) {
+      await logAdminError(
+        "api.progress.final-reviews.fetch",
+        finalRevRes.error.message,
+        {
+          periodId: period.id,
+          userId: user.id,
+          challengeCount: challengeIds.length,
+        },
+      );
+      return { error: finalRevRes.error.message };
+    }
 
     // 3. 유저별 등록 리추얼 타입 세트 (선언 보너스가 "등록한 모든 리추얼에 작성"인지 검사하려면 routine_type 필요)
     const userRegisteredTypes = new Map<string, Set<string>>();
@@ -280,6 +342,9 @@ export async function getProgressPageData(): Promise<{
     };
   } catch (e) {
     console.error("getProgressPageData error:", e);
+    await logAdminError("api.progress.getProgressPageData", e, {
+      userId: currentUserId,
+    });
     return { error: "진행표 조회 중 오류가 발생했습니다." };
   }
 }
