@@ -88,7 +88,7 @@ test("progress and completion count mid and final review bonuses", () => {
   );
 });
 
-test("progress uses same-day weekday completion before weekend makeup", () => {
+test("progress pools same-week partial routine completions", () => {
   const progress = read("src/api/progress.ts");
   const ritualStats = read("src/api/ritual-stats.ts");
   const weeklyProgress = read("src/lib/weekly-routine-progress.ts");
@@ -100,18 +100,18 @@ test("progress uses same-day weekday completion before weekend makeup", () => {
   );
   assert.match(
     weeklyProgress,
-    /const hasWeekendMakeupWindow = weekends\.some/,
-    "routine progress should switch to weekly makeup accounting only when weekend is in range",
+    /Mon 1\/2\/3 \+[\s\S]*counts as two completed days/,
+    "weekly progress should document the partial weekday pooling example",
   );
   assert.match(
     weeklyProgress,
-    /const isFullyCompleteWeekday = Array\.from\(input\.registeredTypes\)\.every/,
-    "weekdays should count only dates where all registered routines were certified on the same day",
+    /const completedInWeek = Math\.min\(minRoutineCompletions, maxWeekdayTarget\)/,
+    "weekly progress should count same-week pooled routine completions before weekend",
   );
-  assert.match(
+  assert.doesNotMatch(
     weeklyProgress,
-    /hasWeekendMakeupWindow[\s\S]*minRoutineCompletions[\s\S]*weekdayFullCompletions/,
-    "weekend weeks should use routine-type makeup counts, while pre-weekend weeks use same-day full completions",
+    /weekdayFullCompletions/,
+    "weekly progress should no longer require same-day full completion before weekend",
   );
   assert.match(
     ritualStats,
@@ -120,14 +120,14 @@ test("progress uses same-day weekday completion before weekend makeup", () => {
   );
 });
 
-test("progress applies happy chance and donation after weekly makeup accounting", () => {
+test("progress applies happy chance and donation after weekly pooled accounting", () => {
   const progress = read("src/api/progress.ts");
   const accounting = read("src/lib/progress-accounting.ts");
 
   assert.match(
     progress,
-    /주말이 집계 범위에 들어온 주는 보충을 반영/,
-    "progress should treat weekend certifications as same-week makeups once weekend is in range",
+    /같은 주의 부분 인증 합산을 반영한 뒤 남은 미완료만 계산/,
+    "progress should calculate misses after same-week partial routine pooling",
   );
   assert.match(
     progress,

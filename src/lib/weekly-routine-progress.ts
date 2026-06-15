@@ -18,11 +18,12 @@ function getWeekKey(dateKey: string): string {
 /**
  * Shared routine progress accounting.
  *
- * - Before the weekend, weekdays count only when every registered routine was
- *   certified on that same date.
- * - Once Saturday/Sunday is in range, weekend certifications can make up the
- *   routine types missed on weekdays in the same Monday-Sunday week. The weekly
- *   result is the least-completed routine count, capped at the weekday target.
+ * - Within each Monday-Sunday week, certifications are pooled by routine type.
+ *   The weekly result is the least-completed routine count, capped at the
+ *   weekday target. For example, with five registered routines, Mon 1/2/3 +
+ *   Tue 4/5 + Wed 1/2/3/4/5 counts as two completed days.
+ * - Missed weekdays for happy chance/donation accounting use the same pooled
+ *   weekly result, so the example above leaves one missed weekday.
  * - Duplicate records for the same routine/date are already collapsed by the
  *   Set in dateMap and therefore count once.
  */
@@ -66,21 +67,6 @@ export function calculateWeeklyRoutineProgress(input: {
   for (const { weekdays, weekends } of weekData.values()) {
     const pastWeekdayTarget = weekdays.filter((wd) => wd < today).length;
     const maxWeekdayTarget = weekdays.length;
-    const hasWeekendMakeupWindow = weekends.some(
-      (weekendDate) => weekendDate <= input.rangeEnd,
-    );
-    let weekdayFullCompletions = 0;
-
-    for (const weekday of weekdays) {
-      const completedTypes = input.dateMap.get(weekday);
-      const isFullyCompleteWeekday = Array.from(input.registeredTypes).every(
-        (routineType) => completedTypes?.has(routineType),
-      );
-      if (isFullyCompleteWeekday) {
-        weekdayFullCompletions++;
-      }
-    }
-
     let minRoutineCompletions = maxWeekdayTarget;
     for (const routineType of input.registeredTypes) {
       let routineCompletions = 0;
@@ -95,9 +81,7 @@ export function calculateWeeklyRoutineProgress(input: {
       );
     }
 
-    const completedInWeek = hasWeekendMakeupWindow
-      ? Math.min(minRoutineCompletions, maxWeekdayTarget)
-      : weekdayFullCompletions;
+    const completedInWeek = Math.min(minRoutineCompletions, maxWeekdayTarget);
 
     completedDays += completedInWeek;
     weekdayMissed += Math.max(0, pastWeekdayTarget - completedInWeek);

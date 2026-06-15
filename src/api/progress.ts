@@ -42,11 +42,11 @@ const BONUS_SLOTS = 3; // 선언/중간회고/최종회고
  * - 집계 범위: max(period.start_date, challenge.reset_at) ~ min(오늘, 기간 종료일)
  *   · reset_at 없음 → 기간 시작일부터 (늦게 등록해도 빠진 날 카운트)
  *   · reset_at 있음 → 그 날짜부터 (유저가 명시적으로 "다시 시작" 한 경우)
- * - 평일에는 등록한 모든 리추얼을 그날 완료해야 1일 달성
- * - 주말 인증은 같은 월-일 주간의 미인증 리추얼 보충으로 반영
+ * - 같은 월-일 주간 안에서는 리추얼별 인증 횟수를 합산해 완료일을 계산
+ *   · 예: 5개 신청, 월 1/2/3 + 화 4/5 + 수 1/2/3/4/5 → 2일 달성
  * - 미완료 평일 최초 1회 → 행복찬스 (면제)
  * - 미완료 평일 2회째부터 → 기부금 1,000원씩 누적
- * - 주말 보충 인증은 기부금을 먼저 차감하고, 마지막에 행복찬스를 취소
+ * - 미완료 평일 수는 같은 주의 합산 완료일을 반영한 뒤 계산
  */
 export async function getProgressPageData(): Promise<{
   data?: ProgressPageData;
@@ -307,7 +307,7 @@ export async function getProgressPageData(): Promise<{
       // 기부금 계산:
       // - 미완료 평일의 1회차는 행복찬스로 면제
       // - 2회차부터 1,000원씩
-      // - 주말이 집계 범위에 들어온 주는 보충을 반영한 뒤 남은 미완료만 계산
+      // - 같은 주의 부분 인증 합산을 반영한 뒤 남은 미완료만 계산
       const { happyChanceUsed, penaltyAmount } = calculatePenaltyAccounting(
         weekdayMissed,
         0,
