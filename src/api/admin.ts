@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { login, signup } from "@/api/auth";
+import { getAdminEmails, isAdminEmail } from "@/lib/admin-auth";
 import { logAdminError } from "@/lib/admin-error-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEffectiveStart } from "@/lib/current-challenge";
@@ -12,6 +13,7 @@ import { calculateWeeklyRoutineProgress } from "@/lib/weekly-routine-progress";
 import {
   ROUTINE_TYPE_LABEL,
   type Database,
+  type Json,
   type Profile,
   type RoutineTypeDB,
 } from "@/types/supabase";
@@ -22,6 +24,7 @@ type AdminDeactivatedUser =
 type AdminReviewQuestion =
   Database["public"]["Tables"]["admin_review_questions"]["Row"];
 type AdminErrorLog = Database["public"]["Tables"]["admin_error_logs"]["Row"];
+type RitualRecord = Database["public"]["Tables"]["ritual_records"]["Row"];
 
 export interface AdminRegisteredRoutine {
   id: string;
@@ -36,6 +39,27 @@ export interface AdminUserStatus extends Profile {
   deactivated?: AdminDeactivatedUser | null;
   routineCount: number;
   routines: AdminRegisteredRoutine[];
+}
+
+export interface AdminMorningAttendanceUser {
+  userId: string;
+  name: string;
+  username: string;
+  email: string;
+  challengeId: string;
+  periodId: string;
+  periodLabel: string;
+}
+
+export interface AdminMorningAttendanceExclusion {
+  id: string;
+  userId: string;
+  name: string;
+  username: string;
+  challengeId: string;
+  recordDate: string;
+  reason: string | null;
+  updatedAt: string;
 }
 
 export interface AdminExportRow {
@@ -90,18 +114,12 @@ export interface AdminDashboardData {
   users: AdminUserStatus[];
   reviewQuestions: AdminReviewQuestion[];
   errorLogs: AdminErrorLog[];
+  morningAttendanceUsers: AdminMorningAttendanceUser[];
+  morningAttendanceExclusions: AdminMorningAttendanceExclusion[];
   donationExportRows: AdminDonationExportRow[];
   midReviewExportRows: AdminMidReviewExportRow[];
   finalReviewExportRows: AdminFinalReviewExportRow[];
   unsupportedTables: string[];
-}
-
-function getAdminEmails(): string[] {
-  return [process.env.LOLAUM_ADMIN_EMAILS, process.env.ADMIN_EMAILS]
-    .filter(Boolean)
-    .flatMap((value) => value!.split(","))
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
 }
 
 function isMissingRelationError(
@@ -114,6 +132,18 @@ function isMissingRelationError(
       error.message ?? "",
     )
   );
+}
+
+function getRecordDataObject(recordData: unknown): Record<string, unknown> {
+  return recordData &&
+    typeof recordData === "object" &&
+    !Array.isArray(recordData)
+    ? (recordData as Record<string, unknown>)
+    : {};
+}
+
+function isExcludedFromProgress(recordData: unknown): boolean {
+  return getRecordDataObject(recordData).progressExcluded === true;
 }
 
 async function requireAdmin() {
@@ -131,7 +161,7 @@ async function requireAdmin() {
     };
   }
 
-  if (!adminEmails.includes(user.email.toLowerCase())) {
+  if (!isAdminEmail(user.email)) {
     return { user: null, error: "관리자 권한이 없습니다." };
   }
 
@@ -143,7 +173,7 @@ export async function adminLogin(input: { email: string; password: string }) {
   if (result.error) return result;
 
   const adminEmails = getAdminEmails();
-  if (!adminEmails.includes(input.email.trim().toLowerCase())) {
+  if (!isAdminEmail(input.email)) {
     return {
       error: "로그인은 되었지만 관리자 이메일로 등록되어 있지 않습니다.",
     };
@@ -168,7 +198,7 @@ export async function adminSignup(input: {
   }
 
   const adminEmails = getAdminEmails();
-  if (!adminEmails.includes(input.email.trim().toLowerCase())) {
+  if (!isAdminEmail(input.email)) {
     return { error: "관리자 이메일 허용 목록에 없는 계정입니다." };
   }
 
@@ -218,7 +248,7 @@ export async function getAdminDashboardData(): Promise<{
       .select("id, user_id, period_id, created_at, reset_at"),
     admin
       .from("ritual_records")
-      .select("id, user_id, challenge_id, routine_type, record_date"),
+      .select("id, user_id, challenge_id, routine_type, record_date, record_data, updated_at"),
     admin
       .from("mid_reviews")
       .select("*")
@@ -349,6 +379,59 @@ export async function getAdminDashboardData(): Promise<{
       routines,
     };
   });
+  const activePeriod = periods.find((period) => period.is_active);
+  const morningAttendanceUsers: AdminMorningAttendanceUser[] = activePeriod
+    ? (registrationsRes.data ?? [])
+        .map((registration) => {
+          if (registration.routine_type !== "morning") return null;
+          const challenge = challengeById.get(registration.challenge_id);
+          if (!challenge || challenge.period_id !== activePeriod.id)
+            return null;
+          const profile = profileById.get(registration.user_id);
+          if (!profile) return null;
+
+          return {
+            userId: registration.user_id,
+            name: profile.name,
+            username: profile.username,
+            email: profile.email,
+            challengeId: registration.challenge_id,
+            periodId: activePeriod.id,
+            periodLabel: periodLabel(activePeriod.id),
+          };
+        })
+        .filter((row): row is AdminMorningAttendanceUser => row !== null)
+        .sort((a, b) => a.name.localeCompare(b.name, "ko"))
+    : [];
+  const morningAttendanceExclusions: AdminMorningAttendanceExclusion[] = (
+    recordsRes.data ?? []
+  )
+    .map((record) => {
+      if (record.routine_type !== "morning") return null;
+      if (!isExcludedFromProgress(record.record_data)) return null;
+      const challenge = challengeById.get(record.challenge_id);
+      if (!challenge || challenge.period_id !== activePeriod?.id) return null;
+      const profile = profileById.get(record.user_id);
+      const recordData = getRecordDataObject(record.record_data);
+
+      return {
+        id: record.id,
+        userId: record.user_id,
+        name: profile?.name ?? "",
+        username: profile?.username ?? "",
+        challengeId: record.challenge_id,
+        recordDate: record.record_date,
+        reason:
+          typeof recordData.progressExcludedReason === "string"
+            ? recordData.progressExcludedReason
+            : null,
+        updatedAt: record.updated_at,
+      };
+    })
+    .filter(
+      (row): row is AdminMorningAttendanceExclusion => row !== null,
+    )
+    .sort((a, b) => b.recordDate.localeCompare(a.recordDate));
 
   const challengesByPeriod = new Map<string, typeof challengesRes.data>();
   for (const challenge of challengesRes.data ?? []) {
@@ -377,6 +460,8 @@ export async function getAdminDashboardData(): Promise<{
     Map<string, Set<string>>
   >();
   for (const record of recordsRes.data ?? []) {
+    if (isExcludedFromProgress(record.record_data)) continue;
+
     const challenge = challengeById.get(record.challenge_id);
     if (!challenge) continue;
     const key = `${challenge.period_id}:${record.user_id}`;
@@ -501,6 +586,8 @@ export async function getAdminDashboardData(): Promise<{
       users,
       reviewQuestions,
       errorLogs,
+      morningAttendanceUsers,
+      morningAttendanceExclusions,
       donationExportRows,
       midReviewExportRows,
       finalReviewExportRows,
@@ -645,6 +732,174 @@ export async function deleteRegisteredRoutine(input: {
   revalidatePath("/admin");
   revalidatePath("/");
   revalidatePath("/ritual");
+  return { success: true };
+}
+
+async function recomputeDailyCompletionWithProgressExclusions(input: {
+  admin: ReturnType<typeof createAdminClient>;
+  userId: string;
+  challengeId: string;
+  recordDate: string;
+}) {
+  const [registrationsRes, recordsRes] = await Promise.all([
+    input.admin
+      .from("challenge_registrations")
+      .select("routine_type")
+      .eq("user_id", input.userId)
+      .eq("challenge_id", input.challengeId),
+    input.admin
+      .from("ritual_records")
+      .select("routine_type, record_data")
+      .eq("user_id", input.userId)
+      .eq("challenge_id", input.challengeId)
+      .eq("record_date", input.recordDate),
+  ]);
+
+  if (registrationsRes.error) return { error: registrationsRes.error.message };
+  if (recordsRes.error) return { error: recordsRes.error.message };
+
+  const registeredTypes = new Set(
+    (registrationsRes.data ?? []).map(
+      (row: { routine_type: RoutineTypeDB }) => row.routine_type,
+    ),
+  );
+  const completedTypes = new Set(
+    (recordsRes.data ?? [])
+      .filter((row: { record_data: unknown }) => {
+        return !isExcludedFromProgress(row.record_data);
+      })
+      .map((row: { routine_type: RoutineTypeDB }) => row.routine_type),
+  );
+  const totalRegistered = registeredTypes.size;
+  const totalCompleted = Array.from(registeredTypes).filter((routineType) =>
+    completedTypes.has(routineType),
+  ).length;
+
+  if (totalRegistered === 0) return {};
+
+  const result = await input.admin.from("daily_completions").upsert(
+    {
+      user_id: input.userId,
+      challenge_id: input.challengeId,
+      completion_date: input.recordDate,
+      total_registered: totalRegistered,
+      total_completed: totalCompleted,
+      is_happy_chance: totalCompleted < totalRegistered,
+      has_penalty: false,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,challenge_id,completion_date" },
+  );
+
+  if (result.error) return { error: result.error.message };
+  return {};
+}
+
+export async function setMorningAttendanceExcluded(input: {
+  userId: string;
+  challengeId: string;
+  recordDate: string;
+  excluded: boolean;
+  reason?: string;
+}): Promise<{ success?: boolean; error?: string }> {
+  const { user, error } = await requireAdmin();
+  if (!user) return { error: error ?? "관리자 권한이 없습니다." };
+  if (!input.userId || !input.challengeId || !input.recordDate) {
+    return { error: "사용자와 날짜를 선택해주세요." };
+  }
+
+  const admin = createAdminClient();
+  const { data: registration, error: registrationError } = await admin
+    .from("challenge_registrations")
+    .select("id")
+    .eq("user_id", input.userId)
+    .eq("challenge_id", input.challengeId)
+    .eq("routine_type", "morning")
+    .maybeSingle();
+
+  if (registrationError) {
+    await logAdminError(
+      "admin.morning-attendance.registration.fetch",
+      registrationError.message,
+      input,
+    );
+    return { error: registrationError.message };
+  }
+  if (!registration) {
+    return { error: "선택한 사용자는 해당 기간에 모닝리추얼을 신청하지 않았습니다." };
+  }
+
+  const { data: records, error: recordsError } = await admin
+    .from("ritual_records")
+    .select("*")
+    .eq("user_id", input.userId)
+    .eq("challenge_id", input.challengeId)
+    .eq("routine_type", "morning")
+    .eq("record_date", input.recordDate);
+
+  if (recordsError) {
+    await logAdminError(
+      "admin.morning-attendance.records.fetch",
+      recordsError.message,
+      input,
+    );
+    return { error: recordsError.message };
+  }
+  if (!records?.length) {
+    return { error: "선택한 날짜의 모닝리추얼 기록이 없습니다." };
+  }
+
+  const updates = (records as RitualRecord[]).map((record) => {
+    const recordData = getRecordDataObject(record.record_data);
+    const nextRecordData = { ...recordData };
+    if (input.excluded) {
+      nextRecordData.progressExcluded = true;
+      nextRecordData.progressExcludedReason =
+        input.reason?.trim() || "admin_morning_attendance_exclusion";
+    } else {
+      delete nextRecordData.progressExcluded;
+      delete nextRecordData.progressExcludedReason;
+    }
+
+    return admin
+      .from("ritual_records")
+      .update({
+        record_data: nextRecordData as Json,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", record.id);
+  });
+
+  const updateResults = await Promise.all(updates);
+  const failedUpdate = updateResults.find((result) => result.error);
+  if (failedUpdate?.error) {
+    await logAdminError(
+      "admin.morning-attendance.records.update",
+      failedUpdate.error.message,
+      input,
+    );
+    return { error: failedUpdate.error.message };
+  }
+
+  const recompute = await recomputeDailyCompletionWithProgressExclusions({
+    admin,
+    userId: input.userId,
+    challengeId: input.challengeId,
+    recordDate: input.recordDate,
+  });
+  if (recompute.error) {
+    await logAdminError(
+      "admin.morning-attendance.daily.recompute",
+      recompute.error,
+      input,
+    );
+    return { error: recompute.error };
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/progress");
+  revalidatePath("/ritual");
+  revalidatePath("/home");
   return { success: true };
 }
 
