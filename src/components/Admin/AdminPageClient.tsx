@@ -34,6 +34,7 @@ import {
   deleteRegisteredRoutine,
   getAdminDashboardData,
   resolveErrorLog,
+  setMorningAttendanceExcluded,
   setUserDeactivated,
   upsertChallengePeriod,
   upsertReviewQuestion,
@@ -601,6 +602,12 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
   );
   const [exportPeriodId, setExportPeriodId] = useState(initialExportPeriodId);
   const [exportKind, setExportKind] = useState<ExportKind>("donation");
+  const [morningAttendance, setMorningAttendance] = useState({
+    userChallengeKey: "",
+    recordDate: "",
+    excluded: true,
+    reason: "",
+  });
 
   const reload = () =>
     startTransition(async () => {
@@ -662,6 +669,14 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
         }))
         .filter((row) => row.routines.length > 0)
     : [];
+  const morningAttendanceUserKey =
+    morningAttendance.userChallengeKey ||
+    (data.morningAttendanceUsers[0]
+      ? `${data.morningAttendanceUsers[0].userId}:${data.morningAttendanceUsers[0].challengeId}`
+      : "");
+  const selectedMorningAttendanceUser = data.morningAttendanceUsers.find(
+    (item) => `${item.userId}:${item.challengeId}` === morningAttendanceUserKey,
+  );
   const selectedExportPeriodLabel = selectedExportPeriod
     ? selectedExportPeriod.label ||
       `${selectedExportPeriod.start_date} ~ ${selectedExportPeriod.end_date}`
@@ -769,6 +784,29 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
     });
   };
 
+  const handleMorningAttendanceSave = () => {
+    if (!selectedMorningAttendanceUser) {
+      setError("모닝리추얼 신청자를 선택해주세요.");
+      return;
+    }
+    if (!morningAttendance.recordDate) {
+      setError("출석 제외를 설정할 날짜를 선택해주세요.");
+      return;
+    }
+
+    startTransition(async () => {
+      const res = await setMorningAttendanceExcluded({
+        userId: selectedMorningAttendanceUser.userId,
+        challengeId: selectedMorningAttendanceUser.challengeId,
+        recordDate: morningAttendance.recordDate,
+        excluded: morningAttendance.excluded,
+        reason: morningAttendance.reason,
+      });
+      if (res.error) setError(res.error);
+      else reload();
+    });
+  };
+
   return (
     <ThemeProvider theme={adminTheme}>
       <CssBaseline />
@@ -809,6 +847,7 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
                 <Tab label="리추얼 기간" />
                 <Tab label="비활성 사용자" />
                 <Tab label="활성 리추얼" />
+                <Tab label="모닝 출석 제외" />
                 <Tab label="회고 질문" />
                 <Tab label="오류 로그" />
                 <Tab label="다운로드" />
@@ -1073,6 +1112,150 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
                   <Stack spacing={3}>
                     <Box>
                       <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                        모닝리추얼 출석 제외
+                      </Typography>
+                      <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+                        모닝 기록은 남기고 진행표 출석 계산에서만 제외하거나
+                        다시 포함합니다.
+                      </Typography>
+                    </Box>
+                    <Card variant="outlined" sx={{ bgcolor: "#fffaf0" }}>
+                      <CardContent>
+                        <Stack spacing={2}>
+                          <Box
+                            sx={{
+                              display: "grid",
+                              gridTemplateColumns: {
+                                xs: "1fr",
+                                md: "2fr 1fr",
+                              },
+                              gap: 2,
+                            }}
+                          >
+                            <TextField
+                              select
+                              fullWidth
+                              label="모닝리추얼 신청자"
+                              value={morningAttendanceUserKey}
+                              onChange={(e) =>
+                                setMorningAttendance({
+                                  ...morningAttendance,
+                                  userChallengeKey: e.target.value,
+                                })
+                              }
+                            >
+                              {data.morningAttendanceUsers.map((item) => (
+                                <MenuItem
+                                  key={`${item.userId}:${item.challengeId}`}
+                                  value={`${item.userId}:${item.challengeId}`}
+                                >
+                                  {item.name} ({item.username}) ·{" "}
+                                  {item.periodLabel}
+                                </MenuItem>
+                              ))}
+                            </TextField>
+                            <TextField
+                              fullWidth
+                              type="date"
+                              label="날짜"
+                              slotProps={{ inputLabel: { shrink: true } }}
+                              value={morningAttendance.recordDate}
+                              onChange={(e) =>
+                                setMorningAttendance({
+                                  ...morningAttendance,
+                                  recordDate: e.target.value,
+                                })
+                              }
+                            />
+                          </Box>
+                          <TextField
+                            fullWidth
+                            label="사유"
+                            value={morningAttendance.reason}
+                            onChange={(e) =>
+                              setMorningAttendance({
+                                ...morningAttendance,
+                                reason: e.target.value,
+                              })
+                            }
+                          />
+                          <Stack
+                            direction={{ xs: "column", sm: "row" }}
+                            spacing={2}
+                            sx={{ alignItems: { sm: "center" } }}
+                          >
+                            <FormControlLabel
+                              control={
+                                <Switch
+                                  checked={morningAttendance.excluded}
+                                  onChange={(e) =>
+                                    setMorningAttendance({
+                                      ...morningAttendance,
+                                      excluded: e.target.checked,
+                                    })
+                                  }
+                                />
+                              }
+                              label={
+                                morningAttendance.excluded
+                                  ? "출석 계산에서 제외"
+                                  : "출석 계산에 다시 포함"
+                              }
+                            />
+                            <Button
+                              variant="contained"
+                              disabled={
+                                isPending ||
+                                !morningAttendanceUserKey ||
+                                !morningAttendance.recordDate
+                              }
+                              onClick={handleMorningAttendanceSave}
+                            >
+                              설정 저장
+                            </Button>
+                          </Stack>
+                        </Stack>
+                      </CardContent>
+                    </Card>
+                    <TableContainer>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>사용자</TableCell>
+                            <TableCell>날짜</TableCell>
+                            <TableCell>사유</TableCell>
+                            <TableCell>수정일</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {data.morningAttendanceExclusions.map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell>
+                                {item.name} ({item.username})
+                              </TableCell>
+                              <TableCell>{item.recordDate}</TableCell>
+                              <TableCell>{item.reason ?? "-"}</TableCell>
+                              <TableCell>{item.updatedAt}</TableCell>
+                            </TableRow>
+                          ))}
+                          {data.morningAttendanceExclusions.length === 0 && (
+                            <TableRow>
+                              <TableCell colSpan={4}>
+                                <Typography color="text.secondary">
+                                  현재 출석 제외된 모닝 기록이 없습니다.
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Stack>
+                )}
+                {tab === 4 && (
+                  <Stack spacing={3}>
+                    <Box>
+                      <Typography variant="h6" sx={{ fontWeight: 800 }}>
                         중간/최종 회고 질문 수정
                       </Typography>
                       <Typography color="text.secondary" sx={{ mt: 0.5 }}>
@@ -1293,7 +1476,7 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
                     </TableContainer>
                   </Stack>
                 )}
-                {tab === 4 && (
+                {tab === 5 && (
                   <Stack spacing={2}>
                     <Typography variant="h6" sx={{ fontWeight: 800 }}>
                       오류 로그
@@ -1342,7 +1525,7 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
                     </TableContainer>
                   </Stack>
                 )}
-                {tab === 5 && (
+                {tab === 6 && (
                   <Stack spacing={3}>
                     <Typography variant="h6" sx={{ fontWeight: 800 }}>
                       데이터 다운로드

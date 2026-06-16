@@ -123,7 +123,7 @@ export async function getProgressPageData(): Promise<{
           .in("challenge_id", challengeIds),
         admin
           .from("ritual_records")
-          .select("user_id, challenge_id, routine_type, record_date")
+          .select("user_id, challenge_id, routine_type, record_date, record_data")
           .in("challenge_id", challengeIds)
           .gte("record_date", period.start_date)
           .lte("record_date", period.end_date),
@@ -237,6 +237,8 @@ export async function getProgressPageData(): Promise<{
     //    주간 단위로 각 리추얼의 완료 횟수를 계산하기 위한 원본 맵이다.
     const userRecordTypesByDate = new Map<string, Map<string, Set<string>>>();
     for (const r of recordsRes.data ?? []) {
+      if (isExcludedFromProgress(r.record_data)) continue;
+
       if (!userRecordTypesByDate.has(r.user_id)) {
         userRecordTypesByDate.set(r.user_id, new Map());
       }
@@ -347,4 +349,12 @@ export async function getProgressPageData(): Promise<{
     });
     return { error: "진행표 조회 중 오류가 발생했습니다." };
   }
+}
+
+function isExcludedFromProgress(recordData: unknown): boolean {
+  if (!recordData || typeof recordData !== "object" || Array.isArray(recordData)) {
+    return false;
+  }
+
+  return (recordData as Record<string, unknown>).progressExcluded === true;
 }
