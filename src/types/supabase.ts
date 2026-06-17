@@ -309,6 +309,26 @@ export interface Database {
         };
         Relationships: [];
       };
+      feed_reactions: {
+        Row: {
+          id: string;
+          feed_id: string;
+          user_id: string;
+          emoji: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          feed_id: string;
+          user_id: string;
+          emoji: string;
+          created_at?: string;
+        };
+        Update: {
+          emoji?: string;
+        };
+        Relationships: [];
+      };
       declarations: {
         Row: {
           id: string;
@@ -553,7 +573,7 @@ export interface Database {
           id: string;
           recipient_user_id: string;
           actor_user_id: string | null;
-          type: "comment" | "ritual_completion";
+          type: "comment" | "like" | "ritual_completion";
           routine_type: RoutineTypeDB | null;
           feed_id: string | null;
           ritual_record_id: string | null;
@@ -565,7 +585,7 @@ export interface Database {
           id?: string;
           recipient_user_id: string;
           actor_user_id?: string | null;
-          type: "comment" | "ritual_completion";
+          type: "comment" | "like" | "ritual_completion";
           routine_type?: RoutineTypeDB | null;
           feed_id?: string | null;
           ritual_record_id?: string | null;
@@ -593,18 +613,17 @@ export type RitualRecord =
   Database["public"]["Tables"]["ritual_records"]["Row"];
 export type Book = Database["public"]["Tables"]["books"]["Row"];
 export type Feed = Database["public"]["Tables"]["feeds"]["Row"];
-export type FeedComment =
-  Database["public"]["Tables"]["feed_comments"]["Row"];
-export type Declaration =
-  Database["public"]["Tables"]["declarations"]["Row"];
+export type FeedComment = Database["public"]["Tables"]["feed_comments"]["Row"];
+export type FeedReaction =
+  Database["public"]["Tables"]["feed_reactions"]["Row"];
+export type Declaration = Database["public"]["Tables"]["declarations"]["Row"];
 export type MidReviewDB = Database["public"]["Tables"]["mid_reviews"]["Row"];
 export type FinalReviewDB =
   Database["public"]["Tables"]["final_reviews"]["Row"];
 export type DailyCompletion =
   Database["public"]["Tables"]["daily_completions"]["Row"];
 export type Todo = Database["public"]["Tables"]["todos"]["Row"];
-export type Notification =
-  Database["public"]["Tables"]["notifications"]["Row"];
+export type Notification = Database["public"]["Tables"]["notifications"]["Row"];
 export type AdminDeactivatedUser =
   Database["public"]["Tables"]["admin_deactivated_users"]["Row"];
 export type AdminReviewQuestion =

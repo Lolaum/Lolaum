@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -39,6 +39,7 @@ import { deleteRitualRecord } from "@/api/ritual-record";
 import dynamic from "next/dynamic";
 import CommentSection from "./CommentSection";
 import ChallengerRitualsPopover from "./ChallengerRitualsPopover";
+import ReactionBar from "./ReactionBar";
 const EditFeedRecord = dynamic(() => import("./EditFeedRecord"), {
   ssr: false,
 });
@@ -852,6 +853,7 @@ export default function FeedDetail({ item, isMine = false }: FeedDetailProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const commentSectionRef = useRef<HTMLDivElement>(null);
   const meta = getCategoryMeta(item.routineCategory);
   const recordId = item.odOriginalId;
 
@@ -1062,16 +1064,32 @@ export default function FeedDetail({ item, isMine = false }: FeedDetailProps) {
             <p className="text-sm text-gray-400">기록 내용이 없습니다.</p>
           )}
 
+          <div className="mt-6">
+            <ReactionBar
+              recordId={recordId}
+              commentCount={comments.length}
+              initialSummary={item.reactionSummary}
+              onCommentClick={() =>
+                commentSectionRef.current?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                })
+              }
+            />
+          </div>
+
           {/* 구분선 */}
           <div className="border-t border-gray-100 mt-6" />
 
           {/* 댓글 섹션 */}
-          <CommentSection
-            comments={comments}
-            onAddComment={handleAddComment}
-            onDeleteComment={handleDeleteComment}
-            onUpdateComment={handleUpdateComment}
-          />
+          <div id="comments" ref={commentSectionRef} className="scroll-mt-6">
+            <CommentSection
+              comments={comments}
+              onAddComment={handleAddComment}
+              onDeleteComment={handleDeleteComment}
+              onUpdateComment={handleUpdateComment}
+            />
+          </div>
         </div>
       </div>
     </div>

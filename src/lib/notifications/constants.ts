@@ -8,7 +8,7 @@ export const ADMIN_USER_IDS = [
 
 export interface NotificationView {
   id: string;
-  type: "comment" | "ritual_completion";
+  type: "comment" | "like" | "ritual_completion";
   actorName: string;
   routineType: RoutineTypeDB | null;
   routineLabel: string | null;

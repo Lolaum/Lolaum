@@ -171,7 +171,20 @@ export interface FeedItem {
   recordId: number;
   routineData?: FeedRoutineData;
   comments?: Comment[];
+  commentCount?: number;
+  reactionSummary?: FeedReactionSummary;
   archiveHref?: string;
+}
+
+export interface FeedReactionCount {
+  emoji: string;
+  count: number;
+  reactedByMe: boolean;
+}
+
+export interface FeedReactionSummary {
+  reactions: FeedReactionCount[];
+  totalCount: number;
 }
 
 export type FeedContainerProps = Record<string, never>;

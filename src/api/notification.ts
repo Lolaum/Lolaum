@@ -28,6 +28,9 @@ function buildMessage(input: {
   if (input.type === "comment") {
     return `${routineLabel} 인증글에 ${input.actorName}님이 댓글을 올렸습니다`;
   }
+  if (input.type === "like") {
+    return `${routineLabel} 인증글에 ${input.actorName}님이 좋아요를 눌렀습니다`;
+  }
   return `${input.actorName}님이 ${routineLabel} 인증을 완료했습니다`;
 }
 

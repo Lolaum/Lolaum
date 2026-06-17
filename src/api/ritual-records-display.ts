@@ -4,11 +4,13 @@ import { revalidatePath } from "next/cache";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getActivePeriod } from "@/lib/current-challenge";
+import { FEED_LIKE_EMOJI } from "@/constants/feed-reactions";
 import { ROUTINE_TYPE_LABEL } from "@/types/supabase";
 import type { RoutineTypeDB, RitualRecord } from "@/types/supabase";
 import type {
   FeedItem,
   Comment,
+  FeedReactionSummary,
   RoutineCategory,
   FeedRoutineData,
   ReadingFeedData,
@@ -37,6 +39,10 @@ interface BookInfo {
   author: string;
   total_value: number | null;
   cover_image_url: string | null;
+}
+
+function emptyReactionSummary(): FeedReactionSummary {
+  return { reactions: [], totalCount: 0 };
 }
 
 interface ProfileInfo {
@@ -723,11 +729,19 @@ export async function getRecordById(
 
     // 댓글 조회
     if (item && feed) {
-      const { data: rawComments } = await admin
-        .from("feed_comments")
-        .select("id, user_id, text, created_at")
-        .eq("feed_id", feed.id)
-        .order("created_at", { ascending: true });
+      const [commentsRes, reactionsRes] = await Promise.all([
+        admin
+          .from("feed_comments")
+          .select("id, user_id, text, created_at")
+          .eq("feed_id", feed.id)
+          .order("created_at", { ascending: true }),
+        admin
+          .from("feed_reactions")
+          .select("emoji, user_id")
+          .eq("feed_id", feed.id),
+      ]);
+
+      const rawComments = commentsRes.data;
 
       if (rawComments?.length) {
         const commentUserIds = [...new Set(rawComments.map((c) => c.user_id))];
@@ -750,6 +764,27 @@ export async function getRecordById(
             date: c.created_at,
           }),
         );
+      }
+
+      const likeRows =
+        reactionsRes.data?.filter(
+          (reaction) => reaction.emoji === FEED_LIKE_EMOJI,
+        ) ?? [];
+      if (likeRows.length > 0) {
+        item.reactionSummary = {
+          reactions: [
+            {
+              emoji: FEED_LIKE_EMOJI,
+              count: likeRows.length,
+              reactedByMe: likeRows.some(
+                (reaction) => reaction.user_id === user.id,
+              ),
+            },
+          ],
+          totalCount: likeRows.length,
+        };
+      } else {
+        item.reactionSummary = emptyReactionSummary();
       }
     }
 
@@ -858,18 +893,72 @@ export async function getAllRecordsForDisplay(options?: {
 
     // 프로필 + 책정보 병렬 조회 (admin으로 전체 유저 프로필 접근)
     const userIds = [...new Set(uniqueRecords.map((r) => r.user_id))];
-    const [profilesRes, bookMap] = await Promise.all([
+    const recordIds = uniqueRecords.map((r) => r.id);
+    const [profilesRes, bookMap, feedsRes] = await Promise.all([
       admin.from("profiles").select("id, name, avatar_url").in("id", userIds),
       fetchBookMap(uniqueRecords, admin),
+      admin
+        .from("feeds")
+        .select("id, ritual_record_id")
+        .in("ritual_record_id", recordIds),
     ]);
 
     const profileMap = new Map((profilesRes.data ?? []).map((p) => [p.id, p]));
+    const feedToRecordMap = new Map(
+      (feedsRes.data ?? [])
+        .filter((feed) => feed.ritual_record_id)
+        .map((feed) => [feed.id, feed.ritual_record_id as string]),
+    );
+    const commentCountMap = new Map<string, number>();
+    const reactionSummaryMap = new Map<string, FeedReactionSummary>();
+
+    if (feedToRecordMap.size > 0) {
+      const feedIds = [...feedToRecordMap.keys()];
+      const [commentsRes, reactionsRes] = await Promise.all([
+        admin.from("feed_comments").select("feed_id").in("feed_id", feedIds),
+        admin
+          .from("feed_reactions")
+          .select("feed_id, user_id, emoji")
+          .in("feed_id", feedIds),
+      ]);
+
+      for (const comment of commentsRes.data ?? []) {
+        const recordId = feedToRecordMap.get(comment.feed_id);
+        if (!recordId) continue;
+        commentCountMap.set(recordId, (commentCountMap.get(recordId) ?? 0) + 1);
+      }
+
+      for (const reaction of reactionsRes.data ?? []) {
+        if (reaction.emoji !== FEED_LIKE_EMOJI) continue;
+        const recordId = feedToRecordMap.get(reaction.feed_id);
+        if (!recordId) continue;
+
+        const current =
+          reactionSummaryMap.get(recordId) ?? emptyReactionSummary();
+        const like = current.reactions[0] ?? {
+          emoji: FEED_LIKE_EMOJI,
+          count: 0,
+          reactedByMe: false,
+        };
+        like.count += 1;
+        if (reaction.user_id === user.id) like.reactedByMe = true;
+        reactionSummaryMap.set(recordId, {
+          reactions: [like],
+          totalCount: current.totalCount + 1,
+        });
+      }
+    }
 
     const feedItems: FeedItem[] = [];
     for (const record of uniqueRecords) {
       const profile = profileMap.get(record.user_id) ?? null;
       const item = recordToFeedItem(record, profile, bookMap);
-      if (item) feedItems.push(item);
+      if (item) {
+        item.commentCount = commentCountMap.get(record.id) ?? 0;
+        item.reactionSummary =
+          reactionSummaryMap.get(record.id) ?? emptyReactionSummary();
+        feedItems.push(item);
+      }
     }
 
     return { data: feedItems, total: count ?? 0 };

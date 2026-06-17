@@ -38,6 +38,48 @@ export async function insertCommentNotification(input: {
   }
 }
 
+/** 좋아요 알림: 본인 게시글에 다른 유저가 좋아요를 누른 경우 */
+export async function insertLikeNotification(input: {
+  recipientUserId: string;
+  actorUserId: string;
+  routineType: RoutineTypeDB;
+  feedId: string;
+  ritualRecordId: string | null;
+}): Promise<{ error?: string }> {
+  if (input.recipientUserId === input.actorUserId) return {};
+
+  const admin = createAdminClient();
+
+  // 같은 사람이 같은 게시글에 좋아요를 반복 토글해도 알림은 한 번만 만든다.
+  const { data: existing } = await admin
+    .from("notifications")
+    .select("id")
+    .eq("recipient_user_id", input.recipientUserId)
+    .eq("actor_user_id", input.actorUserId)
+    .eq("type", "like")
+    .eq("feed_id", input.feedId)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) return {};
+
+  const { error } = await admin.from("notifications").insert({
+    recipient_user_id: input.recipientUserId,
+    actor_user_id: input.actorUserId,
+    type: "like",
+    routine_type: input.routineType,
+    feed_id: input.feedId,
+    ritual_record_id: input.ritualRecordId,
+  });
+
+  if (error) {
+    console.error("insertLikeNotification error:", error);
+    return { error: error.message };
+  }
+
+  return {};
+}
+
 /**
  * 리추얼 인증 완료 알림: 관리자(롤라/지로) 중 알림 ON 상태인 사람에게만 발송.
  * profiles.admin_ritual_notifications_enabled = false 인 관리자는 INSERT 자체를 생략한다.

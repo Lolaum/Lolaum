@@ -27,6 +27,7 @@ import {
   normalizeRecordingFeedEntries,
 } from "@/types/feed";
 import ChallengerRitualsPopover from "./ChallengerRitualsPopover";
+import ReactionBar from "./ReactionBar";
 
 interface FeedItemProps {
   item: FeedItemType;
@@ -297,101 +298,95 @@ export default function FeedItem({ item, priority }: FeedItemProps) {
   const showsWrittenContent =
     recordingEntries[0]?.type === "write" && !!recordingEntries[0].content;
   const [profileOpen, setProfileOpen] = React.useState(false);
+  const recordId = item.odOriginalId ?? String(item.id);
 
   return (
     <>
-      <Link
-        href={`/feeds/${item.odOriginalId ?? item.id}`}
-        className="block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+      <div
+        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
         style={{ borderTop: `3px solid ${config.color}` }}
       >
-        {/* 이미지 */}
-        <FeedThumbnail images={images} priority={priority} />
+        <Link href={`/feeds/${recordId}`} className="block">
+          {/* 이미지 */}
+          <FeedThumbnail images={images} priority={priority} />
 
-        <div className="p-4">
-          {/* 상단: 카테고리 뱃지 + 날짜 */}
-          <div className="flex items-center justify-between mb-3">
-            <span
-              className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
-              style={{ backgroundColor: config.bgColor, color: config.color }}
-            >
-              {config.icon}
-              {badgeLabel}
-            </span>
-            <span className="text-xs text-gray-400">
-              {formatDate(item.date)}
-            </span>
-          </div>
-
-          {/* 유저 + 서브텍스트 */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setProfileOpen(true);
-            }}
-            className="flex items-center gap-2.5 mb-2.5 text-left rounded-xl hover:bg-gray-50 transition-colors"
-            aria-label={`${item.userName} 신청 리추얼 보기`}
-          >
-            <div className="relative w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
-              {item.userProfileImage ? (
-                <Image
-                  src={item.userProfileImage}
-                  alt={item.userName}
-                  fill
-                  sizes="32px"
-                  className="object-cover"
-                  unoptimized
-                />
-              ) : (
-                <User size={14} className="text-gray-400" />
-              )}
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-gray-900 leading-tight">
-                {item.userName}
-              </p>
-              {subText && (
-                <p
-                  className="text-xs font-medium mt-0.5 truncate"
-                  style={{ color: config.color }}
-                >
-                  {subText}
-                </p>
-              )}
-            </div>
-          </button>
-
-          {/* 미리보기 텍스트 */}
-          {previewText && (
-            <p
-              className={`whitespace-pre-wrap text-xs text-gray-500 leading-relaxed pl-0.5 ${
-                showsWrittenContent ? "line-clamp-4" : "line-clamp-2"
-              }`}
-            >
-              {previewText}
-            </p>
-          )}
-
-          {/* 댓글 수 */}
-          {item.comments && item.comments.length > 0 && (
-            <div className="mt-2.5 flex items-center gap-1 text-xs text-gray-300">
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
+          <div className="p-4">
+            {/* 상단: 카테고리 뱃지 + 날짜 */}
+            <div className="flex items-center justify-between mb-3">
+              <span
+                className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
+                style={{ backgroundColor: config.bgColor, color: config.color }}
               >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-              <span>댓글 {item.comments.length}개</span>
+                {config.icon}
+                {badgeLabel}
+              </span>
+              <span className="text-xs text-gray-400">
+                {formatDate(item.date)}
+              </span>
             </div>
-          )}
+
+            {/* 유저 + 서브텍스트 */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setProfileOpen(true);
+              }}
+              className="flex items-center gap-2.5 mb-2.5 text-left rounded-xl hover:bg-gray-50 transition-colors"
+              aria-label={`${item.userName} 신청 리추얼 보기`}
+            >
+              <div className="relative w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {item.userProfileImage ? (
+                  <Image
+                    src={item.userProfileImage}
+                    alt={item.userName}
+                    fill
+                    sizes="32px"
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <User size={14} className="text-gray-400" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-900 leading-tight">
+                  {item.userName}
+                </p>
+                {subText && (
+                  <p
+                    className="text-xs font-medium mt-0.5 truncate"
+                    style={{ color: config.color }}
+                  >
+                    {subText}
+                  </p>
+                )}
+              </div>
+            </button>
+
+            {/* 미리보기 텍스트 */}
+            {previewText && (
+              <p
+                className={`whitespace-pre-wrap text-xs text-gray-500 leading-relaxed pl-0.5 ${
+                  showsWrittenContent ? "line-clamp-4" : "line-clamp-2"
+                }`}
+              >
+                {previewText}
+              </p>
+            )}
+          </div>
+        </Link>
+        <div className="border-t border-gray-50 px-4 py-3">
+          <ReactionBar
+            recordId={recordId}
+            commentCount={item.commentCount ?? item.comments?.length ?? 0}
+            initialSummary={item.reactionSummary}
+            commentHref={`/feeds/${recordId}#comments`}
+            compact
+          />
         </div>
-      </Link>
+      </div>
       <ChallengerRitualsPopover
         userId={String(item.userId)}
         userName={item.userName}
