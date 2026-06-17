@@ -1,4 +1,4 @@
-export type ContinuationChoice = "keep" | "adjust";
+export type ContinuationChoice = "keep" | "adjust" | "other";
 
 export interface FinalReview {
   id: string;

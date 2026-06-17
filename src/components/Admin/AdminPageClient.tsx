@@ -590,9 +590,14 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
   const [tab, setTab] = useState(0);
   const [isPending, startTransition] = useTransition();
   const [period, setPeriod] = useState({
+    id: undefined as string | undefined,
     label: "",
     startDate: "",
     endDate: "",
+    midReviewStartDate: "",
+    midReviewEndDate: "",
+    finalReviewStartDate: "",
+    finalReviewEndDate: "",
     isActive: true,
   });
   const [reasonByUser, setReasonByUser] = useState<Record<string, string>>({});
@@ -756,7 +761,10 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
     });
   };
 
-  const handleDeleteRoutine = (registrationId: string, routineLabel: string) => {
+  const handleDeleteRoutine = (
+    registrationId: string,
+    routineLabel: string,
+  ) => {
     const confirmed = window.confirm(
       `${routineLabel} 신청을 삭제할까요? 연결된 리추얼 선언도 함께 삭제됩니다.`,
     );
@@ -816,84 +824,219 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
               <Divider />
               <CardContent>
                 {tab === 0 && (
-                  <Stack spacing={2}>
-                    <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                      리추얼 기간 관리
-                    </Typography>
+                  <Stack spacing={2.5}>
+                    <Box>
+                      <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                        리추얼 기간 관리
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        챌린지 운영 기간과 홈 화면 회고 배너 노출 기간을
+                        관리합니다.
+                      </Typography>
+                    </Box>
                     <Box
                       sx={{
-                        display: "grid",
-                        gridTemplateColumns: {
-                          xs: "1fr",
-                          md: "repeat(4, 1fr)",
-                        },
-                        gap: 2,
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 2,
+                        p: 2,
                       }}
                     >
-                      <Box>
-                        <TextField
-                          fullWidth
-                          label="라벨"
-                          value={period.label}
-                          onChange={(e) =>
-                            setPeriod({ ...period, label: e.target.value })
-                          }
-                        />
-                      </Box>
-                      <Box>
-                        <TextField
-                          fullWidth
-                          type="date"
-                          label="시작일"
-                          slotProps={{ inputLabel: { shrink: true } }}
-                          value={period.startDate}
-                          onChange={(e) =>
-                            setPeriod({ ...period, startDate: e.target.value })
-                          }
-                        />
-                      </Box>
-                      <Box>
-                        <TextField
-                          fullWidth
-                          type="date"
-                          label="종료일"
-                          slotProps={{ inputLabel: { shrink: true } }}
-                          value={period.endDate}
-                          onChange={(e) =>
-                            setPeriod({ ...period, endDate: e.target.value })
-                          }
-                        />
-                      </Box>
-                      <Box>
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              checked={period.isActive}
-                              onChange={(e) =>
-                                setPeriod({
-                                  ...period,
-                                  isActive: e.target.checked,
-                                })
-                              }
-                            />
-                          }
-                          label="활성화"
-                        />
-                      </Box>
+                      <Stack spacing={2}>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{ fontWeight: 800, color: "text.primary" }}
+                        >
+                          기본 기간
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: "grid",
+                            gridTemplateColumns: {
+                              xs: "1fr",
+                              md: "repeat(4, 1fr)",
+                            },
+                            gap: 2,
+                          }}
+                        >
+                          <TextField
+                            fullWidth
+                            label="라벨"
+                            value={period.label}
+                            onChange={(e) =>
+                              setPeriod({ ...period, label: e.target.value })
+                            }
+                          />
+                          <TextField
+                            fullWidth
+                            type="date"
+                            label="시작일"
+                            slotProps={{ inputLabel: { shrink: true } }}
+                            value={period.startDate}
+                            onChange={(e) =>
+                              setPeriod({
+                                ...period,
+                                startDate: e.target.value,
+                              })
+                            }
+                          />
+                          <TextField
+                            fullWidth
+                            type="date"
+                            label="종료일"
+                            slotProps={{ inputLabel: { shrink: true } }}
+                            value={period.endDate}
+                            onChange={(e) =>
+                              setPeriod({ ...period, endDate: e.target.value })
+                            }
+                          />
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={period.isActive}
+                                onChange={(e) =>
+                                  setPeriod({
+                                    ...period,
+                                    isActive: e.target.checked,
+                                  })
+                                }
+                              />
+                            }
+                            label="활성화"
+                          />
+                        </Box>
+                      </Stack>
                     </Box>
-                    <Button
-                      variant="contained"
-                      disabled={isPending}
-                      onClick={() =>
-                        startTransition(async () => {
-                          const res = await upsertChallengePeriod(period);
-                          if (res.error) setError(res.error);
-                          else reload();
-                        })
-                      }
+                    <Box
+                      sx={{
+                        border: "1px solid #d6dbe1",
+                        borderRadius: 2,
+                        p: 2,
+                      }}
                     >
-                      기간 저장
-                    </Button>
+                      <Stack spacing={2}>
+                        <Box>
+                          <Typography
+                            variant="subtitle2"
+                            sx={{ fontWeight: 800, color: "text.primary" }}
+                          >
+                            회고 배너 노출 기간
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            display: "grid",
+                            gridTemplateColumns: {
+                              xs: "1fr",
+                              md: "160px 1fr 1fr",
+                            },
+                            columnGap: 2,
+                            rowGap: 1.5,
+                            alignItems: "center",
+                          }}
+                        >
+                          <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 700, color: "text.secondary" }}
+                          >
+                            중간회고
+                          </Typography>
+                          <TextField
+                            fullWidth
+                            type="date"
+                            label="노출 시작일"
+                            slotProps={{ inputLabel: { shrink: true } }}
+                            value={period.midReviewStartDate}
+                            onChange={(e) =>
+                              setPeriod({
+                                ...period,
+                                midReviewStartDate: e.target.value,
+                              })
+                            }
+                          />
+                          <TextField
+                            fullWidth
+                            type="date"
+                            label="노출 종료일"
+                            slotProps={{ inputLabel: { shrink: true } }}
+                            value={period.midReviewEndDate}
+                            onChange={(e) =>
+                              setPeriod({
+                                ...period,
+                                midReviewEndDate: e.target.value,
+                              })
+                            }
+                          />
+                          <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 700, color: "text.secondary" }}
+                          >
+                            최종회고
+                          </Typography>
+                          <TextField
+                            fullWidth
+                            type="date"
+                            label="노출 시작일"
+                            slotProps={{ inputLabel: { shrink: true } }}
+                            value={period.finalReviewStartDate}
+                            onChange={(e) =>
+                              setPeriod({
+                                ...period,
+                                finalReviewStartDate: e.target.value,
+                              })
+                            }
+                          />
+                          <TextField
+                            fullWidth
+                            type="date"
+                            label="노출 종료일"
+                            slotProps={{ inputLabel: { shrink: true } }}
+                            value={period.finalReviewEndDate}
+                            onChange={(e) =>
+                              setPeriod({
+                                ...period,
+                                finalReviewEndDate: e.target.value,
+                              })
+                            }
+                          />
+                        </Box>
+                      </Stack>
+                    </Box>
+                    <Stack direction="row" spacing={1}>
+                      <Button
+                        variant="contained"
+                        disabled={isPending}
+                        onClick={() =>
+                          startTransition(async () => {
+                            const res = await upsertChallengePeriod(period);
+                            if (res.error) setError(res.error);
+                            else reload();
+                          })
+                        }
+                      >
+                        {period.id ? "기간 수정" : "기간 저장"}
+                      </Button>
+                      {period.id && (
+                        <Button
+                          variant="outlined"
+                          disabled={isPending}
+                          onClick={() =>
+                            setPeriod({
+                              id: undefined,
+                              label: "",
+                              startDate: "",
+                              endDate: "",
+                              midReviewStartDate: "",
+                              midReviewEndDate: "",
+                              finalReviewStartDate: "",
+                              finalReviewEndDate: "",
+                              isActive: true,
+                            })
+                          }
+                        >
+                          새 기간 입력
+                        </Button>
+                      )}
+                    </Stack>
                     <TableContainer>
                       <Table size="small">
                         <TableHead>
@@ -901,7 +1044,10 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
                             <TableCell>라벨</TableCell>
                             <TableCell>시작</TableCell>
                             <TableCell>종료</TableCell>
+                            <TableCell>중간회고 노출</TableCell>
+                            <TableCell>최종회고 노출</TableCell>
                             <TableCell>상태</TableCell>
+                            <TableCell>액션</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -911,10 +1057,46 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
                               <TableCell>{p.start_date}</TableCell>
                               <TableCell>{p.end_date}</TableCell>
                               <TableCell>
+                                {p.mid_review_start_date &&
+                                p.mid_review_end_date
+                                  ? `${p.mid_review_start_date} ~ ${p.mid_review_end_date}`
+                                  : "기본값"}
+                              </TableCell>
+                              <TableCell>
+                                {p.final_review_start_date &&
+                                p.final_review_end_date
+                                  ? `${p.final_review_start_date} ~ ${p.final_review_end_date}`
+                                  : "기본값"}
+                              </TableCell>
+                              <TableCell>
                                 <Chip
                                   label={p.is_active ? "active" : "inactive"}
                                   color={p.is_active ? "success" : "default"}
                                 />
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  size="small"
+                                  onClick={() =>
+                                    setPeriod({
+                                      id: p.id,
+                                      label: p.label ?? "",
+                                      startDate: p.start_date,
+                                      endDate: p.end_date,
+                                      midReviewStartDate:
+                                        p.mid_review_start_date ?? "",
+                                      midReviewEndDate:
+                                        p.mid_review_end_date ?? "",
+                                      finalReviewStartDate:
+                                        p.final_review_start_date ?? "",
+                                      finalReviewEndDate:
+                                        p.final_review_end_date ?? "",
+                                      isActive: p.is_active,
+                                    })
+                                  }
+                                >
+                                  수정
+                                </Button>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -1052,7 +1234,9 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
                                   ))}
                                 </Box>
                               </TableCell>
-                              <TableCell>{routines[0]?.periodLabel ?? "-"}</TableCell>
+                              <TableCell>
+                                {routines[0]?.periodLabel ?? "-"}
+                              </TableCell>
                             </TableRow>
                           ))}
                           {activeRoutineRows.length === 0 && (

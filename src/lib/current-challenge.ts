@@ -11,6 +11,10 @@ export const getActivePeriod = cache(async (): Promise<{
     id: string;
     start_date: string;
     end_date: string;
+    mid_review_start_date: string | null;
+    mid_review_end_date: string | null;
+    final_review_start_date: string | null;
+    final_review_end_date: string | null;
     label: string | null;
   } | null;
   error?: string;
@@ -18,7 +22,7 @@ export const getActivePeriod = cache(async (): Promise<{
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("challenge_periods")
-    .select("id, start_date, end_date, label")
+    .select("*")
     .eq("is_active", true)
     .limit(1)
     .maybeSingle();

@@ -215,6 +215,7 @@ export default function FinalReviewWriteContainer({
             {[
               { value: "keep" as const, label: "유지하고 싶다" },
               { value: "adjust" as const, label: "조정이 필요하다" },
+              { value: "other" as const, label: "기타" },
             ].map(({ value, label }) => {
               const selected = continuationChoice === value;
               return (
@@ -239,15 +240,21 @@ export default function FinalReviewWriteContainer({
             })}
           </div>
 
-          {continuationChoice === "adjust" && (
+          {continuationChoice !== null && continuationChoice !== "keep" && (
             <div className="mb-6">
               <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                {questions.adjustment_note?.label ?? "무엇을 바꾸면 나아질까요?"}
+                {continuationChoice === "other"
+                  ? "기타 내용을 직접 입력해주세요"
+                  : questions.adjustment_note?.label ?? "무엇을 바꾸면 나아질까요?"}
               </label>
               <textarea
                 value={adjustmentNote}
                 onChange={(e) => setAdjustmentNote(e.target.value)}
-                placeholder={questions.adjustment_note?.helperText || "조정하고 싶은 점을 적어주세요"}
+                placeholder={
+                  continuationChoice === "other"
+                    ? "예: 다른 방식으로 이어가고 싶어요"
+                    : questions.adjustment_note?.helperText || "조정하고 싶은 점을 적어주세요"
+                }
                 rows={4}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 resize-none focus:outline-none focus:border-yellow-300 bg-white"
               />

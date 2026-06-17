@@ -1,6 +1,34 @@
 -- Lolaum admin feature support tables.
 -- Run in Supabase SQL editor with a service/admin role before using persistence-heavy admin functions.
 
+alter table public.challenge_periods
+  add column if not exists mid_review_start_date date,
+  add column if not exists mid_review_end_date date,
+  add column if not exists final_review_start_date date,
+  add column if not exists final_review_end_date date;
+
+do $$
+declare
+  constraint_name text;
+begin
+  for constraint_name in
+    select c.conname
+    from pg_constraint c
+    join pg_class t on t.oid = c.conrelid
+    join pg_namespace n on n.oid = t.relnamespace
+    where n.nspname = 'public'
+      and t.relname = 'final_reviews'
+      and c.contype = 'c'
+      and pg_get_constraintdef(c.oid) ilike '%continuation_choice%'
+  loop
+    execute format('alter table public.final_reviews drop constraint if exists %I', constraint_name);
+  end loop;
+end $$;
+
+alter table public.final_reviews
+  add constraint final_reviews_continuation_choice_check
+  check (continuation_choice in ('keep', 'adjust', 'other'));
+
 create table if not exists public.admin_deactivated_users (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,

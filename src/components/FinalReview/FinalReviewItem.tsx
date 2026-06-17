@@ -10,11 +10,23 @@ interface FinalReviewItemProps {
 export default function FinalReviewItem({ review, isMine }: FinalReviewItemProps) {
   const previewText = review.results || review.lifeChanges;
   const choiceLabel =
-    review.continuationChoice === "keep" ? "유지하고 싶다" : "조정이 필요하다";
+    review.continuationChoice === "keep"
+      ? "유지하고 싶다"
+      : review.continuationChoice === "adjust"
+        ? "조정이 필요하다"
+        : review.adjustmentNote || "기타";
   const choiceBg =
-    review.continuationChoice === "keep" ? "#dcfce7" : "#dbeafe";
+    review.continuationChoice === "keep"
+      ? "#dcfce7"
+      : review.continuationChoice === "adjust"
+        ? "#dbeafe"
+        : "#f3f4f6";
   const choiceColor =
-    review.continuationChoice === "keep" ? "#16a34a" : "#2563eb";
+    review.continuationChoice === "keep"
+      ? "#16a34a"
+      : review.continuationChoice === "adjust"
+        ? "#2563eb"
+        : "#4b5563";
 
   return (
     <Link

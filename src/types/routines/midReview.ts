@@ -1,10 +1,4 @@
-export type MidReviewCondition =
-  | "시간대"
-  | "장소"
-  | "습관"
-  | "컨디션"
-  | "감정"
-  | "전날 행동";
+export type MidReviewCondition = string;
 
 export interface MidReview {
   id: string;

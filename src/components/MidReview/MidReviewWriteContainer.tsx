@@ -6,6 +6,8 @@ import { MidReviewCondition } from "@/types/routines/midReview";
 import { createMidReview } from "@/api/mid-review";
 import type { PublicReviewQuestion } from "@/api/review-questions";
 
+const OTHER_CONDITION = "기타";
+
 const CONDITIONS: MidReviewCondition[] = [
   "시간대",
   "장소",
@@ -13,6 +15,7 @@ const CONDITIONS: MidReviewCondition[] = [
   "컨디션",
   "감정",
   "전날 행동",
+  OTHER_CONDITION,
 ];
 
 const CONDITION_PROMPTS: Record<MidReviewCondition, string> = {
@@ -22,6 +25,7 @@ const CONDITION_PROMPTS: Record<MidReviewCondition, string> = {
   컨디션: "컨디션이 어땠나요?",
   감정: "어떤 감정 상태였나요?",
   "전날 행동": "전날 어떤 행동이 영향을 줬나요?",
+  [OTHER_CONDITION]: "상세 내용을 적어주세요",
 };
 
 const CONDITION_QUESTION_KEYS: Record<MidReviewCondition, string> = {
@@ -31,7 +35,27 @@ const CONDITION_QUESTION_KEYS: Record<MidReviewCondition, string> = {
   컨디션: "condition_body",
   감정: "condition_emotion",
   "전날 행동": "condition_previous_action",
+  [OTHER_CONDITION]: "condition_other",
 };
+
+function normalizeConditions(input: {
+  conditions: MidReviewCondition[];
+  details: Partial<Record<MidReviewCondition, string>>;
+  otherCategory: string;
+}) {
+  const nextDetails: Partial<Record<MidReviewCondition, string>> = {};
+  const nextConditions = input.conditions.map((condition) => {
+    const resolved =
+      condition === OTHER_CONDITION ? input.otherCategory.trim() : condition;
+    nextDetails[resolved] = input.details[condition]?.trim() ?? "";
+    return resolved;
+  });
+
+  return {
+    conditions: [...new Set(nextConditions)],
+    details: nextDetails,
+  };
+}
 
 export default function MidReviewWriteContainer({
   questions = {},
@@ -51,6 +75,7 @@ export default function MidReviewWriteContainer({
   const [goodDetails, setGoodDetails] = useState<
     Partial<Record<MidReviewCondition, string>>
   >({});
+  const [goodOtherCategory, setGoodOtherCategory] = useState("");
 
   // Step 2
   const [hardConditions, setHardConditions] = useState<MidReviewCondition[]>(
@@ -59,6 +84,7 @@ export default function MidReviewWriteContainer({
   const [hardDetails, setHardDetails] = useState<
     Partial<Record<MidReviewCondition, string>>
   >({});
+  const [hardOtherCategory, setHardOtherCategory] = useState("");
 
   // Step 3
   const [whyStarted, setWhyStarted] = useState("");
@@ -84,10 +110,18 @@ export default function MidReviewWriteContainer({
 
   const canNext1 =
     goodConditions.length >= 2 &&
-    goodConditions.every((c) => goodDetails[c]?.trim());
+    goodConditions.every(
+      (c) =>
+        goodDetails[c]?.trim() &&
+        (c !== OTHER_CONDITION || goodOtherCategory.trim()),
+    );
   const canNext2 =
     hardConditions.length >= 1 &&
-    hardConditions.every((c) => hardDetails[c]?.trim());
+    hardConditions.every(
+      (c) =>
+        hardDetails[c]?.trim() &&
+        (c !== OTHER_CONDITION || hardOtherCategory.trim()),
+    );
   const canSubmit =
     !!whyStarted.trim() &&
     !!keepDoing.trim() &&
@@ -97,12 +131,22 @@ export default function MidReviewWriteContainer({
   const handleSubmit = async () => {
     setSubmitting(true);
     setErrorMsg(null);
+    const good = normalizeConditions({
+      conditions: goodConditions,
+      details: goodDetails,
+      otherCategory: goodOtherCategory,
+    });
+    const hard = normalizeConditions({
+      conditions: hardConditions,
+      details: hardDetails,
+      otherCategory: hardOtherCategory,
+    });
 
     const { error } = await createMidReview({
-      goodConditions,
-      goodConditionDetails: goodDetails,
-      hardConditions,
-      hardConditionDetails: hardDetails,
+      goodConditions: good.conditions,
+      goodConditionDetails: good.details,
+      hardConditions: hard.conditions,
+      hardConditionDetails: hard.details,
       whyStarted: whyStarted.trim(),
       keepDoing: keepDoing.trim(),
       willChange: willChange.trim(),
@@ -199,15 +243,18 @@ export default function MidReviewWriteContainer({
               return (
                 <button
                   key={c}
-                  onClick={() =>
+                  onClick={() => {
+                    if (c === OTHER_CONDITION && selected) {
+                      setGoodOtherCategory("");
+                    }
                     toggleCondition(
                       c,
                       goodConditions,
                       setGoodConditions,
                       setGoodDetails,
                       goodDetails,
-                    )
-                  }
+                    );
+                  }}
                   className={`px-4 py-2 rounded-2xl text-sm font-semibold transition-colors border ${
                     selected
                       ? "text-white border-transparent"
@@ -229,15 +276,36 @@ export default function MidReviewWriteContainer({
             <div className="flex flex-col gap-4 mb-6">
               {goodConditions.map((c) => (
                 <div key={c}>
+                  {c === OTHER_CONDITION && (
+                    <div className="mb-3">
+                      <label className="text-xs font-semibold text-gray-500 mb-1.5 block">
+                        기타 카테고리
+                      </label>
+                      <input
+                        value={goodOtherCategory}
+                        onChange={(e) => setGoodOtherCategory(e.target.value)}
+                        placeholder="예: 함께하는 사람, 날씨, 알림, 도구"
+                        className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-yellow-300 bg-white"
+                      />
+                    </div>
+                  )}
                   <label className="text-xs font-semibold text-gray-500 mb-1.5 block">
-                    {questions[CONDITION_QUESTION_KEYS[c]]?.label ?? CONDITION_PROMPTS[c]}
+                    {c === OTHER_CONDITION
+                      ? CONDITION_PROMPTS[c]
+                      : questions[CONDITION_QUESTION_KEYS[c]]?.label ??
+                        CONDITION_PROMPTS[c]}
                   </label>
                   <textarea
                     value={goodDetails[c] ?? ""}
                     onChange={(e) =>
                       setGoodDetails({ ...goodDetails, [c]: e.target.value })
                     }
-                    placeholder={questions[CONDITION_QUESTION_KEYS[c]]?.helperText || "구체적으로 적어주세요"}
+                    placeholder={
+                      c === OTHER_CONDITION
+                        ? "이 카테고리가 왜 도움이 됐는지 적어주세요"
+                        : questions[CONDITION_QUESTION_KEYS[c]]?.helperText ||
+                          "구체적으로 적어주세요"
+                    }
                     rows={2}
                     className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 resize-none focus:outline-none focus:border-yellow-300 bg-white"
                   />
@@ -286,15 +354,18 @@ export default function MidReviewWriteContainer({
               return (
                 <button
                   key={c}
-                  onClick={() =>
+                  onClick={() => {
+                    if (c === OTHER_CONDITION && selected) {
+                      setHardOtherCategory("");
+                    }
                     toggleCondition(
                       c,
                       hardConditions,
                       setHardConditions,
                       setHardDetails,
                       hardDetails,
-                    )
-                  }
+                    );
+                  }}
                   className={`px-4 py-2 rounded-2xl text-sm font-semibold transition-colors border ${
                     selected
                       ? "text-white border-transparent"
@@ -316,15 +387,36 @@ export default function MidReviewWriteContainer({
             <div className="flex flex-col gap-4 mb-6">
               {hardConditions.map((c) => (
                 <div key={c}>
+                  {c === OTHER_CONDITION && (
+                    <div className="mb-3">
+                      <label className="text-xs font-semibold text-gray-500 mb-1.5 block">
+                        기타 카테고리
+                      </label>
+                      <input
+                        value={hardOtherCategory}
+                        onChange={(e) => setHardOtherCategory(e.target.value)}
+                        placeholder="예: 갑작스러운 일정, 주변 환경, 생각 패턴"
+                        className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:border-yellow-300 bg-white"
+                      />
+                    </div>
+                  )}
                   <label className="text-xs font-semibold text-gray-500 mb-1.5 block">
-                    {questions[CONDITION_QUESTION_KEYS[c]]?.label ?? CONDITION_PROMPTS[c]}
+                    {c === OTHER_CONDITION
+                      ? "상세 내용을 적어주세요"
+                      : questions[CONDITION_QUESTION_KEYS[c]]?.label ??
+                        CONDITION_PROMPTS[c]}
                   </label>
                   <textarea
                     value={hardDetails[c] ?? ""}
                     onChange={(e) =>
                       setHardDetails({ ...hardDetails, [c]: e.target.value })
                     }
-                    placeholder={questions[CONDITION_QUESTION_KEYS[c]]?.helperText || "구체적으로 적어주세요"}
+                    placeholder={
+                      c === OTHER_CONDITION
+                        ? "이 카테고리가 왜 걸림돌이 됐는지 적어주세요"
+                        : questions[CONDITION_QUESTION_KEYS[c]]?.helperText ||
+                          "구체적으로 적어주세요"
+                    }
                     rows={2}
                     className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 resize-none focus:outline-none focus:border-yellow-300 bg-white"
                   />

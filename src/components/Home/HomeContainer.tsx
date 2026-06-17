@@ -14,6 +14,7 @@ import {
   type CalendarDayMarker,
   type HomeProfile,
 } from "@/api/ritual-stats";
+import { addDaysToDateKey } from "@/lib/korea-date";
 import type { ChallengerSummary } from "@/api/user";
 import type { ChallengeRegistration } from "@/types/supabase";
 
@@ -32,6 +33,10 @@ interface HomeInitialData {
 interface ActivePeriod {
   start_date: string;
   end_date: string;
+  mid_review_start_date: string | null;
+  mid_review_end_date: string | null;
+  final_review_start_date: string | null;
+  final_review_end_date: string | null;
   label: string | null;
 }
 
@@ -46,11 +51,28 @@ const RITUAL_ROUTES: Record<string, string> = {
   기록리추얼: "/home/recording",
 };
 
+function getMidReviewOpenDateKey(period: ActivePeriod): string {
+  const start = new Date(`${period.start_date}T00:00:00`);
+  const end = new Date(`${period.end_date}T00:00:00`);
+  const totalDays =
+    Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1;
+  const offset = Math.max(0, Math.floor(totalDays / 2) - 1);
+  const openDate = new Date(start);
+  openDate.setDate(start.getDate() + offset);
+  return formatDateKey(openDate);
+}
+
+function isDateInRange(dateKey: string, startDate: string, endDate: string) {
+  return dateKey >= startDate && dateKey <= endDate;
+}
+
 export default function HomeContainer({
   initialData,
+  todayKey,
   period,
 }: {
   initialData: HomeInitialData;
+  todayKey: string;
   period: ActivePeriod | null;
 }) {
   const router = useRouter();
@@ -101,6 +123,23 @@ export default function HomeContainer({
     const dateStr = formatDateKey(selectedDate);
     return dateStr < period.start_date || dateStr > period.end_date;
   })();
+  const midReviewOpenDateKey = period ? getMidReviewOpenDateKey(period) : null;
+  const midReviewStartDate =
+    period?.mid_review_start_date ?? midReviewOpenDateKey;
+  const midReviewEndDate = period?.mid_review_end_date ?? period?.end_date;
+  const finalReviewStartDate =
+    period?.final_review_start_date ??
+    (period ? addDaysToDateKey(period.end_date, -1) : null);
+  const finalReviewEndDate = period?.final_review_end_date ?? period?.end_date;
+  const shouldShowMidReviewReminder =
+    Boolean(midReviewStartDate && midReviewEndDate) &&
+    isDateInRange(todayKey, midReviewStartDate ?? "", midReviewEndDate ?? "");
+  const shouldShowFinalReviewReminder =
+    Boolean(finalReviewStartDate && finalReviewEndDate) &&
+    isDateInRange(todayKey, finalReviewStartDate ?? "", finalReviewEndDate ?? "");
+  const shouldShowReviewReminder =
+    shouldShowMidReviewReminder || shouldShowFinalReviewReminder;
+
   const handleTaskClick = (title: string) => {
     if (isPastDate) return; // 지난 날짜에서는 리추얼 진행 불가
     if (isOutsidePeriod) return; // 챌린지 기간 외에는 리추얼 진행 불가
@@ -157,30 +196,69 @@ export default function HomeContainer({
                 onProfileUpdated={() => setMemberRefreshKey((k) => k + 1)}
               />
             </div>
-            {/* <button
-              type="button"
-              onClick={() => router.push("/mid-review/write")}
-              className="mb-3 w-full rounded-2xl p-4 text-left transition-opacity hover:opacity-90 active:opacity-80"
-              style={{
-                background: "linear-gradient(135deg, #fef3c7, #fde68a)",
-              }}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p
-                    className="mb-0.5 text-sm font-bold"
-                    style={{ color: "#92400e" }}
+            {shouldShowReviewReminder && (
+              <div className="order-1 flex w-full flex-col gap-3 md:order-none">
+                {shouldShowMidReviewReminder && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      router.push(
+                        completionRate?.hasMidReview
+                          ? "/mid-review"
+                          : "/mid-review/write",
+                      )
+                    }
+                    className="w-full rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left shadow-sm transition-colors hover:bg-amber-100 active:bg-amber-100"
                   >
-                    중간 회고 작성 기간입니다
-                  </p>
-                  <p className="text-xs" style={{ color: "#b45309" }}>
-                    지금 바로 작성하기
-                  </p>
-                </div>
-                <span className="text-sm font-bold text-amber-800">작성</span>
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="mb-0.5 text-sm font-bold text-amber-900">
+                          중간회고 점검 기간이에요.
+                        </p>
+                        <p className="text-xs font-medium text-amber-700">
+                          지금까지의 리추얼을 점검해보세요
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-amber-600 px-3 py-1 text-xs font-bold text-white">
+                        {completionRate?.hasMidReview ? "보기" : "작성"}
+                      </span>
+                    </div>
+                  </button>
+                )}
+                {shouldShowFinalReviewReminder && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      router.push(
+                        completionRate?.hasFinalReview
+                          ? "/final-review"
+                          : "/final-review/write",
+                      )
+                    }
+                    className="w-full rounded-2xl border border-yellow-300 bg-yellow-50 p-4 text-left shadow-sm transition-colors hover:bg-yellow-100 active:bg-yellow-100"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="mb-0.5 text-sm font-bold text-yellow-900">
+                          최종회고 작성 기간이에요.
+                        </p>
+                        <p className="text-xs font-medium text-yellow-700">
+                          이번 리추얼의 변화와 결과를 정리해보세요
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-yellow-600 px-3 py-1 text-xs font-bold text-white">
+                        {completionRate?.hasFinalReview ? "보기" : "작성"}
+                      </span>
+                    </div>
+                  </button>
+                )}
               </div>
-            </button> */}
-            <div className="static order-1 z-10 w-full md:sticky md:top-0 md:order-none">
+            )}
+            <div
+              className={`static order-2 z-10 w-full md:sticky md:top-0 md:order-none ${
+                shouldShowReviewReminder ? "mt-5" : ""
+              }`}
+            >
               <HomCalendar
                 today={today}
                 selectedDate={selectedDate}

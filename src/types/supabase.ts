@@ -103,6 +103,10 @@ export interface Database {
           id: string;
           start_date: string;
           end_date: string;
+          mid_review_start_date: string | null;
+          mid_review_end_date: string | null;
+          final_review_start_date: string | null;
+          final_review_end_date: string | null;
           label: string | null;
           is_active: boolean;
           created_at: string;
@@ -111,6 +115,10 @@ export interface Database {
           id?: string;
           start_date: string;
           end_date: string;
+          mid_review_start_date?: string | null;
+          mid_review_end_date?: string | null;
+          final_review_start_date?: string | null;
+          final_review_end_date?: string | null;
           label?: string | null;
           is_active?: boolean;
           created_at?: string;
@@ -118,6 +126,10 @@ export interface Database {
         Update: {
           start_date?: string;
           end_date?: string;
+          mid_review_start_date?: string | null;
+          mid_review_end_date?: string | null;
+          final_review_start_date?: string | null;
+          final_review_end_date?: string | null;
           label?: string | null;
           is_active?: boolean;
         };
@@ -399,7 +411,7 @@ export interface Database {
           challenge_id: string;
           results: string;
           life_changes: string;
-          continuation_choice: "keep" | "adjust";
+          continuation_choice: "keep" | "adjust" | "other";
           adjustment_note: string;
           feedback: string;
           created_at: string;
@@ -410,7 +422,7 @@ export interface Database {
           challenge_id: string;
           results: string;
           life_changes: string;
-          continuation_choice: "keep" | "adjust";
+          continuation_choice: "keep" | "adjust" | "other";
           adjustment_note?: string;
           feedback?: string;
           created_at?: string;
@@ -418,7 +430,7 @@ export interface Database {
         Update: {
           results?: string;
           life_changes?: string;
-          continuation_choice?: "keep" | "adjust";
+          continuation_choice?: "keep" | "adjust" | "other";
           adjustment_note?: string;
           feedback?: string;
         };

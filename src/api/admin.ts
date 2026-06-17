@@ -392,7 +392,12 @@ export async function getAdminDashboardData(): Promise<{
       reviewId: review.id,
       results: review.results,
       lifeChanges: review.life_changes,
-      continuationChoice: review.continuation_choice === "keep" ? "유지하고 싶다" : "조정이 필요하다",
+      continuationChoice:
+        review.continuation_choice === "keep"
+          ? "유지하고 싶다"
+          : review.continuation_choice === "adjust"
+            ? "조정이 필요하다"
+            : review.adjustment_note || "기타",
       adjustmentNote: review.adjustment_note,
       feedback: review.feedback,
       createdAt: review.created_at,
@@ -419,12 +424,40 @@ export async function upsertChallengePeriod(input: {
   label: string;
   startDate: string;
   endDate: string;
+  midReviewStartDate?: string;
+  midReviewEndDate?: string;
+  finalReviewStartDate?: string;
+  finalReviewEndDate?: string;
   isActive: boolean;
 }) {
   const { user, error } = await requireAdmin();
   if (!user) return { error: error ?? "관리자 권한이 없습니다." };
   if (!input.startDate || !input.endDate) return { error: "기간을 입력해주세요." };
   if (input.startDate > input.endDate) return { error: "시작일은 종료일보다 빠르거나 같아야 합니다." };
+  if (
+    Boolean(input.midReviewStartDate) !== Boolean(input.midReviewEndDate)
+  ) {
+    return { error: "중간회고 노출 시작일과 종료일을 모두 입력해주세요." };
+  }
+  if (
+    input.midReviewStartDate &&
+    input.midReviewEndDate &&
+    input.midReviewStartDate > input.midReviewEndDate
+  ) {
+    return { error: "중간회고 노출 시작일은 종료일보다 빠르거나 같아야 합니다." };
+  }
+  if (
+    Boolean(input.finalReviewStartDate) !== Boolean(input.finalReviewEndDate)
+  ) {
+    return { error: "최종회고 노출 시작일과 종료일을 모두 입력해주세요." };
+  }
+  if (
+    input.finalReviewStartDate &&
+    input.finalReviewEndDate &&
+    input.finalReviewStartDate > input.finalReviewEndDate
+  ) {
+    return { error: "최종회고 노출 시작일은 종료일보다 빠르거나 같아야 합니다." };
+  }
 
   const admin = createAdminClient();
   if (input.isActive) {
@@ -436,6 +469,10 @@ export async function upsertChallengePeriod(input: {
     label: input.label.trim() || null,
     start_date: input.startDate,
     end_date: input.endDate,
+    mid_review_start_date: input.midReviewStartDate || null,
+    mid_review_end_date: input.midReviewEndDate || null,
+    final_review_start_date: input.finalReviewStartDate || null,
+    final_review_end_date: input.finalReviewEndDate || null,
     is_active: input.isActive,
   };
 

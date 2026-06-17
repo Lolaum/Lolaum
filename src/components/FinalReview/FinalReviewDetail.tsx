@@ -44,7 +44,7 @@ export default function FinalReviewDetail({ review, isMine }: FinalReviewDetailP
       results,
       lifeChanges,
       continuationChoice,
-      adjustmentNote: continuationChoice === "adjust" ? adjustmentNote : "",
+      adjustmentNote: continuationChoice === "keep" ? "" : adjustmentNote,
       feedback,
     });
     setSaving(false);
@@ -57,7 +57,11 @@ export default function FinalReviewDetail({ review, isMine }: FinalReviewDetailP
   };
 
   const choiceLabel =
-    continuationChoice === "keep" ? "유지하고 싶다" : "조정이 필요하다";
+    continuationChoice === "keep"
+      ? "유지하고 싶다"
+      : continuationChoice === "adjust"
+        ? "조정이 필요하다"
+        : adjustmentNote || "기타";
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 pb-8">
@@ -159,6 +163,7 @@ export default function FinalReviewDetail({ review, isMine }: FinalReviewDetailP
                     {[
                       { value: "keep" as const, label: "유지하고 싶다" },
                       { value: "adjust" as const, label: "조정이 필요하다" },
+                      { value: "other" as const, label: "기타" },
                     ].map(({ value, label }) => {
                       const selected = continuationChoice === value;
                       return (
@@ -185,12 +190,16 @@ export default function FinalReviewDetail({ review, isMine }: FinalReviewDetailP
                       );
                     })}
                   </div>
-                  {continuationChoice === "adjust" && (
+                  {continuationChoice !== "keep" && (
                     <textarea
                       value={adjustmentNote}
                       onChange={(e) => setAdjustmentNote(e.target.value)}
                       rows={3}
-                      placeholder="조정하고 싶은 점을 적어주세요"
+                      placeholder={
+                        continuationChoice === "other"
+                          ? "기타 내용을 직접 입력해주세요"
+                          : "조정하고 싶은 점을 적어주세요"
+                      }
                       className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-300 resize-none"
                     />
                   )}
