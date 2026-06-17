@@ -10,6 +10,7 @@ import type { FeedItem, MorningFeedData } from "@/types/feed";
 interface GroupedRecord {
   date: string;
   image?: string;
+  certPhotos?: string[];
   sleepHours: number;
   sleepImprovement?: string;
   condition: ConditionLevel;
@@ -41,6 +42,7 @@ export default function RecordMorning({
           acc[record.date] = {
             date: record.date,
             image: record.image,
+            certPhotos: record.certPhotos,
             sleepHours: record.sleepHours,
             sleepImprovement: record.sleepImprovement,
             condition: record.condition,
@@ -95,6 +97,8 @@ export default function RecordMorning({
     recordId: 0,
     routineData: {
       image: record.image,
+      recordType: record.recordType,
+      certPhotos: record.certPhotos,
       sleepHours: record.sleepHours,
       sleepImprovement: record.sleepImprovement,
       condition: record.condition,
@@ -165,16 +169,29 @@ export default function RecordMorning({
                     ) : (
                       <>
                     {/* 인증 사진 */}
-                    {group.image && (
+                    {(group.certPhotos?.length || group.image) && (
                       <div className="mb-3">
                         <h4 className="text-sm font-semibold text-gray-700 mb-2">
                           인증 사진
                         </h4>
-                        <img
-                          src={group.image}
-                          alt="모닝 인증"
-                          className="w-full h-48 object-cover rounded-xl"
-                        />
+                        {group.certPhotos?.length ? (
+                          <div className="grid grid-cols-2 gap-3">
+                            {group.certPhotos.map((photo, index) => (
+                              <img
+                                key={`${photo.slice(0, 32)}-${index}`}
+                                src={photo}
+                                alt={`모닝 인증 ${index + 1}`}
+                                className="w-full h-32 object-cover rounded-xl"
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <img
+                            src={group.image}
+                            alt="모닝 인증"
+                            className="w-full h-48 object-cover rounded-xl"
+                          />
+                        )}
                       </div>
                     )}
 

@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { Declaration } from "@/types/routines/declaration";
 import { declarationQuestions } from "@/lib/declarationQuestions";
 import { ROUTINE_CONFIG } from "@/lib/routineConfig";
 import UserAvatar from "@/components/common/UserAvatar";
 import ExampleTooltip from "@/components/common/ExampleTooltip";
-import { updateDeclaration } from "@/api/declaration";
+import { deleteDeclaration, updateDeclaration } from "@/api/declaration";
 
 interface DeclarationDetailProps {
   decl: Declaration;
@@ -20,7 +20,10 @@ const formatFullDate = (dateString: string) => {
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
 };
 
-export default function DeclarationDetail({ decl, isMine }: DeclarationDetailProps) {
+export default function DeclarationDetail({
+  decl,
+  isMine,
+}: DeclarationDetailProps) {
   const router = useRouter();
   const config = ROUTINE_CONFIG[decl.routineType];
   const questions = declarationQuestions[decl.routineType];
@@ -30,6 +33,7 @@ export default function DeclarationDetail({ decl, isMine }: DeclarationDetailPro
     Object.fromEntries(decl.answers.map((a) => [a.questionId, a.answer])),
   );
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   if (!config || !questions) return null;
 
@@ -49,8 +53,25 @@ export default function DeclarationDetail({ decl, isMine }: DeclarationDetailPro
   };
 
   const handleCancel = () => {
-    setDraft(Object.fromEntries(decl.answers.map((a) => [a.questionId, a.answer])));
+    setDraft(
+      Object.fromEntries(decl.answers.map((a) => [a.questionId, a.answer])),
+    );
     setEditing(false);
+  };
+
+  const handleDelete = async () => {
+    const confirmed = window.confirm("리추얼 선언을 삭제하시겠습니까?");
+    if (!confirmed) return;
+
+    setDeleting(true);
+    const { error } = await deleteDeclaration(decl.id);
+    setDeleting(false);
+    if (error) {
+      alert(`삭제 실패: ${error}`);
+      return;
+    }
+    router.push("/ritual");
+    router.refresh();
   };
 
   return (
@@ -71,14 +92,26 @@ export default function DeclarationDetail({ decl, isMine }: DeclarationDetailPro
           {decl.routineType}
         </span>
         {isMine && !editing && (
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-            수정
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              disabled={deleting}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-colors"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              수정
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 disabled:opacity-50 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              {deleting ? "삭제 중" : "삭제"}
+            </button>
+          </div>
         )}
       </div>
 
@@ -86,10 +119,16 @@ export default function DeclarationDetail({ decl, isMine }: DeclarationDetailPro
       <div className="bg-white rounded-2xl shadow-md p-6">
         {/* 유저 정보 */}
         <div className="flex items-center gap-3 mb-5">
-          <UserAvatar avatarUrl={decl.avatarUrl} emoji={decl.userEmoji} size={48} />
+          <UserAvatar
+            avatarUrl={decl.avatarUrl}
+            emoji={decl.userEmoji}
+            size={48}
+          />
           <div>
             <div className="flex items-center gap-1.5">
-              <p className="text-base font-bold text-gray-900">{decl.userName}</p>
+              <p className="text-base font-bold text-gray-900">
+                {decl.userName}
+              </p>
               {isMine && (
                 <span
                   className="text-xs font-semibold px-1.5 py-0.5 rounded-md text-white"
@@ -99,7 +138,9 @@ export default function DeclarationDetail({ decl, isMine }: DeclarationDetailPro
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-400">{formatFullDate(decl.createdAt)}</p>
+            <p className="text-xs text-gray-400">
+              {formatFullDate(decl.createdAt)}
+            </p>
           </div>
         </div>
 
@@ -111,7 +152,11 @@ export default function DeclarationDetail({ decl, isMine }: DeclarationDetailPro
             if (!editing && !hasAnswer) return null;
             const isReadOnly = q.id === "cert_method";
             return (
-              <div key={q.id} className="rounded-xl p-4" style={{ backgroundColor: config.bgColor }}>
+              <div
+                key={q.id}
+                className="rounded-xl p-4"
+                style={{ backgroundColor: config.bgColor }}
+              >
                 <p
                   className="text-xs font-semibold mb-1.5"
                   style={{ color: config.color }}

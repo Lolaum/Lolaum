@@ -1,8 +1,9 @@
 // 언어 학습 관련 타입 정의
 
 export interface LanguageRecord {
-  id: number;
+  id: string | number;
   date: string;
+  recordDate?: string;
   images?: string[];
   achievement: string;
   expressions: { word: string; meaning: string; example: string }[];

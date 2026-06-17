@@ -5,11 +5,15 @@ import { CERT_PHOTO_INTERVAL_MESSAGE } from "@/lib/utils";
 interface CertificationPhotoIntervalModalProps {
   open: boolean;
   onClose: () => void;
+  title?: string;
+  message?: string;
 }
 
 export default function CertificationPhotoIntervalModal({
   open,
   onClose,
+  title = "인증 사진은 10분 이상 간격이 필요합니다",
+  message = CERT_PHOTO_INTERVAL_MESSAGE,
 }: CertificationPhotoIntervalModalProps) {
   if (!open) return null;
 
@@ -29,11 +33,9 @@ export default function CertificationPhotoIntervalModal({
           id="cert-photo-interval-title"
           className="text-base font-semibold text-gray-900"
         >
-          인증 사진은 10분 이상 간격이 필요합니다
+          {title}
         </h3>
-        <p className="mt-2 text-sm leading-relaxed text-gray-500">
-          {CERT_PHOTO_INTERVAL_MESSAGE}
-        </p>
+        <p className="mt-2 text-sm leading-relaxed text-gray-500">{message}</p>
         <div className="mt-5">
           <button
             type="button"

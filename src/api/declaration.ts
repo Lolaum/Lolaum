@@ -8,7 +8,10 @@ import {
 } from "@/lib/current-challenge";
 import type { RoutineTypeDB, Json } from "@/types/supabase";
 import { ROUTINE_TYPE_LABEL } from "@/types/supabase";
-import type { Declaration, DeclarationAnswer } from "@/types/routines/declaration";
+import type {
+  Declaration,
+  DeclarationAnswer,
+} from "@/types/routines/declaration";
 import type { RoutineType } from "@/types/routines/declaration";
 
 interface DeclarationRow {
@@ -17,7 +20,11 @@ interface DeclarationRow {
   routine_type: RoutineTypeDB;
   answers: unknown;
   created_at: string;
-  profiles: { name: string; emoji: string | null; avatar_url: string | null } | null;
+  profiles: {
+    name: string;
+    emoji: string | null;
+    avatar_url: string | null;
+  } | null;
 }
 
 function toDeclaration(row: DeclarationRow): Declaration {
@@ -48,7 +55,9 @@ export async function getMyDeclarations(): Promise<{
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("declarations")
-    .select("id, user_id, routine_type, answers, created_at, profiles(name, emoji, avatar_url)")
+    .select(
+      "id, user_id, routine_type, answers, created_at, profiles(name, emoji, avatar_url)",
+    )
     .eq("user_id", user.id)
     .eq("challenge_id", challengeId)
     .order("created_at", { ascending: true });
@@ -103,6 +112,24 @@ export async function updateDeclaration(
   return {};
 }
 
+/** 선언 삭제 (본인만) */
+export async function deleteDeclaration(
+  id: string,
+): Promise<{ error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "인증이 필요합니다." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("declarations")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) return { error: error.message };
+  return {};
+}
+
 /** 활성 기간의 모든 챌린지 ID 조회 (유저별로 challenge 행이 다르므로 전체 조회) */
 async function getCurrentPeriodChallengeIds(): Promise<string[]> {
   try {
@@ -130,12 +157,15 @@ export async function getChallengerDeclarations(): Promise<{
     if (!user) return { error: "인증이 필요합니다." };
 
     const challengeIds = await getCurrentPeriodChallengeIds();
-    if (challengeIds.length === 0) return { error: "챌린지를 찾을 수 없습니다." };
+    if (challengeIds.length === 0)
+      return { error: "챌린지를 찾을 수 없습니다." };
 
     const admin = createAdminClient();
     const { data, error } = await admin
       .from("declarations")
-      .select("id, user_id, routine_type, answers, created_at, profiles(name, emoji, avatar_url)")
+      .select(
+        "id, user_id, routine_type, answers, created_at, profiles(name, emoji, avatar_url)",
+      )
       .in("challenge_id", challengeIds)
       .neq("user_id", user.id)
       .order("created_at", { ascending: false });
@@ -159,7 +189,9 @@ export async function getDeclarationById(
     const admin = createAdminClient();
     const { data, error } = await admin
       .from("declarations")
-      .select("id, user_id, routine_type, answers, created_at, profiles(name, emoji, avatar_url)")
+      .select(
+        "id, user_id, routine_type, answers, created_at, profiles(name, emoji, avatar_url)",
+      )
       .eq("id", id)
       .single();
 
@@ -185,12 +217,15 @@ export async function getAllDeclarations(): Promise<{
     if (!user) return { error: "인증이 필요합니다." };
 
     const challengeIds = await getCurrentPeriodChallengeIds();
-    if (challengeIds.length === 0) return { error: "챌린지를 찾을 수 없습니다." };
+    if (challengeIds.length === 0)
+      return { error: "챌린지를 찾을 수 없습니다." };
 
     const admin = createAdminClient();
     const { data, error } = await admin
       .from("declarations")
-      .select("id, user_id, routine_type, answers, created_at, profiles(name, emoji, avatar_url)")
+      .select(
+        "id, user_id, routine_type, answers, created_at, profiles(name, emoji, avatar_url)",
+      )
       .in("challenge_id", challengeIds)
       .order("created_at", { ascending: false });
 

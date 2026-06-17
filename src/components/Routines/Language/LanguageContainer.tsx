@@ -1,22 +1,40 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Grid3x3, Loader2 } from "lucide-react";
 import RecordStudy from "./RecordStudy";
 import AddNewLanguage from "./AddNewLanguage";
-import StudyPhrase from "./StudyPhrase";
 import {
   LanguageRecord,
   LanguageFormData,
 } from "@/types/routines/language";
 import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
 import { formatKoreaDateKey } from "@/lib/korea-date";
-import type { LanguageRecordData, Json, RoutineTypeDB } from "@/types/supabase";
+import type {
+  Json,
+  LanguageRecordData,
+  RitualRecord,
+  RoutineTypeDB,
+} from "@/types/supabase";
 
 interface LanguageContainerProps {
   mode?: "main" | "new";
   languageType?: "영어" | "제2외국어";
+}
+
+function mapLanguageRecord(r: RitualRecord): LanguageRecord {
+  const d = r.record_data as unknown as LanguageRecordData;
+  const date = new Date(r.record_date);
+  return {
+    id: r.id,
+    date: `${date.getMonth() + 1}월 ${date.getDate()}일`,
+    recordDate: r.record_date,
+    images: d.images ?? [],
+    achievement: d.achievement,
+    expressions: d.expressions ?? [],
+    expressionCount: d.expressions?.length ?? 0,
+  };
 }
 
 export default function LanguageContainer({
@@ -24,7 +42,6 @@ export default function LanguageContainer({
   languageType = "영어",
 }: LanguageContainerProps) {
   const router = useRouter();
-  const [showStudyPhrase, setShowStudyPhrase] = useState(false);
   const [languageRecords, setLanguageRecords] = useState<LanguageRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,6 +54,7 @@ export default function LanguageContainer({
   const goHome = () => router.push("/home");
   const goMain = () => router.push(basePath);
   const goNew = () => router.push(`${basePath}/new`);
+  const goReview = () => router.push(`${basePath}/review`);
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -45,26 +63,35 @@ export default function LanguageContainer({
       currentPeriodOnly: true,
     });
     if (data) {
-      const records: LanguageRecord[] = data.map((r) => {
-        const d = r.record_data as unknown as LanguageRecordData;
-        const date = new Date(r.record_date);
-        return {
-          id: r.id as unknown as number,
-          date: `${date.getMonth() + 1}월 ${date.getDate()}일`,
-          images: d.images ?? [],
-          achievement: d.achievement,
-          expressions: d.expressions ?? [],
-          expressionCount: d.expressions?.length ?? 0,
-        };
-      });
-      setLanguageRecords(records);
+      setLanguageRecords(data.map(mapLanguageRecord));
     }
     setLoading(false);
   }, [routineType]);
 
   useEffect(() => {
-    if (mode === "main") fetchRecords();
-  }, [fetchRecords, mode]);
+    if (mode !== "main") return;
+    let ignore = false;
+
+    async function loadRecords() {
+      const { data } = await getMyRitualRecords({
+        routineType,
+        currentPeriodOnly: true,
+      });
+
+      if (ignore) return;
+
+      if (data) {
+        setLanguageRecords(data.map(mapLanguageRecord));
+      }
+      setLoading(false);
+    }
+
+    void loadRecords();
+
+    return () => {
+      ignore = true;
+    };
+  }, [mode, routineType]);
 
   const handleSubmit = async (formData: LanguageFormData) => {
     const today = formatKoreaDateKey();
@@ -162,9 +189,8 @@ export default function LanguageContainer({
         {/* 단어 카드 복습 */}
         <button
           type="button"
-          onClick={() => setShowStudyPhrase(true)}
-          disabled={totalExpressions === 0}
-          className="w-full flex items-center justify-between bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-sm disabled:hover:translate-y-0"
+          onClick={goReview}
+          className="w-full flex items-center justify-between bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
         >
           <div className="flex items-center gap-3">
             <div
@@ -182,7 +208,7 @@ export default function LanguageContainer({
               </p>
               <p className="text-xs text-gray-400 mt-0.5">
                 {totalExpressions === 0
-                  ? "기록된 표현이 없어요"
+                  ? "월별 복습 목록 보기"
                   : `${totalExpressions}개의 표현`}
               </p>
             </div>
@@ -228,13 +254,6 @@ export default function LanguageContainer({
           />
         )}
       </div>
-      {showStudyPhrase && (
-        <StudyPhrase
-          languageRecords={languageRecords}
-          onClose={() => setShowStudyPhrase(false)}
-          accentColor={accentColor}
-        />
-      )}
     </>
   );
 }

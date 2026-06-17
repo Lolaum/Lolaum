@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { MidReview, MidReviewCondition } from "@/types/routines/midReview";
 import UserAvatar from "@/components/common/UserAvatar";
-import { updateMidReview } from "@/api/mid-review";
+import { deleteMidReview, updateMidReview } from "@/api/mid-review";
 
 interface MidReviewDetailProps {
   review: MidReview;
@@ -55,7 +55,9 @@ function ConditionSection({
               />
             ) : (
               details[c] && (
-                <p className="text-sm text-gray-700 leading-relaxed">{details[c]}</p>
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  {details[c]}
+                </p>
               )
             )}
           </div>
@@ -65,11 +67,15 @@ function ConditionSection({
   );
 }
 
-export default function MidReviewDetail({ review, isMine }: MidReviewDetailProps) {
+export default function MidReviewDetail({
+  review,
+  isMine,
+}: MidReviewDetailProps) {
   const router = useRouter();
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [goodDetails, setGoodDetails] = useState(review.goodConditionDetails);
   const [hardDetails, setHardDetails] = useState(review.hardConditionDetails);
   const [whyStarted, setWhyStarted] = useState(review.whyStarted ?? "");
@@ -103,6 +109,21 @@ export default function MidReviewDetail({ review, isMine }: MidReviewDetailProps
     router.refresh();
   };
 
+  const handleDelete = async () => {
+    const confirmed = window.confirm("중간회고를 삭제하시겠습니까?");
+    if (!confirmed) return;
+
+    setDeleting(true);
+    const { error } = await deleteMidReview(review.id);
+    setDeleting(false);
+    if (error) {
+      alert(`삭제 실패: ${error}`);
+      return;
+    }
+    router.push("/ritual");
+    router.refresh();
+  };
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 pb-8">
       {/* 헤더 */}
@@ -115,14 +136,26 @@ export default function MidReviewDetail({ review, isMine }: MidReviewDetailProps
         </button>
         <h1 className="text-lg font-bold text-gray-800">중간 회고</h1>
         {isMine && !editing && (
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-            수정
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              disabled={deleting}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-colors"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              수정
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 disabled:opacity-50 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              {deleting ? "삭제 중" : "삭제"}
+            </button>
+          </div>
         )}
       </div>
 
@@ -130,10 +163,16 @@ export default function MidReviewDetail({ review, isMine }: MidReviewDetailProps
       <div className="bg-white rounded-2xl shadow-md p-6">
         {/* 유저 정보 */}
         <div className="flex items-center gap-3 mb-5">
-          <UserAvatar avatarUrl={review.avatarUrl} emoji={review.userEmoji} size={48} />
+          <UserAvatar
+            avatarUrl={review.avatarUrl}
+            emoji={review.userEmoji}
+            size={48}
+          />
           <div>
             <div className="flex items-center gap-1.5">
-              <p className="text-base font-bold text-gray-900">{review.userName}</p>
+              <p className="text-base font-bold text-gray-900">
+                {review.userName}
+              </p>
               {isMine && (
                 <span
                   className="text-xs font-semibold px-1.5 py-0.5 rounded-md text-white"
@@ -143,7 +182,9 @@ export default function MidReviewDetail({ review, isMine }: MidReviewDetailProps
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-400">{formatFullDate(review.createdAt)}</p>
+            <p className="text-xs text-gray-400">
+              {formatFullDate(review.createdAt)}
+            </p>
           </div>
         </div>
 
@@ -171,11 +212,19 @@ export default function MidReviewDetail({ review, isMine }: MidReviewDetailProps
 
           {/* 초심 점검 */}
           <div>
-            <p className="text-xs font-semibold text-gray-400 mb-2">초심 점검</p>
+            <p className="text-xs font-semibold text-gray-400 mb-2">
+              초심 점검
+            </p>
             <div className="space-y-2">
               {(editing || whyStarted) && (
-                <div className="rounded-xl p-4" style={{ backgroundColor: "#fef3c7" }}>
-                  <p className="text-xs font-semibold mb-1" style={{ color: "#d97706" }}>
+                <div
+                  className="rounded-xl p-4"
+                  style={{ backgroundColor: "#fef3c7" }}
+                >
+                  <p
+                    className="text-xs font-semibold mb-1"
+                    style={{ color: "#d97706" }}
+                  >
                     시작한 이유
                   </p>
                   {editing ? (
@@ -186,12 +235,16 @@ export default function MidReviewDetail({ review, isMine }: MidReviewDetailProps
                       className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-300 resize-none"
                     />
                   ) : (
-                    <p className="text-sm text-gray-700 leading-relaxed">{whyStarted}</p>
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      {whyStarted}
+                    </p>
                   )}
                 </div>
               )}
               <div className="bg-green-50 rounded-xl p-4">
-                <p className="text-xs font-semibold text-green-600 mb-1">유지할 것</p>
+                <p className="text-xs font-semibold text-green-600 mb-1">
+                  유지할 것
+                </p>
                 {editing ? (
                   <textarea
                     value={keepDoing}
@@ -200,11 +253,15 @@ export default function MidReviewDetail({ review, isMine }: MidReviewDetailProps
                     className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-300 resize-none"
                   />
                 ) : (
-                  <p className="text-sm text-gray-700 leading-relaxed">{keepDoing}</p>
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    {keepDoing}
+                  </p>
                 )}
               </div>
               <div className="bg-blue-50 rounded-xl p-4">
-                <p className="text-xs font-semibold text-blue-500 mb-1">변화할 것</p>
+                <p className="text-xs font-semibold text-blue-500 mb-1">
+                  변화할 것
+                </p>
                 {editing ? (
                   <textarea
                     value={willChange}
@@ -213,7 +270,9 @@ export default function MidReviewDetail({ review, isMine }: MidReviewDetailProps
                     className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-300 resize-none"
                   />
                 ) : (
-                  <p className="text-sm text-gray-700 leading-relaxed">{willChange}</p>
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    {willChange}
+                  </p>
                 )}
               </div>
             </div>

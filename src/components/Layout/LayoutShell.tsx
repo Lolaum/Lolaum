@@ -11,10 +11,12 @@ import HomeIcon from "../icons/HomeIcon";
 import RitualIcon from "../icons/RitualIcon";
 import VerifyIcon from "../icons/VerifyIcon";
 import ReportIcon from "../icons/ReportIcon";
+import AdminIcon from "../icons/AdminIcon";
 import NotificationBell from "../Notification/NotificationBell";
 
 interface LayoutShellProps {
   children: React.ReactNode;
+  isAdmin: boolean;
 }
 
 interface NavItem {
@@ -34,7 +36,9 @@ const navItems: NavItem[] = [
   { href: "/progress", label: "진행도", icon: ReportIcon },
 ];
 
-export default function LayoutShell({ children }: LayoutShellProps) {
+const adminNavItem: NavItem = { href: "/admin", label: "어드민", icon: AdminIcon };
+
+export default function LayoutShell({ children, isAdmin }: LayoutShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const isDesktopQuery = useMediaQuery("(min-width: 768px)");
@@ -70,6 +74,7 @@ export default function LayoutShell({ children }: LayoutShellProps) {
   }, [isDrawerOpen]);
 
   const isDesktop = mounted ? isDesktopQuery : false;
+  const visibleNavItems = isAdmin ? [...navItems, adminNavItem] : navItems;
 
   return (
     <div className="min-h-screen bg-background">
@@ -159,7 +164,7 @@ export default function LayoutShell({ children }: LayoutShellProps) {
       {!isDesktop && (
         <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 safe-area-bottom">
           <div className="flex items-center justify-around px-2 py-2">
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const isActive =
                 pathname === item.href || pathname?.startsWith(`${item.href}/`);
               const Icon = item.icon;
@@ -238,7 +243,7 @@ export default function LayoutShell({ children }: LayoutShellProps) {
 
             <nav className="p-4 flex flex-col h-[calc(100%-65px)]">
               <ul className="space-y-2 flex-1">
-                {navItems.map((item) => {
+                {visibleNavItems.map((item) => {
                   const isActive =
                     pathname === item.href ||
                     pathname?.startsWith(`${item.href}/`);

@@ -23,7 +23,7 @@ import {
 import {
   createRitualRecordAuto,
   deleteRitualRecord,
-  getMyRitualRecords,
+  getMyRitualRecordsAcrossChallenges,
   updateRitualRecord,
 } from "@/api/ritual-record";
 import { uploadBookCover } from "@/api/book";
@@ -537,8 +537,8 @@ export default function BookDetail({
 
   // DB에서 이 책의 기존 기록 불러오기
   const fetchRecords = useCallback(async () => {
-    const { data } = await getMyRitualRecords({
-      routineType: isEnglishBook ? "english_book" : "reading",
+    const { data } = await getMyRitualRecordsAcrossChallenges({
+      routineTypes: [isEnglishBook ? "english_book" : "reading"],
     });
     if (data) {
       const bookRecords: DailyReadingRecord[] = data
@@ -1097,7 +1097,7 @@ export default function BookDetail({
         </div>
       </div>
 
-      {/* 이번 달 통계 */}
+      {/* 전체 기록 통계 */}
       <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
         <div className="flex items-center gap-2 text-gray-600 mb-2">
           <svg
@@ -1111,7 +1111,7 @@ export default function BookDetail({
             <line x1="8" y1="2" x2="8" y2="6" />
             <line x1="3" y1="10" x2="21" y2="10" />
           </svg>
-          <span className="text-sm">이번 달</span>
+          <span className="text-sm">전체 기록</span>
         </div>
         <div className="flex items-baseline gap-6">
           <div>
