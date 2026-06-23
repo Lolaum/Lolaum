@@ -12,6 +12,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import BookDetail from "./BookDetail";
+import RitualDeclarationAccordion from "@/components/Routines/RitualDeclarationAccordion";
 import { Book, ViewMode } from "@/types/routines/reading";
 import { getBooksAuto, deleteBook, updateBook } from "@/api/book";
 import type { Book as BookDB } from "@/types/supabase";
@@ -272,6 +273,10 @@ export default function BookManage({
           </button>
         </div>
       </div>
+
+      <RitualDeclarationAccordion
+        routineType={isEnglishBook ? "english_book" : "reading"}
+      />
 
       {/* 그리드 뷰 */}
       {viewMode === "grid" && (

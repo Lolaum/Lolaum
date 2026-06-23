@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import LinkifiedText from "@/components/common/LinkifiedText";
 import EditFeedRecord from "@/components/Feed/EditFeedRecord";
+import RitualDeclarationAccordion from "@/components/Routines/RitualDeclarationAccordion";
 import {
   createRitualRecordAuto,
   deleteRitualRecord,
@@ -500,6 +501,8 @@ export default function RecordingContainer({
           )}
         </div>
       </div>
+
+      <RitualDeclarationAccordion routineType="recording" />
 
       {/* 기록 추가 버튼 */}
       <div className="mb-4">

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import RecordExercise from "./RecordExercise";
 import AddNewExercise from "./AddNewExercise";
+import RitualDeclarationAccordion from "@/components/Routines/RitualDeclarationAccordion";
 import {
   ExerciseRecord,
   ExerciseFormData,
@@ -158,6 +159,8 @@ export default function ExerciseContainer({ mode = "main" }: ExerciseContainerPr
           </div>
         </div>
       </div>
+
+      <RitualDeclarationAccordion routineType="exercise" />
 
       {/* 기록 추가 버튼 */}
       <div className="mb-4">

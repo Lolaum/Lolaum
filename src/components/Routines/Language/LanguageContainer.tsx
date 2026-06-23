@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Grid3x3, Loader2 } from "lucide-react";
 import RecordStudy from "./RecordStudy";
 import AddNewLanguage from "./AddNewLanguage";
+import RitualDeclarationAccordion from "@/components/Routines/RitualDeclarationAccordion";
 import {
   LanguageRecord,
   LanguageFormData,
@@ -185,6 +186,8 @@ export default function LanguageContainer({
             </div>
           </div>
         </div>
+
+        <RitualDeclarationAccordion routineType={routineType} />
 
         {/* 단어 카드 복습 */}
         <button

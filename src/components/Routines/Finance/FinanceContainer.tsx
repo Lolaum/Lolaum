@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import RecordFinance from "./RecordFinance";
 import AddNewFinance from "./AddNewFinance";
+import RitualDeclarationAccordion from "@/components/Routines/RitualDeclarationAccordion";
 import {
   FinanceRecord,
   FinanceFormData,
@@ -50,7 +51,10 @@ export default function FinanceContainer({ mode = "main" }: FinanceContainerProp
   }, []);
 
   useEffect(() => {
-    if (mode === "main") fetchRecords();
+    void Promise.resolve().then(() => {
+      if (mode === "main") return fetchRecords();
+      return undefined;
+    });
   }, [fetchRecords, mode]);
 
   const handleSubmit = async (formData: FinanceFormData) => {
@@ -230,6 +234,8 @@ export default function FinanceContainer({ mode = "main" }: FinanceContainerProp
           </div>
         )}
       </div>
+
+      <RitualDeclarationAccordion routineType="finance" />
 
       {/* 기록 추가 버튼 */}
       <div className="mb-4">

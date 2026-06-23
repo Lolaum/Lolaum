@@ -1280,11 +1280,9 @@ function RecordPreviewCard({ item }: { item: FeedItem }) {
 // 최근 기록 리스트 컴포넌트
 function RecentRecords({
   routineType,
-  tabName,
   refreshKey = 0,
 }: {
   routineType: RoutineTypeDB;
-  tabName: string;
   refreshKey?: number;
 }) {
   const [records, setRecords] = useState<FeedItem[]>([]);
@@ -1422,7 +1420,6 @@ export default function RoutineInsights({
       {routineType && (
         <RecentRecords
           routineType={routineType}
-          tabName={activeTab}
           refreshKey={refreshKey}
         />
       )}
