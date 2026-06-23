@@ -1,12 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { ContinuationChoice } from "@/types/routines/finalReview";
-import { createFinalReview } from "@/api/final-review";
+import {
+  createFinalReview,
+  getMyFinalReviewRoutineSummaries,
+  type FinalReviewRoutineSummary,
+} from "@/api/final-review";
 import type { PublicReviewQuestion } from "@/api/review-questions";
 
 const TOTAL_STEPS = 4;
+
+function SummaryLoadingDialog() {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 px-6 backdrop-blur-sm">
+      <div className="w-full max-w-xs rounded-2xl bg-white p-5 text-center shadow-xl border border-gray-100">
+        <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-yellow-500" />
+        <p className="text-sm font-semibold text-gray-900">
+          리추얼 기록을 불러오는 중
+        </p>
+        <p className="mt-1 text-xs text-gray-400">
+          1번 항목의 답변을 자동으로 채우고 있어요
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function formatRoutineSummaryAnswer(
+  summaries: FinalReviewRoutineSummary[],
+): string {
+  return summaries
+    .map((summary) => {
+      const metrics = summary.metrics
+        .map((metric) => `${metric.label} ${metric.value}`)
+        .join(" / ");
+      return `${summary.label} ${metrics}`;
+    })
+    .join("\n");
+}
 
 export default function FinalReviewWriteContainer({
   questions = {},
@@ -25,6 +59,30 @@ export default function FinalReviewWriteContainer({
     useState<ContinuationChoice | null>(null);
   const [adjustmentNote, setAdjustmentNote] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [summaryLoading, setSummaryLoading] = useState(true);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function fetchSummaries() {
+      try {
+        const result = await getMyFinalReviewRoutineSummaries();
+        if (ignore) return;
+        const defaultAnswer = formatRoutineSummaryAnswer(result.data ?? []);
+        if (defaultAnswer) {
+          setResults((current) => (current.trim() ? current : defaultAnswer));
+        }
+      } finally {
+        if (!ignore) setSummaryLoading(false);
+      }
+    }
+
+    void fetchSummaries();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const canNext1 = !!results.trim();
   const canNext2 = !!lifeChanges.trim();
@@ -72,6 +130,8 @@ export default function FinalReviewWriteContainer({
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
+      {summaryLoading && <SummaryLoadingDialog />}
+
       {/* 헤더 */}
       <div className="flex items-center gap-3 mb-6">
         <button
@@ -121,10 +181,12 @@ export default function FinalReviewWriteContainer({
               결과물 점검
             </span>
             <h2 className="text-base font-bold text-gray-800 leading-relaxed whitespace-pre-line">
-              {questions.results?.label ?? "이번 달 하루 10분-30분 리추얼을 통해 만들어낸\n눈에 보이는 결과물/행동 수치를 적어주세요."}
+              {questions.results?.label ??
+                "이번 달 하루 10분-30분 리추얼을 통해 만들어낸\n눈에 보이는 결과물/행동 수치를 적어주세요."}
             </h2>
             <p className="text-xs text-gray-400 mt-2 leading-relaxed whitespace-pre-line">
-              {questions.results?.helperText || "- 이번 달 내가 남긴 것\nex) 책 ___권 / 기록 ___개 / 운동 ___회 / 공부 ___회 등"}
+              {questions.results?.helperText ||
+                "- 이번 달 내가 남긴 것\nex) 책 ___권 / 기록 ___개 / 운동 ___회 / 공부 ___회 등"}
             </p>
           </div>
 
@@ -164,10 +226,12 @@ export default function FinalReviewWriteContainer({
               변화 점검
             </span>
             <h2 className="text-base font-bold text-gray-800 leading-relaxed whitespace-pre-line">
-              {questions.life_changes?.label ?? "리추얼을 통해 실제 삶에서\n바뀐 점이 있다면?"}
+              {questions.life_changes?.label ??
+                "리추얼을 통해 실제 삶에서\n바뀐 점이 있다면?"}
             </h2>
             <p className="text-xs text-gray-400 mt-2 leading-relaxed whitespace-pre-line">
-              {questions.life_changes?.helperText || "ex) 실제 성과, 생산성, 감정, 에너지, 집중력 등\n\n챌린지 첫 날 적었던 리추얼 선언을 읽어보고,\n기대하는 변화에 가까워지기 위해 노력한 스스로를 칭찬해주세요!"}
+              {questions.life_changes?.helperText ||
+                "ex) 실제 성과, 생산성, 감정, 에너지, 집중력 등\n\n챌린지 첫 날 적었던 리추얼 선언을 읽어보고,\n기대하는 변화에 가까워지기 위해 노력한 스스로를 칭찬해주세요!"}
             </p>
           </div>
 
@@ -207,7 +271,8 @@ export default function FinalReviewWriteContainer({
               방향 점검
             </span>
             <h2 className="text-base font-bold text-gray-800 leading-relaxed whitespace-pre-line">
-              {questions.continuation_choice?.label ?? "이 리추얼을 지금 방식 그대로\n1달 더 한다면?"}
+              {questions.continuation_choice?.label ??
+                "이 리추얼을 지금 방식 그대로\n1달 더 한다면?"}
             </h2>
           </div>
 
@@ -245,7 +310,8 @@ export default function FinalReviewWriteContainer({
               <label className="text-sm font-semibold text-gray-700 mb-2 block">
                 {continuationChoice === "other"
                   ? "기타 내용을 직접 입력해주세요"
-                  : questions.adjustment_note?.label ?? "무엇을 바꾸면 나아질까요?"}
+                  : (questions.adjustment_note?.label ??
+                    "무엇을 바꾸면 나아질까요?")}
               </label>
               <textarea
                 value={adjustmentNote}
@@ -253,7 +319,8 @@ export default function FinalReviewWriteContainer({
                 placeholder={
                   continuationChoice === "other"
                     ? "예: 다른 방식으로 이어가고 싶어요"
-                    : questions.adjustment_note?.helperText || "조정하고 싶은 점을 적어주세요"
+                    : questions.adjustment_note?.helperText ||
+                      "조정하고 싶은 점을 적어주세요"
                 }
                 rows={4}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 resize-none focus:outline-none focus:border-yellow-300 bg-white"
@@ -287,7 +354,8 @@ export default function FinalReviewWriteContainer({
               의견 보내기 (선택)
             </span>
             <h2 className="text-base font-bold text-gray-800 leading-relaxed whitespace-pre-line">
-              {questions.feedback?.label ?? "리추얼챌린지는 여러분의 의견을 받으며\n쑥쑥 자랍니다 💛"}
+              {questions.feedback?.label ??
+                "리추얼챌린지는 여러분의 의견을 받으며\n쑥쑥 자랍니다 💛"}
             </h2>
             <p className="text-xs text-gray-400 mt-2 leading-relaxed">
               - 리추얼챌린지에 이런게 있으면 좋을 것 같아요!
@@ -305,7 +373,10 @@ export default function FinalReviewWriteContainer({
             <textarea
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
-              placeholder={questions.feedback?.helperText || "자유롭게 의견을 남겨주세요 (선택사항)"}
+              placeholder={
+                questions.feedback?.helperText ||
+                "자유롭게 의견을 남겨주세요 (선택사항)"
+              }
               rows={6}
               className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 resize-none focus:outline-none focus:border-yellow-300 bg-white"
             />

@@ -9,6 +9,8 @@ import {
   hasMinimumPhotoInterval,
 } from "@/lib/utils";
 import { uploadImages } from "@/lib/upload-image";
+import { useRitualDraft } from "@/hooks/useRitualDraft";
+import RitualDraftButtons from "@/components/common/RitualDraftButtons";
 import CertificationPhotoIntervalModal from "@/components/common/CertificationPhotoIntervalModal";
 import {
   AddNewExerciseProps,
@@ -18,6 +20,17 @@ import {
 
 const DURATION_OPTIONS = [10, 20, 30, 40, 50, 60, 90, 120];
 const MACROS_OPTIONS = ["1:1:1", "2:1:1", "3:2:1", "4:3:3", "5:3:2"];
+const EXERCISE_DRAFT_KEY = "exercise";
+
+interface ExerciseDraftData {
+  recordType: ExerciseRecordType;
+  exerciseName: string;
+  duration: number | null;
+  customDuration: string;
+  macros: string | null;
+  customMacros: string;
+  achievement: string;
+}
 
 export default function AddNewExercise({
   onCancel,
@@ -45,9 +58,18 @@ export default function AddNewExercise({
   const [achievement, setAchievement] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const loadedFromDraftRef = useRef(false);
   const [showPhotoIntervalModal, setShowPhotoIntervalModal] = useState(false);
   const [showRatioTip, setShowRatioTip] = useState(false);
   const ratioTipRef = useRef<HTMLDivElement>(null);
+  const {
+    hasDraft,
+    loading: draftLoading,
+    saving: draftSaving,
+    saveDraft,
+    loadDraft,
+    clearDraft,
+  } = useRitualDraft<ExerciseDraftData>(EXERCISE_DRAFT_KEY);
 
   useEffect(() => {
     if (recordType !== "diet" || !dietLimitReached) return;
@@ -128,6 +150,39 @@ export default function AddNewExercise({
     setImageTakenAtTimes((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const makeDraft = (): ExerciseDraftData => ({
+    recordType,
+    exerciseName,
+    duration,
+    customDuration,
+    macros,
+    customMacros,
+    achievement,
+  });
+
+  const handleSaveDraft = async () => {
+    return saveDraft(makeDraft());
+  };
+
+  const handleLoadDraft = async () => {
+    const draft = await loadDraft();
+    if (!draft) return;
+    const nextRecordType =
+      draft.recordType === "diet" && dietSelectDisabled
+        ? "exercise"
+        : (draft.recordType ?? "exercise");
+    setRecordType(nextRecordType);
+    setExerciseName(draft.exerciseName ?? "");
+    setDuration(draft.duration ?? null);
+    setCustomDuration(draft.customDuration ?? "");
+    setMacros(draft.macros ?? null);
+    setCustomMacros(draft.customMacros ?? "");
+    setAchievement(draft.achievement ?? "");
+    setImages([]);
+    setImageTakenAtTimes([]);
+    loadedFromDraftRef.current = true;
+  };
+
   const finalDuration =
     duration ?? (customDuration ? parseInt(customDuration) : 0);
   const finalMacros = macros ?? (customMacros.trim() || undefined);
@@ -158,6 +213,10 @@ export default function AddNewExercise({
         await onSubmit(recordData);
       } else {
         onCancel();
+      }
+      if (loadedFromDraftRef.current) {
+        await clearDraft();
+        loadedFromDraftRef.current = false;
       }
     } finally {
       submittingRef.current = false;
@@ -479,6 +538,13 @@ export default function AddNewExercise({
         </div>
 
         {/* 버튼 */}
+        <RitualDraftButtons
+          hasDraft={hasDraft}
+          loading={draftLoading}
+          saving={draftSaving}
+          onSave={handleSaveDraft}
+          onLoad={handleLoadDraft}
+        />
         <div className="flex gap-3">
           <button
             type="button"

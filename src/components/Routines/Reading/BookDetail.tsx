@@ -36,10 +36,20 @@ import {
 } from "@/lib/utils";
 import { uploadImage, uploadImages } from "@/lib/upload-image";
 import { formatKoreaDateKey } from "@/lib/korea-date";
+import { useRitualDraft } from "@/hooks/useRitualDraft";
 import CertificationPhotoIntervalModal from "@/components/common/CertificationPhotoIntervalModal";
+import RitualDraftButtons from "@/components/common/RitualDraftButtons";
 import type { ReadingRecordData, Json } from "@/types/supabase";
 
 const MAX_READING_CERT_PHOTOS = 2;
+
+interface ReadingRecordDraftData {
+  startValue: string;
+  endValue: string;
+  noteType: NoteType;
+  note: string;
+  thoughts: string;
+}
 
 function AddReadingRecord({
   book,
@@ -67,7 +77,18 @@ function AddReadingRecord({
   );
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const loadedFromDraftRef = useRef(false);
   const [showPhotoIntervalModal, setShowPhotoIntervalModal] = useState(false);
+  const {
+    hasDraft,
+    loading: draftLoading,
+    saving: draftSaving,
+    saveDraft,
+    loadDraft,
+    clearDraft,
+  } = useRitualDraft<ReadingRecordDraftData>(
+    `reading-record:${isEnglishBook ? "english-book" : "reading"}:${book.id}`,
+  );
 
   const handleScreenshotFile = async (file: File | undefined) => {
     if (!file || !file.type.startsWith("image/")) return;
@@ -155,6 +176,30 @@ function AddReadingRecord({
     ? screenshot !== null
     : note.trim().length > 0 && certPhotos.length === MAX_READING_CERT_PHOTOS;
 
+  const handleSaveDraft = async () => {
+    return saveDraft({
+      startValue,
+      endValue,
+      noteType,
+      note,
+      thoughts,
+    });
+  };
+
+  const handleLoadDraft = async () => {
+    const draft = await loadDraft();
+    if (!draft) return;
+    setStartValue(draft.startValue ?? book.currentValue.toString());
+    setEndValue(draft.endValue ?? "");
+    setNoteType(draft.noteType ?? "sentence");
+    setNote(draft.note ?? "");
+    setThoughts(draft.thoughts ?? "");
+    setScreenshot(null);
+    setCertPhotos([]);
+    setCertPhotoTakenAtTimes([]);
+    loadedFromDraftRef.current = true;
+  };
+
   const handleSave = async () => {
     if (submittingRef.current || !canSave) return;
     submittingRef.current = true;
@@ -182,6 +227,10 @@ function AddReadingRecord({
         screenshot: screenshotUrl,
         certPhotos: certPhotoUrls,
       });
+      if (loadedFromDraftRef.current) {
+        await clearDraft();
+        loadedFromDraftRef.current = false;
+      }
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -483,6 +532,13 @@ function AddReadingRecord({
         )}
 
         {/* 저장 버튼 */}
+        <RitualDraftButtons
+          hasDraft={hasDraft}
+          loading={draftLoading}
+          saving={draftSaving}
+          onSave={handleSaveDraft}
+          onLoad={handleLoadDraft}
+        />
         <div className="flex gap-3">
           <button
             type="button"
@@ -675,7 +731,7 @@ export default function BookDetail({
 
     if (error) {
       alert(`기록 저장 실패: ${error}`);
-      return;
+      throw new Error(error);
     }
 
     setShowAddRecord(false);

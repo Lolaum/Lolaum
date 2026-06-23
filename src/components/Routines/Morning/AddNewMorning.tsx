@@ -10,6 +10,8 @@ import {
   hasMinimumPhotoInterval,
 } from "@/lib/utils";
 import { uploadImages } from "@/lib/upload-image";
+import { useRitualDraft } from "@/hooks/useRitualDraft";
+import RitualDraftButtons from "@/components/common/RitualDraftButtons";
 import {
   AddNewMorningProps,
   MorningFormData,
@@ -21,6 +23,16 @@ const WEEKEND_PHOTO_MIN_INTERVAL_MINUTES = 30;
 const MORNING_START_LIMIT_SECONDS = 7 * 60 * 60 + 59;
 const MORNING_START_TIME_MESSAGE =
   "시작 사진의 촬영 시간은 07:00:59를 넘을 수 없습니다.";
+const MORNING_DRAFT_KEY = "morning";
+
+interface MorningDraftData {
+  recordType: MorningRecordType;
+  sleepHours: string;
+  sleepImprovement: string;
+  condition: ConditionLevel | "";
+  success: string;
+  reflection: string;
+}
 
 function isAfterMorningStartLimit(takenAtTimes: number[]) {
   if (takenAtTimes.length === 0) return false;
@@ -51,6 +63,15 @@ export default function AddNewMorning({
   const [showPhotoIntervalModal, setShowPhotoIntervalModal] = useState(false);
   const [showStartTimeModal, setShowStartTimeModal] = useState(false);
   const submittingRef = useRef(false);
+  const loadedFromDraftRef = useRef(false);
+  const {
+    hasDraft,
+    loading: draftLoading,
+    saving: draftSaving,
+    saveDraft,
+    loadDraft,
+    clearDraft,
+  } = useRitualDraft<MorningDraftData>(MORNING_DRAFT_KEY);
 
   const sleepHoursNum = sleepHours ? parseFloat(sleepHours) : NaN;
   const showSleepImprovement =
@@ -125,6 +146,33 @@ export default function AddNewMorning({
     setImageTakenAtTimes((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const makeDraft = (): MorningDraftData => ({
+    recordType,
+    sleepHours,
+    sleepImprovement,
+    condition,
+    success,
+    reflection,
+  });
+
+  const handleSaveDraft = async () => {
+    return saveDraft(makeDraft());
+  };
+
+  const handleLoadDraft = async () => {
+    const draft = await loadDraft();
+    if (!draft) return;
+    setRecordType(draft.recordType ?? "weekday");
+    setSleepHours(draft.sleepHours ?? "");
+    setSleepImprovement(draft.sleepImprovement ?? "");
+    setCondition(draft.condition ?? "");
+    setSuccess(draft.success ?? "");
+    setReflection(draft.reflection ?? "");
+    setImages([]);
+    setImageTakenAtTimes([]);
+    loadedFromDraftRef.current = true;
+  };
+
   const handleSubmit = async () => {
     if (submittingRef.current || !isValid) return;
     submittingRef.current = true;
@@ -152,6 +200,10 @@ export default function AddNewMorning({
         await onSubmit(recordData);
       } else {
         onCancel();
+      }
+      if (loadedFromDraftRef.current) {
+        await clearDraft();
+        loadedFromDraftRef.current = false;
       }
     } catch {
       alert("기록 저장 중 문제가 발생했습니다. 다시 시도해 주세요.");
@@ -405,6 +457,13 @@ export default function AddNewMorning({
         </div>
 
         {/* 버튼 */}
+        <RitualDraftButtons
+          hasDraft={hasDraft}
+          loading={draftLoading}
+          saving={draftSaving}
+          onSave={handleSaveDraft}
+          onLoad={handleLoadDraft}
+        />
         <div className="flex gap-3">
           <button
             type="button"

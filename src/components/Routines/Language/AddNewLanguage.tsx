@@ -9,12 +9,18 @@ import {
   hasMinimumPhotoInterval,
 } from "@/lib/utils";
 import { uploadImages } from "@/lib/upload-image";
+import { useRitualDraft } from "@/hooks/useRitualDraft";
+import RitualDraftButtons from "@/components/common/RitualDraftButtons";
 import CertificationPhotoIntervalModal from "@/components/common/CertificationPhotoIntervalModal";
 import {
   AddNewLanguageProps,
   LanguageFormData,
   Expression,
 } from "@/types/routines/language";
+
+interface LanguageDraftData {
+  expressions: Expression[];
+}
 
 export default function AddNewLanguage({
   onCancel,
@@ -31,7 +37,18 @@ export default function AddNewLanguage({
   ]);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const loadedFromDraftRef = useRef(false);
   const [showPhotoIntervalModal, setShowPhotoIntervalModal] = useState(false);
+  const {
+    hasDraft,
+    loading: draftLoading,
+    saving: draftSaving,
+    saveDraft,
+    loadDraft,
+    clearDraft,
+  } = useRitualDraft<LanguageDraftData>(
+    isEnglish ? "language:english" : "language:second-language",
+  );
 
   const addExpression = () => {
     const newId = Math.max(...expressions.map((e) => e.id), 0) + 1;
@@ -106,6 +123,28 @@ export default function AddNewLanguage({
     setImageTakenAtTimes((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleSaveDraft = async () => {
+    return saveDraft({ expressions });
+  };
+
+  const handleLoadDraft = async () => {
+    const draft = await loadDraft();
+    if (!draft) return;
+    setExpressions(
+      draft.expressions?.length
+        ? draft.expressions.map((expr, index) => ({
+            id: index + 1,
+            word: expr.word ?? "",
+            meaning: expr.meaning ?? "",
+            example: expr.example ?? "",
+          }))
+        : [{ id: 1, word: "", meaning: "", example: "" }],
+    );
+    setImages([]);
+    setImageTakenAtTimes([]);
+    loadedFromDraftRef.current = true;
+  };
+
   const handleSubmit = async () => {
     if (submittingRef.current) return;
     const validExpressions = expressions.filter(
@@ -133,6 +172,10 @@ export default function AddNewLanguage({
         await onSubmit(recordData);
       } else {
         onCancel();
+      }
+      if (loadedFromDraftRef.current) {
+        await clearDraft();
+        loadedFromDraftRef.current = false;
       }
     } finally {
       submittingRef.current = false;
@@ -290,7 +333,7 @@ export default function AddNewLanguage({
             </button>
           </div>
           <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
-            {expressions.map((expr, index) => (
+            {expressions.map((expr) => (
               <div
                 key={expr.id}
                 className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3"
@@ -339,6 +382,13 @@ export default function AddNewLanguage({
         </div>
 
         {/* 버튼 */}
+        <RitualDraftButtons
+          hasDraft={hasDraft}
+          loading={draftLoading}
+          saving={draftSaving}
+          onSave={handleSaveDraft}
+          onLoad={handleLoadDraft}
+        />
         <div className="flex gap-3">
           <button
             type="button"

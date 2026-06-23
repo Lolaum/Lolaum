@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Calendar, Loader2 } from "lucide-react";
 import RecordMorning from "./RecordMorning";
 import AddNewMorning from "./AddNewMorning";
+import RitualDeclarationAccordion from "@/components/Routines/RitualDeclarationAccordion";
 import { MorningRecord, MorningFormData } from "@/types/routines/morning";
 import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
 import { formatKoreaDateKey } from "@/lib/korea-date";
@@ -50,7 +51,10 @@ export default function MorningContainer({ mode = "main" }: MorningContainerProp
   }, []);
 
   useEffect(() => {
-    if (mode === "main") fetchRecords();
+    void Promise.resolve().then(() => {
+      if (mode === "main") return fetchRecords();
+      return undefined;
+    });
   }, [fetchRecords, mode]);
 
   const handleSubmit = async (formData: MorningFormData) => {
@@ -127,6 +131,8 @@ export default function MorningContainer({ mode = "main" }: MorningContainerProp
           </div>
         </div>
       </div>
+
+      <RitualDeclarationAccordion routineType="morning" />
 
       {/* 구글밋 링크 */}
       <a

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import LinkifiedText from "@/components/common/LinkifiedText";
 import EditFeedRecord from "@/components/Feed/EditFeedRecord";
+import RitualDeclarationAccordion from "@/components/Routines/RitualDeclarationAccordion";
 import {
   createRitualRecordAuto,
   deleteRitualRecord,
@@ -23,6 +24,8 @@ import { isDateInCurrentKoreaWeek } from "@/lib/current-week";
 import { formatKoreaDateKey } from "@/lib/korea-date";
 import { fileToBase64 } from "@/lib/utils";
 import { uploadImages } from "@/lib/upload-image";
+import { useRitualDraft } from "@/hooks/useRitualDraft";
+import RitualDraftButtons from "@/components/common/RitualDraftButtons";
 import {
   normalizeRecordingEntries,
   type RecordingEntry,
@@ -47,6 +50,13 @@ interface RecordingRecord {
 const DURATION_OPTIONS = [10, 20, 30, 40, 50, 60];
 const MAX_RECORDING_PHOTOS = 4;
 const WEEKLY_READ_LIMIT = 2;
+const RECORDING_DRAFT_KEY = "recording";
+
+interface RecordingDraftData {
+  formMode: RecordingMode;
+  writeInputMode: "link" | "content";
+  entries: RecordingEntry[];
+}
 
 const emptyWrite = (): RecordingEntry => ({
   type: "write",
@@ -87,6 +97,7 @@ export default function RecordingContainer({
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const loadedFromDraftRef = useRef(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -100,6 +111,14 @@ export default function RecordingContainer({
   const [certPhotos, setCertPhotos] = useState<string[]>([]);
   const [weeklyReadDates, setWeeklyReadDates] = useState<string[]>([]);
   const [weeklyReadLoading, setWeeklyReadLoading] = useState(true);
+  const {
+    hasDraft,
+    loading: draftLoading,
+    saving: draftSaving,
+    saveDraft,
+    loadDraft,
+    clearDraft,
+  } = useRitualDraft<RecordingDraftData>(RECORDING_DRAFT_KEY);
 
   const goHome = () => router.push("/home");
   const goMain = () => router.push("/home/recording");
@@ -219,6 +238,32 @@ export default function RecordingContainer({
     setCertPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleSaveDraft = async () => {
+    return saveDraft({
+      formMode,
+      writeInputMode,
+      entries,
+    });
+  };
+
+  const handleLoadDraft = async () => {
+    const draft = await loadDraft();
+    if (!draft) return;
+    const nextMode =
+      draft.formMode === "read" && readSelectDisabled
+        ? "write"
+        : (draft.formMode ?? "write");
+    setFormMode(nextMode);
+    setWriteInputMode(draft.writeInputMode ?? "link");
+    setEntries(
+      draft.entries?.length
+        ? draft.entries
+        : [nextMode === "write" ? emptyWrite() : emptyRead()],
+    );
+    setCertPhotos([]);
+    loadedFromDraftRef.current = true;
+  };
+
   const canSubmit =
     entries.length > 0 &&
     entries.every(isEntryValid) &&
@@ -267,6 +312,10 @@ export default function RecordingContainer({
       if (error) {
         alert(`기록 저장 실패: ${error}`);
         return;
+      }
+      if (loadedFromDraftRef.current) {
+        await clearDraft();
+        loadedFromDraftRef.current = false;
       }
       goMain();
     } finally {
@@ -439,6 +488,13 @@ export default function RecordingContainer({
         )}
 
         {/* 저장 버튼 */}
+        <RitualDraftButtons
+          hasDraft={hasDraft}
+          loading={draftLoading}
+          saving={draftSaving}
+          onSave={handleSaveDraft}
+          onLoad={handleLoadDraft}
+        />
         <button
           type="button"
           onClick={handleSubmit}
@@ -500,6 +556,8 @@ export default function RecordingContainer({
           )}
         </div>
       </div>
+
+      <RitualDeclarationAccordion routineType="recording" />
 
       {/* 기록 추가 버튼 */}
       <div className="mb-4">

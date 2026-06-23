@@ -7,6 +7,15 @@ import { AddNewBookProps, BookFormData } from "@/types/routines/reading";
 import type { BookSearchResult } from "@/app/api/books/search/route";
 import { uploadBookCover } from "@/api/book";
 import { resizeImageFile } from "@/lib/utils";
+import { useRitualDraft } from "@/hooks/useRitualDraft";
+import RitualDraftButtons from "@/components/common/RitualDraftButtons";
+
+interface AddBookDraftData {
+  title: string;
+  author: string;
+  trackingType: "page" | "percent";
+  totalPages: string;
+}
 
 export default function AddNewBook({ onCancel, onBackToHome, onSubmit, isEnglishBook }: AddNewBookProps) {
   const [title, setTitle] = useState("");
@@ -18,6 +27,17 @@ export default function AddNewBook({ onCancel, onBackToHome, onSubmit, isEnglish
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const loadedFromDraftRef = useRef(false);
+  const {
+    hasDraft,
+    loading: draftLoading,
+    saving: draftSaving,
+    saveDraft,
+    loadDraft,
+    clearDraft,
+  } = useRitualDraft<AddBookDraftData>(
+    isEnglishBook ? "book:english-book" : "book:reading",
+  );
 
   // ── 카카오 책 자동완성 ──────────────────────────────
   const [results, setResults] = useState<BookSearchResult[]>([]);
@@ -110,9 +130,39 @@ export default function AddNewBook({ onCancel, onBackToHome, onSubmit, isEnglish
     };
 
     setSubmitting(true);
-    await onSubmit?.(bookData);
-    setSubmitting(false);
-    onCancel();
+    try {
+      await onSubmit?.(bookData);
+      if (loadedFromDraftRef.current) {
+        await clearDraft();
+        loadedFromDraftRef.current = false;
+      }
+      onCancel();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    return saveDraft({
+      title,
+      author,
+      trackingType,
+      totalPages,
+    });
+  };
+
+  const handleLoadDraft = async () => {
+    const draft = await loadDraft();
+    if (!draft) return;
+    skipSearchRef.current = true;
+    setTitle(draft.title ?? "");
+    setAuthor(draft.author ?? "");
+    setTrackingType(draft.trackingType ?? "page");
+    setTotalPages(draft.totalPages ?? "");
+    setCoverImageUrl(null);
+    setResults([]);
+    setShowResults(false);
+    loadedFromDraftRef.current = true;
   };
 
   return (
@@ -355,6 +405,14 @@ export default function AddNewBook({ onCancel, onBackToHome, onSubmit, isEnglish
         )}
 
         {/* 버튼 */}
+        <RitualDraftButtons
+          hasDraft={hasDraft}
+          loading={draftLoading}
+          saving={draftSaving}
+          onSave={handleSaveDraft}
+          onLoad={handleLoadDraft}
+          imageNotice="표지 이미지는 저장하지 않아요."
+        />
         <div className="flex gap-3">
           <button
             type="button"

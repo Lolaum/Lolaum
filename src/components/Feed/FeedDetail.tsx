@@ -744,7 +744,11 @@ function PhotoViewer({
         if (touchRef.current === null) return;
         const diff = e.changedTouches[0].clientX - touchRef.current;
         if (Math.abs(diff) > 50) {
-          diff > 0 ? goPrev() : goNext();
+          if (diff > 0) {
+            goPrev();
+          } else {
+            goNext();
+          }
         }
         touchRef.current = null;
       }}

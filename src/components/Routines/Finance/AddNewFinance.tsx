@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { Plus, X, Calendar as CalendarIcon, Upload } from "lucide-react";
 import { applyTimestamp, fileToBase64 } from "@/lib/utils";
 import { uploadImages } from "@/lib/upload-image";
+import { useRitualDraft } from "@/hooks/useRitualDraft";
+import RitualDraftButtons from "@/components/common/RitualDraftButtons";
 import {
   AddNewFinanceProps,
   FinanceFormData,
@@ -15,6 +17,15 @@ const MAX_CERT_PHOTOS = 1;
 
 interface DailyExpenseState extends DailyExpense {
   id: string; // UI에서 관리하기 위한 임시 ID
+}
+
+interface FinanceDraftData {
+  dailyExpenses: DailyExpenseState[];
+  studyContent: string;
+  practice: string;
+  necessaryInputs: Record<string, { name: string; amount: string }>;
+  emotionalInputs: Record<string, { name: string; amount: string }>;
+  valueInputs: Record<string, { name: string; amount: string }>;
 }
 
 export default function AddNewFinance({
@@ -30,9 +41,18 @@ export default function AddNewFinance({
   const [certPhotos, setCertPhotos] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const loadedFromDraftRef = useRef(false);
   const [showCalendar, setShowCalendar] = useState<string | null>(null); // 어떤 날짜 섹션의 캘린더를 보여줄지
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const calendarRef = useRef<HTMLDivElement>(null);
+  const {
+    hasDraft,
+    loading: draftLoading,
+    saving: draftSaving,
+    saveDraft,
+    loadDraft,
+    clearDraft,
+  } = useRitualDraft<FinanceDraftData>("finance");
 
   // 각 날짜별 임시 입력 상태 (필요소비)
   const [necessaryInputs, setNecessaryInputs] = useState<
@@ -273,6 +293,37 @@ export default function AddNewFinance({
     setCertPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleSaveDraft = async () => {
+    return saveDraft({
+      dailyExpenses,
+      studyContent,
+      practice,
+      necessaryInputs,
+      emotionalInputs,
+      valueInputs,
+    });
+  };
+
+  const handleLoadDraft = async () => {
+    const draft = await loadDraft();
+    if (!draft) return;
+    const nextDailyExpenses = draft.dailyExpenses?.length
+      ? draft.dailyExpenses.map((daily, index) => ({
+          id: daily.id || `${Date.now()}-${index}`,
+          date: daily.date ?? "",
+          expenses: daily.expenses ?? [],
+        }))
+      : [{ id: Date.now().toString(), date: "", expenses: [] }];
+    setDailyExpenses(nextDailyExpenses);
+    setStudyContent(draft.studyContent ?? "");
+    setPractice(draft.practice ?? "");
+    setNecessaryInputs(draft.necessaryInputs ?? {});
+    setEmotionalInputs(draft.emotionalInputs ?? {});
+    setValueInputs(draft.valueInputs ?? {});
+    setCertPhotos([]);
+    loadedFromDraftRef.current = true;
+  };
+
   // 소비 항목 제거
   const removeExpense = (dailyId: string, expenseId: string) => {
     setDailyExpenses((prev) =>
@@ -304,7 +355,10 @@ export default function AddNewFinance({
       certPhotos.length > 0 ? await uploadImages(certPhotos) : undefined;
 
     const formData: FinanceFormData = {
-      dailyExpenses: dailyExpenses.map(({ id, ...rest }) => rest),
+      dailyExpenses: dailyExpenses.map((daily) => ({
+        date: daily.date,
+        expenses: daily.expenses,
+      })),
       studyContent: studyContent.trim(),
       practice: practice.trim(),
       certPhotos: certPhotoUrls,
@@ -315,6 +369,10 @@ export default function AddNewFinance({
         await onSubmit(formData);
       } else {
         onCancel();
+      }
+      if (loadedFromDraftRef.current) {
+        await clearDraft();
+        loadedFromDraftRef.current = false;
       }
     } finally {
       submittingRef.current = false;
@@ -921,6 +979,13 @@ export default function AddNewFinance({
         </div>
 
         {/* 버튼 */}
+        <RitualDraftButtons
+          hasDraft={hasDraft}
+          loading={draftLoading}
+          saving={draftSaving}
+          onSave={handleSaveDraft}
+          onLoad={handleLoadDraft}
+        />
         <div className="flex gap-3">
           <button
             type="button"

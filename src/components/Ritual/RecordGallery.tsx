@@ -500,9 +500,9 @@ function ReflectionCardContent({ data }: { data: ReflectionFeedData }) {
 
       {data.chips && data.chips.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {data.chips.slice(0, 3).map((chip) => (
+          {data.chips.slice(0, 3).map((chip, index) => (
             <span
-              key={chip}
+              key={`${chip}-${index}`}
               className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
               style={{ backgroundColor: "#fef3c7", color: "#d97706" }}
             >

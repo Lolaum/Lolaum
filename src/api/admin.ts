@@ -172,7 +172,6 @@ export async function adminLogin(input: { email: string; password: string }) {
   const result = await login(input);
   if (result.error) return result;
 
-  const adminEmails = getAdminEmails();
   if (!isAdminEmail(input.email)) {
     return {
       error: "로그인은 되었지만 관리자 이메일로 등록되어 있지 않습니다.",
@@ -197,7 +196,6 @@ export async function adminSignup(input: {
     return { error: "관리자 가입 코드가 올바르지 않습니다." };
   }
 
-  const adminEmails = getAdminEmails();
   if (!isAdminEmail(input.email)) {
     return { error: "관리자 이메일 허용 목록에 없는 계정입니다." };
   }

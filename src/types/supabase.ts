@@ -221,6 +221,29 @@ export interface Database {
         };
         Relationships: [];
       };
+      ritual_drafts: {
+        Row: {
+          id: string;
+          user_id: string;
+          draft_key: string;
+          draft_data: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          draft_key: string;
+          draft_data: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          draft_data?: Json;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       books: {
         Row: {
           id: string;
@@ -611,6 +634,8 @@ export type ChallengeRegistration =
   Database["public"]["Tables"]["challenge_registrations"]["Row"];
 export type RitualRecord =
   Database["public"]["Tables"]["ritual_records"]["Row"];
+export type RitualDraft =
+  Database["public"]["Tables"]["ritual_drafts"]["Row"];
 export type Book = Database["public"]["Tables"]["books"]["Row"];
 export type Feed = Database["public"]["Tables"]["feeds"]["Row"];
 export type FeedComment = Database["public"]["Tables"]["feed_comments"]["Row"];

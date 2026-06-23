@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/api/auth";
@@ -57,9 +58,13 @@ export default function Login() {
         <div className="rounded-3xl bg-white p-8 shadow-xl sm:p-10">
           {/* 로고 — 양쪽 글자 끝이 잘리지 않도록 가로 padding 확보 */}
           <div className="mb-8 text-center">
-            <img
+            <Image
               src="/images/common/LolaumLogoWeb.png"
               alt="Lolaum Logo"
+              width={220}
+              height={58}
+              priority
+              sizes="220px"
               className="mx-auto mb-3 h-12 w-auto max-w-[220px] object-contain"
             />
             <p className="text-sm text-gray-400">매일 성장하는 나를 만드는 곳</p>

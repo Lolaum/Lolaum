@@ -285,7 +285,7 @@ function FeedThumbnail({
   );
 }
 
-export default function FeedItem({ item, priority }: FeedItemProps) {
+function FeedItem({ item, priority }: FeedItemProps) {
   const config = CATEGORY_CONFIG[item.routineCategory];
   const previewText = getPreviewText(item);
   const subText = getSubText(item);
@@ -387,12 +387,16 @@ export default function FeedItem({ item, priority }: FeedItemProps) {
           />
         </div>
       </div>
-      <ChallengerRitualsPopover
-        userId={String(item.userId)}
-        userName={item.userName}
-        open={profileOpen}
-        onClose={() => setProfileOpen(false)}
-      />
+      {profileOpen && (
+        <ChallengerRitualsPopover
+          userId={String(item.userId)}
+          userName={item.userName}
+          open={profileOpen}
+          onClose={() => setProfileOpen(false)}
+        />
+      )}
     </>
   );
 }
+
+export default React.memo(FeedItem);
