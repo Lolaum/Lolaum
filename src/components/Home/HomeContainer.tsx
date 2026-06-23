@@ -51,6 +51,8 @@ const RITUAL_ROUTES: Record<string, string> = {
   기록리추얼: "/home/recording",
 };
 
+const ENABLE_MID_REVIEW_REMINDER = false;
+
 function getMidReviewOpenDateKey(period: ActivePeriod): string {
   const start = new Date(`${period.start_date}T00:00:00`);
   const end = new Date(`${period.end_date}T00:00:00`);
@@ -76,7 +78,10 @@ export default function HomeContainer({
   period: ActivePeriod | null;
 }) {
   const router = useRouter();
-  const initialToday = useMemo(() => new Date(`${todayKey}T00:00:00`), [todayKey]);
+  const initialToday = useMemo(
+    () => new Date(`${todayKey}T00:00:00`),
+    [todayKey],
+  );
   const [today, setToday] = useState<Date>(initialToday);
   const [selectedDate, setSelectedDate] = useState<Date>(initialToday);
   const [selectedMemberId, setSelectedMemberId] = useState<
@@ -122,11 +127,16 @@ export default function HomeContainer({
     (period ? addDaysToDateKey(period.end_date, -1) : null);
   const finalReviewEndDate = period?.final_review_end_date ?? period?.end_date;
   const shouldShowMidReviewReminder =
+    ENABLE_MID_REVIEW_REMINDER &&
     Boolean(midReviewStartDate && midReviewEndDate) &&
     isDateInRange(todayKey, midReviewStartDate ?? "", midReviewEndDate ?? "");
   const shouldShowFinalReviewReminder =
     Boolean(finalReviewStartDate && finalReviewEndDate) &&
-    isDateInRange(todayKey, finalReviewStartDate ?? "", finalReviewEndDate ?? "");
+    isDateInRange(
+      todayKey,
+      finalReviewStartDate ?? "",
+      finalReviewEndDate ?? "",
+    );
   const shouldShowReviewReminder =
     shouldShowMidReviewReminder || shouldShowFinalReviewReminder;
 
