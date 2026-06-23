@@ -30,30 +30,40 @@ export default function ReactionBar({
   commentHref,
   onCommentClick,
 }: ReactionBarProps) {
-  const [summary, setSummary] = useState<FeedReactionSummary>(
-    initialSummary ?? EMPTY_SUMMARY,
-  );
+  const [summaryState, setSummaryState] = useState<{
+    recordId?: string;
+    summary?: FeedReactionSummary;
+  }>(() => ({
+    recordId,
+    summary: undefined,
+  }));
   const [pendingEmoji, setPendingEmoji] = useState<string | null>(null);
   const [disabledReason, setDisabledReason] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
-    if (!recordId) return;
+  const hasServerSummary = initialSummary != null;
 
-    setSummary(initialSummary ?? EMPTY_SUMMARY);
+  useEffect(() => {
+    if (!recordId || hasServerSummary) return;
+
     let active = true;
     getFeedReactions(recordId).then(({ data, error }) => {
       if (!active) return;
       if (error === SETUP_ERROR) {
         setDisabledReason(error);
       }
-      if (active) setSummary(data);
+      setSummaryState({ recordId, summary: data });
     });
 
     return () => {
       active = false;
     };
-  }, [recordId, initialSummary]);
+  }, [recordId, hasServerSummary]);
+
+  const summary =
+    summaryState.recordId === recordId && summaryState.summary
+      ? summaryState.summary
+      : (initialSummary ?? EMPTY_SUMMARY);
 
   const reactionMap = useMemo(
     () => new Map(summary.reactions.map((item) => [item.emoji, item])),
@@ -95,9 +105,16 @@ export default function ReactionBar({
     if (isPending) return;
 
     let previousSummary: FeedReactionSummary | null = null;
-    setSummary((current) => {
-      previousSummary = current;
-      return toggleLikeSummary(current);
+    setSummaryState((current) => {
+      const currentSummary =
+        current.recordId === recordId
+          ? (current.summary ?? initialSummary ?? EMPTY_SUMMARY)
+          : (initialSummary ?? EMPTY_SUMMARY);
+      previousSummary = currentSummary;
+      return {
+        recordId,
+        summary: toggleLikeSummary(currentSummary),
+      };
     });
     setPendingEmoji(FEED_LIKE_EMOJI);
     startTransition(async () => {
@@ -107,7 +124,7 @@ export default function ReactionBar({
       );
       if (error) {
         if (error === SETUP_ERROR) {
-          if (previousSummary) setSummary(previousSummary);
+          if (previousSummary) setSummaryState({ recordId, summary: previousSummary });
           setDisabledReason(error);
           alert(
             "좋아요 저장 테이블이 아직 준비되지 않았어요. Supabase SQL을 먼저 적용해주세요.",
@@ -116,13 +133,13 @@ export default function ReactionBar({
           console.error("좋아요 알림 생성 실패:", error);
           alert(error);
         } else {
-          if (previousSummary) setSummary(previousSummary);
+          if (previousSummary) setSummaryState({ recordId, summary: previousSummary });
           console.error("리액션 처리 실패:", error);
           alert(error);
         }
       }
       if (data && error !== SETUP_ERROR) {
-        setSummary(data);
+        setSummaryState({ recordId, summary: data });
       }
       setPendingEmoji(null);
     });

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useKoreaMidnightRefresh } from "@/lib/hooks/useKoreaMidnightRefresh";
 import { type ChallengerProgress, type ProgressPageData } from "@/api/progress";
 
@@ -130,10 +131,13 @@ function Avatar({
       }
     >
       {avatarUrl ? (
-        <img
+        <Image
           src={avatarUrl}
           alt={name}
-          className="w-full h-full rounded-full object-cover"
+          width={isLarge ? 56 : 40}
+          height={isLarge ? 56 : 40}
+          sizes={isLarge ? "56px" : "40px"}
+          className="h-full w-full rounded-full object-cover"
         />
       ) : emoji ? (
         <span className={isLarge ? "text-2xl" : "text-lg"}>{emoji}</span>

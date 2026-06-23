@@ -24,31 +24,53 @@ function isToday(dateStr: string): boolean {
 
 export default function TodoList({ selectedDate }: TodoListProps) {
   const dateKey = formatDateKey(selectedDate);
-  const [todos, setTodos] = useState<Todo[]>([]);
+  const [todoState, setTodoState] = useState<{
+    dateKey: string;
+    todos: Todo[];
+  }>(() => ({ dateKey, todos: [] }));
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
+
+  const todos = todoState.dateKey === dateKey ? todoState.todos : [];
+  const loading = todoState.dateKey !== dateKey;
 
   const fetchTodos = useCallback(async () => {
-    setLoading(true);
     const { data } = await getTodos(dateKey);
-    setTodos(data || []);
-    setLoading(false);
+    setTodoState({ dateKey, todos: data || [] });
   }, [dateKey]);
 
   useEffect(() => {
-    fetchTodos();
-  }, [fetchTodos]);
+    let active = true;
+    getTodos(dateKey).then(({ data }) => {
+      if (!active) return;
+      setTodoState({ dateKey, todos: data || [] });
+    });
+    return () => {
+      active = false;
+    };
+  }, [dateKey]);
+
+  const updateCurrentTodos = useCallback(
+    (updater: (current: Todo[]) => Todo[]) => {
+      setTodoState((prevState) => ({
+        dateKey,
+        todos: updater(
+          prevState.dateKey === dateKey ? prevState.todos : [],
+        ),
+      }));
+    },
+    [dateKey],
+  );
 
   const handleToggle = async (id: string, currentCompleted: boolean) => {
-    setTodos((prev) =>
-      prev.map((todo) =>
+    updateCurrentTodos((current) =>
+      current.map((todo) =>
         todo.id === id ? { ...todo, completed: !currentCompleted } : todo,
       ),
     );
     const { error } = await updateTodo(id, { completed: !currentCompleted });
     if (error) {
-      setTodos((prev) =>
-        prev.map((todo) =>
+      updateCurrentTodos((current) =>
+        current.map((todo) =>
           todo.id === id ? { ...todo, completed: currentCompleted } : todo,
         ),
       );
@@ -61,12 +83,12 @@ export default function TodoList({ selectedDate }: TodoListProps) {
     setInput("");
     const { data } = await createTodo({ title, todo_date: dateKey });
     if (data) {
-      setTodos((prev) => [data, ...prev]);
+      updateCurrentTodos((current) => [data, ...current]);
     }
   };
 
   const handleDelete = async (id: string) => {
-    setTodos((prev) => prev.filter((todo) => todo.id !== id));
+    updateCurrentTodos((current) => current.filter((todo) => todo.id !== id));
     const { error } = await deleteTodo(id);
     if (error) {
       fetchTodos();

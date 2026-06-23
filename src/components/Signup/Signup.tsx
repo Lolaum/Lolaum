@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { signup, login, checkUsername } from "@/api/auth";
@@ -113,9 +114,13 @@ export default function Signup() {
         <div className="rounded-3xl bg-white p-8 shadow-xl sm:p-10">
           {/* 로고 */}
           <div className="mb-8 text-center">
-            <img
+            <Image
               src="/images/common/LolaumLogoWeb.png"
               alt="Lolaum Logo"
+              width={220}
+              height={58}
+              priority
+              sizes="220px"
               className="mx-auto mb-3 h-12 w-auto max-w-[220px] object-contain"
             />
             <p className="text-sm text-gray-400">새로운 리추얼 여정을 시작하세요</p>

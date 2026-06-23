@@ -76,7 +76,6 @@ export default function FeedContainer({
     const query = params.toString();
     startTransition(() => {
       router.replace(query ? `/feeds?${query}` : "/feeds");
-      router.refresh();
     });
   };
 

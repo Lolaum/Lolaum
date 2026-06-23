@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -42,7 +42,6 @@ export default function LayoutShell({ children, isAdmin }: LayoutShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const isDesktopQuery = useMediaQuery("(min-width: 768px)");
-  const [mounted, setMounted] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -59,10 +58,6 @@ export default function LayoutShell({ children, isAdmin }: LayoutShellProps) {
   };
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
     if (isDrawerOpen) {
       document.body.style.overflow = "hidden";
     } else {
@@ -73,8 +68,11 @@ export default function LayoutShell({ children, isAdmin }: LayoutShellProps) {
     };
   }, [isDrawerOpen]);
 
-  const isDesktop = mounted ? isDesktopQuery : false;
-  const visibleNavItems = isAdmin ? [...navItems, adminNavItem] : navItems;
+  const isDesktop = isDesktopQuery;
+  const visibleNavItems = useMemo(
+    () => (isAdmin ? [...navItems, adminNavItem] : navItems),
+    [isAdmin],
+  );
 
   return (
     <div className="min-h-screen bg-background">

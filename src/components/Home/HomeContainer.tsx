@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import HomCalendar from "./HomeCalendar";
 import TaskTabs from "./Todo/TaskTabs";
@@ -76,9 +76,9 @@ export default function HomeContainer({
   period: ActivePeriod | null;
 }) {
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-  const [today, setToday] = useState<Date | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const initialToday = useMemo(() => new Date(`${todayKey}T00:00:00`), [todayKey]);
+  const [today, setToday] = useState<Date>(initialToday);
+  const [selectedDate, setSelectedDate] = useState<Date>(initialToday);
   const [selectedMemberId, setSelectedMemberId] = useState<
     string | undefined
   >();
@@ -99,16 +99,6 @@ export default function HomeContainer({
     setSelectedDate(now);
   }, []);
   useKoreaMidnightRefresh(refreshToday);
-
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      const now = new Date();
-      setToday(now);
-      setSelectedDate(now);
-      setMounted(true);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, []);
 
   // 선택된 날짜가 오늘 이전인지 확인
   const isPastDate =
@@ -146,30 +136,6 @@ export default function HomeContainer({
     const route = RITUAL_ROUTES[title];
     if (route) router.push(route);
   };
-
-  // 마운트 전에는 로딩 상태 표시
-  if (!mounted || !today || !selectedDate) {
-    return (
-      <div className="w-full px-4 py-3 sm:px-6 md:px-8 lg:px-12">
-        <div className="mx-auto max-w-7xl">
-          <div className="flex flex-col gap-6 md:flex-row md:gap-8">
-            <div className="w-full md:w-1/2 lg:w-5/12">
-              <div className="rounded-lg border p-4 animate-pulse">
-                <div className="h-6 bg-gray-200 rounded mb-4 w-32"></div>
-                <div className="h-48 bg-gray-100 rounded"></div>
-              </div>
-            </div>
-            <div className="w-full md:w-1/2 lg:w-7/12">
-              <div className="rounded-lg border p-4 animate-pulse">
-                <div className="h-6 bg-gray-200 rounded mb-4 w-24"></div>
-                <div className="h-64 bg-gray-100 rounded"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full px-4 py-4 sm:px-6 md:px-8 lg:px-12">
