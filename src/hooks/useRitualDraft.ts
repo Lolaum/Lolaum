@@ -1,44 +1,119 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  deleteRitualDraft,
+  getRitualDraft,
+  saveRitualDraft,
+} from "@/api/ritual-draft";
+import type { Json } from "@/types/supabase";
 
-const DRAFT_PREFIX = "lolaum:ritual-draft";
+function toJson<T>(draft: T): Json {
+  return JSON.parse(JSON.stringify(draft)) as Json;
+}
 
 export function useRitualDraft<T>(draftKey: string) {
-  const storageKey = `${DRAFT_PREFIX}:${draftKey}`;
-  const [hasDraft, setHasDraft] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem(storageKey) !== null;
-  });
+  const [hasDraft, setHasDraft] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const saveChainRef = useRef(Promise.resolve());
+  const activeSaveIdRef = useRef(0);
+
+  const loadDraft = useCallback(async (): Promise<T | null> => {
+    setLoading(true);
+    try {
+      const result = await getRitualDraft({ draftKey });
+      if (result.error) {
+        console.error(result.error);
+        setHasDraft(false);
+        return null;
+      }
+
+      setHasDraft(result.data !== null);
+      return (result.data?.draft_data as T | undefined) ?? null;
+    } finally {
+      setLoading(false);
+    }
+  }, [draftKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkDraft() {
+      setLoading(true);
+      try {
+        const result = await getRitualDraft({ draftKey });
+        if (cancelled) return;
+
+        if (result.error) {
+          console.error(result.error);
+          setHasDraft(false);
+          return;
+        }
+
+        setHasDraft(result.data !== null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    checkDraft();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [draftKey]);
 
   const saveDraft = useCallback(
-    (draft: T) => {
-      if (typeof window === "undefined") return;
-      window.localStorage.setItem(storageKey, JSON.stringify(draft));
-      setHasDraft(true);
+    (draft: T): Promise<{ error?: string }> => {
+      const saveId = activeSaveIdRef.current + 1;
+      activeSaveIdRef.current = saveId;
+
+      const saveJob = saveChainRef.current
+        .catch(() => undefined)
+        .then(async () => {
+          setSaving(true);
+          try {
+            const result = await saveRitualDraft({
+              draftKey,
+              draftData: toJson(draft),
+            });
+
+            if (result.error) {
+              console.error(result.error);
+              return { error: result.error };
+            }
+
+            setHasDraft(true);
+            return {};
+          } finally {
+            if (activeSaveIdRef.current === saveId) {
+              setSaving(false);
+            }
+          }
+        });
+
+      saveChainRef.current = saveJob.then(() => undefined, () => undefined);
+      return saveJob;
     },
-    [storageKey],
+    [draftKey],
   );
 
-  const loadDraft = useCallback((): T | null => {
-    if (typeof window === "undefined") return null;
-    const raw = window.localStorage.getItem(storageKey);
-    if (!raw) return null;
-
+  const clearDraft = useCallback(async (): Promise<{ error?: string }> => {
+    setSaving(true);
     try {
-      return JSON.parse(raw) as T;
-    } catch {
-      window.localStorage.removeItem(storageKey);
+      const result = await deleteRitualDraft({ draftKey });
+      if (result.error) {
+        console.error(result.error);
+        return { error: result.error };
+      }
+
       setHasDraft(false);
-      return null;
+      return {};
+    } finally {
+      setSaving(false);
     }
-  }, [storageKey]);
+  }, [draftKey]);
 
-  const clearDraft = useCallback(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.removeItem(storageKey);
-    setHasDraft(false);
-  }, [storageKey]);
-
-  return { hasDraft, saveDraft, loadDraft, clearDraft };
+  return { hasDraft, loading, saving, saveDraft, loadDraft, clearDraft };
 }
