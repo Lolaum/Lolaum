@@ -1,6 +1,7 @@
 // 인증 게시글 관련 타입 정의
 
 import { DailyExpense } from "./routines/finance";
+import type { CleanupArea, CleanupMetricType } from "@/types/supabase";
 
 export type RoutineCategory =
   | "운동"
@@ -10,6 +11,7 @@ export type RoutineCategory =
   | "제2외국어"
   | "기록"
   | "자산관리"
+  | "정돈"
   | "원서읽기"
   | "회고";
 
@@ -40,6 +42,17 @@ export interface FinanceFeedData {
   studyContent: string;
   practice: string;
   certPhotos?: string[];
+}
+
+export interface CleanupFeedData {
+  area: CleanupArea;
+  customArea?: string;
+  certPhotos?: string[];
+  metric?: {
+    type: CleanupMetricType;
+    value: number;
+  };
+  note: string;
 }
 
 export type RecordingMode = "write" | "read";
@@ -143,6 +156,7 @@ export type FeedRoutineData =
   | ExerciseFeedData
   | MorningFeedData
   | FinanceFeedData
+  | CleanupFeedData
   | LanguageFeedData
   | ReadingFeedData
   | RecordingFeedData

@@ -7,6 +7,7 @@ import { ProfileProps } from "@/types/home/profile";
 import { Flame, Trophy, CheckCircle2 } from "lucide-react";
 import { updateMe } from "@/api/user";
 import { createClient } from "@/lib/supabase/client";
+import UserAvatar from "@/components/common/UserAvatar";
 import {
   MyPageStats,
   CompletionRateStats,
@@ -271,15 +272,7 @@ export default function Profile({
     <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-4">
       {/* 유저 정보 */}
       <button type="button" onClick={handleOpen} className="flex items-center gap-3 mb-4 w-full text-left">
-        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
-          {savedPhoto ? (
-            <Image src={savedPhoto} alt="프로필" width={40} height={40} className="w-full h-full object-cover" unoptimized />
-          ) : (
-            <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-            </svg>
-          )}
-        </div>
+        <UserAvatar avatarUrl={savedPhoto ?? undefined} size={40} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 min-w-0">
             <p className="text-sm font-bold text-gray-900 truncate">{savedName || userName}</p>

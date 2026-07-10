@@ -219,6 +219,36 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
 2. 종료인증: 작성한 글 링크 첨부`,
       },
     ],
+    정돈리추얼: [
+      {
+        id: "expected_change",
+        label: "기대하는 변화",
+        description:
+          "정돈 리추얼을 통해 공간과 디지털 환경에서 어떤 변화를 만들고 싶은지 작성해주세요.",
+        placeholder:
+          "하루 10분씩 주변을 정리해 머릿속까지 가벼운 사람",
+      },
+      {
+        id: "ritual_time",
+        label: "정돈 리추얼 시간",
+        placeholder: "예) 매일 저녁 10시, 10분간",
+      },
+      {
+        id: "target_area",
+        label: "이번 챌린지에서 중점적으로 정돈할 곳",
+        placeholder: "예) 다운로드 폴더, 이메일함, 책상, 옷장",
+      },
+      {
+        id: "cert_method",
+        label: "리추얼 인증 방법을 확인해주세요",
+        description: "*챌린저 모두 동일",
+        readOnly: true,
+        isConfirmation: true,
+        defaultValue: `1. 하루 10분 동안 공간 또는 디지털 환경을 정리합니다.
+2. 정리한 분야와 인증 사진, 한 줄 소감을 남깁니다.
+3. 사진은 Before / After, 결과 화면 캡처, 정리 완료 사진 중 최대 2장으로 인증합니다.`,
+      },
+    ],
     자산관리리추얼: [
       {
         id: "expected_change",

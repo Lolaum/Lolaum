@@ -8,6 +8,7 @@ import {
   ExerciseFeedData,
   MorningFeedData,
   FinanceFeedData,
+  CleanupFeedData,
   LanguageFeedData,
   ReadingFeedData,
   RecordingFeedData,
@@ -17,7 +18,11 @@ import {
 } from "@/types/feed";
 import { ExpenseItem, ExpenseType } from "@/types/routines/finance";
 import { updateRitualRecord } from "@/api/ritual-record";
-import type { Json } from "@/types/supabase";
+import type { CleanupArea, CleanupMetricType, Json } from "@/types/supabase";
+import {
+  CLEANUP_AREA_OPTIONS,
+  CLEANUP_METRIC_OPTIONS,
+} from "@/components/Routines/Cleanup/constants";
 
 interface Props {
   item: FeedItem;
@@ -58,6 +63,11 @@ export default function EditFeedRecord({ item, onCancel }: Props) {
             expenses: d.expenses.map((e) => ({ ...e })),
           })),
         }
+      : null,
+  );
+  const [cleanupDraft, setCleanupDraft] = useState<CleanupFeedData | null>(
+    item.routineCategory === "정돈" && data
+      ? { ...(data as CleanupFeedData) }
       : null,
   );
   const [languageDraft, setLanguageDraft] = useState<LanguageFeedData | null>(
@@ -112,6 +122,11 @@ export default function EditFeedRecord({ item, onCancel }: Props) {
       case "자산관리":
         next = financeDraft
           ? ({ ...financeDraft } as unknown as Record<string, unknown>)
+          : null;
+        break;
+      case "정돈":
+        next = cleanupDraft
+          ? ({ ...cleanupDraft } as unknown as Record<string, unknown>)
           : null;
         break;
       case "영어":
@@ -173,6 +188,9 @@ export default function EditFeedRecord({ item, onCancel }: Props) {
       {item.routineCategory === "자산관리" && financeDraft && (
         <FinanceEditor draft={financeDraft} onChange={setFinanceDraft} />
       )}
+      {item.routineCategory === "정돈" && cleanupDraft && (
+        <CleanupEditor draft={cleanupDraft} onChange={setCleanupDraft} />
+      )}
       {(item.routineCategory === "영어" ||
         item.routineCategory === "제2외국어") &&
         languageDraft && (
@@ -227,6 +245,8 @@ function getCategoryColor(category: RoutineCategory): string {
       return "#eab32e";
     case "자산관리":
       return "#10b981";
+    case "정돈":
+      return "#14b8a6";
     case "영어":
       return "#0ea5e9";
     case "제2외국어":
@@ -539,6 +559,102 @@ function FinanceEditor({
           value={draft.practice}
           onChange={(e) => onChange({ ...draft, practice: e.target.value })}
           rows={3}
+          className={textareaCls}
+        />
+      </div>
+    </div>
+  );
+}
+
+function CleanupEditor({
+  draft,
+  onChange,
+}: {
+  draft: CleanupFeedData;
+  onChange: (d: CleanupFeedData) => void;
+}) {
+  const metricType = draft.metric?.type ?? "";
+  const metricValue = draft.metric?.value ?? "";
+
+  const updateMetric = (type: CleanupMetricType | "", value: string) => {
+    const parsed = Number(value);
+    if (!type || !value || Number.isNaN(parsed) || parsed <= 0) {
+      onChange({ ...draft, metric: undefined });
+      return;
+    }
+    onChange({ ...draft, metric: { type, value: parsed } });
+  };
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className={fieldLabel}>오늘 정리한 분야</label>
+        <select
+          value={draft.area}
+          onChange={(e) =>
+            onChange({
+              ...draft,
+              area: e.target.value as CleanupArea,
+              customArea:
+                e.target.value === "other" ? draft.customArea : undefined,
+            })
+          }
+          className={inputCls}
+        >
+          {CLEANUP_AREA_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      {draft.area === "other" && (
+        <div>
+          <label className={fieldLabel}>기타 분야</label>
+          <input
+            type="text"
+            value={draft.customArea ?? ""}
+            onChange={(e) => onChange({ ...draft, customArea: e.target.value })}
+            className={inputCls}
+          />
+        </div>
+      )}
+      <div className="grid grid-cols-[1fr_120px] gap-2">
+        <div>
+          <label className={fieldLabel}>숫자 항목</label>
+          <select
+            value={metricType}
+            onChange={(e) =>
+              updateMetric(e.target.value as CleanupMetricType | "", String(metricValue))
+            }
+            className={inputCls}
+          >
+            <option value="">선택 안 함</option>
+            {CLEANUP_METRIC_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={fieldLabel}>값</label>
+          <input
+            type="number"
+            value={metricValue}
+            onChange={(e) =>
+              updateMetric(metricType as CleanupMetricType | "", e.target.value)
+            }
+            className={inputCls}
+          />
+        </div>
+      </div>
+      <div>
+        <label className={fieldLabel}>한 줄 비움 소감</label>
+        <textarea
+          value={draft.note}
+          onChange={(e) => onChange({ ...draft, note: e.target.value })}
+          rows={4}
           className={textareaCls}
         />
       </div>

@@ -121,6 +121,7 @@ const ROUTINE_CONFIG: Record<
   english: { name: "영어", color: "#0ea5e9", bgColor: "#f0f9ff" },
   second_language: { name: "제2외국어", color: "#8b5cf6", bgColor: "#f5f3ff" },
   recording: { name: "기록", color: "#8b5cf6", bgColor: "#f5f3ff" },
+  cleanup: { name: "정돈", color: "#14b8a6", bgColor: "#f0fdfa" },
   finance: { name: "자산관리", color: "#10b981", bgColor: "#ecfdf5" },
   english_book: { name: "원서읽기", color: "#ec4899", bgColor: "#fdf2f8" },
 };

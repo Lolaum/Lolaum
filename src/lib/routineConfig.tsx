@@ -8,6 +8,7 @@ import {
   Pen,
   CircleDollarSign,
   BookOpen,
+  Sparkles,
 } from "lucide-react";
 import { RoutineType } from "@/types/routines/declaration";
 
@@ -25,6 +26,7 @@ export const ROUTINE_CONFIG: Record<RoutineType, RoutineConfig> = {
   영어리추얼:       { color: "#0ea5e9", bgColor: "#f0f9ff", icon: (s) => <BookA size={s} />,              label: "영어" },
   제2외국어리추얼:  { color: "#8b5cf6", bgColor: "#f5f3ff", icon: (s) => <Languages size={s} />,          label: "제2외국어" },
   기록리추얼:       { color: "#8b5cf6", bgColor: "#f5f3ff", icon: (s) => <Pen size={s} />,                label: "기록" },
+  정돈리추얼:       { color: "#14b8a6", bgColor: "#f0fdfa", icon: (s) => <Sparkles size={s} />,           label: "정돈" },
   자산관리리추얼:   { color: "#10b981", bgColor: "#ecfdf5", icon: (s) => <CircleDollarSign size={s} />,   label: "자산관리" },
   원서읽기리추얼:   { color: "#ec4899", bgColor: "#fdf2f8", icon: (s) => <BookOpen size={s} />,           label: "원서읽기" },
 };

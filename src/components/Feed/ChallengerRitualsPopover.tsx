@@ -13,6 +13,7 @@ const ROUTINE_BADGE_COLOR: Record<RoutineTypeDB, string> = {
   english: "bg-sky-50 text-sky-700",
   second_language: "bg-emerald-50 text-emerald-700",
   recording: "bg-rose-50 text-rose-700",
+  cleanup: "bg-teal-50 text-teal-700",
   finance: "bg-green-50 text-green-700",
   english_book: "bg-purple-50 text-purple-700",
 };

@@ -22,6 +22,7 @@ const ROUTINE_HOME_PATH: Record<RoutineTypeDB, string> = {
   english: "/home/english",
   second_language: "/home/second-language",
   recording: "/home/recording",
+  cleanup: "/home/cleanup",
   finance: "/home/finance",
   english_book: "/home/english-book",
 };

@@ -10,6 +10,13 @@ import {
 import { deleteRegisteredRoutine, isUserDeactivatedForRitual } from "@/api/admin";
 import type { ChallengeRegistration, RoutineTypeDB } from "@/types/supabase";
 
+function isRoutineTypeConstraintError(error: { message?: string; code?: string }) {
+  return (
+    error.code === "23514" &&
+    /challenge_registrations_routine_type_check/i.test(error.message ?? "")
+  );
+}
+
 export async function getRoutines(
   challengeId: string,
 ): Promise<{ data?: ChallengeRegistration[]; error?: string }> {
@@ -79,7 +86,15 @@ export async function createRoutine(input: {
     .select()
     .single();
 
-  if (error) return { error: error.message };
+  if (error) {
+    if (isRoutineTypeConstraintError(error)) {
+      return {
+        error:
+          "DB의 리추얼 타입 제약에 이 리추얼이 아직 추가되지 않았습니다. 관리자에게 routine_type 체크 제약 업데이트를 요청해주세요.",
+      };
+    }
+    return { error: error.message };
+  }
 
   return { data };
 }
