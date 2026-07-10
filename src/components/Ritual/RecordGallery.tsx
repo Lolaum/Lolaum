@@ -13,6 +13,7 @@ import {
   BookOpen,
   Loader2,
   ClipboardCheck,
+  Sparkles,
   Check,
   Trash2,
   X,
@@ -25,6 +26,7 @@ import {
   MorningFeedData,
   LanguageFeedData,
   FinanceFeedData,
+  CleanupFeedData,
   RecordingFeedData,
   ReflectionFeedData,
   normalizeRecordingFeedEntries,
@@ -34,6 +36,10 @@ import {
   getMyRecordsForDisplay,
   type ArchiveDeleteTarget,
 } from "@/api/ritual-records-display";
+import {
+  getCleanupAreaLabel,
+  getCleanupMetricMeta,
+} from "@/components/Routines/Cleanup/constants";
 
 const CATEGORY_CONFIG: Record<
   RoutineCategory,
@@ -81,6 +87,12 @@ const CATEGORY_CONFIG: Record<
     label: "자산관리",
     icon: <CircleDollarSign size={14} />,
   },
+  정돈: {
+    color: "#14b8a6",
+    bgColor: "#f0fdfa",
+    label: "정돈",
+    icon: <Sparkles size={14} />,
+  },
   원서읽기: {
     color: "#ec4899",
     bgColor: "#fdf2f8",
@@ -104,6 +116,7 @@ const FILTERS: (RoutineCategory | "전체")[] = [
   "영어",
   "제2외국어",
   "기록",
+  "정돈",
   "자산관리",
   "원서읽기",
 ];
@@ -438,6 +451,31 @@ function EnglishBookCardContent({ data }: { data: ReadingFeedData }) {
   );
 }
 
+function CleanupCardContent({ data }: { data: CleanupFeedData }) {
+  const metricMeta = data.metric ? getCleanupMetricMeta(data.metric.type) : null;
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="text-sm font-bold text-gray-900">
+          {getCleanupAreaLabel(data.area, data.customArea)}
+        </p>
+        {data.metric && metricMeta && (
+          <p className="mt-1 text-xs font-semibold text-teal-600">
+            {metricMeta.label} {data.metric.value.toLocaleString()}
+            {metricMeta.unit}
+          </p>
+        )}
+      </div>
+      {data.note && (
+        <p className="text-xs text-gray-500 leading-relaxed line-clamp-3">
+          {data.note}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function RecordingCardContent({ data }: { data: RecordingFeedData }) {
   const entries = normalizeRecordingFeedEntries(data);
   const first = entries[0];
@@ -556,6 +594,10 @@ function GalleryCard({
       case "자산관리":
         return (
           <FinanceCardContent data={item.routineData as FinanceFeedData} />
+        );
+      case "정돈":
+        return (
+          <CleanupCardContent data={item.routineData as CleanupFeedData} />
         );
       case "기록":
         return (

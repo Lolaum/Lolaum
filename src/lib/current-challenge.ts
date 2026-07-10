@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { formatKoreaDateKey, parseDateKey } from "@/lib/korea-date";
 
 /**
@@ -19,8 +20,8 @@ export const getActivePeriod = cache(async (): Promise<{
   } | null;
   error?: string;
 }> => {
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const admin = createAdminClient();
+  const { data, error } = await admin
     .from("challenge_periods")
     .select("*")
     .eq("is_active", true)

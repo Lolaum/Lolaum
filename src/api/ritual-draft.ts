@@ -9,6 +9,7 @@ const DRAFT_HOME_PATHS = [
   "/home/exercise/new",
   "/home/english/new",
   "/home/second-language/new",
+  "/home/cleanup/new",
   "/home/finance/new",
   "/home/recording/new",
   "/home/reading",

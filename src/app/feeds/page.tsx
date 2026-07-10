@@ -15,6 +15,7 @@ const ROUTINE_KEYS: RoutineTypeDB[] = [
   "english",
   "second_language",
   "recording",
+  "cleanup",
   "finance",
   "english_book",
 ];

@@ -18,6 +18,7 @@ import type {
   MorningFeedData,
   LanguageFeedData,
   FinanceFeedData,
+  CleanupFeedData,
   RecordingFeedData,
   ReflectionFeedData,
 } from "@/types/feed";
@@ -30,6 +31,7 @@ const ROUTINE_TO_CATEGORY: Record<RoutineTypeDB, RoutineCategory> = {
   english: "영어",
   second_language: "제2외국어",
   recording: "기록",
+  cleanup: "정돈",
   finance: "자산관리",
   english_book: "원서읽기",
 };
@@ -162,6 +164,15 @@ function transformRecordData(
         practice: (data.practice as string) ?? "",
         certPhotos: (data.certPhotos as string[]) ?? undefined,
       } satisfies FinanceFeedData;
+
+    case "cleanup":
+      return {
+        area: (data.area as CleanupFeedData["area"]) ?? "other",
+        customArea: data.customArea as string | undefined,
+        certPhotos: (data.certPhotos as string[]) ?? undefined,
+        metric: data.metric as CleanupFeedData["metric"],
+        note: (data.note as string) ?? "",
+      } satisfies CleanupFeedData;
 
     case "recording":
       return {

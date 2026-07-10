@@ -134,6 +134,18 @@ function isMissingRelationError(
   );
 }
 
+function isSchemaCacheMissingColumnError(
+  error: { message?: string; code?: string } | null,
+) {
+  if (!error) return false;
+  return (
+    error.code === "PGRST204" ||
+    /Could not find the .* column .* in the schema cache/i.test(
+      error.message ?? "",
+    )
+  );
+}
+
 function getRecordDataObject(recordData: unknown): Record<string, unknown> {
   return recordData &&
     typeof recordData === "object" &&
@@ -649,20 +661,30 @@ export async function upsertChallengePeriod(input: {
     if (inactive.error) return { error: inactive.error.message };
   }
 
-  const payload = {
+  const basePayload = {
     label: input.label.trim() || null,
     start_date: input.startDate,
     end_date: input.endDate,
+    is_active: input.isActive,
+  };
+  const reviewWindowPayload = {
     mid_review_start_date: input.midReviewStartDate || null,
     mid_review_end_date: input.midReviewEndDate || null,
     final_review_start_date: input.finalReviewStartDate || null,
     final_review_end_date: input.finalReviewEndDate || null,
-    is_active: input.isActive,
   };
+  const payload = { ...basePayload, ...reviewWindowPayload };
 
-  const result = input.id
-    ? await admin.from("challenge_periods").update(payload).eq("id", input.id)
-    : await admin.from("challenge_periods").insert(payload);
+  const savePeriod = (periodPayload: typeof basePayload | typeof payload) =>
+    input.id
+      ? admin.from("challenge_periods").update(periodPayload).eq("id", input.id)
+      : admin.from("challenge_periods").insert(periodPayload);
+
+  let result = await savePeriod(payload);
+
+  if (isSchemaCacheMissingColumnError(result.error)) {
+    result = await savePeriod(basePayload);
+  }
 
   if (result.error) {
     await logAdminError("admin.period.upsert", result.error.message, payload);
@@ -670,6 +692,9 @@ export async function upsertChallengePeriod(input: {
   }
 
   revalidatePath("/admin");
+  revalidatePath("/home");
+  revalidatePath("/ritual");
+  revalidatePath("/progress");
   return { success: true };
 }
 

@@ -14,6 +14,7 @@ import {
   Pen,
   BookOpen,
   ClipboardCheck,
+  Sparkles,
 } from "lucide-react";
 import {
   FeedItem as FeedItemType,
@@ -23,11 +24,16 @@ import {
   MorningFeedData,
   LanguageFeedData,
   FinanceFeedData,
+  CleanupFeedData,
   RecordingFeedData,
   normalizeRecordingFeedEntries,
 } from "@/types/feed";
 import ChallengerRitualsPopover from "./ChallengerRitualsPopover";
 import ReactionBar from "./ReactionBar";
+import {
+  getCleanupAreaLabel,
+  getCleanupMetricMeta,
+} from "@/components/Routines/Cleanup/constants";
 
 interface FeedItemProps {
   item: FeedItemType;
@@ -52,6 +58,11 @@ const CATEGORY_CONFIG: Record<
     color: "#10b981",
     bgColor: "#ecfdf5",
     icon: <CircleDollarSign size={13} />,
+  },
+  정돈: {
+    color: "#14b8a6",
+    bgColor: "#f0fdfa",
+    icon: <Sparkles size={13} />,
   },
   원서읽기: {
     color: "#ec4899",
@@ -98,6 +109,10 @@ function getPreviewText(item: FeedItemType): string | null {
     case "자산관리": {
       const d = data as FinanceFeedData;
       return d.studyContent || null;
+    }
+    case "정돈": {
+      const d = data as CleanupFeedData;
+      return d.note || null;
     }
     case "기록": {
       const entries = normalizeRecordingFeedEntries(data as RecordingFeedData);
@@ -164,6 +179,15 @@ function getSubText(item: FeedItemType): string | null {
         .flatMap((e) => e.expenses)
         .reduce((s, e) => s + e.amount, 0);
       return total > 0 ? `오늘 지출 ${total.toLocaleString()}원` : null;
+    }
+    case "정돈": {
+      const d = data as CleanupFeedData;
+      const metricMeta = d.metric ? getCleanupMetricMeta(d.metric.type) : null;
+      const metricText =
+        d.metric && metricMeta
+          ? ` · ${d.metric.value.toLocaleString()}${metricMeta.unit}`
+          : "";
+      return `${getCleanupAreaLabel(d.area, d.customArea)}${metricText}`;
     }
     case "기록": {
       const entries = normalizeRecordingFeedEntries(data as RecordingFeedData);

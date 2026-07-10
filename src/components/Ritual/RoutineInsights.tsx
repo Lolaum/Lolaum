@@ -16,6 +16,7 @@ import {
   Grid3x3,
   Loader2,
   ClipboardCheck,
+  Sparkles,
 } from "lucide-react";
 import { getMyRecordsForDisplay } from "@/api/ritual-records-display";
 import { getBooksAuto } from "@/api/book";
@@ -35,9 +36,14 @@ import type {
   MorningFeedData,
   LanguageFeedData,
   FinanceFeedData,
+  CleanupFeedData,
   RecordingFeedData,
 } from "@/types/feed";
 import { normalizeRecordingFeedEntries } from "@/types/feed";
+import {
+  getCleanupAreaLabel,
+  getCleanupMetricMeta,
+} from "@/components/Routines/Cleanup/constants";
 
 // ─────────────────────────────
 // 달성 카드 (공통) — routines prop에서 가져옴
@@ -1056,6 +1062,164 @@ function FinanceInsightView({
 }
 
 // ─────────────────────────────
+// 정돈 인사이트
+// ─────────────────────────────
+function CleanupInsightView({
+  routines,
+  refreshKey = 0,
+  goalDays,
+}: {
+  routines: RoutineCardStats[];
+  refreshKey?: number;
+  goalDays: number;
+}) {
+  const [records, setRecords] = useState<FeedItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const color = "#14b8a6";
+
+  useEffect(() => {
+    async function fetch() {
+      setLoading(true);
+      const result = await getMyRecordsForDisplay({ routineType: "cleanup" });
+      setRecords(result.data);
+      setLoading(false);
+    }
+    fetch();
+  }, [refreshKey]);
+
+  if (loading)
+    return (
+      <InsightLoading
+        name="정돈"
+        color={color}
+        routines={routines}
+        goalDays={goalDays}
+      />
+    );
+
+  const cleanupRecords = records
+    .map((record) => record.routineData as CleanupFeedData | undefined)
+    .filter((data): data is CleanupFeedData => Boolean(data));
+  const metricRecords = cleanupRecords.filter(
+    (data) => data.metric && data.metric.value > 0,
+  );
+  const totalItems = metricRecords.reduce(
+    (sum, data) => sum + (data.metric?.value ?? 0),
+    0,
+  );
+  const areaTotals = Array.from(
+    metricRecords
+      .reduce(
+        (map, data) => {
+          if (!data.metric) return map;
+          const metricMeta = getCleanupMetricMeta(data.metric.type);
+          const customArea = data.customArea?.trim();
+          const key =
+            data.metric.type === "other" && customArea
+              ? `other:${customArea}`
+              : data.metric.type;
+          const label =
+            data.metric.type === data.area
+              ? getCleanupAreaLabel(data.area, data.customArea)
+              : (metricMeta?.label ?? "정돈");
+          const previous = map.get(key);
+          map.set(key, {
+            label: previous?.label ?? label,
+            value: (previous?.value ?? 0) + data.metric.value,
+            unit: metricMeta?.unit ?? "개",
+          });
+          return map;
+        },
+        new Map<string, { label: string; value: number; unit: string }>(),
+      )
+      .values(),
+  ).sort((a, b) => b.value - a.value);
+  const maxAreaValue = areaTotals[0]?.value ?? 1;
+
+  return (
+    <div className="space-y-4">
+      <AchievementCard
+        name="정돈"
+        color={color}
+        routines={routines}
+        goalDays={goalDays}
+      />
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          {
+            label: "총 정돈 기록",
+            value: `${cleanupRecords.length}회`,
+            color,
+          },
+          {
+            label: "정돈한 분야",
+            value: `${areaTotals.length}개`,
+            color: "#2dd4bf",
+          },
+          {
+            label: "총 정돈 수량",
+            value: `${totalItems.toLocaleString()}개`,
+            color: "#5eead4",
+          },
+        ].map((s) => (
+          <div
+            key={s.label}
+            className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 text-center"
+          >
+            <p className="text-base font-bold" style={{ color: s.color }}>
+              {s.value}
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-2 mb-3">
+          <Sparkles size={15} style={{ color }} />
+          <h3 className="text-sm font-semibold text-gray-700">
+            정돈 분야별 현황
+          </h3>
+        </div>
+        {areaTotals.length === 0 ? (
+          <p className="text-xs text-gray-400 text-center py-4">
+            아직 수량을 입력한 정돈 기록이 없어요
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {areaTotals.map((area) => {
+              const percent = Math.round((area.value / maxAreaValue) * 100);
+              return (
+                <div key={area.label}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium text-gray-700">
+                      {area.label}
+                    </span>
+                    <span className="text-gray-400">
+                      {area.value.toLocaleString()}
+                      {area.unit}
+                    </span>
+                  </div>
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${percent}%`,
+                        backgroundColor: color,
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────
 // 탭 → routine_type 매핑
 // ─────────────────────────────
 const TAB_TO_ROUTINE: Record<string, RoutineTypeDB> = {
@@ -1065,6 +1229,7 @@ const TAB_TO_ROUTINE: Record<string, RoutineTypeDB> = {
   영어: "english",
   제2외국어: "second_language",
   기록: "recording",
+  정돈: "cleanup",
   자산관리: "finance",
   원서읽기: "english_book",
 };
@@ -1087,6 +1252,11 @@ const CATEGORY_CONFIG: Record<
     color: "#10b981",
     bgColor: "#ecfdf5",
     icon: <CircleDollarSign size={13} />,
+  },
+  정돈: {
+    color: "#14b8a6",
+    bgColor: "#f0fdfa",
+    icon: <Sparkles size={13} />,
   },
   원서읽기: {
     color: "#ec4899",
@@ -1215,6 +1385,26 @@ function RecordPreviewCard({ item }: { item: FeedItem }) {
               <p className="text-xs text-gray-500 line-clamp-2">
                 {d.studyContent}
               </p>
+            )}
+          </div>
+        );
+      }
+      case "정돈": {
+        const d = item.routineData as CleanupFeedData;
+        const metricMeta = d.metric ? getCleanupMetricMeta(d.metric.type) : null;
+        return (
+          <div className="space-y-1.5">
+            <p className="text-sm font-semibold text-gray-800">
+              {getCleanupAreaLabel(d.area, d.customArea)}
+            </p>
+            {d.metric && metricMeta && (
+              <p className="text-xs" style={{ color: config.color }}>
+                {metricMeta.label} {d.metric.value.toLocaleString()}
+                {metricMeta.unit}
+              </p>
+            )}
+            {d.note && (
+              <p className="text-xs text-gray-500 line-clamp-2">{d.note}</p>
             )}
           </div>
         );
@@ -1404,6 +1594,14 @@ export default function RoutineInsights({
       case "자산관리":
         return (
           <FinanceInsightView
+            routines={routines}
+            refreshKey={refreshKey}
+            goalDays={goalDays}
+          />
+        );
+      case "정돈":
+        return (
+          <CleanupInsightView
             routines={routines}
             refreshKey={refreshKey}
             goalDays={goalDays}

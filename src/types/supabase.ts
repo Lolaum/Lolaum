@@ -8,6 +8,7 @@ export type RoutineTypeDB =
   | "english"
   | "second_language"
   | "recording"
+  | "cleanup"
   | "finance"
   | "english_book";
 
@@ -712,6 +713,38 @@ export interface FinanceRecordData {
   certPhotos?: string[];
 }
 
+export type CleanupArea =
+  | "photo_album"
+  | "laptop_folder"
+  | "drive"
+  | "email"
+  | "memo"
+  | "desktop"
+  | "documents"
+  | "desk"
+  | "room"
+  | "closet"
+  | "drawer"
+  | "bathroom"
+  | "kitchen"
+  | "fridge"
+  | "bag"
+  | "shoe_cabinet"
+  | "other";
+
+export type CleanupMetricType = CleanupArea;
+
+export interface CleanupRecordData {
+  area: CleanupArea;
+  customArea?: string;
+  certPhotos: string[];
+  metric?: {
+    type: CleanupMetricType;
+    value: number;
+  };
+  note: string;
+}
+
 export type RecordingMode = "write" | "read";
 
 export interface RecordingWriteEntry {
@@ -796,6 +829,7 @@ export const ROUTINE_TYPE_MAP: Record<string, RoutineTypeDB> = {
   영어리추얼: "english",
   제2외국어리추얼: "second_language",
   기록리추얼: "recording",
+  정돈리추얼: "cleanup",
   자산관리리추얼: "finance",
   원서읽기리추얼: "english_book",
 };
@@ -807,6 +841,7 @@ export const ROUTINE_TYPE_LABEL: Record<RoutineTypeDB, string> = {
   english: "영어리추얼",
   second_language: "제2외국어리추얼",
   recording: "기록리추얼",
+  cleanup: "정돈리추얼",
   finance: "자산관리리추얼",
   english_book: "원서읽기리추얼",
 };

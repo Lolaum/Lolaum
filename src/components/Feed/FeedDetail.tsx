@@ -21,6 +21,7 @@ import {
   CircleDollarSign,
   Pen,
   BookOpen,
+  Sparkles,
 } from "lucide-react";
 import {
   FeedItem,
@@ -28,6 +29,7 @@ import {
   ExerciseFeedData,
   MorningFeedData,
   FinanceFeedData,
+  CleanupFeedData,
   LanguageFeedData,
   ReadingFeedData,
   RecordingFeedData,
@@ -44,6 +46,10 @@ const EditFeedRecord = dynamic(() => import("./EditFeedRecord"), {
   ssr: false,
 });
 import LinkifiedText from "@/components/common/LinkifiedText";
+import {
+  getCleanupAreaLabel,
+  getCleanupMetricMeta,
+} from "@/components/Routines/Cleanup/constants";
 
 interface FeedDetailProps {
   item: FeedItem;
@@ -96,6 +102,12 @@ const CATEGORY_META: Record<
     label: "자산관리",
     hexColor: "#10b981",
     bgColor: "#ecfdf5",
+  },
+  정돈: {
+    icon: <Sparkles className="w-5 h-5" />,
+    label: "정돈",
+    hexColor: "#14b8a6",
+    bgColor: "#f0fdfa",
   },
   원서읽기: {
     icon: <BookOpen className="w-5 h-5" />,
@@ -302,6 +314,44 @@ function FinanceContent({ data }: { data: FinanceFeedData }) {
           </p>
         </div>
       )}
+    </div>
+  );
+}
+
+function CleanupContent({ data }: { data: CleanupFeedData }) {
+  const metricMeta = data.metric ? getCleanupMetricMeta(data.metric.type) : null;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-teal-50 rounded-xl p-3">
+          <p className="text-xs text-teal-500 font-medium mb-1">
+            오늘 정리한 분야
+          </p>
+          <p className="text-sm font-bold text-gray-800">
+            {getCleanupAreaLabel(data.area, data.customArea)}
+          </p>
+        </div>
+        {data.metric && metricMeta && (
+          <div className="bg-gray-50 rounded-xl p-3">
+            <p className="text-xs text-gray-400 font-medium mb-1">
+              {metricMeta.label}
+            </p>
+            <p className="text-sm font-bold text-teal-600">
+              {data.metric.value.toLocaleString()}
+              {metricMeta.unit}
+            </p>
+          </div>
+        )}
+      </div>
+      <div className="bg-gray-50 rounded-xl p-4">
+        <p className="text-xs text-gray-400 font-medium mb-1">
+          오늘의 한 줄 비움 소감
+        </p>
+        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+          {data.note}
+        </p>
+      </div>
     </div>
   );
 }
@@ -631,6 +681,12 @@ function isFinanceData(
   category: RoutineCategory,
 ): data is FinanceFeedData {
   return category === "자산관리" && "dailyExpenses" in data;
+}
+function isCleanupData(
+  data: NonNullable<FeedItem["routineData"]>,
+  category: RoutineCategory,
+): data is CleanupFeedData {
+  return category === "정돈" && "area" in data;
 }
 function isLanguageData(
   data: NonNullable<FeedItem["routineData"]>,
@@ -1050,6 +1106,9 @@ export default function FeedDetail({ item, isMine = false }: FeedDetailProps) {
               )}
               {isFinanceData(item.routineData, item.routineCategory) && (
                 <FinanceContent data={item.routineData} />
+              )}
+              {isCleanupData(item.routineData, item.routineCategory) && (
+                <CleanupContent data={item.routineData} />
               )}
               {isLanguageData(item.routineData, item.routineCategory) && (
                 <LanguageContent data={item.routineData} />

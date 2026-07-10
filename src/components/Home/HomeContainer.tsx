@@ -49,6 +49,7 @@ const RITUAL_ROUTES: Record<string, string> = {
   운동리추얼: "/home/exercise",
   자산관리리추얼: "/home/finance",
   기록리추얼: "/home/recording",
+  정돈리추얼: "/home/cleanup",
 };
 
 const ENABLE_MID_REVIEW_REMINDER = false;
@@ -165,6 +166,7 @@ export default function HomeContainer({
             </div>
             <div className="order-3 w-full md:order-none">
               <Profile
+                key={`${initialData.profile?.id ?? "profile"}-${initialData.profile?.name ?? ""}-${initialData.profile?.avatar_url ?? ""}`}
                 initialProfile={initialData.profile}
                 stats={myPageStats}
                 completionRate={completionRate}

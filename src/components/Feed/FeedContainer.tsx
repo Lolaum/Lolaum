@@ -18,6 +18,7 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "english", label: "영어" },
   { key: "second_language", label: "제2외국어" },
   { key: "recording", label: "기록" },
+  { key: "cleanup", label: "정돈" },
   { key: "finance", label: "자산관리" },
   { key: "english_book", label: "원서읽기" },
 ];

@@ -12,6 +12,7 @@ import type {
   FinalReview,
 } from "@/types/routines/finalReview";
 import type {
+  CleanupRecordData,
   ExerciseRecordData,
   FinanceRecordData,
   LanguageRecordData,
@@ -21,6 +22,7 @@ import type {
   RoutineTypeDB,
 } from "@/types/supabase";
 import { ROUTINE_TYPE_LABEL, normalizeRecordingEntries } from "@/types/supabase";
+import { CLEANUP_METRIC_OPTIONS } from "@/components/Routines/Cleanup/constants";
 
 interface FinalReviewRow {
   id: string;
@@ -60,6 +62,7 @@ const ROUTINE_ORDER: RoutineTypeDB[] = [
   "english",
   "second_language",
   "recording",
+  "cleanup",
   "finance",
   "english_book",
 ];
@@ -226,6 +229,32 @@ function getRoutineSummary(input: {
           { label: "필요소비", value: formatWon(necessary) },
           { label: "감정소비", value: formatWon(emotional) },
           { label: "가치소비", value: formatWon(value) },
+        ],
+      };
+    }
+    case "cleanup": {
+      const totals = new Map<string, number>();
+      for (const record of records) {
+        const data = record.record_data as CleanupRecordData;
+        if (data.metric) {
+          totals.set(
+            data.metric.type,
+            (totals.get(data.metric.type) ?? 0) + (data.metric.value || 0),
+          );
+        }
+      }
+      const metricRows = CLEANUP_METRIC_OPTIONS
+        .map((option) => ({
+          label: option.label,
+          value: `${(totals.get(option.value) ?? 0).toLocaleString()}${option.unit}`,
+        }))
+        .filter((metric) => !metric.value.startsWith("0"));
+      return {
+        routineType,
+        label,
+        metrics: [
+          { label: "기록한 날", value: `${uniqueDateCount(records.map((r) => r.record_date))}` },
+          ...metricRows,
         ],
       };
     }

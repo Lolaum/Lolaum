@@ -24,8 +24,7 @@ const routineOptions: { type: RoutineType; emoji: string }[] = [
   { type: "기록리추얼", emoji: "✍️" },
   { type: "영어리추얼", emoji: "🇺🇸" },
   { type: "제2외국어리추얼", emoji: "🌍" },
-  { type: "자산관리리추얼", emoji: "💰" },
-  { type: "원서읽기리추얼", emoji: "📖" },
+  { type: "정돈리추얼", emoji: "🧹" },
 ];
 
 export default function GenerateRoutine({

@@ -17,6 +17,7 @@ const TAG_COLORS: Record<string, { color: string; bgColor: string }> = {
   원서: { color: "#8b5cf6", bgColor: "#f5f3ff" },
   자산관리: { color: "#10b981", bgColor: "#ecfdf5" },
   기록: { color: "#f43f5e", bgColor: "#fff1f2" },
+  정돈: { color: "#14b8a6", bgColor: "#f0fdfa" },
 };
 
 const ROUTINE_TAG: Record<RoutineTypeDB, string> = {
@@ -26,6 +27,7 @@ const ROUTINE_TAG: Record<RoutineTypeDB, string> = {
   english: "영어",
   second_language: "제2외국어",
   recording: "기록",
+  cleanup: "정돈",
   finance: "자산관리",
   english_book: "원서",
 };
