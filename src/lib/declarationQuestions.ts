@@ -66,7 +66,8 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
         readOnly: true,
         isConfirmation: true,
         defaultValue: `1. 시작인증: 운동 시작 인증샷
-2. 종료인증: 운동 종료 인증샷 (내가 운동을 할 수밖에 없는 시작/종료 인증 사진 생각해보기)`,
+2. 종료인증: 운동 종료 인증샷 (내가 운동을 할 수밖에 없는 시작/종료 인증 사진 생각해보기)
+3. 인증 사진은 최대 3장까지 업로드 가능`,
       },
     ],
     독서리추얼: [
@@ -115,7 +116,8 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
         readOnly: true,
         isConfirmation: true,
         defaultValue: `1. 시작인증: 영어 학습 시작 화면/노트/교재 등
-2. 종료인증: 오늘 공부한 내용이 보이는 화면/노트/교재 사진`,
+2. 종료인증: 오늘 공부한 내용이 보이는 화면/노트/교재 사진
+3. 주 1회 필수 복습 테스트 후, 테스트 인증 화면 1장 업로드`,
       },
     ],
     제2외국어리추얼: [
@@ -143,7 +145,8 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
         readOnly: true,
         isConfirmation: true,
         defaultValue: `1. 시작인증: 제2외국어 학습 시작 화면/노트/교재 등
-2. 종료인증: 오늘 공부한 내용이 보이는 화면/노트/교재 사진`,
+2. 종료인증: 오늘 공부한 내용이 보이는 화면/노트/교재 사진
+3. 주 1회 필수 복습 테스트 후, 테스트 인증 화면 1장 업로드`,
       },
     ],
     기록리추얼: [
@@ -194,8 +197,7 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
         label: "기대하는 변화",
         description:
           "정돈 리추얼을 통해 공간과 디지털 환경에서 어떤 변화를 만들고 싶은지 작성해주세요.",
-        placeholder:
-          "하루 10분씩 주변을 정리해 머릿속까지 가벼운 사람",
+        placeholder: "하루 10분씩 주변을 정리해 머릿속까지 가벼운 사람",
       },
       {
         id: "target_area",

@@ -641,8 +641,7 @@ export type ChallengeRegistration =
   Database["public"]["Tables"]["challenge_registrations"]["Row"];
 export type RitualRecord =
   Database["public"]["Tables"]["ritual_records"]["Row"];
-export type RitualDraft =
-  Database["public"]["Tables"]["ritual_drafts"]["Row"];
+export type RitualDraft = Database["public"]["Tables"]["ritual_drafts"]["Row"];
 export type Book = Database["public"]["Tables"]["books"]["Row"];
 export type Feed = Database["public"]["Tables"]["feeds"]["Row"];
 export type FeedComment = Database["public"]["Tables"]["feed_comments"]["Row"];
@@ -698,6 +697,7 @@ export interface ReadingRecordData {
 }
 
 export interface LanguageRecordData {
+  recordType?: "study" | "review_test";
   achievement: string;
   expressions: { word: string; meaning: string; example: string }[];
   images?: string[];

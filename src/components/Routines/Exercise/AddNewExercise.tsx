@@ -21,6 +21,8 @@ import {
 const DURATION_OPTIONS = [10, 20, 30, 40, 50, 60, 90, 120];
 const MACROS_OPTIONS = ["1:1:1", "2:1:1", "3:2:1", "4:3:3", "5:3:2"];
 const EXERCISE_DRAFT_KEY = "exercise";
+const MAX_EXERCISE_IMAGES = 3;
+const MAX_DIET_IMAGES = 1;
 
 interface ExerciseDraftData {
   recordType: ExerciseRecordType;
@@ -74,8 +76,8 @@ export default function AddNewExercise({
   useEffect(() => {
     if (recordType !== "diet" || !dietLimitReached) return;
     setRecordType("exercise");
-    setImages((prev) => prev.slice(0, 2));
-    setImageTakenAtTimes((prev) => prev.slice(0, 2));
+    setImages((prev) => prev.slice(0, MAX_EXERCISE_IMAGES));
+    setImageTakenAtTimes((prev) => prev.slice(0, MAX_EXERCISE_IMAGES));
   }, [dietLimitReached, recordType]);
 
   useEffect(() => {
@@ -99,7 +101,8 @@ export default function AddNewExercise({
   const handleImageFiles = async (files: FileList | null) => {
     if (!files) return;
 
-    const maxImages = recordType === "diet" ? 1 : 2;
+    const maxImages =
+      recordType === "diet" ? MAX_DIET_IMAGES : MAX_EXERCISE_IMAGES;
     const newFiles = Array.from(files)
       .filter((file) => file.type.startsWith("image/"))
       .slice(0, maxImages - images.length);
@@ -294,8 +297,8 @@ export default function AddNewExercise({
             onClick={() => {
               if (dietSelectDisabled) return;
               setRecordType("diet");
-              setImages((prev) => prev.slice(0, 1));
-              setImageTakenAtTimes((prev) => prev.slice(0, 1));
+              setImages((prev) => prev.slice(0, MAX_DIET_IMAGES));
+              setImageTakenAtTimes((prev) => prev.slice(0, MAX_DIET_IMAGES));
             }}
             disabled={dietSelectDisabled}
             aria-disabled={dietSelectDisabled}
@@ -304,7 +307,7 @@ export default function AddNewExercise({
                 ? "식단 기록은 일주일 중 2일까지만 달성할 수 있어요"
                 : weeklyDietLoading
                   ? "식단 기록 인증 날짜를 확인하는 중이에요"
-                : undefined
+                  : undefined
             }
             className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
               recordType === "diet"
@@ -329,11 +332,14 @@ export default function AddNewExercise({
           </label>
           <p className="text-xs text-gray-500 mb-3 leading-relaxed">
             {recordType === "exercise"
-              ? "10분 이상 텀이 있는 시작/종료 사진 or 10분 이상 운동 기록 찍힌 운동 앱 화면 캡쳐"
+              ? "10분 이상 텀이 있는 시작/종료 사진 or 10분 이상 운동 기록 찍힌 운동 앱 화면 캡쳐 (최대 3장)"
               : "건강한 식단 사진 1장"}
           </p>
           <div className="space-y-3">
-            {images.length < (recordType === "diet" ? 1 : 2) && (
+            {images.length <
+              (recordType === "diet"
+                ? MAX_DIET_IMAGES
+                : MAX_EXERCISE_IMAGES) && (
               <label
                 className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-orange-400 transition-colors bg-gray-50"
                 onDragOver={(e) => e.preventDefault()}
@@ -343,7 +349,10 @@ export default function AddNewExercise({
                   <Upload className="w-8 h-8 text-gray-400 mb-2" />
                   <p className="text-sm text-gray-500">
                     이미지 업로드 또는 드래그 ({images.length}/
-                    {recordType === "diet" ? 1 : 2})
+                    {recordType === "diet"
+                      ? MAX_DIET_IMAGES
+                      : MAX_EXERCISE_IMAGES}
+                    )
                   </p>
                 </div>
                 <input

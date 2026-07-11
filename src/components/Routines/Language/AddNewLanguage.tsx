@@ -16,9 +16,11 @@ import {
   AddNewLanguageProps,
   LanguageFormData,
   Expression,
+  LanguageRecordType,
 } from "@/types/routines/language";
 
 interface LanguageDraftData {
+  recordType: LanguageRecordType;
   expressions: Expression[];
 }
 
@@ -30,6 +32,7 @@ export default function AddNewLanguage({
   languageType = "제2외국어",
 }: AddNewLanguageProps) {
   const isEnglish = languageType === "영어";
+  const [recordType, setRecordType] = useState<LanguageRecordType>("study");
   const [images, setImages] = useState<string[]>(initialImages ?? []);
   const [imageTakenAtTimes, setImageTakenAtTimes] = useState<number[]>([]);
   const [expressions, setExpressions] = useState<Expression[]>([
@@ -77,9 +80,10 @@ export default function AddNewLanguage({
   const handleImageFiles = async (files: FileList | null) => {
     if (!files) return;
 
+    const maxImages = recordType === "review_test" ? 1 : 2;
     const newFiles = Array.from(files)
       .filter((file) => file.type.startsWith("image/"))
-      .slice(0, 2 - images.length);
+      .slice(0, maxImages - images.length);
     const imageDrafts = await Promise.all(
       newFiles.map(async (file) => {
         const takenAt = await getPhotoTakenAt(file);
@@ -92,9 +96,10 @@ export default function AddNewLanguage({
     const nextTakenAtTimes = [
       ...imageTakenAtTimes,
       ...imageDrafts.map((draft) => draft.takenAtTime),
-    ].slice(0, 2);
+    ].slice(0, maxImages);
 
     if (
+      recordType === "study" &&
       nextTakenAtTimes.length >= 2 &&
       !hasMinimumPhotoInterval(nextTakenAtTimes)
     ) {
@@ -103,7 +108,10 @@ export default function AddNewLanguage({
     }
 
     setImages(
-      [...images, ...imageDrafts.map((draft) => draft.image)].slice(0, 2),
+      [...images, ...imageDrafts.map((draft) => draft.image)].slice(
+        0,
+        maxImages,
+      ),
     );
     setImageTakenAtTimes(nextTakenAtTimes);
   };
@@ -124,12 +132,13 @@ export default function AddNewLanguage({
   };
 
   const handleSaveDraft = async () => {
-    return saveDraft({ expressions });
+    return saveDraft({ recordType, expressions });
   };
 
   const handleLoadDraft = async () => {
     const draft = await loadDraft();
     if (!draft) return;
+    setRecordType(draft.recordType ?? "study");
     setExpressions(
       draft.expressions?.length
         ? draft.expressions.map((expr, index) => ({
@@ -151,20 +160,25 @@ export default function AddNewLanguage({
       (e) => e.word.trim() || e.meaning.trim() || e.example.trim(),
     );
 
-    if (validExpressions.length === 0) return;
+    if (recordType === "study" && validExpressions.length === 0) return;
+    if (recordType === "review_test" && images.length === 0) return;
     submittingRef.current = true;
     setSubmitting(true);
 
     const imageUrls = images.length > 0 ? await uploadImages(images) : [];
 
     const recordData: LanguageFormData = {
+      recordType,
       images: imageUrls,
-      achievement: "",
-      expressions: validExpressions.map((e) => ({
-        word: e.word.trim(),
-        meaning: e.meaning.trim(),
-        example: e.example.trim(),
-      })),
+      achievement: recordType === "review_test" ? "복습 테스트 인증 완료" : "",
+      expressions:
+        recordType === "study"
+          ? validExpressions.map((e) => ({
+              word: e.word.trim(),
+              meaning: e.meaning.trim(),
+              example: e.example.trim(),
+            }))
+          : [],
     };
 
     try {
@@ -239,24 +253,66 @@ export default function AddNewLanguage({
 
       {/* 메인 카드 */}
       <div className="max-w-2xl bg-white rounded-2xl border border-gray-200 p-4 mx-auto">
+        <div className="flex gap-2 mb-5">
+          <button
+            type="button"
+            onClick={() => setRecordType("study")}
+            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors ${
+              recordType === "study"
+                ? "bg-orange-500 text-white"
+                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            }`}
+          >
+            학습 기록
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setRecordType("review_test");
+              setImages((prev) => prev.slice(0, 1));
+              setImageTakenAtTimes((prev) => prev.slice(0, 1));
+            }}
+            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors ${
+              recordType === "review_test"
+                ? "bg-orange-500 text-white"
+                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            }`}
+          >
+            복습 테스트
+          </button>
+        </div>
+
         {/* 헤더 */}
         <h2 className="text-xl font-bold text-gray-900 mb-4">
-          {isEnglish ? "영어리추얼 기록 추가" : "제2외국어리추얼 기록 추가"}
+          {recordType === "review_test"
+            ? isEnglish
+              ? "영어리추얼 복습 테스트 인증"
+              : "제2외국어리추얼 복습 테스트 인증"
+            : isEnglish
+              ? "영어리추얼 기록 추가"
+              : "제2외국어리추얼 기록 추가"}
         </h2>
 
         {/* 인증 사진 */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            인증 사진 (10분 이상 간격이 있는 시작/종료 사진)
+            {recordType === "review_test"
+              ? "복습 테스트 인증 사진"
+              : "인증 사진 (10분 이상 간격이 있는 시작/종료 사진)"}
             {initialImages?.length ? (
               <span className="ml-2 text-xs font-normal text-orange-500">
                 시작·종료 인증 사진 자동 첨부됨
               </span>
             ) : null}
           </label>
+          <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+            {recordType === "review_test"
+              ? "주 1회 필수 복습 테스트를 완료한 화면 1장만 업로드해주세요."
+              : "오늘 학습을 시작하고 종료한 사진을 업로드해주세요."}
+          </p>
           <div className="space-y-3">
             {/* 이미지 업로드 영역 */}
-            {images.length < 2 && (
+            {images.length < (recordType === "review_test" ? 1 : 2) && (
               <label
                 className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-orange-400 transition-colors bg-gray-50"
                 onDragOver={(e) => e.preventDefault()}
@@ -265,14 +321,15 @@ export default function AddNewLanguage({
                 <div className="flex flex-col items-center justify-center">
                   <Upload className="w-8 h-8 text-gray-400 mb-2" />
                   <p className="text-sm text-gray-500">
-                    이미지 업로드 또는 드래그 ({images.length}/2)
+                    이미지 업로드 또는 드래그 ({images.length}/
+                    {recordType === "review_test" ? 1 : 2})
                   </p>
                 </div>
                 <input
                   type="file"
                   className="hidden"
                   accept="image/*"
-                  multiple
+                  multiple={recordType !== "review_test"}
                   onChange={handleImageUpload}
                 />
               </label>
@@ -318,68 +375,70 @@ export default function AddNewLanguage({
         </div>
 
         {/* 오늘의 표현 */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <label className="block text-sm font-medium text-gray-700">
-              오늘의 표현
-            </label>
-            <button
-              type="button"
-              onClick={addExpression}
-              className="flex items-center gap-1 text-sm text-orange-500 hover:text-orange-600 hover:bg-orange-50 active:bg-orange-100 active:scale-95 px-3 py-1.5 rounded-lg transition-all duration-200"
-            >
-              <Plus className="w-4 h-4" />
-              추가
-            </button>
-          </div>
-          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
-            {expressions.map((expr) => (
-              <div
-                key={expr.id}
-                className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3"
+        {recordType === "study" && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-sm font-medium text-gray-700">
+                오늘의 표현
+              </label>
+              <button
+                type="button"
+                onClick={addExpression}
+                className="flex items-center gap-1 text-sm text-orange-500 hover:text-orange-600 hover:bg-orange-50 active:bg-orange-100 active:scale-95 px-3 py-1.5 rounded-lg transition-all duration-200"
               >
-                <div className="flex gap-2">
+                <Plus className="w-4 h-4" />
+                추가
+              </button>
+            </div>
+            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
+              {expressions.map((expr) => (
+                <div
+                  key={expr.id}
+                  className="p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-3"
+                >
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={expr.word}
+                      onChange={(e) =>
+                        updateExpression(expr.id, "word", e.target.value)
+                      }
+                      placeholder="표현 또는 단어"
+                      className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+                    />
+                    {expressions.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeExpression(expr.id)}
+                        className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-200"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="text"
-                    value={expr.word}
+                    value={expr.meaning}
                     onChange={(e) =>
-                      updateExpression(expr.id, "word", e.target.value)
+                      updateExpression(expr.id, "meaning", e.target.value)
                     }
-                    placeholder="표현 또는 단어"
-                    className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+                    placeholder="의미"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400"
                   />
-                  {expressions.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeExpression(expr.id)}
-                      className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-200"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  )}
+                  <textarea
+                    value={expr.example}
+                    onChange={(e) =>
+                      updateExpression(expr.id, "example", e.target.value)
+                    }
+                    placeholder="배운 표현을 활용한 예문을 작성해보세요"
+                    rows={3}
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400 resize-none"
+                  />
                 </div>
-                <input
-                  type="text"
-                  value={expr.meaning}
-                  onChange={(e) =>
-                    updateExpression(expr.id, "meaning", e.target.value)
-                  }
-                  placeholder="의미"
-                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400"
-                />
-                <textarea
-                  value={expr.example}
-                  onChange={(e) =>
-                    updateExpression(expr.id, "example", e.target.value)
-                  }
-                  placeholder="배운 표현을 활용한 예문을 작성해보세요"
-                  rows={3}
-                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900 placeholder-gray-400 resize-none"
-                />
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* 버튼 */}
         <RitualDraftButtons
@@ -395,10 +454,13 @@ export default function AddNewLanguage({
             onClick={handleSubmit}
             disabled={
               submitting ||
-              images.length < 2 ||
-              expressions.every(
-                (e) => !e.word.trim() && !e.meaning.trim() && !e.example.trim(),
-              )
+              (recordType === "review_test"
+                ? images.length < 1
+                : images.length < 2 ||
+                  expressions.every(
+                    (e) =>
+                      !e.word.trim() && !e.meaning.trim() && !e.example.trim(),
+                  ))
             }
             className="flex-1 py-4 px-4 rounded-xl bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >

@@ -37,9 +37,11 @@ export default async function VerifyPage({
   const routineType = ROUTINE_KEYS.includes(filter as RoutineTypeDB)
     ? (filter as RoutineTypeDB)
     : undefined;
+  const reviewOnly = filter === "review_test";
 
   const initial = await getAllRecordsForDisplay({
     routineType,
+    reviewOnly,
     limit: FEEDS_PER_PAGE,
     offset: (page - 1) * FEEDS_PER_PAGE,
     searchName: search || undefined,
@@ -47,10 +49,7 @@ export default async function VerifyPage({
 
   return (
     <Layout>
-      <FeedContainer
-        initialData={initial.data}
-        initialTotal={initial.total}
-      />
+      <FeedContainer initialData={initial.data} initialTotal={initial.total} />
     </Layout>
   );
 }

@@ -6,11 +6,11 @@ import { Grid3x3, Loader2 } from "lucide-react";
 import RecordStudy from "./RecordStudy";
 import AddNewLanguage from "./AddNewLanguage";
 import RitualDeclarationAccordion from "@/components/Routines/RitualDeclarationAccordion";
+import { LanguageRecord, LanguageFormData } from "@/types/routines/language";
 import {
-  LanguageRecord,
-  LanguageFormData,
-} from "@/types/routines/language";
-import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
+  createRitualRecordAuto,
+  getMyRitualRecords,
+} from "@/api/ritual-record";
 import { formatKoreaDateKey } from "@/lib/korea-date";
 import type {
   Json,
@@ -31,6 +31,7 @@ function mapLanguageRecord(r: RitualRecord): LanguageRecord {
     id: r.id,
     date: `${date.getMonth() + 1}월 ${date.getDate()}일`,
     recordDate: r.record_date,
+    recordType: d.recordType ?? "study",
     images: d.images ?? [],
     achievement: d.achievement,
     expressions: d.expressions ?? [],
@@ -97,6 +98,7 @@ export default function LanguageContainer({
   const handleSubmit = async (formData: LanguageFormData) => {
     const today = formatKoreaDateKey();
     const recordData: LanguageRecordData = {
+      recordType: formData.recordType,
       achievement: formData.achievement,
       expressions: formData.expressions,
       images: formData.images,

@@ -9,14 +9,16 @@ import type { RoutineTypeDB } from "@/types/supabase";
 import { FEEDS_PER_PAGE } from "@/constants/feeds";
 
 type FilterKey = "all" | RoutineTypeDB;
+type FeedFilterKey = FilterKey | "review_test";
 
-const FILTERS: { key: FilterKey; label: string }[] = [
+const FILTERS: { key: FeedFilterKey; label: string }[] = [
   { key: "all", label: "전체" },
   { key: "reading", label: "독서" },
   { key: "exercise", label: "운동" },
   { key: "morning", label: "모닝" },
   { key: "english", label: "영어" },
   { key: "second_language", label: "제2외국어" },
+  { key: "review_test", label: "복습" },
   { key: "recording", label: "기록" },
   { key: "cleanup", label: "정돈" },
   { key: "finance", label: "자산관리" },
@@ -29,10 +31,7 @@ function getVisiblePageNumbers(currentPage: number, totalPages: number) {
   const visibleCount = Math.min(PAGE_NUMBER_WINDOW, totalPages);
   const halfWindow = Math.floor(visibleCount / 2);
   const maxStart = totalPages - visibleCount + 1;
-  const startPage = Math.max(
-    1,
-    Math.min(currentPage - halfWindow, maxStart),
-  );
+  const startPage = Math.max(1, Math.min(currentPage - halfWindow, maxStart));
 
   return Array.from({ length: visibleCount }, (_, i) => startPage + i);
 }
@@ -48,7 +47,7 @@ export default function FeedContainer({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  const selectedFilter = (searchParams.get("filter") ?? "all") as FilterKey;
+  const selectedFilter = (searchParams.get("filter") ?? "all") as FeedFilterKey;
   const currentPage = Number(searchParams.get("page") ?? "1");
   const searchQuery = searchParams.get("search") ?? "";
 
@@ -68,7 +67,11 @@ export default function FeedContainer({
   const totalPages = Math.max(1, Math.ceil(totalCount / FEEDS_PER_PAGE));
   const visiblePageNumbers = getVisiblePageNumbers(currentPage, totalPages);
 
-  const updateParams = (filter: FilterKey, page: number, search?: string) => {
+  const updateParams = (
+    filter: FeedFilterKey,
+    page: number,
+    search?: string,
+  ) => {
     const params = new URLSearchParams();
     if (filter !== "all") params.set("filter", filter);
     if (page !== 1) params.set("page", String(page));
@@ -80,7 +83,7 @@ export default function FeedContainer({
     });
   };
 
-  const handleFilterChange = (key: FilterKey) => {
+  const handleFilterChange = (key: FeedFilterKey) => {
     updateParams(key, 1);
   };
 
@@ -164,11 +167,7 @@ export default function FeedContainer({
           </div>
         ) : (
           feedData.map((feed, index) => (
-            <FeedItem
-              key={String(feed.id)}
-              item={feed}
-              priority={index < 2}
-            />
+            <FeedItem key={String(feed.id)} item={feed} priority={index < 2} />
           ))
         )}
       </div>
