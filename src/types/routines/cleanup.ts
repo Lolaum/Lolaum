@@ -3,8 +3,10 @@
 import type { CleanupArea, CleanupMetricType } from "@/types/supabase";
 
 export interface CleanupMetric {
-  type: CleanupMetricType;
+  type?: CleanupMetricType;
+  label?: string;
   value: number;
+  unit?: string;
 }
 
 export interface CleanupRecord {
@@ -14,6 +16,7 @@ export interface CleanupRecord {
   customArea?: string;
   certPhotos: string[];
   metric?: CleanupMetric;
+  metrics?: CleanupMetric[];
   note: string;
 }
 
@@ -22,6 +25,7 @@ export interface CleanupFormData {
   customArea?: string;
   certPhotos: string[];
   metric?: CleanupMetric;
+  metrics?: CleanupMetric[];
   note: string;
 }
 
@@ -34,4 +38,3 @@ export interface AddNewCleanupProps {
 export interface RecordCleanupProps {
   cleanupRecords: CleanupRecord[];
 }
-

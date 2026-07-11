@@ -1,29 +1,54 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Upload, X } from "lucide-react";
+import { Plus, Trash2, Upload, X } from "lucide-react";
 import { applyTimestamp, fileToBase64 } from "@/lib/utils";
 import { uploadImages } from "@/lib/upload-image";
 import { useRitualDraft } from "@/hooks/useRitualDraft";
 import RitualDraftButtons from "@/components/common/RitualDraftButtons";
 import type { AddNewCleanupProps } from "@/types/routines/cleanup";
-import type { CleanupArea, CleanupMetricType } from "@/types/supabase";
-import {
-  CLEANUP_AREA_OPTIONS,
-  CLEANUP_METRIC_OPTIONS,
-  getCleanupMetricMeta,
-} from "./constants";
+import type { CleanupArea } from "@/types/supabase";
+import { CLEANUP_AREA_OPTIONS } from "./constants";
 
 const MAX_CERT_PHOTOS = 2;
 const CLEANUP_DRAFT_KEY = "cleanup";
+
+interface CleanupMetricRow {
+  id: string;
+  label: string;
+  value: string;
+  unit: string;
+}
 
 interface CleanupDraftData {
   area: CleanupArea | "";
   customArea: string;
   certPhotos: string[];
-  metricType: CleanupMetricType | "";
-  metricValue: string;
+  metricRows: CleanupMetricRow[];
   note: string;
+}
+
+function createMetricRow(): CleanupMetricRow {
+  return {
+    id: crypto.randomUUID(),
+    label: "",
+    value: "",
+    unit: "",
+  };
+}
+
+function isMetricRowEmpty(row: CleanupMetricRow) {
+  return !row.label.trim() && !row.value.trim() && !row.unit.trim();
+}
+
+function isMetricRowValid(row: CleanupMetricRow) {
+  if (isMetricRowEmpty(row)) return true;
+  const numberValue = Number(row.value);
+  return (
+    Boolean(row.label.trim() && row.value.trim() && row.unit.trim()) &&
+    !Number.isNaN(numberValue) &&
+    numberValue > 0
+  );
 }
 
 export default function AddNewCleanup({
@@ -34,8 +59,9 @@ export default function AddNewCleanup({
   const [area, setArea] = useState<CleanupArea | "">("");
   const [customArea, setCustomArea] = useState("");
   const [certPhotos, setCertPhotos] = useState<string[]>([]);
-  const [metricType, setMetricType] = useState<CleanupMetricType | "">("");
-  const [metricValue, setMetricValue] = useState("");
+  const [metricRows, setMetricRows] = useState<CleanupMetricRow[]>([
+    createMetricRow(),
+  ]);
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
@@ -49,9 +75,7 @@ export default function AddNewCleanup({
     clearDraft,
   } = useRitualDraft<CleanupDraftData>(CLEANUP_DRAFT_KEY);
 
-  const metricNumber = metricValue ? Number(metricValue) : NaN;
-  const hasMetric = Boolean(metricType && metricValue.trim());
-  const isMetricValid = !hasMetric || (!Number.isNaN(metricNumber) && metricNumber > 0);
+  const isMetricValid = metricRows.every(isMetricRowValid);
   const isValid =
     Boolean(area) &&
     (area !== "other" || customArea.trim().length > 0) &&
@@ -91,8 +115,7 @@ export default function AddNewCleanup({
       area,
       customArea,
       certPhotos,
-      metricType,
-      metricValue,
+      metricRows,
       note,
     });
   };
@@ -103,10 +126,31 @@ export default function AddNewCleanup({
     setArea(draft.area ?? "");
     setCustomArea(draft.customArea ?? "");
     setCertPhotos(draft.certPhotos ?? []);
-    setMetricType(draft.metricType ?? "");
-    setMetricValue(draft.metricValue ?? "");
+    setMetricRows(
+      draft.metricRows?.length ? draft.metricRows : [createMetricRow()],
+    );
     setNote(draft.note ?? "");
     loadedFromDraftRef.current = true;
+  };
+
+  const updateMetricRow = (
+    id: string,
+    key: keyof Omit<CleanupMetricRow, "id">,
+    value: string,
+  ) => {
+    setMetricRows((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, [key]: value } : row)),
+    );
+  };
+
+  const addMetricRow = () => {
+    setMetricRows((prev) => [...prev, createMetricRow()]);
+  };
+
+  const removeMetricRow = (id: string) => {
+    setMetricRows((prev) =>
+      prev.length === 1 ? [createMetricRow()] : prev.filter((row) => row.id !== id),
+    );
   };
 
   const handleSubmit = async () => {
@@ -116,14 +160,19 @@ export default function AddNewCleanup({
 
     try {
       const uploadedPhotos = await uploadImages(certPhotos);
+      const metrics = metricRows
+        .filter((row) => !isMetricRowEmpty(row))
+        .map((row) => ({
+          label: row.label.trim(),
+          value: Number(row.value),
+          unit: row.unit.trim(),
+        }));
       await onSubmit?.({
         area,
         customArea: area === "other" ? customArea.trim() : undefined,
         certPhotos: uploadedPhotos,
-        metric:
-          hasMetric && metricType
-            ? { type: metricType, value: metricNumber }
-            : undefined,
+        metrics,
+        metric: metrics[0],
         note: note.trim(),
       });
       if (!onSubmit) onCancel();
@@ -138,8 +187,6 @@ export default function AddNewCleanup({
       setSubmitting(false);
     }
   };
-
-  const selectedMetric = metricType ? getCleanupMetricMeta(metricType) : null;
 
   return (
     <div className="w-full max-w-3xl mx-auto">
@@ -251,42 +298,71 @@ export default function AddNewCleanup({
           <label className="block text-sm font-medium text-gray-700 mb-2">
             숫자 입력 <span className="text-gray-400 font-normal">(선택)</span>
           </label>
-          <div className="grid grid-cols-[1fr_120px] gap-2">
-            <select
-              value={metricType}
-              onChange={(e) => setMetricType(e.target.value as CleanupMetricType | "")}
-              className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400"
+          <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+            오늘 비운 것과 단위를 직접 적어두면, 이번 달에 얼마나 비웠는지 모아서 보여드려요.
+          </p>
+          <div className="space-y-2">
+            {metricRows.map((row) => (
+              <div
+                key={row.id}
+                className="grid grid-cols-[1fr_80px_64px_36px] gap-2"
+              >
+                <input
+                  type="text"
+                  value={row.label}
+                  onChange={(e) =>
+                    updateMetricRow(row.id, "label", e.target.value)
+                  }
+                  placeholder="비운 것"
+                  className="min-w-0 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={row.value}
+                  onChange={(e) =>
+                    updateMetricRow(row.id, "value", e.target.value)
+                  }
+                  placeholder="수치"
+                  className="min-w-0 px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400"
+                />
+                <input
+                  type="text"
+                  value={row.unit}
+                  onChange={(e) =>
+                    updateMetricRow(row.id, "unit", e.target.value)
+                  }
+                  placeholder="단위"
+                  className="min-w-0 px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeMetricRow(row.id)}
+                  className="flex h-11 w-9 items-center justify-center rounded-xl border border-gray-200 text-gray-400 transition-colors hover:border-red-100 hover:bg-red-50 hover:text-red-500"
+                  aria-label="숫자 입력 삭제"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addMetricRow}
+              className="flex items-center gap-1.5 text-xs font-semibold text-teal-600 hover:text-teal-700"
             >
-              <option value="">항목 선택</option>
-              {CLEANUP_METRIC_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <div className="relative">
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={metricValue}
-                onChange={(e) => setMetricValue(e.target.value)}
-                placeholder="빈 값 가능"
-                disabled={!metricType}
-                className="w-full px-3 py-3 pr-9 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400/30 focus:border-teal-400 disabled:text-gray-300"
-              />
-              {selectedMetric && (
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
-                  {selectedMetric.unit}
-                </span>
-              )}
-            </div>
+              <Plus className="h-3.5 w-3.5" />
+              숫자 입력 추가
+            </button>
           </div>
           {!isMetricValid && (
             <p className="mt-1.5 text-xs text-red-400">
-              숫자 입력 시 0보다 큰 값을 입력해 주세요.
+              숫자 입력 시 비운 것, 0보다 큰 수치, 단위를 모두 입력해 주세요.
             </p>
           )}
+          <p className="mt-1.5 text-xs text-gray-400">
+            예: 드라이브 20GB, 책상 청소 100%, 옷장 3벌
+          </p>
         </div>
 
         <div className="mb-5">

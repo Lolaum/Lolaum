@@ -48,7 +48,9 @@ const EditFeedRecord = dynamic(() => import("./EditFeedRecord"), {
 import LinkifiedText from "@/components/common/LinkifiedText";
 import {
   getCleanupAreaLabel,
-  getCleanupMetricMeta,
+  getCleanupMetricLabel,
+  getCleanupMetricUnit,
+  normalizeCleanupMetrics,
 } from "@/components/Routines/Cleanup/constants";
 
 interface FeedDetailProps {
@@ -319,7 +321,7 @@ function FinanceContent({ data }: { data: FinanceFeedData }) {
 }
 
 function CleanupContent({ data }: { data: CleanupFeedData }) {
-  const metricMeta = data.metric ? getCleanupMetricMeta(data.metric.type) : null;
+  const metrics = normalizeCleanupMetrics(data);
 
   return (
     <div className="space-y-4">
@@ -332,17 +334,25 @@ function CleanupContent({ data }: { data: CleanupFeedData }) {
             {getCleanupAreaLabel(data.area, data.customArea)}
           </p>
         </div>
-        {data.metric && metricMeta && (
-          <div className="bg-gray-50 rounded-xl p-3">
-            <p className="text-xs text-gray-400 font-medium mb-1">
-              {metricMeta.label}
-            </p>
-            <p className="text-sm font-bold text-teal-600">
-              {data.metric.value.toLocaleString()}
-              {metricMeta.unit}
-            </p>
-          </div>
-        )}
+        {metrics.map((metric, index) => {
+          const metricLabel = getCleanupMetricLabel(
+            metric,
+            data.area,
+            data.customArea,
+          );
+          const metricUnit = getCleanupMetricUnit(metric);
+          return (
+            <div key={`${metricLabel}-${metricUnit}-${index}`} className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-400 font-medium mb-1">
+                {metricLabel}
+              </p>
+              <p className="text-sm font-bold text-teal-600">
+                {metric.value.toLocaleString()}
+                {metricUnit}
+              </p>
+            </div>
+          );
+        })}
       </div>
       <div className="bg-gray-50 rounded-xl p-4">
         <p className="text-xs text-gray-400 font-medium mb-1">

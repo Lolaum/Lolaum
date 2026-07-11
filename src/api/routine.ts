@@ -17,6 +17,15 @@ function isRoutineTypeConstraintError(error: { message?: string; code?: string }
   );
 }
 
+function orderRoutinesByTime<T extends ChallengeRegistration>(routines: T[]): T[] {
+  return [...routines].sort((a, b) => {
+    const aTime = a.routine_start_time ?? "99:99:99";
+    const bTime = b.routine_start_time ?? "99:99:99";
+    if (aTime !== bTime) return aTime.localeCompare(bTime);
+    return a.registered_at.localeCompare(b.registered_at);
+  });
+}
+
 export async function getRoutines(
   challengeId: string,
 ): Promise<{ data?: ChallengeRegistration[]; error?: string }> {
@@ -32,6 +41,7 @@ export async function getRoutines(
     .select("*")
     .eq("user_id", user.id)
     .eq("challenge_id", challengeId)
+    .order("routine_start_time", { ascending: true, nullsFirst: false })
     .order("registered_at", { ascending: true });
 
   if (error) return { error: error.message };
@@ -44,12 +54,14 @@ export async function getRoutines(
     return true;
   });
 
-  return { data: unique };
+  return { data: orderRoutinesByTime(unique) };
 }
 
 export async function createRoutine(input: {
   challengeId: string;
   routineType: RoutineTypeDB;
+  routineStartTime?: string | null;
+  routineEndTime?: string | null;
 }): Promise<{ data?: ChallengeRegistration; error?: string }> {
   const user = await getCurrentUser();
   if (!user) {
@@ -82,6 +94,8 @@ export async function createRoutine(input: {
       user_id: user.id,
       challenge_id: input.challengeId,
       routine_type: input.routineType,
+      routine_start_time: input.routineStartTime ?? null,
+      routine_end_time: input.routineEndTime ?? null,
     })
     .select()
     .single();
@@ -127,6 +141,10 @@ export async function getMyRoutines(): Promise<{
 /** 리추얼 등록 (challengeId 자동) */
 export async function createRoutineAuto(
   routineType: RoutineTypeDB,
+  timeRange?: {
+    routineStartTime?: string | null;
+    routineEndTime?: string | null;
+  },
 ): Promise<{ data?: ChallengeRegistration; error?: string }> {
   const { period, error: periodError } = await getActivePeriod();
   if (!period) return { error: periodError ?? "활성 챌린지 기간이 없습니다." };
@@ -140,7 +158,12 @@ export async function createRoutineAuto(
     return { error: challengeError ?? "챌린지를 찾을 수 없습니다." };
   }
 
-  return createRoutine({ challengeId, routineType });
+  return createRoutine({
+    challengeId,
+    routineType,
+    routineStartTime: timeRange?.routineStartTime,
+    routineEndTime: timeRange?.routineEndTime,
+  });
 }
 
 /**

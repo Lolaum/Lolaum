@@ -42,7 +42,9 @@ import type {
 import { normalizeRecordingFeedEntries } from "@/types/feed";
 import {
   getCleanupAreaLabel,
-  getCleanupMetricMeta,
+  getCleanupMetricLabel,
+  getCleanupMetricUnit,
+  normalizeCleanupMetrics,
 } from "@/components/Routines/Cleanup/constants";
 
 // ─────────────────────────────
@@ -1101,32 +1103,35 @@ function CleanupInsightView({
     .map((record) => record.routineData as CleanupFeedData | undefined)
     .filter((data): data is CleanupFeedData => Boolean(data));
   const metricRecords = cleanupRecords.filter(
-    (data) => data.metric && data.metric.value > 0,
+    (data) => normalizeCleanupMetrics(data).length > 0,
   );
   const totalItems = metricRecords.reduce(
-    (sum, data) => sum + (data.metric?.value ?? 0),
+    (sum, data) =>
+      sum +
+      normalizeCleanupMetrics(data).reduce(
+        (metricSum, metric) => metricSum + metric.value,
+        0,
+      ),
     0,
   );
   const areaTotals = Array.from(
     metricRecords
       .reduce(
         (map, data) => {
-          if (!data.metric) return map;
-          const metricMeta = getCleanupMetricMeta(data.metric.type);
-          const customArea = data.customArea?.trim();
-          const key =
-            data.metric.type === "other" && customArea
-              ? `other:${customArea}`
-              : data.metric.type;
-          const label =
-            data.metric.type === data.area
-              ? getCleanupAreaLabel(data.area, data.customArea)
-              : (metricMeta?.label ?? "정돈");
-          const previous = map.get(key);
-          map.set(key, {
-            label: previous?.label ?? label,
-            value: (previous?.value ?? 0) + data.metric.value,
-            unit: metricMeta?.unit ?? "개",
+          normalizeCleanupMetrics(data).forEach((metric) => {
+            const label = getCleanupMetricLabel(
+              metric,
+              data.area,
+              data.customArea,
+            );
+            const unit = getCleanupMetricUnit(metric);
+            const key = `${label}__${unit}`;
+            const previous = map.get(key);
+            map.set(key, {
+              label: previous?.label ?? label,
+              value: (previous?.value ?? 0) + metric.value,
+              unit,
+            });
           });
           return map;
         },
@@ -1391,16 +1396,33 @@ function RecordPreviewCard({ item }: { item: FeedItem }) {
       }
       case "정돈": {
         const d = item.routineData as CleanupFeedData;
-        const metricMeta = d.metric ? getCleanupMetricMeta(d.metric.type) : null;
+        const metrics = normalizeCleanupMetrics(d);
         return (
           <div className="space-y-1.5">
             <p className="text-sm font-semibold text-gray-800">
               {getCleanupAreaLabel(d.area, d.customArea)}
             </p>
-            {d.metric && metricMeta && (
+            {metrics.slice(0, 2).map((metric, index) => {
+              const metricLabel = getCleanupMetricLabel(
+                metric,
+                d.area,
+                d.customArea,
+              );
+              const metricUnit = getCleanupMetricUnit(metric);
+              return (
+                <p
+                  key={`${metricLabel}-${metricUnit}-${index}`}
+                  className="text-xs"
+                  style={{ color: config.color }}
+                >
+                  {metricLabel} {metric.value.toLocaleString()}
+                  {metricUnit}
+                </p>
+              );
+            })}
+            {metrics.length > 2 && (
               <p className="text-xs" style={{ color: config.color }}>
-                {metricMeta.label} {d.metric.value.toLocaleString()}
-                {metricMeta.unit}
+                외 {metrics.length - 2}개
               </p>
             )}
             {d.note && (
