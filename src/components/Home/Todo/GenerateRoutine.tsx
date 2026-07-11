@@ -41,6 +41,18 @@ const EMPTY_TIME_PARTS: TimeParts = {
   minute: "",
 };
 
+const MORNING_START_PARTS: TimeParts = {
+  period: "AM",
+  hour: "07",
+  minute: "00",
+};
+
+const MORNING_END_PARTS: TimeParts = {
+  period: "AM",
+  hour: "07",
+  minute: "30",
+};
+
 interface RoutineFormState {
   answers: Record<string, string>;
   alarmConfirmed: boolean;
@@ -88,6 +100,7 @@ function TimePickerField({
   align = "left",
   onToggle,
   onChange,
+  onConfirm,
 }: {
   label: string;
   parts: TimeParts;
@@ -95,7 +108,10 @@ function TimePickerField({
   align?: "left" | "right";
   onToggle: () => void;
   onChange: (patch: Partial<TimeParts>) => void;
+  onConfirm: () => void;
 }) {
+  const isComplete = Boolean(parts.period && parts.hour && parts.minute);
+
   return (
     <div className="relative">
       <span className="mb-1 block text-xs font-medium text-gray-400">
@@ -169,6 +185,14 @@ function TimePickerField({
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={!isComplete}
+            className="col-span-3 rounded-xl bg-[#eab32e] px-3 py-2.5 text-sm font-bold text-white transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            확인
+          </button>
         </div>
       )}
     </div>
@@ -257,6 +281,18 @@ export default function GenerateRoutine({
   };
 
   const toggleSelectedRoutine = (routineType: RoutineType) => {
+    const isSelecting = !selectedRoutines.includes(routineType);
+
+    if (isSelecting && routineType === "모닝리추얼") {
+      setRoutineForm(routineType, (form) => ({
+        ...form,
+        routineStartTime: "07:00",
+        routineEndTime: "07:30",
+        routineStartParts: MORNING_START_PARTS,
+        routineEndParts: MORNING_END_PARTS,
+      }));
+    }
+
     setSelectedRoutines((prev) =>
       prev.includes(routineType)
         ? prev.filter((type) => type !== routineType)
@@ -632,6 +668,7 @@ export default function GenerateRoutine({
                         )
                       }
                       onChange={(patch) => updateTimeParts("start", patch)}
+                      onConfirm={() => setOpenTimePicker(null)}
                     />
                     <TimePickerField
                       label="종료"
@@ -644,11 +681,15 @@ export default function GenerateRoutine({
                         )
                       }
                       onChange={(patch) => updateTimeParts("end", patch)}
+                      onConfirm={() => setOpenTimePicker(null)}
                     />
                   </div>
-                  <p className="mt-2 text-xs text-gray-300">
-                    홈에서는 시작 시간이 빠른 순서로 보여요
-                  </p>
+                  {currentRoutine !== "모닝리추얼" && (
+                    <p className="mt-2 text-xs text-gray-400">
+                      하루 10분, 내가 매일 리추얼을 유지할 수 있는 시간을
+                      선택해주세요.
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-4 mb-5">
