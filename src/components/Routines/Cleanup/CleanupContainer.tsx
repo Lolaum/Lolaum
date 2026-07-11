@@ -12,36 +12,20 @@ import {
 } from "@/api/ritual-record";
 import { formatKoreaDateKey } from "@/lib/korea-date";
 import type {
-  CleanupMetricType,
   CleanupRecordData,
   Json,
 } from "@/types/supabase";
 import type { CleanupFormData, CleanupRecord } from "@/types/routines/cleanup";
-import { CLEANUP_METRIC_OPTIONS } from "./constants";
+import {
+  getCleanupAreaLabel,
+  getCleanupMetricLabel,
+  getCleanupMetricUnit,
+  normalizeCleanupMetrics,
+} from "./constants";
 
 interface CleanupContainerProps {
   mode?: "main" | "new";
 }
-
-const EMPTY_TOTALS: Record<CleanupMetricType, number> = {
-  photo_album: 0,
-  laptop_folder: 0,
-  drive: 0,
-  email: 0,
-  memo: 0,
-  desktop: 0,
-  documents: 0,
-  desk: 0,
-  room: 0,
-  closet: 0,
-  drawer: 0,
-  bathroom: 0,
-  kitchen: 0,
-  fridge: 0,
-  bag: 0,
-  shoe_cabinet: 0,
-  other: 0,
-};
 
 function formatMetricValue(value: number) {
   return value.toLocaleString();
@@ -72,6 +56,7 @@ export default function CleanupContainer({ mode = "main" }: CleanupContainerProp
           customArea: d.customArea,
           certPhotos: d.certPhotos ?? [],
           metric: d.metric,
+          metrics: d.metrics,
           note: d.note ?? "",
         };
       });
@@ -94,6 +79,7 @@ export default function CleanupContainer({ mode = "main" }: CleanupContainerProp
       customArea: formData.customArea,
       certPhotos: formData.certPhotos,
       metric: formData.metric,
+      metrics: formData.metrics,
       note: formData.note,
     };
     const { error } = await createRitualRecordAuto({
@@ -108,20 +94,38 @@ export default function CleanupContainer({ mode = "main" }: CleanupContainerProp
     goMain();
   };
 
-  const totals = useMemo(() => {
-    return cleanupRecords.reduce<Record<CleanupMetricType, number>>(
-      (acc, record) => {
-        if (record.metric && record.metric.type in acc) {
-          acc[record.metric.type] += record.metric.value;
-        }
-        return acc;
-      },
-      { ...EMPTY_TOTALS },
-    );
+  const areaCount = useMemo(() => {
+    return new Set(
+      cleanupRecords.map((record) =>
+        getCleanupAreaLabel(record.area, record.customArea),
+      ),
+    ).size;
   }, [cleanupRecords]);
-  const visibleMetrics = CLEANUP_METRIC_OPTIONS.filter(
-    (metric) => totals[metric.value] > 0,
-  );
+
+  const metricTotals = useMemo(() => {
+    return Array.from(
+      cleanupRecords
+        .reduce((map, record) => {
+          normalizeCleanupMetrics(record).forEach((metric) => {
+            const label = getCleanupMetricLabel(
+              metric,
+              record.area,
+              record.customArea,
+            );
+            const unit = getCleanupMetricUnit(metric);
+            const key = `${label}__${unit}`;
+            const previous = map.get(key);
+            map.set(key, {
+              label,
+              unit,
+              value: (previous?.value ?? 0) + metric.value,
+            });
+          });
+          return map;
+        }, new Map<string, { label: string; unit: string; value: number }>())
+        .values(),
+    ).sort((a, b) => b.value - a.value);
+  }, [cleanupRecords]);
 
   if (mode === "new") {
     return (
@@ -158,23 +162,43 @@ export default function CleanupContainer({ mode = "main" }: CleanupContainerProp
             지금까지 정돈한 기록
           </h1>
         </div>
-        {visibleMetrics.length > 0 && (
-          <div className="grid grid-cols-2 gap-2">
-          {visibleMetrics.map((metric) => (
-            <div key={metric.value} className="bg-teal-50 rounded-xl p-3">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="bg-teal-50 rounded-xl p-3">
+            <p className="text-xs text-teal-600 font-semibold mb-1">
+              정돈 기록
+            </p>
+            <p className="text-lg font-bold text-gray-900">
+              {cleanupRecords.length.toLocaleString()}
+              <span className="ml-0.5 text-sm font-medium text-gray-400">
+                회
+              </span>
+            </p>
+          </div>
+          <div className="bg-teal-50 rounded-xl p-3">
+            <p className="text-xs text-teal-600 font-semibold mb-1">
+              정돈한 분야
+            </p>
+            <p className="text-lg font-bold text-gray-900">
+              {areaCount.toLocaleString()}
+              <span className="ml-0.5 text-sm font-medium text-gray-400">
+                개
+              </span>
+            </p>
+          </div>
+          {metricTotals.map((metric) => (
+            <div key={`${metric.label}-${metric.unit}`} className="bg-teal-50 rounded-xl p-3">
               <p className="text-xs text-teal-600 font-semibold mb-1">
                 {metric.label}
               </p>
               <p className="text-lg font-bold text-gray-900">
-                {formatMetricValue(totals[metric.value])}
+                {formatMetricValue(metric.value)}
                 <span className="ml-0.5 text-sm font-medium text-gray-400">
                   {metric.unit}
                 </span>
               </p>
             </div>
           ))}
-          </div>
-        )}
+        </div>
       </div>
 
       <RitualDeclarationAccordion routineType="cleanup" />

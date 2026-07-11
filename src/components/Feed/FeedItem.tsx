@@ -32,7 +32,8 @@ import ChallengerRitualsPopover from "./ChallengerRitualsPopover";
 import ReactionBar from "./ReactionBar";
 import {
   getCleanupAreaLabel,
-  getCleanupMetricMeta,
+  getCleanupMetricUnit,
+  normalizeCleanupMetrics,
 } from "@/components/Routines/Cleanup/constants";
 
 interface FeedItemProps {
@@ -182,10 +183,13 @@ function getSubText(item: FeedItemType): string | null {
     }
     case "정돈": {
       const d = data as CleanupFeedData;
-      const metricMeta = d.metric ? getCleanupMetricMeta(d.metric.type) : null;
+      const metrics = normalizeCleanupMetrics(d);
+      const firstMetric = metrics[0];
       const metricText =
-        d.metric && metricMeta
-          ? ` · ${d.metric.value.toLocaleString()}${metricMeta.unit}`
+        firstMetric
+          ? ` · ${firstMetric.value.toLocaleString()}${getCleanupMetricUnit(firstMetric)}${
+              metrics.length > 1 ? ` 외 ${metrics.length - 1}개` : ""
+            }`
           : "";
       return `${getCleanupAreaLabel(d.area, d.customArea)}${metricText}`;
     }

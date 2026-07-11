@@ -22,7 +22,11 @@ import type {
   RoutineTypeDB,
 } from "@/types/supabase";
 import { ROUTINE_TYPE_LABEL, normalizeRecordingEntries } from "@/types/supabase";
-import { CLEANUP_METRIC_OPTIONS } from "@/components/Routines/Cleanup/constants";
+import {
+  getCleanupMetricLabel,
+  getCleanupMetricUnit,
+  normalizeCleanupMetrics,
+} from "@/components/Routines/Cleanup/constants";
 
 interface FinalReviewRow {
   id: string;
@@ -233,22 +237,34 @@ function getRoutineSummary(input: {
       };
     }
     case "cleanup": {
-      const totals = new Map<string, number>();
+      const totals = new Map<
+        string,
+        { label: string; unit: string; value: number }
+      >();
       for (const record of records) {
         const data = record.record_data as CleanupRecordData;
-        if (data.metric) {
-          totals.set(
-            data.metric.type,
-            (totals.get(data.metric.type) ?? 0) + (data.metric.value || 0),
+        normalizeCleanupMetrics(data).forEach((metric) => {
+          const label = getCleanupMetricLabel(
+            metric,
+            data.area,
+            data.customArea,
           );
-        }
+          const unit = getCleanupMetricUnit(metric);
+          const key = `${label}__${unit}`;
+          const previous = totals.get(key);
+          totals.set(key, {
+            label,
+            unit,
+            value: (previous?.value ?? 0) + (metric.value || 0),
+          });
+        });
       }
-      const metricRows = CLEANUP_METRIC_OPTIONS
-        .map((option) => ({
-          label: option.label,
-          value: `${(totals.get(option.value) ?? 0).toLocaleString()}${option.unit}`,
-        }))
-        .filter((metric) => !metric.value.startsWith("0"));
+      const metricRows = Array.from(totals.values())
+        .sort((a, b) => b.value - a.value)
+        .map((metric) => ({
+          label: metric.label,
+          value: `${metric.value.toLocaleString()}${metric.unit}`,
+        }));
       return {
         routineType,
         label,

@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import GenerateRoutine from "./GenerateRoutine";
-import { Plus, X, ChevronRight } from "lucide-react";
+import { Plus, X, ChevronRight, Clock3 } from "lucide-react";
 import { RoutineListProps } from "@/types/home/todo";
 import { getMyRoutines } from "@/api/routine";
 import type { ChallengeRegistration, RoutineTypeDB } from "@/types/supabase";
@@ -34,6 +34,19 @@ const ROUTINE_TAG: Record<RoutineTypeDB, string> = {
 
 const DEFAULT_COLOR = { color: "#6b7280", bgColor: "#f3f4f6" };
 
+function sortRoutinesByTime(routines: ChallengeRegistration[]) {
+  return [...routines].sort((a, b) => {
+    const aTime = a.routine_start_time ?? "99:99:99";
+    const bTime = b.routine_start_time ?? "99:99:99";
+    if (aTime !== bTime) return aTime.localeCompare(bTime);
+    return a.registered_at.localeCompare(b.registered_at);
+  });
+}
+
+function formatRoutineTime(time: string | null) {
+  return time?.slice(0, 5) ?? "";
+}
+
 export default function RoutineList({
   onTaskClick,
   initialRoutines,
@@ -46,7 +59,7 @@ export default function RoutineList({
   // 목표 일수 = 평일 수 + 3 보너스(선언/중간회고/최종회고). API 미수신 시 fallback 18
   const goalDays = (totalRoutineDays ?? 15) + 3;
   const [routines, setRoutines] = useState<ChallengeRegistration[]>(
-    initialRoutines ?? [],
+    sortRoutinesByTime(initialRoutines ?? []),
   );
   const [loading, setLoading] = useState(false);
   const [showGenerateRoutine, setShowGenerateRoutine] = useState(false);
@@ -54,7 +67,7 @@ export default function RoutineList({
   const fetchRoutines = useCallback(async () => {
     setLoading(true);
     const { data } = await getMyRoutines();
-    setRoutines(data || []);
+    setRoutines(sortRoutinesByTime(data || []));
     setLoading(false);
   }, []);
 
@@ -109,6 +122,8 @@ export default function RoutineList({
 
             const completedDays =
               routineCompletionMap[routine.routine_type] ?? 0;
+            const startTime = formatRoutineTime(routine.routine_start_time);
+            const endTime = formatRoutineTime(routine.routine_end_time);
             const fillPercent = Math.min(
               Math.round((completedDays / goalDays) * 100),
               100,
@@ -144,6 +159,14 @@ export default function RoutineList({
                         {title}
                       </span>
                     </div>
+                    {startTime && endTime && (
+                      <div className="mt-1 flex items-center gap-1 text-xs font-medium text-gray-400">
+                        <Clock3 size={12} />
+                        <span>
+                          {startTime} - {endTime}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* 화살표 */}

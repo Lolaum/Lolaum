@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { Clock3, X } from "lucide-react";
 import { RoutineType } from "@/types/routines/declaration";
 import { declarationQuestions } from "@/lib/declarationQuestions";
 import { createRoutineAuto } from "@/api/routine";
@@ -27,6 +27,134 @@ const routineOptions: { type: RoutineType; emoji: string }[] = [
   { type: "정돈리추얼", emoji: "🧹" },
 ];
 
+type TimePeriod = "AM" | "PM" | "";
+
+interface TimeParts {
+  period: TimePeriod;
+  hour: string;
+  minute: string;
+}
+
+const EMPTY_TIME_PARTS: TimeParts = {
+  period: "",
+  hour: "",
+  minute: "",
+};
+
+const HOUR_OPTIONS = Array.from({ length: 12 }, (_, index) =>
+  String(index + 1).padStart(2, "0"),
+);
+const MINUTE_OPTIONS = Array.from({ length: 12 }, (_, index) =>
+  String(index * 5).padStart(2, "0"),
+);
+
+function toTimeValue(parts: TimeParts) {
+  if (!parts.period || !parts.hour || !parts.minute) return "";
+  let hour = Number(parts.hour);
+  if (parts.period === "AM" && hour === 12) hour = 0;
+  if (parts.period === "PM" && hour !== 12) hour += 12;
+  return `${String(hour).padStart(2, "0")}:${parts.minute}`;
+}
+
+function formatTimeLabel(parts: TimeParts) {
+  if (!parts.period || !parts.hour || !parts.minute) return "--:--";
+  return `${parts.period === "AM" ? "오전" : "오후"} ${parts.hour}:${parts.minute}`;
+}
+
+function TimePickerField({
+  label,
+  parts,
+  isOpen,
+  align = "left",
+  onToggle,
+  onChange,
+}: {
+  label: string;
+  parts: TimeParts;
+  isOpen: boolean;
+  align?: "left" | "right";
+  onToggle: () => void;
+  onChange: (patch: Partial<TimeParts>) => void;
+}) {
+  return (
+    <div className="relative">
+      <span className="mb-1 block text-xs font-medium text-gray-400">
+        {label}
+      </span>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm font-semibold text-gray-800 transition-all focus:border-[var(--gold-400)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30"
+      >
+        <span>{formatTimeLabel(parts)}</span>
+        <Clock3 size={18} className="shrink-0 text-gray-500" />
+      </button>
+
+      {isOpen && (
+        <div
+          className={`absolute top-full z-[80] mt-2 grid w-[18rem] grid-cols-3 gap-2 rounded-2xl border border-gray-200 bg-white p-2 shadow-xl ${
+            align === "right" ? "right-0" : "left-0"
+          }`}
+        >
+          <div className="max-h-56 overflow-y-auto">
+            {[
+              { value: "AM", label: "오전" },
+              { value: "PM", label: "오후" },
+            ].map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() =>
+                  onChange({ period: option.value as TimePeriod })
+                }
+                className={`mb-1 w-full rounded-xl px-3 py-2 text-sm font-bold transition-colors ${
+                  parts.period === option.value
+                    ? "bg-blue-500 text-white"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <div className="max-h-56 overflow-y-auto">
+            {HOUR_OPTIONS.map((hour) => (
+              <button
+                key={hour}
+                type="button"
+                onClick={() => onChange({ hour })}
+                className={`mb-1 w-full rounded-xl px-3 py-2 text-sm font-bold transition-colors ${
+                  parts.hour === hour
+                    ? "bg-blue-500 text-white"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                {hour}
+              </button>
+            ))}
+          </div>
+          <div className="max-h-56 overflow-y-auto">
+            {MINUTE_OPTIONS.map((minute) => (
+              <button
+                key={minute}
+                type="button"
+                onClick={() => onChange({ minute })}
+                className={`mb-1 w-full rounded-xl px-3 py-2 text-sm font-bold transition-colors ${
+                  parts.minute === minute
+                    ? "bg-blue-500 text-white"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                {minute}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function GenerateRoutine({
   onClose,
   onCreated,
@@ -46,6 +174,15 @@ export default function GenerateRoutine({
   const [visible, setVisible] = useState(false);
   const [alarmConfirmed, setAlarmConfirmed] = useState(false);
   const [certConfirmed, setCertConfirmed] = useState(false);
+  const [routineStartTime, setRoutineStartTime] = useState("");
+  const [routineEndTime, setRoutineEndTime] = useState("");
+  const [routineStartParts, setRoutineStartParts] =
+    useState<TimeParts>(EMPTY_TIME_PARTS);
+  const [routineEndParts, setRoutineEndParts] =
+    useState<TimeParts>(EMPTY_TIME_PARTS);
+  const [openTimePicker, setOpenTimePicker] = useState<"start" | "end" | null>(
+    null,
+  );
   const router = useRouter();
 
   useEffect(() => {
@@ -96,8 +233,27 @@ export default function GenerateRoutine({
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
   };
 
+  const updateTimeParts = (
+    target: "start" | "end",
+    patch: Partial<TimeParts>,
+  ) => {
+    const setParts =
+      target === "start" ? setRoutineStartParts : setRoutineEndParts;
+    const setTime =
+      target === "start" ? setRoutineStartTime : setRoutineEndTime;
+
+    setParts((prev) => {
+      const next = { ...prev, ...patch };
+      setTime(toTimeValue(next));
+      return next;
+    });
+    setErrorMsg(null);
+  };
+
   const handleNextStep = () => {
-    if (selectedRoutine) setStep(2);
+    if (!selectedRoutine) return;
+    setErrorMsg(null);
+    setStep(2);
   };
 
   const handleCreate = async () => {
@@ -112,7 +268,16 @@ export default function GenerateRoutine({
       return;
     }
 
-    const { error } = await createRoutineAuto(routineType);
+    if (!routineStartTime || !routineEndTime) {
+      setErrorMsg("리추얼 시작 시간과 종료 시간을 입력해주세요.");
+      setSubmitting(false);
+      return;
+    }
+
+    const { error } = await createRoutineAuto(routineType, {
+      routineStartTime,
+      routineEndTime,
+    });
 
     if (error) {
       setErrorMsg(error);
@@ -348,6 +513,41 @@ export default function GenerateRoutine({
                   선언을 작성해주세요
                 </p>
 
+                {/* 리추얼 시간 */}
+                <div className="mb-5">
+                  <label className="block text-sm font-bold text-gray-800 mb-2">
+                    리추얼 시간 <span className="text-red-400">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <TimePickerField
+                      label="시작"
+                      parts={routineStartParts}
+                      isOpen={openTimePicker === "start"}
+                      onToggle={() =>
+                        setOpenTimePicker((current) =>
+                          current === "start" ? null : "start",
+                        )
+                      }
+                      onChange={(patch) => updateTimeParts("start", patch)}
+                    />
+                    <TimePickerField
+                      label="종료"
+                      parts={routineEndParts}
+                      isOpen={openTimePicker === "end"}
+                      align="right"
+                      onToggle={() =>
+                        setOpenTimePicker((current) =>
+                          current === "end" ? null : "end",
+                        )
+                      }
+                      onChange={(patch) => updateTimeParts("end", patch)}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs text-gray-300">
+                    홈에서는 시작 시간이 빠른 순서로 보여요
+                  </p>
+                </div>
+
                 <div className="flex flex-col gap-4 mb-5">
                   {questions.map((q) => {
                     const labelLines = q.label.split("\n");
@@ -449,7 +649,11 @@ export default function GenerateRoutine({
                   <button
                     onClick={handleCreate}
                     disabled={
-                      !allAnswersFilled || !alarmConfirmed || submitting
+                      !allAnswersFilled ||
+                      !routineStartTime ||
+                      !routineEndTime ||
+                      !alarmConfirmed ||
+                      submitting
                     }
                     className="flex-[2] py-3.5 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{ backgroundColor: "#eab32e" }}

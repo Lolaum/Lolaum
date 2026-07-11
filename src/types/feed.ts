@@ -49,9 +49,17 @@ export interface CleanupFeedData {
   customArea?: string;
   certPhotos?: string[];
   metric?: {
-    type: CleanupMetricType;
+    type?: CleanupMetricType;
+    label?: string;
     value: number;
+    unit?: string;
   };
+  metrics?: {
+    type?: CleanupMetricType;
+    label?: string;
+    value: number;
+    unit?: string;
+  }[];
   note: string;
 }
 

@@ -181,6 +181,8 @@ export interface Database {
           challenge_id: string;
           user_id: string;
           routine_type: RoutineTypeDB;
+          routine_start_time: string | null;
+          routine_end_time: string | null;
           registered_at: string;
         };
         Insert: {
@@ -188,10 +190,14 @@ export interface Database {
           challenge_id: string;
           user_id: string;
           routine_type: RoutineTypeDB;
+          routine_start_time?: string | null;
+          routine_end_time?: string | null;
           registered_at?: string;
         };
         Update: {
           routine_type?: RoutineTypeDB;
+          routine_start_time?: string | null;
+          routine_end_time?: string | null;
         };
         Relationships: [];
       };
@@ -739,9 +745,17 @@ export interface CleanupRecordData {
   customArea?: string;
   certPhotos: string[];
   metric?: {
-    type: CleanupMetricType;
+    type?: CleanupMetricType;
+    label?: string;
     value: number;
+    unit?: string;
   };
+  metrics?: {
+    type?: CleanupMetricType;
+    label?: string;
+    value: number;
+    unit?: string;
+  }[];
   note: string;
 }
 

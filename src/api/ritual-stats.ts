@@ -842,6 +842,7 @@ export async function getHomeStats(): Promise<{
       .select("*")
       .eq("user_id", user.id)
       .eq("challenge_id", challengeId)
+      .order("routine_start_time", { ascending: true, nullsFirst: false })
       .order("registered_at", { ascending: true }),
     supabase
       .from("declarations")

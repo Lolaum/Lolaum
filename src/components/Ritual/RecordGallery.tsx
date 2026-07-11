@@ -38,7 +38,9 @@ import {
 } from "@/api/ritual-records-display";
 import {
   getCleanupAreaLabel,
-  getCleanupMetricMeta,
+  getCleanupMetricLabel,
+  getCleanupMetricUnit,
+  normalizeCleanupMetrics,
 } from "@/components/Routines/Cleanup/constants";
 
 const CATEGORY_CONFIG: Record<
@@ -452,7 +454,7 @@ function EnglishBookCardContent({ data }: { data: ReadingFeedData }) {
 }
 
 function CleanupCardContent({ data }: { data: CleanupFeedData }) {
-  const metricMeta = data.metric ? getCleanupMetricMeta(data.metric.type) : null;
+  const metrics = normalizeCleanupMetrics(data);
 
   return (
     <div className="space-y-3">
@@ -460,10 +462,26 @@ function CleanupCardContent({ data }: { data: CleanupFeedData }) {
         <p className="text-sm font-bold text-gray-900">
           {getCleanupAreaLabel(data.area, data.customArea)}
         </p>
-        {data.metric && metricMeta && (
+        {metrics.slice(0, 2).map((metric, index) => {
+          const metricLabel = getCleanupMetricLabel(
+            metric,
+            data.area,
+            data.customArea,
+          );
+          const metricUnit = getCleanupMetricUnit(metric);
+          return (
+            <p
+              key={`${metricLabel}-${metricUnit}-${index}`}
+              className="mt-1 text-xs font-semibold text-teal-600"
+            >
+              {metricLabel} {metric.value.toLocaleString()}
+              {metricUnit}
+            </p>
+          );
+        })}
+        {metrics.length > 2 && (
           <p className="mt-1 text-xs font-semibold text-teal-600">
-            {metricMeta.label} {data.metric.value.toLocaleString()}
-            {metricMeta.unit}
+            외 {metrics.length - 2}개
           </p>
         )}
       </div>

@@ -18,10 +18,12 @@ import {
 } from "@/types/feed";
 import { ExpenseItem, ExpenseType } from "@/types/routines/finance";
 import { updateRitualRecord } from "@/api/ritual-record";
-import type { CleanupArea, CleanupMetricType, Json } from "@/types/supabase";
+import type { CleanupArea, Json } from "@/types/supabase";
 import {
   CLEANUP_AREA_OPTIONS,
-  CLEANUP_METRIC_OPTIONS,
+  getCleanupMetricLabel,
+  getCleanupMetricUnit,
+  normalizeCleanupMetrics,
 } from "@/components/Routines/Cleanup/constants";
 
 interface Props {
@@ -573,16 +575,74 @@ function CleanupEditor({
   draft: CleanupFeedData;
   onChange: (d: CleanupFeedData) => void;
 }) {
-  const metricType = draft.metric?.type ?? "";
-  const metricValue = draft.metric?.value ?? "";
+  type MetricRow = {
+    id: string;
+    label: string;
+    value: string;
+    unit: string;
+  };
+  const createEmptyMetricRow = (): MetricRow => ({
+    id: crypto.randomUUID(),
+    label: "",
+    value: "",
+    unit: "",
+  });
+  const [metricRows, setMetricRows] = useState<MetricRow[]>(() => {
+    const metrics = normalizeCleanupMetrics(draft);
+    if (metrics.length === 0) return [createEmptyMetricRow()];
+    return metrics.map((metric) => ({
+      id: crypto.randomUUID(),
+      label: getCleanupMetricLabel(metric, draft.area, draft.customArea),
+      value: String(metric.value),
+      unit: getCleanupMetricUnit(metric),
+    }));
+  });
 
-  const updateMetric = (type: CleanupMetricType | "", value: string) => {
-    const parsed = Number(value);
-    if (!type || !value || Number.isNaN(parsed) || parsed <= 0) {
-      onChange({ ...draft, metric: undefined });
-      return;
-    }
-    onChange({ ...draft, metric: { type, value: parsed } });
+  const syncMetricRows = (rows: MetricRow[]) => {
+    const metrics = rows
+      .map((row) => ({
+        label: row.label.trim(),
+        value: Number(row.value),
+        unit: row.unit.trim(),
+      }))
+      .filter(
+        (metric) =>
+          metric.label &&
+          metric.unit &&
+          !Number.isNaN(metric.value) &&
+          metric.value > 0,
+      );
+    onChange({
+      ...draft,
+      metric: metrics[0],
+      metrics,
+    });
+  };
+
+  const updateMetricRow = (
+    id: string,
+    key: keyof Omit<MetricRow, "id">,
+    value: string,
+  ) => {
+    const nextRows = metricRows.map((row) =>
+      row.id === id ? { ...row, [key]: value } : row,
+    );
+    setMetricRows(nextRows);
+    syncMetricRows(nextRows);
+  };
+
+  const addMetricRow = () => {
+    const nextRows = [...metricRows, createEmptyMetricRow()];
+    setMetricRows(nextRows);
+  };
+
+  const removeMetricRow = (id: string) => {
+    const nextRows =
+      metricRows.length === 1
+        ? [createEmptyMetricRow()]
+        : metricRows.filter((row) => row.id !== id);
+    setMetricRows(nextRows);
+    syncMetricRows(nextRows);
   };
 
   return (
@@ -619,35 +679,55 @@ function CleanupEditor({
           />
         </div>
       )}
-      <div className="grid grid-cols-[1fr_120px] gap-2">
-        <div>
-          <label className={fieldLabel}>숫자 항목</label>
-          <select
-            value={metricType}
-            onChange={(e) =>
-              updateMetric(e.target.value as CleanupMetricType | "", String(metricValue))
-            }
-            className={inputCls}
-          >
-            <option value="">선택 안 함</option>
-            {CLEANUP_METRIC_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className={fieldLabel}>값</label>
-          <input
-            type="number"
-            value={metricValue}
-            onChange={(e) =>
-              updateMetric(metricType as CleanupMetricType | "", e.target.value)
-            }
-            className={inputCls}
-          />
-        </div>
+      <div className="space-y-2">
+        <label className={fieldLabel}>숫자 입력</label>
+        {metricRows.map((row) => (
+          <div key={row.id} className="grid grid-cols-[1fr_72px_60px_32px] gap-2">
+            <input
+              type="text"
+              value={row.label}
+              onChange={(e) =>
+                updateMetricRow(row.id, "label", e.target.value)
+              }
+              placeholder="비운 것"
+              className={inputCls}
+            />
+            <input
+              type="number"
+              value={row.value}
+              onChange={(e) =>
+                updateMetricRow(row.id, "value", e.target.value)
+              }
+              placeholder="수치"
+              className={inputCls}
+            />
+            <input
+              type="text"
+              value={row.unit}
+              onChange={(e) =>
+                updateMetricRow(row.id, "unit", e.target.value)
+              }
+              placeholder="단위"
+              className={inputCls}
+            />
+            <button
+              type="button"
+              onClick={() => removeMetricRow(row.id)}
+              className="flex h-10 items-center justify-center rounded-xl border border-gray-200 text-gray-400 hover:border-red-100 hover:bg-red-50 hover:text-red-500"
+              aria-label="숫자 입력 삭제"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={addMetricRow}
+          className="flex items-center gap-1 text-xs font-semibold text-teal-600 hover:text-teal-700"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          숫자 입력 추가
+        </button>
       </div>
       <div>
         <label className={fieldLabel}>한 줄 비움 소감</label>

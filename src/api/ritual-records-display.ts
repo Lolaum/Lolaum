@@ -171,6 +171,7 @@ function transformRecordData(
         customArea: data.customArea as string | undefined,
         certPhotos: (data.certPhotos as string[]) ?? undefined,
         metric: data.metric as CleanupFeedData["metric"],
+        metrics: data.metrics as CleanupFeedData["metrics"],
         note: (data.note as string) ?? "",
       } satisfies CleanupFeedData;
 
