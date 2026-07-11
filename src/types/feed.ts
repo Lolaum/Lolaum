@@ -129,6 +129,7 @@ export function normalizeRecordingFeedEntries(
 }
 
 export interface LanguageFeedData {
+  recordType?: "study" | "review_test";
   images: string[];
   achievement: string;
   expressions: { word: string; meaning: string; example: string }[];

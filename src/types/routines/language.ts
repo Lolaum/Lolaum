@@ -4,6 +4,7 @@ export interface LanguageRecord {
   id: string | number;
   date: string;
   recordDate?: string;
+  recordType?: LanguageRecordType;
   images?: string[];
   achievement: string;
   expressions: { word: string; meaning: string; example: string }[];
@@ -19,6 +20,7 @@ export interface LanguageContainerProps {
 }
 
 export interface LanguageFormData {
+  recordType: LanguageRecordType;
   images: string[];
   achievement: string;
   expressions: { word: string; meaning: string; example: string }[];
@@ -38,3 +40,5 @@ export interface Expression {
   meaning: string;
   example: string;
 }
+
+export type LanguageRecordType = "study" | "review_test";

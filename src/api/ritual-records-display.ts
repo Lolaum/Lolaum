@@ -145,6 +145,8 @@ function transformRecordData(
     case "english":
     case "second_language":
       return {
+        recordType:
+          (data.recordType as LanguageFeedData["recordType"]) ?? "study",
         images: (data.images as string[]) ?? [],
         achievement: (data.achievement as string) ?? "",
         expressions:
@@ -810,6 +812,7 @@ export async function getRecordById(
 /** 전체 유저 리추얼 기록 가져오기 (피드용) */
 export async function getAllRecordsForDisplay(options?: {
   routineType?: RoutineTypeDB;
+  reviewOnly?: boolean;
   limit?: number;
   offset?: number;
   searchName?: string;
@@ -875,6 +878,11 @@ export async function getAllRecordsForDisplay(options?: {
     if (options?.routineType) {
       countQuery = countQuery.eq("routine_type", options.routineType);
       query = query.eq("routine_type", options.routineType);
+    }
+
+    if (options?.reviewOnly) {
+      countQuery = countQuery.eq("record_data->>recordType", "review_test");
+      query = query.eq("record_data->>recordType", "review_test");
     }
 
     if (searchUserIds) {

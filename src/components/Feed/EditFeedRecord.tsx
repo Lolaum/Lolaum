@@ -682,31 +682,28 @@ function CleanupEditor({
       <div className="space-y-2">
         <label className={fieldLabel}>숫자 입력</label>
         {metricRows.map((row) => (
-          <div key={row.id} className="grid grid-cols-[1fr_72px_60px_32px] gap-2">
+          <div
+            key={row.id}
+            className="grid grid-cols-[1fr_72px_60px_32px] gap-2"
+          >
             <input
               type="text"
               value={row.label}
-              onChange={(e) =>
-                updateMetricRow(row.id, "label", e.target.value)
-              }
+              onChange={(e) => updateMetricRow(row.id, "label", e.target.value)}
               placeholder="비운 것"
               className={inputCls}
             />
             <input
               type="number"
               value={row.value}
-              onChange={(e) =>
-                updateMetricRow(row.id, "value", e.target.value)
-              }
+              onChange={(e) => updateMetricRow(row.id, "value", e.target.value)}
               placeholder="수치"
               className={inputCls}
             />
             <input
               type="text"
               value={row.unit}
-              onChange={(e) =>
-                updateMetricRow(row.id, "unit", e.target.value)
-              }
+              onChange={(e) => updateMetricRow(row.id, "unit", e.target.value)}
               placeholder="단위"
               className={inputCls}
             />
@@ -776,6 +773,20 @@ function LanguageEditor({
       ],
     });
   };
+
+  if (draft.recordType === "review_test") {
+    return (
+      <div>
+        <label className={fieldLabel}>복습 테스트</label>
+        <textarea
+          value={draft.achievement}
+          onChange={(e) => onChange({ ...draft, achievement: e.target.value })}
+          rows={2}
+          className={textareaCls}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">

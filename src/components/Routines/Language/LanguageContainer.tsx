@@ -2,15 +2,16 @@
 
 import { useEffect, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Grid3x3, Loader2 } from "lucide-react";
+import { Grid3x3, Loader2, HelpCircle } from "lucide-react";
 import RecordStudy from "./RecordStudy";
 import AddNewLanguage from "./AddNewLanguage";
+import WordQuiz from "./WordQuiz";
 import RitualDeclarationAccordion from "@/components/Routines/RitualDeclarationAccordion";
+import { LanguageRecord, LanguageFormData } from "@/types/routines/language";
 import {
-  LanguageRecord,
-  LanguageFormData,
-} from "@/types/routines/language";
-import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
+  createRitualRecordAuto,
+  getMyRitualRecords,
+} from "@/api/ritual-record";
 import { formatKoreaDateKey } from "@/lib/korea-date";
 import type {
   Json,
@@ -24,6 +25,12 @@ interface LanguageContainerProps {
   languageType?: "영어" | "제2외국어";
 }
 
+interface QuizCard {
+  word: string;
+  meaning: string;
+  example: string;
+}
+
 function mapLanguageRecord(r: RitualRecord): LanguageRecord {
   const d = r.record_data as unknown as LanguageRecordData;
   const date = new Date(r.record_date);
@@ -31,6 +38,7 @@ function mapLanguageRecord(r: RitualRecord): LanguageRecord {
     id: r.id,
     date: `${date.getMonth() + 1}월 ${date.getDate()}일`,
     recordDate: r.record_date,
+    recordType: d.recordType ?? "study",
     images: d.images ?? [],
     achievement: d.achievement,
     expressions: d.expressions ?? [],
@@ -45,6 +53,7 @@ export default function LanguageContainer({
   const router = useRouter();
   const [languageRecords, setLanguageRecords] = useState<LanguageRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [quizCards, setQuizCards] = useState<QuizCard[] | null>(null);
 
   const isEnglish = languageType === "영어";
   const accentColor = isEnglish ? "#0ea5e9" : "#10b981";
@@ -97,6 +106,7 @@ export default function LanguageContainer({
   const handleSubmit = async (formData: LanguageFormData) => {
     const today = formatKoreaDateKey();
     const recordData: LanguageRecordData = {
+      recordType: formData.recordType,
       achievement: formData.achievement,
       expressions: formData.expressions,
       images: formData.images,
@@ -119,6 +129,24 @@ export default function LanguageContainer({
     (sum, r) => sum + r.expressionCount,
     0,
   );
+  const currentMonthKey = formatKoreaDateKey().slice(0, 7);
+  const currentMonthQuizCards = languageRecords
+    .filter((record) => record.recordDate?.slice(0, 7) === currentMonthKey)
+    .flatMap((record) =>
+      record.expressions
+        .filter(
+          (expression) => expression.word.trim() && expression.meaning.trim(),
+        )
+        .map((expression) => ({
+          word: expression.word,
+          meaning: expression.meaning,
+          example: expression.example,
+        })),
+    );
+
+  const openWordQuiz = () => {
+    setQuizCards(currentMonthQuizCards);
+  };
 
   if (mode === "new") {
     return (
@@ -231,6 +259,43 @@ export default function LanguageContainer({
           </svg>
         </button>
 
+        {/* 단어 퀴즈 복습 */}
+        <button
+          type="button"
+          onClick={openWordQuiz}
+          className="w-full flex items-center justify-between bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ backgroundColor: accentBg }}
+            >
+              <HelpCircle className="w-5 h-5" style={{ color: accentColor }} />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-semibold text-gray-900">
+                단어 퀴즈로 복습하기
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                이번 달 {currentMonthQuizCards.length}개의 표현
+              </p>
+            </div>
+          </div>
+          <svg
+            className="w-4 h-4 text-gray-300"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </button>
+
         {/* 기록 추가 버튼 */}
         <div className="mb-4">
           <button
@@ -257,6 +322,15 @@ export default function LanguageContainer({
           />
         )}
       </div>
+
+      {quizCards && (
+        <WordQuiz
+          cards={quizCards}
+          title="이번달 단어 퀴즈"
+          accentColor={accentColor}
+          onClose={() => setQuizCards(null)}
+        />
+      )}
     </>
   );
 }

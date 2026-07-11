@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Pencil,
   Trash2,
+  ClipboardCheck,
 } from "lucide-react";
 import {
   BookText,
@@ -129,6 +130,23 @@ const getCategoryMeta = (category: RoutineCategory) => {
       bgColor: "#f3f4f6",
     }
   );
+};
+
+const getItemCategoryMeta = (item: FeedItem) => {
+  if (
+    item.routineData &&
+    (item.routineCategory === "영어" || item.routineCategory === "제2외국어") &&
+    (item.routineData as LanguageFeedData).recordType === "review_test"
+  ) {
+    return {
+      icon: <ClipboardCheck className="w-5 h-5" />,
+      label: "복습",
+      hexColor: "#7c3aed",
+      bgColor: "#f5f3ff",
+    };
+  }
+
+  return getCategoryMeta(item.routineCategory);
 };
 
 const formatFullDate = (dateString: string) => {
@@ -342,7 +360,10 @@ function CleanupContent({ data }: { data: CleanupFeedData }) {
           );
           const metricUnit = getCleanupMetricUnit(metric);
           return (
-            <div key={`${metricLabel}-${metricUnit}-${index}`} className="bg-gray-50 rounded-xl p-3">
+            <div
+              key={`${metricLabel}-${metricUnit}-${index}`}
+              className="bg-gray-50 rounded-xl p-3"
+            >
               <p className="text-xs text-gray-400 font-medium mb-1">
                 {metricLabel}
               </p>
@@ -367,6 +388,17 @@ function CleanupContent({ data }: { data: CleanupFeedData }) {
 }
 
 function LanguageContent({ data }: { data: LanguageFeedData }) {
+  if (data.recordType === "review_test") {
+    return (
+      <div className="bg-purple-50 rounded-xl p-3">
+        <p className="text-xs text-purple-400 font-medium mb-1">복습 테스트</p>
+        <p className="text-sm font-semibold text-gray-800">
+          {data.achievement || "복습 테스트 인증 완료"}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {data.achievement && (
@@ -924,7 +956,7 @@ export default function FeedDetail({ item, isMine = false }: FeedDetailProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const commentSectionRef = useRef<HTMLDivElement>(null);
-  const meta = getCategoryMeta(item.routineCategory);
+  const meta = getItemCategoryMeta(item);
   const recordId = item.odOriginalId;
 
   const handleDeleteRecord = async () => {

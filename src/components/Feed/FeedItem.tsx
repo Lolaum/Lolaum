@@ -77,6 +77,12 @@ const CATEGORY_CONFIG: Record<
   },
 };
 
+const REVIEW_TEST_CONFIG = {
+  color: "#7c3aed",
+  bgColor: "#f5f3ff",
+  icon: <ClipboardCheck size={13} />,
+};
+
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -170,6 +176,7 @@ function getSubText(item: FeedItemType): string | null {
     case "영어":
     case "제2외국어": {
       const d = data as LanguageFeedData;
+      if (d.recordType === "review_test") return "복습 테스트 인증";
       return d.expressions?.length
         ? `표현 ${d.expressions.length}개 학습`
         : null;
@@ -185,12 +192,11 @@ function getSubText(item: FeedItemType): string | null {
       const d = data as CleanupFeedData;
       const metrics = normalizeCleanupMetrics(d);
       const firstMetric = metrics[0];
-      const metricText =
-        firstMetric
-          ? ` · ${firstMetric.value.toLocaleString()}${getCleanupMetricUnit(firstMetric)}${
-              metrics.length > 1 ? ` 외 ${metrics.length - 1}개` : ""
-            }`
-          : "";
+      const metricText = firstMetric
+        ? ` · ${firstMetric.value.toLocaleString()}${getCleanupMetricUnit(firstMetric)}${
+            metrics.length > 1 ? ` 외 ${metrics.length - 1}개` : ""
+          }`
+        : "";
       return `${getCleanupAreaLabel(d.area, d.customArea)}${metricText}`;
     }
     case "기록": {
@@ -229,6 +235,13 @@ function getSubText(item: FeedItemType): string | null {
 function getBadgeLabel(item: FeedItemType): string {
   if (!item.routineData) return item.routineCategory;
 
+  if (
+    (item.routineCategory === "영어" || item.routineCategory === "제2외국어") &&
+    (item.routineData as LanguageFeedData).recordType === "review_test"
+  ) {
+    return "복습";
+  }
+
   if (item.routineCategory === "운동") {
     const data = item.routineData as ExerciseFeedData;
     return data.recordType === "diet" ? "식단" : "운동";
@@ -246,6 +259,18 @@ function getBadgeLabel(item: FeedItemType): string {
   }
 
   return item.routineCategory;
+}
+
+function getDisplayConfig(item: FeedItemType) {
+  if (
+    item.routineData &&
+    (item.routineCategory === "영어" || item.routineCategory === "제2외국어") &&
+    (item.routineData as LanguageFeedData).recordType === "review_test"
+  ) {
+    return REVIEW_TEST_CONFIG;
+  }
+
+  return CATEGORY_CONFIG[item.routineCategory];
 }
 
 /** routineData에서 인증 사진 URL 배열 추출 */
@@ -314,7 +339,7 @@ function FeedThumbnail({
 }
 
 function FeedItem({ item, priority }: FeedItemProps) {
-  const config = CATEGORY_CONFIG[item.routineCategory];
+  const config = getDisplayConfig(item);
   const previewText = getPreviewText(item);
   const subText = getSubText(item);
   const images = getImages(item);
