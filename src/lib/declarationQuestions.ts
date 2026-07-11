@@ -26,12 +26,6 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
           "내가 주도하는 아침 시간을 통해 긍정적인 자신감으로 하루를 시작할 수 있는 사람 ",
       },
       {
-        id: "timetable",
-        label: "타임테이블 (7:00-7:30)",
-        placeholder:
-          "6:50 - 7:00 물 마시기 -> 7:00 - 7:15 15분 스트레칭 -> 7:15-7:30 독서",
-      },
-      {
         id: "sleep_goal",
         label: "목표 취침 시간 & 전날 자기 전 준비할 것들",
         description:
@@ -56,11 +50,6 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
           "운동리추얼을 통해 '어떤 사람'이 되고 싶은가를 작성해주세요.",
         placeholder:
           "운동을 즐기며, 목표한 것을 결과로 만들어내는 자신감 있는 사람",
-      },
-      {
-        id: "ritual_time",
-        label: "운동 리추얼 시간",
-        placeholder: "예) 매일 오전 7시 30분, 30분간",
       },
       {
         id: "this_month_exercise",
@@ -90,11 +79,6 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
           "독서를 통해 얻은 인사이트를 실제 일과 삶에 적용할 수 있는 사람",
       },
       {
-        id: "ritual_time",
-        label: "독서 리추얼 시간",
-        placeholder: "오전 7:00-7:10",
-      },
-      {
         id: "this_month_book",
         label: "이번 챌린지의 책 (권수/분량 자율)",
         description: "이번 챌린지에서 읽을 책을 구체적으로 정해주세요.",
@@ -117,11 +101,6 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
         description:
           "영어공부를 통해 '어떤 사람'이 되고 싶은가를 작성해주세요.",
         placeholder: "꾸준히 영어 회화를 연습하는 사람",
-      },
-      {
-        id: "ritual_time",
-        label: "영어 리추얼 시간",
-        placeholder: "오후 8:10-8:20",
       },
       {
         id: "this_month_study",
@@ -153,11 +132,6 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
         placeholder: "번역기 없이 스페인언어권을 여행할 수 있는 사람",
       },
       {
-        id: "ritual_time",
-        label: "제2외국어 리추얼 시간",
-        placeholder: "오후 8:20-8:30",
-      },
-      {
         id: "this_month_study",
         label: "이번 달의 공부 / 채널",
         placeholder: "예) Duolingo 스페인어 매일 1레슨",
@@ -180,11 +154,6 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
           "꾸준한 기록을 통해 '어떤 사람'이 되고 싶은가를 작성해주세요.",
         placeholder:
           "문장으로 나와 타인의 삶에 긍정적인 영향을 줄 수 있는 사람",
-      },
-      {
-        id: "ritual_time",
-        label: "기록 리추얼 시간",
-        placeholder: "오전 9:00-9:30",
       },
       {
         id: "this_month_goal",
@@ -229,11 +198,6 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
           "하루 10분씩 주변을 정리해 머릿속까지 가벼운 사람",
       },
       {
-        id: "ritual_time",
-        label: "정돈 리추얼 시간",
-        placeholder: "예) 매일 저녁 10시, 10분간",
-      },
-      {
         id: "target_area",
         label: "이번 챌린지에서 중점적으로 정돈할 곳",
         placeholder: "예) 다운로드 폴더, 이메일함, 책상, 옷장",
@@ -257,11 +221,6 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
           "꾸준한 자산관리를 통해 '어떤 사람'이 되고 싶은가를 작성해주세요.",
         placeholder:
           "돈을 제대로 모으고 다룰 줄 알게 되어 필요한 곳에 나누고 베푸는 것에 충분한 자유가 있는 사람",
-      },
-      {
-        id: "ritual_time",
-        label: "자산관리 리추얼 시간",
-        placeholder: "예) 오전 7:10-7:20",
       },
       {
         id: "ritual_method",
@@ -295,11 +254,6 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
           "꾸준한 원서읽기를 통해 '어떤 사람'이 되고 싶은가를 작성해주세요.",
         placeholder:
           "원서를 꾸준히 읽으며, 영어 독해력과 어휘력이 향상되어 영어로 된 다양한 자료를 부담 없이 즐길 수 있는 사람",
-      },
-      {
-        id: "ritual_time",
-        label: "원서읽기 리추얼 시간",
-        placeholder: "예) 오전 6:30-7:00",
       },
       {
         id: "this_month_goal",
