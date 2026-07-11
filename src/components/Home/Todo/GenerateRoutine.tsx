@@ -41,6 +41,26 @@ const EMPTY_TIME_PARTS: TimeParts = {
   minute: "",
 };
 
+interface RoutineFormState {
+  answers: Record<string, string>;
+  alarmConfirmed: boolean;
+  certConfirmed: boolean;
+  routineStartTime: string;
+  routineEndTime: string;
+  routineStartParts: TimeParts;
+  routineEndParts: TimeParts;
+}
+
+const EMPTY_ROUTINE_FORM: RoutineFormState = {
+  answers: {},
+  alarmConfirmed: false,
+  certConfirmed: false,
+  routineStartTime: "",
+  routineEndTime: "",
+  routineStartParts: EMPTY_TIME_PARTS,
+  routineEndParts: EMPTY_TIME_PARTS,
+};
+
 const HOUR_OPTIONS = Array.from({ length: 12 }, (_, index) =>
   String(index + 1).padStart(2, "0"),
 );
@@ -161,25 +181,20 @@ export default function GenerateRoutine({
   existingTypes = [],
 }: GenerateRoutineProps) {
   const [step, setStep] = useState<1 | 2>(1);
-  const [selectedRoutine, setSelectedRoutine] = useState<RoutineType | "">("");
+  const [selectedRoutines, setSelectedRoutines] = useState<RoutineType[]>([]);
+  const [currentRoutineIndex, setCurrentRoutineIndex] = useState(0);
   const [period, setPeriod] = useState<{
     start_date: string;
     end_date: string;
     label: string | null;
   } | null>(null);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [formsByRoutine, setFormsByRoutine] = useState<
+    Partial<Record<RoutineType, RoutineFormState>>
+  >({});
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
-  const [alarmConfirmed, setAlarmConfirmed] = useState(false);
-  const [certConfirmed, setCertConfirmed] = useState(false);
-  const [routineStartTime, setRoutineStartTime] = useState("");
-  const [routineEndTime, setRoutineEndTime] = useState("");
-  const [routineStartParts, setRoutineStartParts] =
-    useState<TimeParts>(EMPTY_TIME_PARTS);
-  const [routineEndParts, setRoutineEndParts] =
-    useState<TimeParts>(EMPTY_TIME_PARTS);
   const [openTimePicker, setOpenTimePicker] = useState<"start" | "end" | null>(
     null,
   );
@@ -218,89 +233,170 @@ export default function GenerateRoutine({
     setTimeout(() => onClose(), 250);
   };
 
-  const questions = selectedRoutine
-    ? declarationQuestions[selectedRoutine]
-    : [];
+  const currentRoutine = selectedRoutines[currentRoutineIndex] ?? "";
+  const currentForm = currentRoutine
+    ? (formsByRoutine[currentRoutine] ?? EMPTY_ROUTINE_FORM)
+    : EMPTY_ROUTINE_FORM;
+  const questions = currentRoutine ? declarationQuestions[currentRoutine] : [];
   const allAnswersFilled =
     questions.length > 0 &&
     questions.every((q) =>
       q.isConfirmation
-        ? certConfirmed
-        : q.readOnly || answers[q.id]?.trim(),
+        ? currentForm.certConfirmed
+        : q.readOnly || currentForm.answers[q.id]?.trim(),
     );
 
+  const setRoutineForm = (
+    routineType: RoutineType,
+    updater: (prev: RoutineFormState) => RoutineFormState,
+  ) => {
+    setFormsByRoutine((prev) => ({
+      ...prev,
+      [routineType]: updater(prev[routineType] ?? EMPTY_ROUTINE_FORM),
+    }));
+  };
+
+  const toggleSelectedRoutine = (routineType: RoutineType) => {
+    setSelectedRoutines((prev) =>
+      prev.includes(routineType)
+        ? prev.filter((type) => type !== routineType)
+        : [...prev, routineType],
+    );
+    setErrorMsg(null);
+  };
+
   const handleAnswerChange = (questionId: string, value: string) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: value }));
+    if (!currentRoutine) return;
+    setRoutineForm(currentRoutine, (prev) => ({
+      ...prev,
+      answers: { ...prev.answers, [questionId]: value },
+    }));
   };
 
   const updateTimeParts = (
     target: "start" | "end",
     patch: Partial<TimeParts>,
   ) => {
-    const setParts =
-      target === "start" ? setRoutineStartParts : setRoutineEndParts;
-    const setTime =
-      target === "start" ? setRoutineStartTime : setRoutineEndTime;
+    if (!currentRoutine) return;
+    setRoutineForm(currentRoutine, (prev) => {
+      const currentParts =
+        target === "start" ? prev.routineStartParts : prev.routineEndParts;
+      const nextParts = { ...currentParts, ...patch };
+      const nextTime = toTimeValue(nextParts);
 
-    setParts((prev) => {
-      const next = { ...prev, ...patch };
-      setTime(toTimeValue(next));
-      return next;
+      return target === "start"
+        ? {
+            ...prev,
+            routineStartParts: nextParts,
+            routineStartTime: nextTime,
+          }
+        : {
+            ...prev,
+            routineEndParts: nextParts,
+            routineEndTime: nextTime,
+          };
     });
     setErrorMsg(null);
   };
 
   const handleNextStep = () => {
-    if (!selectedRoutine) return;
+    if (selectedRoutines.length === 0) return;
     setErrorMsg(null);
+    setCurrentRoutineIndex(0);
     setStep(2);
   };
 
+  const getMissingFormLabel = () => {
+    for (const routineType of selectedRoutines) {
+      const form = formsByRoutine[routineType] ?? EMPTY_ROUTINE_FORM;
+      const routineQuestions = declarationQuestions[routineType];
+      const isFilled =
+        routineQuestions.length > 0 &&
+        routineQuestions.every((q) =>
+          q.isConfirmation
+            ? form.certConfirmed
+            : q.readOnly || form.answers[q.id]?.trim(),
+        ) &&
+        form.routineStartTime &&
+        form.routineEndTime &&
+        form.alarmConfirmed;
+
+      if (!isFilled) return routineType;
+    }
+
+    return null;
+  };
+
+  const handlePreviousForm = () => {
+    setErrorMsg(null);
+    setOpenTimePicker(null);
+    if (currentRoutineIndex === 0) {
+      setStep(1);
+      return;
+    }
+    setCurrentRoutineIndex((prev) => prev - 1);
+  };
+
+  const handleNextForm = () => {
+    setErrorMsg(null);
+    setOpenTimePicker(null);
+    setCurrentRoutineIndex((prev) =>
+      Math.min(selectedRoutines.length - 1, prev + 1),
+    );
+  };
+
   const handleCreate = async () => {
-    if (!selectedRoutine) return;
+    if (selectedRoutines.length === 0) return;
     setSubmitting(true);
     setErrorMsg(null);
 
-    const routineType = ROUTINE_TYPE_MAP[selectedRoutine];
-    if (!routineType) {
-      setErrorMsg("잘못된 리추얼 타입입니다.");
+    const missingRoutine = getMissingFormLabel();
+    if (missingRoutine) {
+      setErrorMsg(`${missingRoutine} 선언을 모두 입력해주세요.`);
+      setCurrentRoutineIndex(selectedRoutines.indexOf(missingRoutine));
       setSubmitting(false);
       return;
     }
 
-    if (!routineStartTime || !routineEndTime) {
-      setErrorMsg("리추얼 시작 시간과 종료 시간을 입력해주세요.");
-      setSubmitting(false);
-      return;
-    }
+    for (const selectedRoutine of selectedRoutines) {
+      const routineType = ROUTINE_TYPE_MAP[selectedRoutine];
+      const form = formsByRoutine[selectedRoutine] ?? EMPTY_ROUTINE_FORM;
+      const routineQuestions = declarationQuestions[selectedRoutine];
 
-    const { error } = await createRoutineAuto(routineType, {
-      routineStartTime,
-      routineEndTime,
-    });
+      if (!routineType) {
+        setErrorMsg("잘못된 리추얼 타입입니다.");
+        setSubmitting(false);
+        return;
+      }
 
-    if (error) {
-      setErrorMsg(error);
-      setSubmitting(false);
-      return;
-    }
+      const { error } = await createRoutineAuto(routineType, {
+        routineStartTime: form.routineStartTime,
+        routineEndTime: form.routineEndTime,
+      });
 
-    const declarationAnswers = questions.map((q) => ({
-      questionId: q.id,
-      answer: q.readOnly
-        ? (q.defaultValue ?? "")
-        : (answers[q.id]?.trim() ?? ""),
-    }));
+      if (error) {
+        setErrorMsg(`${selectedRoutine} 생성 실패: ${error}`);
+        setSubmitting(false);
+        return;
+      }
 
-    const { error: declError } = await createDeclaration({
-      routineType,
-      answers: declarationAnswers,
-    });
+      const declarationAnswers = routineQuestions.map((q) => ({
+        questionId: q.id,
+        answer: q.readOnly
+          ? (q.defaultValue ?? "")
+          : (form.answers[q.id]?.trim() ?? ""),
+      }));
 
-    if (declError) {
-      setErrorMsg(`리추얼은 생성되었지만 선언 저장 실패: ${declError}`);
-      setSubmitting(false);
-      return;
+      const { error: declError } = await createDeclaration({
+        routineType,
+        answers: declarationAnswers,
+      });
+
+      if (declError) {
+        setErrorMsg(`${selectedRoutine}은 생성되었지만 선언 저장 실패: ${declError}`);
+        setSubmitting(false);
+        return;
+      }
     }
 
     setSubmitting(false);
@@ -394,7 +490,9 @@ export default function GenerateRoutine({
             <h3 className="text-base font-bold text-gray-800 mb-1">
               리추얼이 생성되었어요!
             </h3>
-            <p className="text-sm text-gray-500 mb-1">{selectedRoutine}</p>
+            <p className="text-sm text-gray-500 mb-1">
+              {selectedRoutines.map(shortLabel).join(", ")}
+            </p>
             {period ? (
               <p className="text-xs text-gray-300 mb-6">
                 {period.start_date} ~ {period.end_date}
@@ -417,9 +515,12 @@ export default function GenerateRoutine({
               <>
                 {/* 리추얼 선택 - 칩 그리드 */}
                 <div className="mb-5">
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2.5">
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2.5">
                     리추얼 선택 <span className="text-red-400">*</span>
                   </label>
+                  <p className="mb-2.5 text-xs font-bold text-[#92700c]">
+                    신청한 리추얼을 모두 선택해주세요
+                  </p>
                   <div className="grid grid-cols-2 gap-2">
                     {routineOptions
                       .filter(({ type }) => {
@@ -427,11 +528,11 @@ export default function GenerateRoutine({
                         return !existingTypes.includes(dbType);
                       })
                       .map(({ type, emoji }) => {
-                        const isSelected = selectedRoutine === type;
+                        const isSelected = selectedRoutines.includes(type);
                         return (
                           <button
                             key={type}
-                            onClick={() => setSelectedRoutine(type)}
+                            onClick={() => toggleSelectedRoutine(type)}
                             className="flex items-center gap-2 px-3 py-3 rounded-2xl border-2 text-left transition-all active:scale-[0.97]"
                             style={{
                               borderColor: isSelected ? "#eab32e" : "#f3f4f6",
@@ -455,14 +556,11 @@ export default function GenerateRoutine({
                         );
                       })}
                   </div>
-                  <p className="mt-2 text-xs text-gray-300">
-                    매일 반복할 습관을 선택해주세요
-                  </p>
                 </div>
 
                 {/* 챌린지 기간 안내 (읽기 전용 - 어드민이 정함) */}
                 <div className="mb-6">
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">
                     챌린지 기간
                   </label>
                   <div className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl">
@@ -495,7 +593,7 @@ export default function GenerateRoutine({
                   </button>
                   <button
                     onClick={handleNextStep}
-                    disabled={!selectedRoutine}
+                    disabled={selectedRoutines.length === 0}
                     className="flex-[2] py-3.5 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{ backgroundColor: "#eab32e" }}
                   >
@@ -508,9 +606,14 @@ export default function GenerateRoutine({
                 {/* 2단계: 선언 폼 */}
                 <p className="text-sm text-gray-400 mb-4">
                   <span className="font-semibold" style={{ color: "#eab32e" }}>
-                    {selectedRoutine}
+                    {currentRoutine}
                   </span>{" "}
                   선언을 작성해주세요
+                  {selectedRoutines.length > 1 && (
+                    <span className="ml-1 text-xs text-gray-300">
+                      {currentRoutineIndex + 1}/{selectedRoutines.length}
+                    </span>
+                  )}
                 </p>
 
                 {/* 리추얼 시간 */}
@@ -521,7 +624,7 @@ export default function GenerateRoutine({
                   <div className="grid grid-cols-2 gap-2">
                     <TimePickerField
                       label="시작"
-                      parts={routineStartParts}
+                      parts={currentForm.routineStartParts}
                       isOpen={openTimePicker === "start"}
                       onToggle={() =>
                         setOpenTimePicker((current) =>
@@ -532,7 +635,7 @@ export default function GenerateRoutine({
                     />
                     <TimePickerField
                       label="종료"
-                      parts={routineEndParts}
+                      parts={currentForm.routineEndParts}
                       isOpen={openTimePicker === "end"}
                       align="right"
                       onToggle={() =>
@@ -583,10 +686,14 @@ export default function GenerateRoutine({
                           <label className="flex items-center gap-2.5 cursor-pointer select-none">
                             <input
                               type="checkbox"
-                              checked={certConfirmed}
-                              onChange={(e) =>
-                                setCertConfirmed(e.target.checked)
-                              }
+                              checked={currentForm.certConfirmed}
+                              onChange={(e) => {
+                                if (!currentRoutine) return;
+                                setRoutineForm(currentRoutine, (prev) => ({
+                                  ...prev,
+                                  certConfirmed: e.target.checked,
+                                }));
+                              }}
                               className="w-4 h-4 rounded border-gray-300 accent-[#eab32e] flex-shrink-0 cursor-pointer"
                             />
                             <span className="text-sm text-gray-700">
@@ -599,7 +706,7 @@ export default function GenerateRoutine({
                           value={
                             q.readOnly
                               ? (q.defaultValue ?? "")
-                              : (answers[q.id] ?? "")
+                              : (currentForm.answers[q.id] ?? "")
                           }
                           onChange={(e) =>
                             handleAnswerChange(q.id, e.target.value)
@@ -624,8 +731,14 @@ export default function GenerateRoutine({
                   <label className="flex items-center gap-2.5 cursor-pointer select-none">
                     <input
                       type="checkbox"
-                      checked={alarmConfirmed}
-                      onChange={(e) => setAlarmConfirmed(e.target.checked)}
+                      checked={currentForm.alarmConfirmed}
+                      onChange={(e) => {
+                        if (!currentRoutine) return;
+                        setRoutineForm(currentRoutine, (prev) => ({
+                          ...prev,
+                          alarmConfirmed: e.target.checked,
+                        }));
+                      }}
                       className="w-4 h-4 rounded border-gray-300 accent-[#eab32e] flex-shrink-0 cursor-pointer"
                     />
                     <span className="text-sm text-gray-700">
@@ -641,25 +754,41 @@ export default function GenerateRoutine({
                 {/* 버튼 */}
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setStep(1)}
+                    onClick={handlePreviousForm}
                     className="flex-1 py-3.5 rounded-2xl border border-gray-200 text-sm font-semibold text-gray-500 hover:bg-gray-50 active:scale-[0.98] transition-all"
                   >
                     이전
                   </button>
-                  <button
-                    onClick={handleCreate}
-                    disabled={
-                      !allAnswersFilled ||
-                      !routineStartTime ||
-                      !routineEndTime ||
-                      !alarmConfirmed ||
-                      submitting
-                    }
-                    className="flex-[2] py-3.5 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: "#eab32e" }}
-                  >
-                    {submitting ? "생성 중..." : "리추얼 추가"}
-                  </button>
+                  {currentRoutineIndex < selectedRoutines.length - 1 ? (
+                    <button
+                      onClick={handleNextForm}
+                      disabled={
+                        !allAnswersFilled ||
+                        !currentForm.routineStartTime ||
+                        !currentForm.routineEndTime ||
+                        !currentForm.alarmConfirmed
+                      }
+                      className="flex-[2] py-3.5 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: "#eab32e" }}
+                    >
+                      다음 선언
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleCreate}
+                      disabled={
+                        !allAnswersFilled ||
+                        !currentForm.routineStartTime ||
+                        !currentForm.routineEndTime ||
+                        !currentForm.alarmConfirmed ||
+                        submitting
+                      }
+                      className="flex-[2] py-3.5 rounded-2xl text-sm font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: "#eab32e" }}
+                    >
+                      {submitting ? "생성 중..." : "리추얼 추가"}
+                    </button>
+                  )}
                 </div>
               </>
             )}
