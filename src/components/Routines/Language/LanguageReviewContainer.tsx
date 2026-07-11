@@ -153,9 +153,7 @@ export default function LanguageReviewContainer({
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <p className="text-sm font-semibold text-gray-900">
-            단어 카드 복습
-          </p>
+          <p className="text-sm font-semibold text-gray-900">단어 카드 복습</p>
           <div className="w-9" />
         </div>
 
@@ -185,40 +183,44 @@ export default function LanguageReviewContainer({
         ) : (
           <div className="space-y-2">
             {monthGroups.map((group) => (
-              <button
+              <div
                 key={group.monthKey}
-                type="button"
-                onClick={() =>
-                  setSelectedReview({
-                    title: group.label,
-                    cards: buildReviewCards(group),
-                  })
-                }
-                className="w-full flex items-center justify-between bg-white rounded-2xl shadow-sm border border-gray-100 p-4 text-left transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+                className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-md"
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className="w-10 h-10 rounded-xl flex shrink-0 items-center justify-center"
-                    style={{ backgroundColor: accentBg }}
-                  >
-                    <Grid3x3
-                      className="w-5 h-5"
-                      style={{ color: accentColor }}
-                    />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedReview({
+                      title: group.label,
+                      cards: buildReviewCards(group),
+                    })
+                  }
+                  className="flex w-full items-center justify-between text-left"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                      style={{ backgroundColor: accentBg }}
+                    >
+                      <Grid3x3
+                        className="h-5 w-5"
+                        style={{ color: accentColor }}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-gray-900">
+                        {group.label}
+                      </p>
+                      <p className="mt-0.5 text-xs text-gray-400">
+                        {group.isCurrentMonth
+                          ? `${group.expressionCount}개의 표현`
+                          : `${group.expressionCount}개 중 최대 25개 랜덤`}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">
-                      {group.label}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {group.isCurrentMonth
-                        ? `${group.expressionCount}개의 표현`
-                        : `${group.expressionCount}개 중 최대 25개 랜덤`}
-                    </p>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
-              </button>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-gray-300" />
+                </button>
+              </div>
             ))}
           </div>
         )}
