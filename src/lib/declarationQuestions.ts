@@ -26,6 +26,12 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
           "내가 주도하는 아침 시간을 통해 긍정적인 자신감으로 하루를 시작할 수 있는 사람 ",
       },
       {
+        id: "timetable",
+        label: "타임테이블 (6:00-6:30 or 7:00-7:30)",
+        placeholder:
+          "5:50 - 6:00 물 마시기 -> 6:00 - 6:15 15분 스트레칭 -> 6:15-6:30 독서",
+      },
+      {
         id: "sleep_goal",
         label: "목표 취침 시간 & 전날 자기 전 준비할 것들",
         description:
