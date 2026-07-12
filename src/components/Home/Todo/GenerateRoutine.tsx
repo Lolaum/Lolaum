@@ -450,13 +450,11 @@ export default function GenerateRoutine({
   const shortLabel = (type: RoutineType) => type.replace("리추얼", "");
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-start justify-center pt-4 sm:items-end sm:pt-0"
-      onClick={handleClose}
-    >
+    <div className="fixed inset-0 z-[60] flex items-start justify-center pt-4 sm:items-end sm:pt-0">
       {/* 배경 오버레이 */}
       <div
         className="absolute inset-0 transition-opacity duration-250"
+        onClick={handleClose}
         style={{
           backgroundColor: visible ? "rgba(0,0,0,0.4)" : "rgba(0,0,0,0)",
         }}
@@ -467,7 +465,7 @@ export default function GenerateRoutine({
         className={`relative w-full max-w-lg bg-white rounded-b-3xl rounded-t-3xl sm:rounded-b-none shadow-2xl transition-transform duration-250 ease-out max-h-[calc(100vh-1rem)] sm:max-h-[85vh] flex flex-col ${
           visible ? "translate-y-0" : "-translate-y-full sm:translate-y-full"
         }`}
-        onClick={(e) => e.stopPropagation()}
+        onCopy={(event) => event.stopPropagation()}
       >
         {/* 핸들바 */}
         <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
