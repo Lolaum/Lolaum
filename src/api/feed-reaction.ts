@@ -46,19 +46,21 @@ async function findFeedId(
 async function getOrCreateFeedId(
   recordId: string,
   admin: ReturnType<typeof createAdminClient>,
-): Promise<string | null> {
+): Promise<{ feedId?: string; error?: string }> {
   const existingFeedId = await findFeedId(recordId, admin);
-  if (existingFeedId) return existingFeedId;
+  if (existingFeedId) return { feedId: existingFeedId };
 
-  const { data: record } = await admin
+  const { data: record, error: recordError } = await admin
     .from("ritual_records")
     .select("user_id, challenge_id, routine_type, record_date, record_data")
     .eq("id", recordId)
     .single();
 
-  if (!record) return null;
+  if (recordError || !record) {
+    return { error: recordError?.message ?? "게시글 기록을 찾을 수 없습니다." };
+  }
 
-  const { data: newFeed } = await admin
+  const { data: newFeed, error: insertError } = await admin
     .from("feeds")
     .insert({
       user_id: record.user_id,
@@ -71,7 +73,11 @@ async function getOrCreateFeedId(
     .select("id")
     .single();
 
-  return newFeed?.id ?? null;
+  if (insertError || !newFeed) {
+    return { error: insertError?.message ?? "피드 연결을 생성할 수 없습니다." };
+  }
+
+  return { feedId: newFeed.id };
 }
 
 async function buildReactionSummary(
@@ -152,8 +158,11 @@ export async function toggleFeedReaction(
       return { error: "지원하지 않는 리액션입니다." };
 
     const admin = createAdminClient();
-    const feedId = await getOrCreateFeedId(recordId, admin);
-    if (!feedId) return { error: "피드를 찾을 수 없습니다." };
+    const { feedId, error: feedError } = await getOrCreateFeedId(
+      recordId,
+      admin,
+    );
+    if (!feedId) return { error: feedError ?? "피드를 찾을 수 없습니다." };
 
     const { data: existing, error: selectError } = await admin
       .from("feed_reactions")
