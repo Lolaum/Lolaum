@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type React from "react";
 import { Check, RotateCcw, X } from "lucide-react";
 
@@ -56,6 +56,15 @@ export default function WordQuiz({
   accentColor,
   onClose,
 }: WordQuizProps) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   const [questions, setQuestions] = useState(() => buildQuestions(cards));
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -235,8 +244,8 @@ function QuizShell({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-      <div className="w-full max-w-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/50 p-4">
+      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto overscroll-contain">
         <div className="mb-4">
           <p className="text-sm font-semibold text-white">{title}</p>
         </div>

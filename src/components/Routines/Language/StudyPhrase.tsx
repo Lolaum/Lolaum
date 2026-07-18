@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { LanguageRecord } from "@/types/routines/language";
 
 interface StudyPhraseProps {
@@ -28,6 +28,15 @@ export default function StudyPhrase({
   maxCards,
   title,
 }: StudyPhraseProps) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   const resolvedCards =
     cards ??
     languageRecords?.flatMap((record) =>
@@ -87,10 +96,10 @@ export default function StudyPhrase({
   if (totalCards === 0) {
     return (
       <div
-        className="fixed inset-0 flex items-center justify-center z-50"
+        className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden p-4"
         style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
       >
-        <div className="w-full max-w-md mx-4 bg-white rounded-3xl p-8 text-center">
+        <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl bg-white p-8 text-center">
           <p className="text-base font-semibold text-gray-900 mb-2">
             아직 기록된 표현이 없어요
           </p>
@@ -112,10 +121,10 @@ export default function StudyPhrase({
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center z-50"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden p-4"
       style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
     >
-      <div className="w-full max-w-2xl mx-4">
+      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto overscroll-contain">
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-4">
           <div>
