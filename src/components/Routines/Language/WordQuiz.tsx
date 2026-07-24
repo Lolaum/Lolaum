@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type React from "react";
 import { Check, RotateCcw, X } from "lucide-react";
 
@@ -56,15 +56,6 @@ export default function WordQuiz({
   accentColor,
   onClose,
 }: WordQuizProps) {
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
-
   const [questions, setQuestions] = useState(() => buildQuestions(cards));
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
