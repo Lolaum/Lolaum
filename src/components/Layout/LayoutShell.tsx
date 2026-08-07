@@ -33,10 +33,14 @@ const navItems: NavItem[] = [
   { href: "/home", label: "홈", icon: HomeIcon },
   { href: "/ritual", label: "나의 리추얼 기록", icon: RitualIcon },
   { href: "/feeds", label: "인증 게시글", icon: VerifyIcon },
-  { href: "/progress", label: "진행도", icon: ReportIcon },
+  { href: "/progress", label: "리추얼 진행표", icon: ReportIcon },
 ];
 
-const adminNavItem: NavItem = { href: "/admin", label: "어드민", icon: AdminIcon };
+const adminNavItem: NavItem = {
+  href: "/admin",
+  label: "어드민",
+  icon: AdminIcon,
+};
 
 export default function LayoutShell({ children, isAdmin }: LayoutShellProps) {
   const pathname = usePathname();

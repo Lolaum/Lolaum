@@ -9,7 +9,7 @@ import type { RoutineTypeDB } from "@/types/supabase";
 import { FEEDS_PER_PAGE } from "@/constants/feeds";
 
 type FilterKey = "all" | RoutineTypeDB;
-type FeedFilterKey = FilterKey | "review_test";
+type FeedFilterKey = FilterKey;
 
 const FILTERS: { key: FeedFilterKey; label: string }[] = [
   { key: "all", label: "전체" },
@@ -18,7 +18,6 @@ const FILTERS: { key: FeedFilterKey; label: string }[] = [
   { key: "morning", label: "모닝" },
   { key: "english", label: "영어" },
   { key: "second_language", label: "제2외국어" },
-  { key: "review_test", label: "복습" },
   { key: "recording", label: "기록" },
   { key: "cleanup", label: "정돈" },
   { key: "finance", label: "자산관리" },

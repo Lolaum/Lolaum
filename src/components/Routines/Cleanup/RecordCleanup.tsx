@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Trash2 } from "lucide-react";
+import { ChevronDown, Pencil, Trash2 } from "lucide-react";
 import { deleteRitualRecord } from "@/api/ritual-record";
+import EditFeedRecord from "@/components/Feed/EditFeedRecord";
+import type { CleanupFeedData, FeedItem } from "@/types/feed";
 import type { RecordCleanupProps } from "@/types/routines/cleanup";
 import {
   getCleanupAreaLabel,
@@ -24,15 +26,35 @@ export default function RecordCleanup({
   cleanupRecords,
   onChanged,
 }: RecordCleanupPropsWithCallback) {
-  const [expandedIds, setExpandedIds] = useState<number[]>([]);
+  const [expandedIds, setExpandedIds] = useState<string[]>([]);
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const toggleExpand = (id: number) => {
+  const toggleExpand = (id: string) => {
     setExpandedIds((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   };
+
+  const makeFeedItem = (record: (typeof cleanupRecords)[number]): FeedItem => ({
+    id: record.id,
+    odOriginalId: record.id,
+    userId: "",
+    userName: "",
+    date: record.recordDate,
+    routineCategory: "정돈",
+    routineId: 0,
+    recordId: 0,
+    routineData: {
+      area: record.area,
+      customArea: record.customArea,
+      certPhotos: record.certPhotos,
+      metric: record.metric,
+      metrics: record.metrics,
+      note: record.note,
+    } satisfies CleanupFeedData,
+  });
 
   const handleDelete = async () => {
     if (!deleteTargetId) return;
@@ -64,7 +86,11 @@ export default function RecordCleanup({
             const metrics = normalizeCleanupMetrics(record);
             const firstMetric = metrics[0];
             const firstMetricLabel = firstMetric
-              ? getCleanupMetricLabel(firstMetric, record.area, record.customArea)
+              ? getCleanupMetricLabel(
+                  firstMetric,
+                  record.area,
+                  record.customArea,
+                )
               : null;
             const firstMetricUnit = firstMetric
               ? getCleanupMetricUnit(firstMetric)
@@ -111,73 +137,97 @@ export default function RecordCleanup({
 
                 {isExpanded && (
                   <div className="px-4 pb-4 pt-2 border-t border-gray-100 space-y-4">
-                    {metrics.length > 0 && (
-                      <div className="rounded-xl bg-teal-50 border border-teal-100 p-4">
-                        <p className="text-xs font-semibold text-teal-500 mb-3">
-                          숫자 기록
-                        </p>
-                        <div className="space-y-2">
-                          {metrics.map((metric, index) => {
-                            const metricLabel = getCleanupMetricLabel(
-                              metric,
-                              record.area,
-                              record.customArea,
-                            );
-                            const metricUnit = getCleanupMetricUnit(metric);
-                            return (
-                              <div
-                                key={`${metricLabel}-${metricUnit}-${index}`}
-                                className="flex items-baseline justify-between gap-3"
-                              >
-                                <span className="text-sm font-semibold text-teal-700">
-                                  {metricLabel}
-                                </span>
-                                <span className="text-lg font-bold text-gray-900">
-                                  {metric.value.toLocaleString()}
-                                  <span className="ml-0.5 text-sm font-medium text-gray-500">
-                                    {metricUnit}
-                                  </span>
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
+                    {editingRecordId === record.id ? (
+                      <EditFeedRecord
+                        item={makeFeedItem(record)}
+                        onCancel={() => {
+                          setEditingRecordId(null);
+                          onChanged?.();
+                        }}
+                      />
+                    ) : (
+                      <>
+                        {metrics.length > 0 && (
+                          <div className="rounded-xl bg-teal-50 border border-teal-100 p-4">
+                            <p className="text-xs font-semibold text-teal-500 mb-3">
+                              숫자 기록
+                            </p>
+                            <div className="space-y-2">
+                              {metrics.map((metric, index) => {
+                                const metricLabel = getCleanupMetricLabel(
+                                  metric,
+                                  record.area,
+                                  record.customArea,
+                                );
+                                const metricUnit = getCleanupMetricUnit(metric);
+                                return (
+                                  <div
+                                    key={`${metricLabel}-${metricUnit}-${index}`}
+                                    className="flex items-baseline justify-between gap-3"
+                                  >
+                                    <span className="text-sm font-semibold text-teal-700">
+                                      {metricLabel}
+                                    </span>
+                                    <span className="text-lg font-bold text-gray-900">
+                                      {metric.value.toLocaleString()}
+                                      <span className="ml-0.5 text-sm font-medium text-gray-500">
+                                        {metricUnit}
+                                      </span>
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
 
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                        한 줄 비움 소감
-                      </h4>
-                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                        <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-                          {record.note}
-                        </p>
-                      </div>
-                    </div>
-
-                    {record.certPhotos.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                          인증 사진
-                        </h4>
-                        <div className="grid grid-cols-2 gap-2">
-                          {record.certPhotos.map((photo, idx) => (
-                            <img
-                              key={idx}
-                              src={photo}
-                              alt={`정돈 인증 사진 ${idx + 1}`}
-                              className="w-full h-32 object-cover rounded-xl border border-gray-200"
-                            />
-                          ))}
+                        <div>
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                            한 줄 비움 소감
+                          </h4>
+                          <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                            <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                              {record.note}
+                            </p>
+                          </div>
                         </div>
-                      </div>
+
+                        {record.certPhotos.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                              인증 사진
+                            </h4>
+                            <div className="grid grid-cols-2 gap-2">
+                              {record.certPhotos.map((photo, idx) => (
+                                <img
+                                  key={idx}
+                                  src={photo}
+                                  alt={`정돈 인증 사진 ${idx + 1}`}
+                                  className="w-full h-32 object-cover rounded-xl border border-gray-200"
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
 
                     <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
                       <button
                         type="button"
-                        onClick={() => setDeleteTargetId(String(record.id))}
+                        onClick={() =>
+                          setEditingRecordId((current) =>
+                            current === record.id ? null : record.id,
+                          )
+                        }
+                        className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        {editingRecordId === record.id ? "수정 닫기" : "수정"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTargetId(record.id)}
                         className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
