@@ -11,6 +11,7 @@ import {
   Pencil,
   Trash2,
   Upload,
+  ChevronDown,
 } from "lucide-react";
 import LinkifiedText from "@/components/common/LinkifiedText";
 import EditFeedRecord from "@/components/Feed/EditFeedRecord";
@@ -100,6 +101,7 @@ export default function RecordingContainer({
   const loadedFromDraftRef = useRef(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
+  const [expandedRecordIds, setExpandedRecordIds] = useState<string[]>([]);
   const [deleting, setDeleting] = useState(false);
 
   // 폼 상태: 모드(글 작성/글 읽기 대체) + 항목 묶음
@@ -345,6 +347,14 @@ export default function RecordingContainer({
     } satisfies RecordingFeedData,
   });
 
+  const toggleRecord = (recordId: string) => {
+    setExpandedRecordIds((current) =>
+      current.includes(recordId)
+        ? current.filter((id) => id !== recordId)
+        : [...current, recordId],
+    );
+  };
+
   if (mode === "new") {
     return (
       <div className="w-full max-w-2xl mx-auto px-4 py-4">
@@ -416,7 +426,7 @@ export default function RecordingContainer({
                 ? "글 읽기 대체는 일주일 중 2일까지만 달성할 수 있어요"
                 : weeklyReadLoading
                   ? "글 읽기 대체 인증 날짜를 확인하는 중이에요"
-                : undefined
+                  : undefined
             }
             className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
               formMode === "read"
@@ -583,72 +593,116 @@ export default function RecordingContainer({
         </p>
       ) : (
         <div className="space-y-3">
-          {records.map((record) => (
-            <div
-              key={record.id}
-              className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4"
-            >
-              <p className="text-[10px] text-gray-300 font-medium mb-3">
-                {record.date}
-              </p>
-              {editingRecordId === record.id ? (
-                <EditFeedRecord
-                  item={makeFeedItem(record)}
-                  onCancel={() => {
-                    setEditingRecordId(null);
-                    fetchRecords();
-                  }}
-                />
-              ) : (
-                <>
-              <div className="space-y-3">
-                {record.entries.map((entry, i) => (
-                  <RecordEntryView key={i} entry={entry} />
-                ))}
-              </div>
-              {record.photos && record.photos.length > 0 && (
-                <div
-                  className={`grid gap-2 mt-3 ${record.photos.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}
-                >
-                  {record.photos.map((url, i) => (
-                    <Image
-                      key={i}
-                      src={url}
-                      alt={`기록 사진 ${i + 1}`}
-                      width={640}
-                      height={360}
-                      className="w-full rounded-xl object-cover max-h-64"
-                      unoptimized
-                    />
-                  ))}
-                </div>
-              )}
-              <div className="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-gray-100">
+          {records.map((record) => {
+            const isExpanded = expandedRecordIds.includes(record.id);
+            const firstEntry = record.entries[0];
+            const summaryTitle =
+              firstEntry?.type === "write"
+                ? firstEntry.title || "작성한 글"
+                : firstEntry?.readSourceTitle || "읽은 글 기록";
+            const summaryLabel =
+              firstEntry?.type === "read" ? "글 읽기 대체" : "글 작성";
+
+            return (
+              <div
+                key={record.id}
+                className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
+              >
                 <button
                   type="button"
-                  onClick={() =>
-                    setEditingRecordId((current) =>
-                      current === record.id ? null : record.id,
-                    )
-                  }
-                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                  onClick={() => toggleRecord(record.id)}
+                  aria-expanded={isExpanded}
+                  aria-controls={`recording-record-${record.id}`}
+                  className="flex w-full items-center justify-between gap-4 p-4 text-left transition-colors hover:bg-gray-50"
                 >
-                  <Pencil className="w-3.5 h-3.5" />
-                  {editingRecordId === record.id ? "수정 닫기" : "수정"}
+                  <div className="min-w-0">
+                    <p className="mb-1 text-[10px] font-medium text-gray-300">
+                      {record.date}
+                    </p>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="shrink-0 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-500">
+                        {summaryLabel}
+                      </span>
+                      <p className="truncate text-sm font-semibold text-gray-800">
+                        {summaryTitle}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronDown
+                    className={`h-5 w-5 shrink-0 text-gray-400 transition-transform ${
+                      isExpanded ? "rotate-180" : ""
+                    }`}
+                  />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setDeleteTargetId(record.id)}
-                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  삭제
-                </button>
+
+                {isExpanded && (
+                  <div
+                    id={`recording-record-${record.id}`}
+                    className="border-t border-gray-100 p-4"
+                  >
+                    {editingRecordId === record.id ? (
+                      <EditFeedRecord
+                        item={makeFeedItem(record)}
+                        onCancel={() => {
+                          setEditingRecordId(null);
+                          fetchRecords();
+                        }}
+                      />
+                    ) : (
+                      <>
+                        <div className="space-y-3">
+                          {record.entries.map((entry, i) => (
+                            <RecordEntryView key={i} entry={entry} />
+                          ))}
+                        </div>
+                        {record.photos && record.photos.length > 0 && (
+                          <div
+                            className={`grid gap-2 mt-3 ${record.photos.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}
+                          >
+                            {record.photos.map((url, i) => (
+                              <Image
+                                key={i}
+                                src={url}
+                                alt={`기록 사진 ${i + 1}`}
+                                width={640}
+                                height={360}
+                                className="w-full rounded-xl object-cover max-h-64"
+                                unoptimized
+                              />
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-gray-100">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditingRecordId((current) =>
+                                current === record.id ? null : record.id,
+                              )
+                            }
+                            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            {editingRecordId === record.id
+                              ? "수정 닫기"
+                              : "수정"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTargetId(record.id)}
+                            className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            삭제
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
-                </>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

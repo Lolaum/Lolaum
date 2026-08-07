@@ -21,6 +21,7 @@ import type { ChallengerSummary } from "@/api/user";
 import { isAllRoutinesCovered } from "@/lib/declarations";
 import { getProfileRitualStart } from "@/lib/profile-ritual-start";
 import { calculateWeeklyRoutineProgress } from "@/lib/weekly-routine-progress";
+import { getEngagementPoints } from "@/lib/engagement-points";
 import {
   addDaysToDateKey,
   countWeekdaysInDateKeyRange,
@@ -37,14 +38,14 @@ type SupabaseAnyClient = { from: (...args: any[]) => any };
 
 export interface RitualOverallStats {
   totalRecords: number;
-  currentStreak: number;
-  completionRate: number;
+  points: number;
+  bestCompletionRate: number;
 }
 
 export interface MyPageStats {
-  currentStreak: number; // 연속 실천 (하루에 리추얼 1개라도 완료한 연속 일수)
-  longestStreak: number; // 최장 기록 (가장 긴 연속 실천 기간)
-  totalCompletions: number; // 총 완료 (리추얼 완료 수 합산)
+  points: number; // 좋아요 1점 + 댓글 2점
+  bestCompletionRate: number; // 참여한 전체 기간 중 최고 달성률
+  totalCompletions: number; // 전체 인증 기록 + 선언 + 중간/최종 회고
 }
 
 export interface CompletionRateStats {
@@ -103,8 +104,10 @@ export interface FinanceInsight {
   weeklySpending: { week: string; amount: number }[];
 }
 
-export interface HomeProfile
-  extends Pick<Profile, "id" | "username" | "name" | "avatar_url"> {
+export interface HomeProfile extends Pick<
+  Profile,
+  "id" | "username" | "name" | "avatar_url"
+> {
   ritual_start_year: number | null;
   ritual_start_month: number | null;
 }
@@ -137,35 +140,184 @@ function getAccountingUpperDate(endDate: string): string {
   return getKoreaTodayWithinRange(endDate);
 }
 
-function getRitualStartDateKey(input: {
-  ritual_start_year: number | null;
-  ritual_start_month: number | null;
-}): string | undefined {
-  if (!input.ritual_start_year || !input.ritual_start_month) return undefined;
-  if (input.ritual_start_month < 1 || input.ritual_start_month > 12) {
-    return undefined;
-  }
-
-  return `${input.ritual_start_year}-${String(input.ritual_start_month).padStart(2, "0")}-01`;
-}
-
-async function countRitualRecordsSinceProfileStart(
+async function countArchiveRecords(
   supabase: SupabaseAnyClient,
   userId: string,
 ): Promise<number> {
-  const ritualStart = await getProfileRitualStart(userId);
-  const ritualStartDate = getRitualStartDateKey(ritualStart);
-  let query = supabase
-    .from("ritual_records")
-    .select("*", { count: "exact", head: true })
+  const [recordsRes, declarationsRes, midReviewsRes, finalReviewsRes] =
+    await Promise.all([
+      supabase
+        .from("ritual_records")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId),
+      supabase
+        .from("declarations")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId),
+      supabase
+        .from("mid_reviews")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId),
+      supabase
+        .from("final_reviews")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId),
+    ]);
+
+  return (
+    (recordsRes.count ?? 0) +
+    (declarationsRes.count ?? 0) +
+    (midReviewsRes.count ?? 0) +
+    (finalReviewsRes.count ?? 0)
+  );
+}
+
+async function getBestCompletionRate(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+): Promise<number> {
+  const { data: challenges, error: challengesError } = await admin
+    .from("challenges")
+    .select("id, period_id, reset_at")
     .eq("user_id", userId);
 
-  if (ritualStartDate) {
-    query = query.gte("record_date", ritualStartDate);
+  if (challengesError || !challenges?.length) return 0;
+
+  const challengeIds = challenges.map((challenge) => challenge.id);
+  const periodIds = [
+    ...new Set(challenges.map((challenge) => challenge.period_id)),
+  ];
+  const [
+    periodsRes,
+    registrationsRes,
+    recordsRes,
+    declarationsRes,
+    midRes,
+    finalRes,
+  ] = await Promise.all([
+    admin
+      .from("challenge_periods")
+      .select("id, start_date, end_date")
+      .in("id", periodIds),
+    admin
+      .from("challenge_registrations")
+      .select("challenge_id, routine_type")
+      .eq("user_id", userId)
+      .in("challenge_id", challengeIds),
+    admin
+      .from("ritual_records")
+      .select("challenge_id, routine_type, record_date, record_data")
+      .eq("user_id", userId)
+      .in("challenge_id", challengeIds),
+    admin
+      .from("declarations")
+      .select("challenge_id, routine_type")
+      .eq("user_id", userId)
+      .in("challenge_id", challengeIds),
+    admin
+      .from("mid_reviews")
+      .select("challenge_id")
+      .eq("user_id", userId)
+      .in("challenge_id", challengeIds),
+    admin
+      .from("final_reviews")
+      .select("challenge_id")
+      .eq("user_id", userId)
+      .in("challenge_id", challengeIds),
+  ]);
+
+  if (
+    periodsRes.error ||
+    registrationsRes.error ||
+    recordsRes.error ||
+    declarationsRes.error ||
+    midRes.error ||
+    finalRes.error
+  ) {
+    return 0;
   }
 
-  const { count } = await query;
-  return count ?? 0;
+  const periodsById = new Map(
+    (periodsRes.data ?? []).map((period) => [period.id, period]),
+  );
+  const registrationsByChallenge = new Map<string, Set<string>>();
+  for (const registration of registrationsRes.data ?? []) {
+    const registered =
+      registrationsByChallenge.get(registration.challenge_id) ?? new Set();
+    registered.add(registration.routine_type);
+    registrationsByChallenge.set(registration.challenge_id, registered);
+  }
+
+  const recordsByChallenge = new Map<string, Map<string, Set<string>>>();
+  for (const record of recordsRes.data ?? []) {
+    if (isExcludedFromProgress(record.record_data)) continue;
+    const dateMap = recordsByChallenge.get(record.challenge_id) ?? new Map();
+    const routineTypes = dateMap.get(record.record_date) ?? new Set();
+    routineTypes.add(record.routine_type);
+    dateMap.set(record.record_date, routineTypes);
+    recordsByChallenge.set(record.challenge_id, dateMap);
+  }
+
+  const declarationsByChallenge = new Map<string, { routine_type: string }[]>();
+  for (const declaration of declarationsRes.data ?? []) {
+    const declarations =
+      declarationsByChallenge.get(declaration.challenge_id) ?? [];
+    declarations.push({ routine_type: declaration.routine_type });
+    declarationsByChallenge.set(declaration.challenge_id, declarations);
+  }
+  const midReviewedChallenges = new Set(
+    (midRes.data ?? []).map((review) => review.challenge_id),
+  );
+  const finalReviewedChallenges = new Set(
+    (finalRes.data ?? []).map((review) => review.challenge_id),
+  );
+
+  let bestRate = 0;
+  for (const challenge of challenges) {
+    const period = periodsById.get(challenge.period_id);
+    const registeredTypes = registrationsByChallenge.get(challenge.id);
+    if (!period || !registeredTypes?.size) continue;
+
+    const effectiveStart = getEffectiveStart(
+      period.start_date,
+      challenge.reset_at,
+    );
+    const rangeEnd = getKoreaTodayWithinRange(period.end_date);
+    const { completedDays } = calculateWeeklyRoutineProgress({
+      dateMap: recordsByChallenge.get(challenge.id) ?? new Map(),
+      registeredTypes,
+      rangeStart: effectiveStart,
+      rangeEnd,
+    });
+    const totalDays =
+      countWeekdaysInDateKeyRange(effectiveStart, period.end_date) + 3;
+    const totalAchieved =
+      completedDays +
+      (isAllRoutinesCovered(
+        registeredTypes,
+        declarationsByChallenge.get(challenge.id),
+      )
+        ? 1
+        : 0) +
+      (midReviewedChallenges.has(challenge.id) ? 1 : 0) +
+      (finalReviewedChallenges.has(challenge.id) ? 1 : 0);
+    const rate =
+      totalDays > 0 ? Math.round((totalAchieved / totalDays) * 100) : 0;
+    bestRate = Math.max(bestRate, rate);
+  }
+
+  return bestRate;
+}
+
+function isExcludedFromProgress(recordData: unknown): boolean {
+  if (
+    !recordData ||
+    typeof recordData !== "object" ||
+    Array.isArray(recordData)
+  ) {
+    return false;
+  }
+  return (recordData as Record<string, unknown>).progressExcluded === true;
 }
 
 function calcCompletionAccounting(
@@ -206,27 +358,6 @@ function calcStreak(dates: string[]): number {
   return streak;
 }
 
-function calcLongestStreak(dates: string[]): number {
-  if (dates.length === 0) return 0;
-  const sorted = [...new Set(dates)].sort();
-  let longest = 1;
-  let current = 1;
-
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = parseDateKey(sorted[i - 1]);
-    const curr = parseDateKey(sorted[i]);
-    const diffDays = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24);
-
-    if (diffDays === 1) {
-      current++;
-      if (current > longest) longest = current;
-    } else {
-      current = 1;
-    }
-  }
-  return longest;
-}
-
 function getWeekActivity(dates: string[]): boolean[] {
   const today = formatKoreaDateKey();
   const dayOfWeek = getDateKeyDayOfWeek(today); // 0=일, 1=월, ...
@@ -244,35 +375,77 @@ function getWeekActivity(dates: string[]): boolean[] {
 // RitualContainer가 항상 함께 사용하는 overall + routines + completion을
 // 단일 server action으로 묶어 클라이언트→서버 왕복을 줄인다.
 
-export async function getRitualPageData(): Promise<{
+export async function getRitualPageData(challengerSlug?: string): Promise<{
   overall?: RitualOverallStats;
   routines?: RoutineCardStats[];
   completion?: CompletionRateStats;
   totalRoutineDays?: number; // 활성 기간 내 평일(월~금) 수
+  profileName?: string;
+  isOwnProfile?: boolean;
   error?: string;
 }> {
-  const [
-    { challengeId, resetAt, error: cError },
-    user,
-    { period, error: pError },
-  ] = await Promise.all([
-    getCurrentChallengeId({ allowEnded: true }),
-    getCurrentUser(),
-    getActivePeriod(),
-  ]);
+  const [{ challengeId, error: cError }, user, { period, error: pError }] =
+    await Promise.all([
+      getCurrentChallengeId({ allowEnded: true }),
+      getCurrentUser(),
+      getActivePeriod(),
+    ]);
   if (!user) return { error: "인증이 필요합니다." };
   if (!period) return { error: pError ?? "활성 챌린지 기간이 없습니다." };
 
-  const effectiveStart = getEffectiveStart(period.start_date, resetAt);
+  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
+
+  const admin = createAdminClient();
+
+  let viewedUserId = user.id;
+  if (challengerSlug !== undefined) {
+    if (!/^[a-f0-9]{16}$/.test(challengerSlug)) {
+      return { error: "챌린저를 찾을 수 없습니다." };
+    }
+    const { data: publicChallenge } = await admin
+      .from("challenges")
+      .select("id, user_id")
+      .eq("period_id", period.id)
+      .eq("public_slug", challengerSlug)
+      .maybeSingle();
+    if (!publicChallenge?.user_id) {
+      return { error: "챌린저를 찾을 수 없습니다." };
+    }
+    const { count } = await admin
+      .from("challenge_registrations")
+      .select("id", { count: "exact", head: true })
+      .eq("challenge_id", publicChallenge.id)
+      .eq("user_id", publicChallenge.user_id);
+    if (!count) return { error: "챌린저를 찾을 수 없습니다." };
+    viewedUserId = publicChallenge.user_id;
+  }
+  const isOwnProfile = viewedUserId === user.id;
+
+  const [{ data: viewedChallenge }, { data: viewedProfile }] =
+    await Promise.all([
+      admin
+        .from("challenges")
+        .select("id, reset_at")
+        .eq("period_id", period.id)
+        .eq("user_id", viewedUserId)
+        .maybeSingle(),
+      admin
+        .from("profiles")
+        .select("name")
+        .eq("id", viewedUserId)
+        .maybeSingle(),
+    ]);
+  if (!viewedChallenge) return { error: "챌린저를 찾을 수 없습니다." };
+
+  const effectiveStart = getEffectiveStart(
+    period.start_date,
+    viewedChallenge.reset_at,
+  );
   const totalRoutineDays = countWeekdaysInRange(
     effectiveStart,
     period.end_date,
   );
   const totalDays = totalRoutineDays + 3;
-
-  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
-
-  const supabase = await createClient();
 
   // 통계에 필요한 조회를 한 번에 병렬 실행
   // daily_completions는 완료율용, ritual_records는 총기록/연속 실천/리추얼 카드용으로 사용
@@ -284,67 +457,61 @@ export async function getRitualPageData(): Promise<{
     declarationsRes,
     midReviewsRes,
     finalReviewsRes,
-  ] =
-    await Promise.all([
-      // 완전 달성일 목록 (fullyCompleteDays, streak 계산용)
-      supabase
-        .from("daily_completions")
-        .select("completion_date")
-        .eq("user_id", user.id)
-        .eq("challenge_id", challengeId)
-        .eq("is_fully_complete", true)
-        .gte("completion_date", effectiveStart)
-        .lte("completion_date", period.end_date),
-      countRitualRecordsSinceProfileStart(supabase, user.id),
-      // routines 카드용: routine_type, record_date만 (record_data 제외)
-      supabase
-        .from("ritual_records")
-        .select("routine_type, record_date")
-        .eq("user_id", user.id)
-        .eq("challenge_id", challengeId)
-        .gte("record_date", effectiveStart)
-        .lte("record_date", period.end_date),
-      supabase
-        .from("challenge_registrations")
-        .select("routine_type")
-        .eq("user_id", user.id)
-        .eq("challenge_id", challengeId),
-      supabase
-        .from("declarations")
-        .select("routine_type")
-        .eq("user_id", user.id)
-        .eq("challenge_id", challengeId),
-      supabase
-        .from("mid_reviews")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("challenge_id", challengeId),
-      supabase
-        .from("final_reviews")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("challenge_id", challengeId),
-    ]);
+    points,
+    bestCompletionRate,
+  ] = await Promise.all([
+    admin
+      .from("daily_completions")
+      .select("completion_date")
+      .eq("user_id", viewedUserId)
+      .eq("challenge_id", viewedChallenge.id)
+      .eq("is_fully_complete", true)
+      .gte("completion_date", effectiveStart)
+      .lte("completion_date", period.end_date),
+    countArchiveRecords(admin, viewedUserId),
+    // routines 카드용: routine_type, record_date만 (record_data 제외)
+    admin
+      .from("ritual_records")
+      .select("routine_type, record_date")
+      .eq("user_id", viewedUserId)
+      .eq("challenge_id", viewedChallenge.id)
+      .gte("record_date", effectiveStart)
+      .lte("record_date", period.end_date),
+    admin
+      .from("challenge_registrations")
+      .select("routine_type")
+      .eq("user_id", viewedUserId)
+      .eq("challenge_id", viewedChallenge.id),
+    admin
+      .from("declarations")
+      .select("routine_type")
+      .eq("user_id", viewedUserId)
+      .eq("challenge_id", viewedChallenge.id),
+    admin
+      .from("mid_reviews")
+      .select("id")
+      .eq("user_id", viewedUserId)
+      .eq("challenge_id", viewedChallenge.id),
+    admin
+      .from("final_reviews")
+      .select("id")
+      .eq("user_id", viewedUserId)
+      .eq("challenge_id", viewedChallenge.id),
+    getEngagementPoints(admin, viewedUserId, period.start_date),
+    getBestCompletionRate(admin, viewedUserId),
+  ]);
 
-  const fullyCompleteDates = (dailyRes.data ?? []).map((r) => r.completion_date);
-  const fullyCompleteDays = fullyCompleteDates.length;
+  const fullyCompleteDates = (dailyRes.data ?? []).map(
+    (row) => row.completion_date,
+  );
   const routineRecords = routineRecordsRes.data ?? [];
   const registrations = registrationsRes.data ?? [];
 
-  const currentRecordDates = [
-    ...new Set(routineRecords.map((r) => r.record_date)),
-  ];
-  const currentStreak = calcStreak(currentRecordDates);
-
   // overall stats
-  const totalDaysWithRecords = fullyCompleteDays || 1;
-  const overallCompletionRate = Math.round(
-    (fullyCompleteDays / totalDaysWithRecords) * 100,
-  );
   const overall: RitualOverallStats = {
     totalRecords,
-    currentStreak,
-    completionRate: overallCompletionRate,
+    points,
+    bestCompletionRate,
   };
 
   // routines cards (routine_type, record_date만 사용 — record_data 없음)
@@ -410,7 +577,14 @@ export async function getRitualPageData(): Promise<{
     totalDays,
   };
 
-  return { overall, routines, completion, totalRoutineDays };
+  return {
+    overall,
+    routines,
+    completion,
+    totalRoutineDays,
+    profileName: viewedProfile?.name ?? "챌린저",
+    isOwnProfile,
+  };
 }
 
 // ── API: 전체 통계 + 리추얼별 카드 ──────────────────────
@@ -435,54 +609,42 @@ export async function getRitualStats(): Promise<{
 
   const effectiveStart = getEffectiveStart(period.start_date, resetAt);
   const supabase = await createClient();
+  const admin = createAdminClient();
 
   // daily_completions는 완료율용, ritual_records는 총기록/연속 실천/리추얼 카드용으로 사용
-  const [dailyRes, totalRecords, routineRecordsRes, registrationsRes] =
-    await Promise.all([
-      // 완전 달성일 목록 (fullyCompleteDays, streak 계산용)
-      supabase
-        .from("daily_completions")
-        .select("completion_date")
-        .eq("user_id", user.id)
-        .eq("challenge_id", challengeId)
-        .eq("is_fully_complete", true)
-        .gte("completion_date", effectiveStart)
-        .lte("completion_date", period.end_date),
-      countRitualRecordsSinceProfileStart(supabase, user.id),
-      // routines 카드용: routine_type, record_date만 (record_data 제외)
-      supabase
-        .from("ritual_records")
-        .select("routine_type, record_date")
-        .eq("user_id", user.id)
-        .eq("challenge_id", challengeId)
-        .gte("record_date", effectiveStart)
-        .lte("record_date", period.end_date),
-      supabase
-        .from("challenge_registrations")
-        .select("routine_type")
-        .eq("user_id", user.id)
-        .eq("challenge_id", challengeId),
-    ]);
+  const [
+    totalRecords,
+    routineRecordsRes,
+    registrationsRes,
+    points,
+    bestCompletionRate,
+  ] = await Promise.all([
+    countArchiveRecords(supabase, user.id),
+    // routines 카드용: routine_type, record_date만 (record_data 제외)
+    supabase
+      .from("ritual_records")
+      .select("routine_type, record_date")
+      .eq("user_id", user.id)
+      .eq("challenge_id", challengeId)
+      .gte("record_date", effectiveStart)
+      .lte("record_date", period.end_date),
+    supabase
+      .from("challenge_registrations")
+      .select("routine_type")
+      .eq("user_id", user.id)
+      .eq("challenge_id", challengeId),
+    getEngagementPoints(admin, user.id, period.start_date),
+    getBestCompletionRate(admin, user.id),
+  ]);
 
-  const fullyCompleteDates = (dailyRes.data ?? []).map((r) => r.completion_date);
-  const fullyCompleteDays = fullyCompleteDates.length;
   const routineRecords = routineRecordsRes.data ?? [];
   const registrations = registrationsRes.data ?? [];
 
   // 전체 통계
-  const currentRecordDates = [
-    ...new Set(routineRecords.map((r) => r.record_date)),
-  ];
-  const currentStreak = calcStreak(currentRecordDates);
-  const totalDaysWithRecords = fullyCompleteDays || 1;
-  const completionRate = Math.round(
-    (fullyCompleteDays / totalDaysWithRecords) * 100,
-  );
-
   const overall: RitualOverallStats = {
     totalRecords,
-    currentStreak,
-    completionRate,
+    points,
+    bestCompletionRate,
   };
 
   // 리추얼별 카드 (등록된 리추얼만, routine_type/record_date만 사용)
@@ -873,12 +1035,15 @@ export async function getHomeStats(): Promise<{
       .single(),
     admin
       .from("challenges")
-      .select("id, user_id, profiles!inner(id, name, avatar_url, emoji)")
+      .select(
+        "id, user_id, public_slug, profiles!inner(id, name, avatar_url, emoji)",
+      )
       .eq("period_id", period.id),
   ]);
 
   const currentRecords = currentRes.data ?? [];
-  const registrations = (registrationsRes.data ?? []) as ChallengeRegistration[];
+  const registrations = (registrationsRes.data ??
+    []) as ChallengeRegistration[];
   const completedTodos = todosRes.data ?? [];
   const ritualStart = await getProfileRitualStart(user.id);
   const profile = profileRes.data
@@ -888,6 +1053,7 @@ export async function getHomeStats(): Promise<{
   type ChallengerRow = {
     id: string;
     user_id: string;
+    public_slug: string;
     profiles: {
       id: string;
       name: string;
@@ -895,7 +1061,8 @@ export async function getHomeStats(): Promise<{
       emoji: string | null;
     } | null;
   };
-  const challengerRows = (challengersRes.data ?? []) as unknown as ChallengerRow[];
+  const challengerRows = (challengersRes.data ??
+    []) as unknown as ChallengerRow[];
   const periodChallengeIds = challengerRows.map((r) => r.id);
   const { data: periodRegistrations } =
     periodChallengeIds.length > 0
@@ -916,11 +1083,14 @@ export async function getHomeStats(): Promise<{
     }
     challengerRitualMap.set(registration.user_id, labels);
   }
-  const challengers: ChallengerSummary[] = challengerRows
+  const orderedChallengerRows = challengerRows
     .filter((r) => r.profiles)
     .filter((r) => registeredUserIds.has(r.user_id))
+    .sort((a, b) => a.id.localeCompare(b.id));
+  const challengers: ChallengerSummary[] = orderedChallengerRows
     .map((r) => ({
       id: r.profiles!.id,
+      publicSlug: r.public_slug,
       name: r.profiles!.name,
       avatarUrl: r.profiles!.avatar_url,
       emoji: r.profiles!.emoji,
@@ -939,24 +1109,17 @@ export async function getHomeStats(): Promise<{
     return true;
   });
 
-  const { data: archivedRecords, error: archivedRecordsError } = await supabase
-    .from("ritual_records")
-    .select("record_date")
-    .eq("user_id", user.id);
-
-  if (archivedRecordsError) return { error: archivedRecordsError.message };
+  const [totalArchiveRecords, points, bestCompletionRate] = await Promise.all([
+    countArchiveRecords(supabase, user.id),
+    getEngagementPoints(admin, user.id, period.start_date),
+    getBestCompletionRate(admin, user.id),
+  ]);
 
   // myPage stats
-  // - 연속 실천: 현재 챌린지 기준으로 초기화
-  // - 최장 기록/총 완료: 유저 전체 기록 기준으로 누적 아카이빙
-  const currentDates = [...new Set(currentRecords.map((r) => r.record_date))];
-  const archivedDates = [
-    ...new Set((archivedRecords ?? []).map((r) => r.record_date)),
-  ];
   const myPage: MyPageStats = {
-    currentStreak: calcStreak(currentDates),
-    longestStreak: calcLongestStreak(archivedDates),
-    totalCompletions: archivedRecords?.length ?? 0,
+    points,
+    bestCompletionRate,
+    totalCompletions: totalArchiveRecords,
   };
 
   // completion stats (오늘/주말 인증도 포함한 완료 횟수 — 진행표와 동일 로직)
@@ -984,10 +1147,7 @@ export async function getHomeStats(): Promise<{
     (hasMidReview ? 1 : 0) +
     (hasFinalReview ? 1 : 0);
   const completion: CompletionRateStats = {
-    rate:
-      totalDays > 0
-        ? Math.round((totalAchieved / totalDays) * 100)
-        : 0,
+    rate: totalDays > 0 ? Math.round((totalAchieved / totalDays) * 100) : 0,
     completedDays,
     hasDeclaration,
     hasMidReview,
@@ -1060,52 +1220,30 @@ export async function getMyPageStats(): Promise<{
   data?: MyPageStats;
   error?: string;
 }> {
-  const [
-    { challengeId, resetAt, error: cError },
-    user,
-    { period, error: pError },
-  ] = await Promise.all([
-    getCurrentChallengeId({ allowEnded: true }),
-    getCurrentUser(),
-    getActivePeriod(),
-  ]);
+  const [{ challengeId, error: cError }, user, { period, error: pError }] =
+    await Promise.all([
+      getCurrentChallengeId({ allowEnded: true }),
+      getCurrentUser(),
+      getActivePeriod(),
+    ]);
   if (!user) return { error: "인증이 필요합니다." };
   if (!period) return { error: pError ?? "활성 챌린지 기간이 없습니다." };
   if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
 
-  const effectiveStart = getEffectiveStart(period.start_date, resetAt);
   const supabase = await createClient();
 
-  const [currentRes, archivedRes] = await Promise.all([
-    supabase
-      .from("ritual_records")
-      .select("record_date")
-      .eq("user_id", user.id)
-      .eq("challenge_id", challengeId)
-      .gte("record_date", effectiveStart)
-      .lte("record_date", period.end_date),
-    supabase
-      .from("ritual_records")
-      .select("record_date")
-      .eq("user_id", user.id),
+  const admin = createAdminClient();
+  const [totalArchiveRecords, points, bestCompletionRate] = await Promise.all([
+    countArchiveRecords(supabase, user.id),
+    getEngagementPoints(admin, user.id, period.start_date),
+    getBestCompletionRate(admin, user.id),
   ]);
-
-  if (currentRes.error) return { error: currentRes.error.message };
-  if (archivedRes.error) return { error: archivedRes.error.message };
-
-  const currentDates = [
-    ...new Set((currentRes.data ?? []).map((r) => r.record_date)),
-  ];
-  const archivedRecords = archivedRes.data ?? [];
-  const archivedDates = [
-    ...new Set(archivedRecords.map((r) => r.record_date)),
-  ];
 
   return {
     data: {
-      currentStreak: calcStreak(currentDates),
-      longestStreak: calcLongestStreak(archivedDates),
-      totalCompletions: archivedRecords.length,
+      points,
+      bestCompletionRate,
+      totalCompletions: totalArchiveRecords,
     },
   };
 }
@@ -1146,34 +1284,34 @@ export async function getCompletionRate(): Promise<{
     midReviewsRes,
     finalReviewsRes,
   ] = await Promise.all([
-      supabase
-        .from("ritual_records")
-        .select("routine_type, record_date")
-        .eq("user_id", user.id)
-        .eq("challenge_id", challengeId)
-        .gte("record_date", effectiveStart)
-        .lte("record_date", period.end_date),
-      supabase
-        .from("challenge_registrations")
-        .select("routine_type")
-        .eq("user_id", user.id)
-        .eq("challenge_id", challengeId),
-      supabase
-        .from("declarations")
-        .select("routine_type")
-        .eq("user_id", user.id)
-        .eq("challenge_id", challengeId),
-      supabase
-        .from("mid_reviews")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("challenge_id", challengeId),
-      supabase
-        .from("final_reviews")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("challenge_id", challengeId),
-    ]);
+    supabase
+      .from("ritual_records")
+      .select("routine_type, record_date")
+      .eq("user_id", user.id)
+      .eq("challenge_id", challengeId)
+      .gte("record_date", effectiveStart)
+      .lte("record_date", period.end_date),
+    supabase
+      .from("challenge_registrations")
+      .select("routine_type")
+      .eq("user_id", user.id)
+      .eq("challenge_id", challengeId),
+    supabase
+      .from("declarations")
+      .select("routine_type")
+      .eq("user_id", user.id)
+      .eq("challenge_id", challengeId),
+    supabase
+      .from("mid_reviews")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("challenge_id", challengeId),
+    supabase
+      .from("final_reviews")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("challenge_id", challengeId),
+  ]);
 
   // 오늘/주말 인증도 포함한 완료 횟수 (진행표와 동일 로직)
   const registeredTypes = new Set(
@@ -1204,9 +1342,7 @@ export async function getCompletionRate(): Promise<{
     (hasFinalReview ? 1 : 0);
 
   const rate =
-    totalDays > 0
-      ? Math.round((totalAchieved / totalDays) * 100)
-      : 0;
+    totalDays > 0 ? Math.round((totalAchieved / totalDays) * 100) : 0;
 
   return {
     data: {

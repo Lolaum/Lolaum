@@ -129,23 +129,22 @@ export default function LanguageContainer({
     (sum, r) => sum + r.expressionCount,
     0,
   );
-  const currentMonthKey = formatKoreaDateKey().slice(0, 7);
-  const currentMonthQuizCards = languageRecords
-    .filter((record) => record.recordDate?.slice(0, 7) === currentMonthKey)
-    .flatMap((record) =>
-      record.expressions
-        .filter(
-          (expression) => expression.word.trim() && expression.meaning.trim(),
-        )
-        .map((expression) => ({
-          word: expression.word,
-          meaning: expression.meaning,
-          example: expression.example,
-        })),
-    );
+  // languageRecords는 활성 리추얼 기간으로 조회되므로 월 단위로 다시 자르지 않는다.
+  // 리추얼이 두 달에 걸쳐 있어도 전체 기간의 표현이 한 퀴즈에 포함되어야 한다.
+  const currentPeriodQuizCards = languageRecords.flatMap((record) =>
+    record.expressions
+      .filter(
+        (expression) => expression.word.trim() && expression.meaning.trim(),
+      )
+      .map((expression) => ({
+        word: expression.word,
+        meaning: expression.meaning,
+        example: expression.example,
+      })),
+  );
 
   const openWordQuiz = () => {
-    setQuizCards(currentMonthQuizCards);
+    setQuizCards(currentPeriodQuizCards);
   };
 
   if (mode === "new") {
@@ -277,7 +276,7 @@ export default function LanguageContainer({
                 단어 퀴즈로 복습하기
               </p>
               <p className="text-xs text-gray-400 mt-0.5">
-                이번 달 {currentMonthQuizCards.length}개의 표현
+                이번 리추얼 {currentPeriodQuizCards.length}개의 표현
               </p>
             </div>
           </div>
@@ -326,7 +325,7 @@ export default function LanguageContainer({
       {quizCards && (
         <WordQuiz
           cards={quizCards}
-          title="이번달 단어 퀴즈"
+          title="이번 리추얼 단어 퀴즈"
           accentColor={accentColor}
           onClose={() => setQuizCards(null)}
         />

@@ -442,6 +442,7 @@ function revalidateArchiveSurfaces() {
 export async function getMyRecordsForDisplay(options?: {
   routineType?: RoutineTypeDB;
   limit?: number;
+  challengerSlug?: string;
 }): Promise<{ data: FeedItem[]; error?: string }> {
   try {
     const user = await getCurrentUser();
@@ -449,13 +450,39 @@ export async function getMyRecordsForDisplay(options?: {
       return { data: [], error: "인증이 필요합니다." };
     }
 
-    const supabase = await createClient();
+    let viewedUserId = user.id;
+    if (options?.challengerSlug !== undefined) {
+      if (!/^[a-f0-9]{16}$/.test(options.challengerSlug)) {
+        return { data: [], error: "챌린저를 찾을 수 없습니다." };
+      }
+      const { period } = await getActivePeriod();
+      if (!period) return { data: [], error: "활성 챌린지 기간이 없습니다." };
+      const admin = createAdminClient();
+      const { data: publicChallenge } = await admin
+        .from("challenges")
+        .select("id, user_id")
+        .eq("period_id", period.id)
+        .eq("public_slug", options.challengerSlug)
+        .maybeSingle();
+      if (!publicChallenge?.user_id) {
+        return { data: [], error: "챌린저를 찾을 수 없습니다." };
+      }
+      const { count } = await admin
+        .from("challenge_registrations")
+        .select("id", { count: "exact", head: true })
+        .eq("challenge_id", publicChallenge.id)
+        .eq("user_id", publicChallenge.user_id);
+      if (!count) return { data: [], error: "챌린저를 찾을 수 없습니다." };
+      viewedUserId = publicChallenge.user_id;
+    }
+    const isOwnProfile = viewedUserId === user.id;
+    const supabase = isOwnProfile ? await createClient() : createAdminClient();
 
     // 프로필 + 기록/회고 동시 조회
     const profilePromise = supabase
       .from("profiles")
       .select("id, name, avatar_url")
-      .eq("id", user.id)
+      .eq("id", viewedUserId)
       .single();
 
     let query = supabase
@@ -463,7 +490,7 @@ export async function getMyRecordsForDisplay(options?: {
       .select(
         "id, user_id, routine_type, record_date, record_data, challenge_id, created_at",
       )
-      .eq("user_id", user.id)
+      .eq("user_id", viewedUserId)
       .order("record_date", { ascending: false });
 
     if (options?.routineType) {
@@ -479,7 +506,7 @@ export async function getMyRecordsForDisplay(options?: {
       ? supabase
           .from("declarations")
           .select("id, user_id, routine_type, answers, created_at")
-          .eq("user_id", user.id)
+          .eq("user_id", viewedUserId)
       : Promise.resolve({ data: [] as DeclarationArchiveRow[], error: null });
     const midReviewPromise = shouldIncludeReflections
       ? supabase
@@ -487,7 +514,7 @@ export async function getMyRecordsForDisplay(options?: {
           .select(
             "id, user_id, good_conditions, hard_conditions, why_started, keep_doing, will_change, created_at",
           )
-          .eq("user_id", user.id)
+          .eq("user_id", viewedUserId)
       : Promise.resolve({ data: [] as MidReviewArchiveRow[], error: null });
     const finalReviewPromise = shouldIncludeReflections
       ? supabase
@@ -495,7 +522,7 @@ export async function getMyRecordsForDisplay(options?: {
           .select(
             "id, user_id, results, life_changes, continuation_choice, adjustment_note, feedback, created_at",
           )
-          .eq("user_id", user.id)
+          .eq("user_id", viewedUserId)
       : Promise.resolve({ data: [] as FinalReviewArchiveRow[], error: null });
 
     const [

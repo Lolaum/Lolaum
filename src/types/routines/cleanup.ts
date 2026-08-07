@@ -10,7 +10,7 @@ export interface CleanupMetric {
 }
 
 export interface CleanupRecord {
-  id: number;
+  id: string;
   recordDate: string;
   area: CleanupArea;
   customArea?: string;
