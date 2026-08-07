@@ -7,6 +7,7 @@ import { getActivePeriod, getEffectiveStart } from "@/lib/current-challenge";
 import { isAllRoutinesCovered } from "@/lib/declarations";
 import { calculatePenaltyAccounting } from "@/lib/progress-accounting";
 import { calculateWeeklyRoutineProgress } from "@/lib/weekly-routine-progress";
+import { getEngagementPointsByUser } from "@/lib/engagement-points";
 import {
   countWeekdaysInDateKeyRange,
   getKoreaTodayWithinRange,
@@ -17,6 +18,7 @@ export interface ChallengerProgress {
   name: string;
   avatarUrl: string | null;
   emoji: string | null;
+  points: number;
   completedDays: number; // 인증 완료 횟수
   totalAchieved: number; // 달성 합계
   totalDays: number; // 유저별 만점 일수 (effectiveStart 기준 평일 수 + 3 보너스)
@@ -121,10 +123,15 @@ export async function getProgressPageData(): Promise<{
 
     const rows = challenges as unknown as ChallengeRow[];
     const challengeIds = rows.map((r) => r.id);
+    const pointsByUserPromise = getEngagementPointsByUser(
+      admin,
+      rows.map((row) => row.user_id),
+      period.start_date,
+    );
 
     // 2. 리추얼 기록 + 선언/회고를 한 번에 조회
     //    홈 달성률과 같은 기준으로 실제 ritual_records에서 날짜별 완료 여부를 계산한다.
-    const [regRes, recordsRes, declRes, midRevRes, finalRevRes] =
+    const [regRes, recordsRes, declRes, midRevRes, finalRevRes, pointsByUser] =
       await Promise.all([
         admin
           .from("challenge_registrations")
@@ -150,6 +157,7 @@ export async function getProgressPageData(): Promise<{
           .from("final_reviews")
           .select("user_id, challenge_id")
           .in("challenge_id", challengeIds),
+        pointsByUserPromise,
       ]);
 
     if (regRes.error) {
@@ -289,6 +297,7 @@ export async function getProgressPageData(): Promise<{
           name: r.profiles.name,
           avatarUrl: r.profiles.avatar_url,
           emoji: r.profiles.emoji,
+          points: pointsByUser.get(r.user_id) ?? 0,
           completedDays: 0,
           totalAchieved: 0,
           totalDays,
@@ -340,6 +349,7 @@ export async function getProgressPageData(): Promise<{
         name: r.profiles.name,
         avatarUrl: r.profiles.avatar_url,
         emoji: r.profiles.emoji,
+        points: pointsByUser.get(r.user_id) ?? 0,
         completedDays,
         totalAchieved,
         totalDays,

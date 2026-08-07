@@ -8,6 +8,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Coins,
+  Trophy,
 } from "lucide-react";
 import { useKoreaMidnightRefresh } from "@/lib/hooks/useKoreaMidnightRefresh";
 import { addDaysToDateKey, parseDateKey } from "@/lib/korea-date";
@@ -20,7 +22,9 @@ export default function ProgressContainer({
 }) {
   useKoreaMidnightRefresh();
   const data = initialData;
-  const [activeTab, setActiveTab] = useState<"donation" | "daily">("donation");
+  const [activeTab, setActiveTab] = useState<"donation" | "daily" | "points">(
+    "donation",
+  );
   const [selectedDate, setSelectedDate] = useState(() => {
     if (!initialData) return "";
     return initialData.today < initialData.periodStart
@@ -61,7 +65,7 @@ export default function ProgressContainer({
       <div
         role="tablist"
         aria-label="리추얼 진행표 보기"
-        className="mb-6 grid grid-cols-2 rounded-2xl bg-gray-100 p-1"
+        className="mb-6 flex overflow-x-auto border-b border-gray-200 scrollbar-hide"
       >
         <ProgressTab
           selected={activeTab === "donation"}
@@ -74,6 +78,12 @@ export default function ProgressContainer({
           onClick={() => setActiveTab("daily")}
         >
           일일 인증
+        </ProgressTab>
+        <ProgressTab
+          selected={activeTab === "points"}
+          onClick={() => setActiveTab("points")}
+        >
+          포인트 순위
         </ProgressTab>
       </div>
 
@@ -115,7 +125,7 @@ export default function ProgressContainer({
             매일 인증 완료 시 자동으로 업데이트됩니다
           </p>
         </>
-      ) : (
+      ) : activeTab === "daily" ? (
         <DailyCompletionPanel
           members={me ? [me, ...challengers] : challengers}
           selectedDate={selectedDate}
@@ -126,6 +136,8 @@ export default function ProgressContainer({
           }
           onDateChange={setSelectedDate}
         />
+      ) : (
+        <PointsRanking members={me ? [me, ...challengers] : challengers} />
       )}
     </div>
   );
@@ -146,10 +158,10 @@ function ProgressTab({
       role="tab"
       aria-selected={selected}
       onClick={onClick}
-      className={`min-h-10 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
+      className={`-mb-px min-h-11 shrink-0 border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
         selected
-          ? "bg-white text-gray-900 shadow-sm"
-          : "text-gray-400 hover:text-gray-600"
+          ? "border-[var(--gold-400)] text-[var(--gold-500)]"
+          : "border-transparent text-gray-400 hover:border-gray-200 hover:text-gray-600"
       }`}
     >
       {children}
@@ -379,6 +391,78 @@ function formatDailyDate(dateKey: string) {
     weekday: "short",
     timeZone: "UTC",
   }).format(parseDateKey(dateKey));
+}
+
+function PointsRanking({ members }: { members: ChallengerProgress[] }) {
+  const rankedMembers = [...members].sort(
+    (a, b) => b.points - a.points || a.name.localeCompare(b.name, "ko"),
+  );
+
+  return (
+    <section aria-labelledby="points-ranking-heading">
+      <div className="mb-4 rounded-2xl border border-yellow-100 bg-yellow-50 p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-yellow-500 shadow-sm">
+            <Trophy className="h-5 w-5" />
+          </div>
+          <div>
+            <h2
+              id="points-ranking-heading"
+              className="text-base font-bold text-gray-900"
+            >
+              포인트 순위
+            </h2>
+            <p className="mt-0.5 text-xs text-gray-500">
+              다른 챌린저의 글에 남긴 좋아요와 댓글로 쌓은 포인트예요
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+        {rankedMembers.length === 0 ? (
+          <p className="p-8 text-center text-sm text-gray-400">
+            아직 포인트 순위가 없습니다.
+          </p>
+        ) : (
+          rankedMembers.map((member, index) => (
+            <div
+              key={member.userId}
+              className={`flex items-center gap-3 p-4 ${
+                index > 0 ? "border-t border-gray-100" : ""
+              }`}
+            >
+              <div
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                  index === 0
+                    ? "bg-yellow-100 text-yellow-600"
+                    : index === 1
+                      ? "bg-gray-100 text-gray-600"
+                      : index === 2
+                        ? "bg-amber-50 text-amber-700"
+                        : "bg-gray-50 text-gray-400"
+                }`}
+              >
+                {index + 1}
+              </div>
+              <Avatar
+                avatarUrl={member.avatarUrl}
+                emoji={member.emoji}
+                name={member.name}
+              />
+              <p className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-800">
+                {member.name}
+              </p>
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-yellow-50 px-3 py-1.5 text-sm font-bold text-yellow-600">
+                <Coins className="h-4 w-4" />
+                {member.points.toLocaleString()}P
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
 }
 
 function DonationSummary({ amount }: { amount: number }) {

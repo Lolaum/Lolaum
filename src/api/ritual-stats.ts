@@ -21,7 +21,7 @@ import type { ChallengerSummary } from "@/api/user";
 import { isAllRoutinesCovered } from "@/lib/declarations";
 import { getProfileRitualStart } from "@/lib/profile-ritual-start";
 import { calculateWeeklyRoutineProgress } from "@/lib/weekly-routine-progress";
-import { COMMENT_POINT, LIKE_POINT, POINTS_LAUNCHED_AT } from "@/lib/points";
+import { getEngagementPoints } from "@/lib/engagement-points";
 import {
   addDaysToDateKey,
   countWeekdaysInDateKeyRange,
@@ -169,64 +169,6 @@ async function countArchiveRecords(
     (declarationsRes.count ?? 0) +
     (midReviewsRes.count ?? 0) +
     (finalReviewsRes.count ?? 0)
-  );
-}
-
-async function getEngagementPoints(
-  admin: ReturnType<typeof createAdminClient>,
-  userId: string,
-  periodStartDate: string,
-): Promise<number> {
-  const periodStartedAt = new Date(
-    `${periodStartDate}T00:00:00+09:00`,
-  ).toISOString();
-  const pointsStartedAt =
-    Date.parse(periodStartedAt) > Date.parse(POINTS_LAUNCHED_AT)
-      ? periodStartedAt
-      : POINTS_LAUNCHED_AT;
-
-  const [reactionsRes, commentsRes] = await Promise.all([
-    admin
-      .from("feed_reactions")
-      .select("feed_id")
-      .eq("user_id", userId)
-      .gte("created_at", pointsStartedAt),
-    admin
-      .from("feed_comments")
-      .select("feed_id")
-      .eq("user_id", userId)
-      .gte("created_at", pointsStartedAt),
-  ]);
-
-  if (reactionsRes.error || commentsRes.error) return 0;
-
-  const reactionRows = reactionsRes.data ?? [];
-  const commentRows = commentsRes.data ?? [];
-  const feedIds = [
-    ...new Set([
-      ...reactionRows.map((row) => row.feed_id),
-      ...commentRows.map((row) => row.feed_id),
-    ]),
-  ];
-  if (feedIds.length === 0) return 0;
-
-  const { data: feeds, error: feedsError } = await admin
-    .from("feeds")
-    .select("id, user_id")
-    .in("id", feedIds);
-  if (feedsError) return 0;
-
-  const otherMemberFeedIds = new Set(
-    (feeds ?? [])
-      .filter((feed) => feed.user_id !== userId)
-      .map((feed) => feed.id),
-  );
-
-  return (
-    reactionRows.filter((row) => otherMemberFeedIds.has(row.feed_id)).length *
-      LIKE_POINT +
-    commentRows.filter((row) => otherMemberFeedIds.has(row.feed_id)).length *
-      COMMENT_POINT
   );
 }
 
