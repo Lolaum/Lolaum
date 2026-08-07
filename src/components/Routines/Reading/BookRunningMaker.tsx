@@ -362,7 +362,12 @@ export default function BookRunningMaker({
 
     const fileName = `lolaum-book-running-${date}.png`;
     const file = new File([blob], fileName, { type: "image/png" });
-    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+    const isIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent);
+    if (
+      isIOS &&
+      navigator.share &&
+      navigator.canShare?.({ files: [file] })
+    ) {
       try {
         await navigator.share({
           files: [file],
@@ -380,8 +385,13 @@ export default function BookRunningMaker({
     const anchor = document.createElement("a");
     anchor.download = fileName;
     anchor.href = objectUrl;
+    anchor.style.display = "none";
+    document.body.appendChild(anchor);
     anchor.click();
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    window.setTimeout(() => {
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+    }, 3000);
   };
 
   return (
