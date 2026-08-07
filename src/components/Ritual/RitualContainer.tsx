@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Flame, Calendar, TrendingUp, Loader2 } from "lucide-react";
+import { CheckCircle2, Coins, Flame, Loader2, Trophy } from "lucide-react";
 import { getRitualPageData } from "@/api/ritual-stats";
 import type {
   RitualOverallStats,
@@ -20,11 +20,7 @@ interface RitualInitialData {
 }
 
 function deriveOverall(initial: RitualInitialData): RitualOverallStats | null {
-  if (!initial.overall) return null;
-  return {
-    ...initial.overall,
-    completionRate: initial.completion?.rate ?? initial.overall.completionRate,
-  };
+  return initial.overall ?? null;
 }
 
 type TabId =
@@ -112,11 +108,7 @@ export default function RitualContainer({
       setLoading(true);
       const result = await getRitualPageData();
       if (result.overall) {
-        setOverall({
-          ...result.overall,
-          completionRate:
-            result.completion?.rate ?? result.overall.completionRate,
-        });
+        setOverall(result.overall);
       }
       if (result.routines) setRoutines(result.routines);
       if (typeof result.totalRoutineDays === "number") {
@@ -141,37 +133,35 @@ export default function RitualContainer({
         ) : overall ? (
           <>
             <h1 className="text-xl font-bold text-gray-900 mb-4">
-              {overall.currentStreak > 0
-                ? `${overall.currentStreak}일째 꾸준히`
-                : "오늘부터 시작해요"}
+              나의 리추얼 기록
             </h1>
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-yellow-50 rounded-xl p-3 text-center">
                 <div className="flex justify-center mb-1">
-                  <Calendar size={14} className="text-yellow-500" />
+                  <Coins size={14} className="text-yellow-500" />
+                </div>
+                <p className="text-xl font-bold text-gray-900">
+                  {overall.points}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">포인트</p>
+              </div>
+              <div className="bg-yellow-50 rounded-xl p-3 text-center">
+                <div className="flex justify-center mb-1">
+                  <Trophy size={14} className="text-yellow-500" />
+                </div>
+                <p className="text-xl font-bold text-gray-900">
+                  {overall.bestCompletionRate}%
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">최고 달성률</p>
+              </div>
+              <div className="bg-yellow-50 rounded-xl p-3 text-center">
+                <div className="flex justify-center mb-1">
+                  <CheckCircle2 size={14} className="text-yellow-500" />
                 </div>
                 <p className="text-xl font-bold text-gray-900">
                   {overall.totalRecords}
                 </p>
-                <p className="text-xs text-gray-400 mt-0.5">총 기록</p>
-              </div>
-              <div className="bg-yellow-50 rounded-xl p-3 text-center">
-                <div className="flex justify-center mb-1">
-                  <Flame size={14} className="text-yellow-500" />
-                </div>
-                <p className="text-xl font-bold text-gray-900">
-                  {overall.currentStreak}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">연속 달성</p>
-              </div>
-              <div className="bg-yellow-50 rounded-xl p-3 text-center">
-                <div className="flex justify-center mb-1">
-                  <TrendingUp size={14} className="text-yellow-500" />
-                </div>
-                <p className="text-xl font-bold text-gray-900">
-                  {overall.completionRate}%
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">완료율</p>
+                <p className="text-xs text-gray-400 mt-0.5">총 완료</p>
               </div>
             </div>
           </>
