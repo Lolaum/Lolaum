@@ -1,7 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
+import {
+  CalendarDays,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+} from "lucide-react";
 import { useKoreaMidnightRefresh } from "@/lib/hooks/useKoreaMidnightRefresh";
+import { addDaysToDateKey, parseDateKey } from "@/lib/korea-date";
 import { type ChallengerProgress, type ProgressPageData } from "@/api/progress";
 
 export default function ProgressContainer({
@@ -11,6 +20,13 @@ export default function ProgressContainer({
 }) {
   useKoreaMidnightRefresh();
   const data = initialData;
+  const [activeTab, setActiveTab] = useState<"donation" | "daily">("donation");
+  const [selectedDate, setSelectedDate] = useState(() => {
+    if (!initialData) return "";
+    return initialData.today < initialData.periodStart
+      ? initialData.periodStart
+      : initialData.today;
+  });
 
   if (!data) {
     return (
@@ -29,8 +45,8 @@ export default function ProgressContainer({
   }
 
   const { me, challengers } = data;
-  const totalDonationAmount = challengers.reduce(
-    (sum, member) => sum + member.penaltyAmount,
+  const totalDonationAmount = [me, ...challengers].reduce(
+    (sum, member) => sum + (member?.penaltyAmount ?? 0),
     0,
   );
 
@@ -42,43 +58,327 @@ export default function ProgressContainer({
         <h1 className="text-xl font-bold text-gray-900">리추얼 진행표</h1>
       </div>
 
-      {/* 내 진행도 */}
-      {me && (
+      <div
+        role="tablist"
+        aria-label="리추얼 진행표 보기"
+        className="mb-6 grid grid-cols-2 rounded-2xl bg-gray-100 p-1"
+      >
+        <ProgressTab
+          selected={activeTab === "donation"}
+          onClick={() => setActiveTab("donation")}
+        >
+          기부금 현황
+        </ProgressTab>
+        <ProgressTab
+          selected={activeTab === "daily"}
+          onClick={() => setActiveTab("daily")}
+        >
+          일일 인증
+        </ProgressTab>
+      </div>
+
+      {activeTab === "donation" ? (
         <>
+          {/* 내 진행도 */}
+          {me && (
+            <>
+              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 px-1">
+                나의 진행도
+              </h2>
+              <MyProgressCard member={me} />
+            </>
+          )}
+
+          {/* 팀원 진행도 */}
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 px-1">
-            나의 진행도
+            챌린저 현황
           </h2>
-          <MyProgressCard member={me} />
-        </>
-      )}
+          {challengers.length === 0 ? (
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-8">
+              <p className="text-center text-gray-400 text-sm">
+                아직 참여 중인 챌린저가 없습니다.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4">
+              <div className="flex flex-col gap-5">
+                {challengers.map((member) => (
+                  <MemberRow key={member.userId} member={member} />
+                ))}
+              </div>
+            </div>
+          )}
 
-      {/* 팀원 진행도 */}
-      <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 px-1">
-        챌린저 현황
-      </h2>
-      {challengers.length === 0 ? (
-        <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-8">
-          <p className="text-center text-gray-400 text-sm">
-            아직 참여 중인 챌린저가 없습니다.
+          <DonationSummary amount={totalDonationAmount} />
+
+          <p className="mt-4 text-xs text-gray-400 text-center">
+            매일 인증 완료 시 자동으로 업데이트됩니다
           </p>
-        </div>
+        </>
       ) : (
-        <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4">
-          <div className="flex flex-col gap-5">
-            {challengers.map((member) => (
-              <MemberRow key={member.userId} member={member} />
-            ))}
-          </div>
-        </div>
+        <DailyCompletionPanel
+          members={me ? [me, ...challengers] : challengers}
+          selectedDate={selectedDate}
+          periodStart={data.periodStart}
+          periodEnd={data.periodEnd}
+          latestDate={
+            data.today < data.periodStart ? data.periodStart : data.today
+          }
+          onDateChange={setSelectedDate}
+        />
       )}
-
-      <DonationSummary amount={totalDonationAmount} />
-
-      <p className="mt-4 text-xs text-gray-400 text-center">
-        매일 인증 완료 시 자동으로 업데이트됩니다
-      </p>
     </div>
   );
+}
+
+function ProgressTab({
+  selected,
+  onClick,
+  children,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={selected}
+      onClick={onClick}
+      className={`min-h-10 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
+        selected
+          ? "bg-white text-gray-900 shadow-sm"
+          : "text-gray-400 hover:text-gray-600"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function DailyCompletionPanel({
+  members,
+  selectedDate,
+  periodStart,
+  periodEnd,
+  latestDate,
+  onDateChange,
+}: {
+  members: ChallengerProgress[];
+  selectedDate: string;
+  periodStart: string;
+  periodEnd: string;
+  latestDate: string;
+  onDateChange: (date: string) => void;
+}) {
+  const maxDate = latestDate < periodEnd ? latestDate : periodEnd;
+  const eligibleMembers = members.filter(
+    (member) => member.effectiveStart <= selectedDate,
+  );
+  const notStartedMembers = members.filter(
+    (member) => member.effectiveStart > selectedDate,
+  );
+  const completedMembers = eligibleMembers.filter((member) =>
+    isDailyComplete(member, selectedDate),
+  );
+  const pendingMembers = eligibleMembers.filter(
+    (member) => !isDailyComplete(member, selectedDate),
+  );
+
+  const moveDate = (days: number) => {
+    const nextDate = addDaysToDateKey(selectedDate, days);
+    if (nextDate < periodStart || nextDate > maxDate) return;
+    onDateChange(nextDate);
+  };
+
+  return (
+    <section aria-labelledby="daily-completion-heading">
+      <div className="mb-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+        <div className="mb-4 flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--gold-50)] text-[var(--gold-400)]">
+            <CalendarDays className="h-5 w-5" />
+          </div>
+          <div>
+            <h2
+              id="daily-completion-heading"
+              className="text-base font-bold text-gray-900"
+            >
+              날짜별 인증 현황
+            </h2>
+            <p className="mt-0.5 text-xs text-gray-400">
+              등록한 리추얼을 모두 인증한 멤버를 확인해요
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => moveDate(-1)}
+            disabled={selectedDate <= periodStart}
+            aria-label="이전 날짜"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <input
+            type="date"
+            value={selectedDate}
+            min={periodStart}
+            max={maxDate}
+            onChange={(event) => {
+              if (event.target.value) onDateChange(event.target.value);
+            }}
+            aria-label="인증 현황 날짜"
+            className="h-10 min-w-0 flex-1 rounded-xl border border-gray-200 bg-gray-50 px-3 text-center text-sm font-semibold text-gray-800 outline-none focus:border-[var(--gold-400)] focus:ring-2 focus:ring-[var(--gold-100)]"
+          />
+          <button
+            type="button"
+            onClick={() => moveDate(1)}
+            disabled={selectedDate >= maxDate}
+            aria-label="다음 날짜"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+
+      <div className="mb-4 grid grid-cols-2 gap-3">
+        <div className="rounded-2xl border border-[var(--gold-100)] bg-[var(--gold-50)] p-4">
+          <p className="text-xs font-semibold text-[var(--gold-500)]">
+            인증 완료
+          </p>
+          <p className="mt-1 text-2xl font-bold text-gray-900">
+            {completedMembers.length}
+            <span className="ml-1 text-sm font-medium text-gray-400">명</span>
+          </p>
+        </div>
+        <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+          <p className="text-xs font-semibold text-gray-500">아직 미완료</p>
+          <p className="mt-1 text-2xl font-bold text-gray-900">
+            {pendingMembers.length}
+            <span className="ml-1 text-sm font-medium text-gray-400">명</span>
+          </p>
+        </div>
+      </div>
+
+      <DailyMemberSection
+        title="인증 완료"
+        emptyText="아직 인증을 모두 완료한 멤버가 없어요."
+        members={completedMembers}
+        selectedDate={selectedDate}
+        complete
+      />
+      <DailyMemberSection
+        title="아직 미완료"
+        emptyText="모든 멤버가 인증을 완료했어요."
+        members={pendingMembers}
+        selectedDate={selectedDate}
+      />
+      {notStartedMembers.length > 0 && (
+        <DailyMemberSection
+          title="참여 전"
+          emptyText=""
+          members={notStartedMembers}
+          selectedDate={selectedDate}
+          notStarted
+        />
+      )}
+    </section>
+  );
+}
+
+function DailyMemberSection({
+  title,
+  emptyText,
+  members,
+  selectedDate,
+  complete = false,
+  notStarted = false,
+}: {
+  title: string;
+  emptyText: string;
+  members: ChallengerProgress[];
+  selectedDate: string;
+  complete?: boolean;
+  notStarted?: boolean;
+}) {
+  return (
+    <div className="mb-4">
+      <h3 className="mb-2 px-1 text-xs font-semibold text-gray-400">
+        {title} {members.length > 0 && `${members.length}명`}
+      </h3>
+      <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+        {members.length === 0 ? (
+          <p className="p-5 text-center text-sm text-gray-400">{emptyText}</p>
+        ) : (
+          members.map((member, index) => {
+            const completedCount =
+              member.dailyCompletedRoutineCounts[selectedDate] ?? 0;
+            return (
+              <div
+                key={member.userId}
+                className={`flex items-center gap-3 p-4 ${
+                  index > 0 ? "border-t border-gray-100" : ""
+                }`}
+              >
+                <Avatar
+                  avatarUrl={member.avatarUrl}
+                  emoji={member.emoji}
+                  name={member.name}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-gray-800">
+                    {member.name}
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-400">
+                    {notStarted
+                      ? `${formatDailyDate(member.effectiveStart)}부터 참여`
+                      : `${completedCount}/${member.registeredRoutineCount}개 리추얼 인증`}
+                  </p>
+                </div>
+                <span
+                  className={`flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    complete
+                      ? "bg-[var(--gold-50)] text-[var(--gold-500)]"
+                      : notStarted
+                        ? "bg-gray-50 text-gray-400"
+                        : "bg-amber-50 text-amber-600"
+                  }`}
+                >
+                  {complete ? (
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                  ) : (
+                    <Clock3 className="h-3.5 w-3.5" />
+                  )}
+                  {complete ? "완료" : notStarted ? "참여 전" : "미완료"}
+                </span>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+function isDailyComplete(member: ChallengerProgress, date: string) {
+  return (
+    member.registeredRoutineCount > 0 &&
+    (member.dailyCompletedRoutineCounts[date] ?? 0) >=
+      member.registeredRoutineCount
+  );
+}
+
+function formatDailyDate(dateKey: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+    timeZone: "UTC",
+  }).format(parseDateKey(dateKey));
 }
 
 function DonationSummary({ amount }: { amount: number }) {

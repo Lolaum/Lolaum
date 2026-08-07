@@ -25,12 +25,18 @@ export interface ChallengerProgress {
   hasDeclaration: boolean;
   hasMidReview: boolean;
   hasFinalReview: boolean;
+  effectiveStart: string;
+  registeredRoutineCount: number;
+  dailyCompletedRoutineCounts: Record<string, number>;
 }
 
 export interface ProgressPageData {
   me: ChallengerProgress | null;
   challengers: ChallengerProgress[];
   totalDays: number; // 활성 기간 평일 수 + 3 보너스
+  periodStart: string;
+  periodEnd: string;
+  today: string;
 }
 
 const BONUS_SLOTS = 3; // 선언/중간회고/최종회고
@@ -94,6 +100,9 @@ export async function getProgressPageData(): Promise<{
           me: null,
           challengers: [],
           totalDays: periodTotalDaysWithBonus,
+          periodStart: period.start_date,
+          periodEnd: period.end_date,
+          today: getKoreaTodayWithinRange(period.end_date),
         },
       };
     }
@@ -123,7 +132,9 @@ export async function getProgressPageData(): Promise<{
           .in("challenge_id", challengeIds),
         admin
           .from("ritual_records")
-          .select("user_id, challenge_id, routine_type, record_date, record_data")
+          .select(
+            "user_id, challenge_id, routine_type, record_date, record_data",
+          )
           .in("challenge_id", challengeIds)
           .gte("record_date", period.start_date)
           .lte("record_date", period.end_date),
@@ -264,6 +275,12 @@ export async function getProgressPageData(): Promise<{
       const totalDays =
         countWeekdaysInDateKeyRange(effectiveStart, period.end_date) +
         BONUS_SLOTS;
+      const dailyCompletedRoutineCounts = Object.fromEntries(
+        Array.from(
+          userRecordTypesByDate.get(r.user_id)?.entries() ?? [],
+          ([date, routineTypes]) => [date, routineTypes.size],
+        ),
+      );
 
       // 리추얼 등록이 없으면 미완료/벌금 없음
       if (registeredTypes.size === 0) {
@@ -280,6 +297,9 @@ export async function getProgressPageData(): Promise<{
           hasDeclaration: false,
           hasMidReview: false,
           hasFinalReview: false,
+          effectiveStart,
+          registeredRoutineCount: 0,
+          dailyCompletedRoutineCounts,
         };
       }
 
@@ -328,6 +348,9 @@ export async function getProgressPageData(): Promise<{
         hasDeclaration,
         hasMidReview,
         hasFinalReview,
+        effectiveStart,
+        registeredRoutineCount: registeredTypes.size,
+        dailyCompletedRoutineCounts,
       };
     });
 
@@ -340,7 +363,14 @@ export async function getProgressPageData(): Promise<{
       .sort((a, b) => b.totalAchieved - a.totalAchieved);
 
     return {
-      data: { me, challengers, totalDays: periodTotalDaysWithBonus },
+      data: {
+        me,
+        challengers,
+        totalDays: periodTotalDaysWithBonus,
+        periodStart: period.start_date,
+        periodEnd: period.end_date,
+        today: rangeEnd,
+      },
     };
   } catch (e) {
     console.error("getProgressPageData error:", e);
@@ -352,7 +382,11 @@ export async function getProgressPageData(): Promise<{
 }
 
 function isExcludedFromProgress(recordData: unknown): boolean {
-  if (!recordData || typeof recordData !== "object" || Array.isArray(recordData)) {
+  if (
+    !recordData ||
+    typeof recordData !== "object" ||
+    Array.isArray(recordData)
+  ) {
     return false;
   }
 
