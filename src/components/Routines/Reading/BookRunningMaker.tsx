@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import NextImage from "next/image";
 import { Download, ImagePlus, X } from "lucide-react";
+import { uploadImage } from "@/lib/upload-image";
 
 type TemplateId = "classic" | "hud" | "editorial" | "minimal";
 
@@ -94,7 +96,12 @@ export default function BookRunningMaker({
 }: BookRunningMakerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const exportBlobRef = useRef<Blob | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [exportUrl, setExportUrl] = useState<string | null>(null);
+  const [showKakaoSave, setShowKakaoSave] = useState(false);
+  const [kakaoImageUrl, setKakaoImageUrl] = useState<string | null>(null);
+  const [preparingKakaoSave, setPreparingKakaoSave] = useState(false);
   const [template, setTemplate] = useState<TemplateId>("classic");
   const [isDragging, setIsDragging] = useState(false);
   const [hours, setHours] = useState(0);
@@ -115,8 +122,15 @@ export default function BookRunningMaker({
   }, [photoUrl]);
 
   useEffect(() => {
+    return () => {
+      if (exportUrl) URL.revokeObjectURL(exportUrl);
+    };
+  }, [exportUrl]);
+
+  useEffect(() => {
     if (!open || !photoUrl || !canvasRef.current || totalSeconds <= 0) return;
     let cancelled = false;
+    exportBlobRef.current = null;
 
     const draw = async () => {
       const [photo, logo] = await Promise.all([
@@ -303,6 +317,16 @@ export default function BookRunningMaker({
         });
         context.drawImage(logo, 112, 1162, 160, (logo.naturalHeight / logo.naturalWidth) * 160);
       }
+
+      canvas.toBlob((blob) => {
+        if (cancelled || !blob) return;
+        exportBlobRef.current = blob;
+        const nextUrl = URL.createObjectURL(blob);
+        setExportUrl((current) => {
+          if (current) URL.revokeObjectURL(current);
+          return nextUrl;
+        });
+      }, "image/png");
     };
 
     draw().catch(() => undefined);
@@ -354,13 +378,36 @@ export default function BookRunningMaker({
   };
 
   const download = async () => {
-    if (!canvasRef.current || !photoUrl || totalSeconds <= 0) return;
-    const blob = await new Promise<Blob | null>((resolve) => {
-      canvasRef.current?.toBlob(resolve, "image/png", 1);
-    });
+    if (!photoUrl || totalSeconds <= 0) return;
+    const blob = exportBlobRef.current;
     if (!blob) return;
 
     const fileName = `lolaum-book-running-${date}.png`;
+    const isKakaoTalk = /KAKAOTALK/i.test(navigator.userAgent);
+    if (isKakaoTalk) {
+      if (!canvasRef.current || preparingKakaoSave) return;
+      setPreparingKakaoSave(true);
+      try {
+        await new Promise<void>((resolve) => {
+          window.requestAnimationFrame(() => resolve());
+        });
+        const publicUrl = await uploadImage(
+          canvasRef.current.toDataURL("image/png", 1),
+        );
+        setKakaoImageUrl(publicUrl);
+        setShowKakaoSave(true);
+      } catch (error) {
+        alert(
+          error instanceof Error
+            ? `저장 이미지 준비 실패: ${error.message}`
+            : "저장 이미지를 준비하지 못했습니다.",
+        );
+      } finally {
+        setPreparingKakaoSave(false);
+      }
+      return;
+    }
+
     const file = new File([blob], fileName, { type: "image/png" });
     const isIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent);
     if (
@@ -480,12 +527,44 @@ export default function BookRunningMaker({
               </div>
             </div>
 
-            <button type="button" onClick={() => void download()} disabled={!photoUrl || totalSeconds <= 0} className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-gray-300">
-              <Download className="h-4 w-4" /> PNG로 다운로드
+            <button type="button" onClick={() => void download()} disabled={!photoUrl || !exportUrl || totalSeconds <= 0 || preparingKakaoSave} className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-gray-300">
+              <Download className="h-4 w-4" />
+              {preparingKakaoSave ? "저장 이미지 준비 중..." : "PNG로 다운로드"}
             </button>
           </div>
         </div>
       </div>
+
+      {showKakaoSave && kakaoImageUrl && (
+        <div className="fixed inset-0 z-[90] overflow-y-auto bg-black/90 p-4">
+          <div className="mx-auto flex min-h-full max-w-lg flex-col justify-center py-4">
+            <div className="mb-3 flex items-start justify-between gap-4 text-white">
+              <div>
+                <p className="font-bold">이미지를 길게 눌러 저장해주세요</p>
+                <p className="mt-1 text-xs text-white/65">
+                  메뉴에서 이미지 저장을 선택하면 갤러리에 저장됩니다.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowKakaoSave(false)}
+                className="rounded-full bg-white/10 p-2"
+                aria-label="저장 안내 닫기"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <NextImage
+              src={kakaoImageUrl}
+              alt="완성된 북러닝 인증사진"
+              width={WIDTH}
+              height={HEIGHT}
+              unoptimized
+              className="h-auto w-full rounded-2xl"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
