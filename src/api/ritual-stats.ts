@@ -433,36 +433,77 @@ function getWeekActivity(dates: string[]): boolean[] {
 // RitualContainer가 항상 함께 사용하는 overall + routines + completion을
 // 단일 server action으로 묶어 클라이언트→서버 왕복을 줄인다.
 
-export async function getRitualPageData(): Promise<{
+export async function getRitualPageData(challengerSlug?: string): Promise<{
   overall?: RitualOverallStats;
   routines?: RoutineCardStats[];
   completion?: CompletionRateStats;
   totalRoutineDays?: number; // 활성 기간 내 평일(월~금) 수
+  profileName?: string;
+  isOwnProfile?: boolean;
   error?: string;
 }> {
-  const [
-    { challengeId, resetAt, error: cError },
-    user,
-    { period, error: pError },
-  ] = await Promise.all([
-    getCurrentChallengeId({ allowEnded: true }),
-    getCurrentUser(),
-    getActivePeriod(),
-  ]);
+  const [{ challengeId, error: cError }, user, { period, error: pError }] =
+    await Promise.all([
+      getCurrentChallengeId({ allowEnded: true }),
+      getCurrentUser(),
+      getActivePeriod(),
+    ]);
   if (!user) return { error: "인증이 필요합니다." };
   if (!period) return { error: pError ?? "활성 챌린지 기간이 없습니다." };
 
-  const effectiveStart = getEffectiveStart(period.start_date, resetAt);
+  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
+
+  const admin = createAdminClient();
+
+  let viewedUserId = user.id;
+  if (challengerSlug !== undefined) {
+    if (!/^[a-f0-9]{16}$/.test(challengerSlug)) {
+      return { error: "챌린저를 찾을 수 없습니다." };
+    }
+    const { data: publicChallenge } = await admin
+      .from("challenges")
+      .select("id, user_id")
+      .eq("period_id", period.id)
+      .eq("public_slug", challengerSlug)
+      .maybeSingle();
+    if (!publicChallenge?.user_id) {
+      return { error: "챌린저를 찾을 수 없습니다." };
+    }
+    const { count } = await admin
+      .from("challenge_registrations")
+      .select("id", { count: "exact", head: true })
+      .eq("challenge_id", publicChallenge.id)
+      .eq("user_id", publicChallenge.user_id);
+    if (!count) return { error: "챌린저를 찾을 수 없습니다." };
+    viewedUserId = publicChallenge.user_id;
+  }
+  const isOwnProfile = viewedUserId === user.id;
+
+  const [{ data: viewedChallenge }, { data: viewedProfile }] =
+    await Promise.all([
+      admin
+        .from("challenges")
+        .select("id, reset_at")
+        .eq("period_id", period.id)
+        .eq("user_id", viewedUserId)
+        .maybeSingle(),
+      admin
+        .from("profiles")
+        .select("name")
+        .eq("id", viewedUserId)
+        .maybeSingle(),
+    ]);
+  if (!viewedChallenge) return { error: "챌린저를 찾을 수 없습니다." };
+
+  const effectiveStart = getEffectiveStart(
+    period.start_date,
+    viewedChallenge.reset_at,
+  );
   const totalRoutineDays = countWeekdaysInRange(
     effectiveStart,
     period.end_date,
   );
   const totalDays = totalRoutineDays + 3;
-
-  if (!challengeId) return { error: cError ?? "챌린지를 찾을 수 없습니다." };
-
-  const supabase = await createClient();
-  const admin = createAdminClient();
 
   // 통계에 필요한 조회를 한 번에 병렬 실행
   // daily_completions는 완료율용, ritual_records는 총기록/연속 실천/리추얼 카드용으로 사용
@@ -477,45 +518,45 @@ export async function getRitualPageData(): Promise<{
     points,
     bestCompletionRate,
   ] = await Promise.all([
-    supabase
+    admin
       .from("daily_completions")
       .select("completion_date")
-      .eq("user_id", user.id)
-      .eq("challenge_id", challengeId)
+      .eq("user_id", viewedUserId)
+      .eq("challenge_id", viewedChallenge.id)
       .eq("is_fully_complete", true)
       .gte("completion_date", effectiveStart)
       .lte("completion_date", period.end_date),
-    countArchiveRecords(supabase, user.id),
+    countArchiveRecords(admin, viewedUserId),
     // routines 카드용: routine_type, record_date만 (record_data 제외)
-    supabase
+    admin
       .from("ritual_records")
       .select("routine_type, record_date")
-      .eq("user_id", user.id)
-      .eq("challenge_id", challengeId)
+      .eq("user_id", viewedUserId)
+      .eq("challenge_id", viewedChallenge.id)
       .gte("record_date", effectiveStart)
       .lte("record_date", period.end_date),
-    supabase
+    admin
       .from("challenge_registrations")
       .select("routine_type")
-      .eq("user_id", user.id)
-      .eq("challenge_id", challengeId),
-    supabase
+      .eq("user_id", viewedUserId)
+      .eq("challenge_id", viewedChallenge.id),
+    admin
       .from("declarations")
       .select("routine_type")
-      .eq("user_id", user.id)
-      .eq("challenge_id", challengeId),
-    supabase
+      .eq("user_id", viewedUserId)
+      .eq("challenge_id", viewedChallenge.id),
+    admin
       .from("mid_reviews")
       .select("id")
-      .eq("user_id", user.id)
-      .eq("challenge_id", challengeId),
-    supabase
+      .eq("user_id", viewedUserId)
+      .eq("challenge_id", viewedChallenge.id),
+    admin
       .from("final_reviews")
       .select("id")
-      .eq("user_id", user.id)
-      .eq("challenge_id", challengeId),
-    getEngagementPoints(admin, user.id, period.start_date),
-    getBestCompletionRate(admin, user.id),
+      .eq("user_id", viewedUserId)
+      .eq("challenge_id", viewedChallenge.id),
+    getEngagementPoints(admin, viewedUserId, period.start_date),
+    getBestCompletionRate(admin, viewedUserId),
   ]);
 
   const fullyCompleteDates = (dailyRes.data ?? []).map(
@@ -594,7 +635,14 @@ export async function getRitualPageData(): Promise<{
     totalDays,
   };
 
-  return { overall, routines, completion, totalRoutineDays };
+  return {
+    overall,
+    routines,
+    completion,
+    totalRoutineDays,
+    profileName: viewedProfile?.name ?? "챌린저",
+    isOwnProfile,
+  };
 }
 
 // ── API: 전체 통계 + 리추얼별 카드 ──────────────────────
@@ -1045,7 +1093,9 @@ export async function getHomeStats(): Promise<{
       .single(),
     admin
       .from("challenges")
-      .select("id, user_id, profiles!inner(id, name, avatar_url, emoji)")
+      .select(
+        "id, user_id, public_slug, profiles!inner(id, name, avatar_url, emoji)",
+      )
       .eq("period_id", period.id),
   ]);
 
@@ -1061,6 +1111,7 @@ export async function getHomeStats(): Promise<{
   type ChallengerRow = {
     id: string;
     user_id: string;
+    public_slug: string;
     profiles: {
       id: string;
       name: string;
@@ -1090,11 +1141,14 @@ export async function getHomeStats(): Promise<{
     }
     challengerRitualMap.set(registration.user_id, labels);
   }
-  const challengers: ChallengerSummary[] = challengerRows
+  const orderedChallengerRows = challengerRows
     .filter((r) => r.profiles)
     .filter((r) => registeredUserIds.has(r.user_id))
+    .sort((a, b) => a.id.localeCompare(b.id));
+  const challengers: ChallengerSummary[] = orderedChallengerRows
     .map((r) => ({
       id: r.profiles!.id,
+      publicSlug: r.public_slug,
       name: r.profiles!.name,
       avatarUrl: r.profiles!.avatar_url,
       emoji: r.profiles!.emoji,

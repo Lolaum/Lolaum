@@ -697,7 +697,14 @@ function GalleryCard({
 export default function RecordGallery({
   refreshKey = 0,
   fixedFilter,
-}: { refreshKey?: number; fixedFilter?: RoutineCategory } = {}) {
+  targetChallengerSlug,
+  canDelete = true,
+}: {
+  refreshKey?: number;
+  fixedFilter?: RoutineCategory;
+  targetChallengerSlug?: string;
+  canDelete?: boolean;
+} = {}) {
   const [activeFilter, setActiveFilter] = useState<RoutineCategory | "전체">(
     "전체",
   );
@@ -711,14 +718,16 @@ export default function RecordGallery({
   useEffect(() => {
     async function fetchRecords() {
       setLoading(true);
-      const { data } = await getMyRecordsForDisplay();
+      const { data } = await getMyRecordsForDisplay({
+        challengerSlug: targetChallengerSlug,
+      });
       setRecords(data);
       setSelectedIds(new Set());
       setSelectionMode(false);
       setLoading(false);
     }
     fetchRecords();
-  }, [refreshKey]);
+  }, [refreshKey, targetChallengerSlug]);
 
   const filtered =
     effectiveFilter === "전체"
@@ -815,7 +824,7 @@ export default function RecordGallery({
           <span className="font-semibold text-gray-600">{filtered.length}</span>
           개의 기록
         </p>
-        {!loading && filtered.length > 0 && (
+        {canDelete && !loading && filtered.length > 0 && (
           <div className="flex items-center gap-2">
             {selectionMode ? (
               <>

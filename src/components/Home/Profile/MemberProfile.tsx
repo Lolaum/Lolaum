@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getCurrentChallengers, type ChallengerSummary } from "@/api/user";
 import UserAvatar from "@/components/common/UserAvatar";
 
@@ -17,6 +18,7 @@ export default function MemberProfile({
   onSelectMember,
   refreshKey = 0,
 }: MemberProfileProps) {
+  const router = useRouter();
   const [members, setMembers] = useState<ChallengerSummary[]>(
     initialMembers ?? [],
   );
@@ -31,7 +33,9 @@ export default function MemberProfile({
     });
   }, [refreshKey]);
 
-  const selectedMember = members.find((member) => member.id === selectedMemberId);
+  const selectedMember = members.find(
+    (member) => member.id === selectedMemberId,
+  );
 
   return (
     <div className="rounded-3xl bg-white shadow-sm border border-gray-100 p-4 mb-4">
@@ -54,14 +58,19 @@ export default function MemberProfile({
           {members.map((member) => {
             const isSelected = member.id === selectedMemberId;
             return (
-              <button
+              <div
                 key={member.id}
-                type="button"
-                onClick={() => onSelectMember?.(member.id)}
                 className="flex flex-col items-center gap-1.5 flex-shrink-0 transition-all duration-200"
               >
                 {/* 아바타 + 뱃지 */}
-                <div className="relative">
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push(`/ritual?challenger=${member.publicSlug}`)
+                  }
+                  className="relative rounded-full"
+                  aria-label={`${member.name}님의 리추얼 기록 보기`}
+                >
                   <div
                     className="w-12 h-12 rounded-full flex items-center justify-center transition-all"
                     style={{
@@ -77,15 +86,17 @@ export default function MemberProfile({
                       size={48}
                     />
                   </div>
-                </div>
+                </button>
                 {/* 이름 */}
-                <span
+                <button
+                  type="button"
+                  onClick={() => onSelectMember?.(member.id)}
                   className="text-[10px] font-semibold mt-1"
                   style={{ color: isSelected ? "#eab32e" : "#6b7280" }}
                 >
                   {member.name}
-                </span>
-              </button>
+                </button>
+              </div>
             );
           })}
         </div>

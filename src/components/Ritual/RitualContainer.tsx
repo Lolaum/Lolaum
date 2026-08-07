@@ -17,6 +17,8 @@ interface RitualInitialData {
   completion?: CompletionRateStats;
   totalRoutineDays?: number;
   error?: string;
+  profileName?: string;
+  isOwnProfile?: boolean;
 }
 
 function deriveOverall(initial: RitualInitialData): RitualOverallStats | null {
@@ -68,9 +70,15 @@ const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
 
 export default function RitualContainer({
   initialData,
+  targetChallengerSlug,
 }: {
   initialData: RitualInitialData;
+  targetChallengerSlug?: string;
 }) {
+  const isOwnProfile = initialData.isOwnProfile ?? !targetChallengerSlug;
+  const ownerLabel = isOwnProfile
+    ? "나의"
+    : `${initialData.profileName ?? "챌린저"}님의`;
   const [activeTab, setActiveTab] = useState<TabId>("아카이빙");
   const [overall, setOverall] = useState<RitualOverallStats | null>(
     deriveOverall(initialData),
@@ -106,7 +114,7 @@ export default function RitualContainer({
     }
     async function fetchStats() {
       setLoading(true);
-      const result = await getRitualPageData();
+      const result = await getRitualPageData(targetChallengerSlug);
       if (result.overall) {
         setOverall(result.overall);
       }
@@ -117,14 +125,14 @@ export default function RitualContainer({
       setLoading(false);
     }
     fetchStats();
-  }, [refreshKey]);
+  }, [refreshKey, targetChallengerSlug]);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 pb-8">
       {/* ── 헤더 섹션 ── */}
       <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-6">
         <p className="text-xs text-gray-400 font-medium mb-0.5">
-          나의 리추얼 여정
+          {ownerLabel} 리추얼 여정
         </p>
         {loading ? (
           <div className="flex justify-center py-6">
@@ -133,7 +141,7 @@ export default function RitualContainer({
         ) : overall ? (
           <>
             <h1 className="text-xl font-bold text-gray-900 mb-4">
-              나의 리추얼 기록
+              {ownerLabel} 리추얼 기록
             </h1>
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-yellow-50 rounded-xl p-3 text-center">
@@ -182,7 +190,10 @@ export default function RitualContainer({
             {routines.map((routine) => (
               <button
                 key={routine.id}
-                onClick={() => setActiveTab(routine.name as TabId)}
+                onClick={() => {
+                  if (isOwnProfile) setActiveTab(routine.name as TabId);
+                }}
+                disabled={!isOwnProfile}
                 className="flex-shrink-0 rounded-2xl p-4 text-left transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
                 style={{
                   backgroundColor: routine.bgColor,
@@ -236,7 +247,10 @@ export default function RitualContainer({
 
       {/* ── 탭 네비게이션 ── */}
       <div className="flex overflow-x-auto scrollbar-hide border-b border-gray-200 mb-5">
-        {TABS.map((tab) => {
+        {(isOwnProfile
+          ? TABS
+          : TABS.filter((tab) => tab === "아카이빙" || tab === "회고")
+        ).map((tab) => {
           const isActive = activeTab === tab;
           return (
             <button
@@ -256,9 +270,18 @@ export default function RitualContainer({
 
       {/* ── 탭 콘텐츠 ── */}
       {activeTab === "아카이빙" ? (
-        <RecordGallery refreshKey={refreshKey} />
+        <RecordGallery
+          refreshKey={refreshKey}
+          targetChallengerSlug={targetChallengerSlug}
+          canDelete={isOwnProfile}
+        />
       ) : activeTab === "회고" ? (
-        <RecordGallery refreshKey={refreshKey} fixedFilter="회고" />
+        <RecordGallery
+          refreshKey={refreshKey}
+          fixedFilter="회고"
+          targetChallengerSlug={targetChallengerSlug}
+          canDelete={isOwnProfile}
+        />
       ) : (
         <RoutineInsights
           activeTab={activeTab}
