@@ -229,6 +229,7 @@ export default function WordQuiz({
 function QuizShell({
   title,
   children,
+  onClose,
 }: {
   title: string;
   children: React.ReactNode;
@@ -237,8 +238,16 @@ function QuizShell({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/50 p-4">
       <div className="max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto overscroll-contain">
-        <div className="mb-4">
+        <div className="mb-4 flex items-center justify-between gap-4">
           <p className="text-sm font-semibold text-white">{title}</p>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="단어 퀴즈 닫기"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-gray-700 transition-colors hover:bg-gray-50"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
         {children}
       </div>
