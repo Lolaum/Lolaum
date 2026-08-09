@@ -1,7 +1,7 @@
 import { Declaration } from "@/types/routines/declaration";
 
 const MORNING_CERT_METHOD =
-  "1. 시작인증: 정각 7시에 모닝리추얼 Live 링크에서 출석체크\n2. 종료인증: 롤라움 웹에 모닝리추얼 회고 기록 남기기";
+  "1. 시작인증: 정각 6시 30분에 모닝리추얼 Live 링크에서 출석체크\n2. 종료인증: 롤라움 웹에 모닝리추얼 회고 기록 남기기";
 
 export const myDeclarations: Declaration[] = [
   {
