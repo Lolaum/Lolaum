@@ -497,7 +497,7 @@ export async function getRitualPageData(challengerSlug?: string): Promise<{
       .select("id")
       .eq("user_id", viewedUserId)
       .eq("challenge_id", viewedChallenge.id),
-    getEngagementPoints(admin, viewedUserId, period.start_date),
+    getEngagementPoints(admin, viewedUserId, period.id, period.start_date),
     getBestCompletionRate(admin, viewedUserId),
   ]);
 
@@ -633,7 +633,7 @@ export async function getRitualStats(): Promise<{
       .select("routine_type")
       .eq("user_id", user.id)
       .eq("challenge_id", challengeId),
-    getEngagementPoints(admin, user.id, period.start_date),
+    getEngagementPoints(admin, user.id, period.id, period.start_date),
     getBestCompletionRate(admin, user.id),
   ]);
 
@@ -1111,7 +1111,7 @@ export async function getHomeStats(): Promise<{
 
   const [totalArchiveRecords, points, bestCompletionRate] = await Promise.all([
     countArchiveRecords(supabase, user.id),
-    getEngagementPoints(admin, user.id, period.start_date),
+    getEngagementPoints(admin, user.id, period.id, period.start_date),
     getBestCompletionRate(admin, user.id),
   ]);
 
@@ -1235,7 +1235,7 @@ export async function getMyPageStats(): Promise<{
   const admin = createAdminClient();
   const [totalArchiveRecords, points, bestCompletionRate] = await Promise.all([
     countArchiveRecords(supabase, user.id),
-    getEngagementPoints(admin, user.id, period.start_date),
+    getEngagementPoints(admin, user.id, period.id, period.start_date),
     getBestCompletionRate(admin, user.id),
   ]);
 
