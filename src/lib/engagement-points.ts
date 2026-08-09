@@ -1,11 +1,29 @@
-import { COMMENT_POINT, LIKE_POINT, POINTS_LAUNCHED_AT } from "@/lib/points";
+import {
+  DAILY_POINT_LIMIT,
+  LIKE_POINT,
+  POINTS_LAUNCHED_AT,
+} from "@/lib/points";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseAnyClient = { from: (...args: any[]) => any };
 
+type Engagement = {
+  user_id: string;
+  feed_id: string;
+  created_at: string;
+};
+
+function getKoreaDate(createdAt: string): string {
+  const koreaOffsetMs = 9 * 60 * 60 * 1000;
+  return new Date(Date.parse(createdAt) + koreaOffsetMs)
+    .toISOString()
+    .slice(0, 10);
+}
+
 export async function getEngagementPointsByUser(
   admin: SupabaseAnyClient,
   userIds: string[],
+  periodId: string,
   periodStartDate: string,
 ): Promise<Map<string, number>> {
   const uniqueUserIds = [...new Set(userIds)];
@@ -20,35 +38,35 @@ export async function getEngagementPointsByUser(
       ? periodStartedAt
       : POINTS_LAUNCHED_AT;
 
-  const [reactionsRes, commentsRes] = await Promise.all([
+  const [reactionsRes, challengesRes] = await Promise.all([
     admin
       .from("feed_reactions")
-      .select("user_id, feed_id")
+      .select("user_id, feed_id, created_at")
       .in("user_id", uniqueUserIds)
       .gte("created_at", pointsStartedAt),
     admin
-      .from("feed_comments")
-      .select("user_id, feed_id")
-      .in("user_id", uniqueUserIds)
-      .gte("created_at", pointsStartedAt),
+      .from("challenges")
+      .select("id")
+      .eq("period_id", periodId),
   ]);
 
-  if (reactionsRes.error || commentsRes.error) return pointsByUser;
+  if (reactionsRes.error || challengesRes.error) return pointsByUser;
 
   const reactions = reactionsRes.data ?? [];
-  const comments = commentsRes.data ?? [];
+  const challengeIds = (challengesRes.data ?? []).map(
+    (challenge: { id: string }) => challenge.id,
+  );
+  if (reactions.length === 0 || challengeIds.length === 0) return pointsByUser;
+
   const feedIds = [
-    ...new Set([
-      ...reactions.map((row: { feed_id: string }) => row.feed_id),
-      ...comments.map((row: { feed_id: string }) => row.feed_id),
-    ]),
+    ...new Set(reactions.map((row: { feed_id: string }) => row.feed_id)),
   ];
-  if (feedIds.length === 0) return pointsByUser;
 
   const { data: feeds, error: feedsError } = await admin
     .from("feeds")
     .select("id, user_id")
-    .in("id", feedIds);
+    .in("id", feedIds)
+    .in("challenge_id", challengeIds);
   if (feedsError) return pointsByUser;
 
   const feedOwnerById = new Map(
@@ -58,18 +76,29 @@ export async function getEngagementPointsByUser(
     ]),
   );
 
-  for (const reaction of reactions as { user_id: string; feed_id: string }[]) {
-    if (feedOwnerById.get(reaction.feed_id) === reaction.user_id) continue;
-    pointsByUser.set(
-      reaction.user_id,
-      (pointsByUser.get(reaction.user_id) ?? 0) + LIKE_POINT,
-    );
+  const dailyPointsByUser = new Map<string, Map<string, number>>();
+  const addPoints = (engagement: Engagement, points: number) => {
+    const feedOwnerId = feedOwnerById.get(engagement.feed_id);
+    if (!feedOwnerId || feedOwnerId === engagement.user_id) return;
+
+    const date = getKoreaDate(engagement.created_at);
+    const dailyPoints =
+      dailyPointsByUser.get(engagement.user_id) ?? new Map<string, number>();
+    dailyPoints.set(date, (dailyPoints.get(date) ?? 0) + points);
+    dailyPointsByUser.set(engagement.user_id, dailyPoints);
+  };
+
+  for (const reaction of reactions as Engagement[]) {
+    addPoints(reaction, LIKE_POINT);
   }
-  for (const comment of comments as { user_id: string; feed_id: string }[]) {
-    if (feedOwnerById.get(comment.feed_id) === comment.user_id) continue;
+
+  for (const [userId, dailyPoints] of dailyPointsByUser) {
     pointsByUser.set(
-      comment.user_id,
-      (pointsByUser.get(comment.user_id) ?? 0) + COMMENT_POINT,
+      userId,
+      [...dailyPoints.values()].reduce(
+        (total, points) => total + Math.min(points, DAILY_POINT_LIMIT),
+        0,
+      ),
     );
   }
 
@@ -79,11 +108,13 @@ export async function getEngagementPointsByUser(
 export async function getEngagementPoints(
   admin: SupabaseAnyClient,
   userId: string,
+  periodId: string,
   periodStartDate: string,
 ): Promise<number> {
   const pointsByUser = await getEngagementPointsByUser(
     admin,
     [userId],
+    periodId,
     periodStartDate,
   );
   return pointsByUser.get(userId) ?? 0;

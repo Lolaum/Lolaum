@@ -126,6 +126,7 @@ export async function getProgressPageData(): Promise<{
     const pointsByUserPromise = getEngagementPointsByUser(
       admin,
       rows.map((row) => row.user_id),
+      period.id,
       period.start_date,
     );
 
