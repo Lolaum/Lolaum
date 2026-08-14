@@ -17,7 +17,7 @@ function isAdminUserId(userId: string): boolean {
 }
 
 function buildMessage(input: {
-  type: Notification["type"];
+  type: Notification["type"] | "recording_read";
   actorName: string;
   routineType: RoutineTypeDB | null;
 }): string {
@@ -30,6 +30,9 @@ function buildMessage(input: {
   }
   if (input.type === "like") {
     return `${routineLabel} 인증글에 ${input.actorName}님이 좋아요를 눌렀습니다`;
+  }
+  if (input.type === "recording_read") {
+    return `${input.actorName}님이 내 글을 읽고 감상을 남겼습니다`;
   }
   return `${input.actorName}님이 ${routineLabel} 인증을 완료했습니다`;
 }
@@ -47,7 +50,7 @@ export async function getNotifications(): Promise<{
     const { data: rows, error } = await supabase
       .from("notifications")
       .select(
-        "id, type, actor_user_id, routine_type, feed_id, ritual_record_id, is_read, created_at",
+        "id, type, actor_user_id, routine_type, feed_id, ritual_record_id, comment_id, is_read, created_at",
       )
       .eq("recipient_user_id", user.id)
       .order("created_at", { ascending: false })
@@ -68,12 +71,20 @@ export async function getNotifications(): Promise<{
 
     return {
       data: rows.map((r) => {
+        // DB 제약을 즉시 변경하지 않고, 댓글 연결값이 없는 recording 알림을
+        // "내 글 감상"으로 구분한다. 일반 댓글 알림은 comment_id가 항상 있다.
+        const viewType =
+          r.type === "comment" &&
+          r.routine_type === "recording" &&
+          r.comment_id === null
+            ? ("recording_read" as const)
+            : r.type;
         const actorName = r.actor_user_id
           ? (nameMap.get(r.actor_user_id) ?? "알 수 없음")
           : "알 수 없음";
         return {
           id: r.id,
-          type: r.type,
+          type: viewType,
           actorName,
           routineType: r.routine_type,
           routineLabel: r.routine_type
@@ -84,7 +95,7 @@ export async function getNotifications(): Promise<{
           isRead: r.is_read,
           createdAt: r.created_at,
           message: buildMessage({
-            type: r.type,
+            type: viewType,
             actorName,
             routineType: r.routine_type,
           }),

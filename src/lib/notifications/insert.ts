@@ -81,6 +81,52 @@ export async function insertLikeNotification(input: {
 }
 
 /**
+ * 글 읽기 대체 알림. notifications 테이블의 기존 CHECK 제약과 호환하도록
+ * type=comment를 사용하되 comment_id/feed_id를 비워 일반 댓글과 구분한다.
+ */
+export async function insertRecordingReadNotifications(input: {
+  recipientUserIds: string[];
+  actorUserId: string;
+  ritualRecordId: string;
+}): Promise<void> {
+  const recipients = [
+    ...new Set(
+      input.recipientUserIds.filter((id) => id && id !== input.actorUserId),
+    ),
+  ];
+  if (recipients.length === 0) return;
+
+  const admin = createAdminClient();
+  const { data: existing } = await admin
+    .from("notifications")
+    .select("recipient_user_id")
+    .in("recipient_user_id", recipients)
+    .eq("actor_user_id", input.actorUserId)
+    .eq("type", "comment")
+    .eq("ritual_record_id", input.ritualRecordId)
+    .is("comment_id", null);
+
+  const existingRecipients = new Set(
+    (existing ?? []).map((row) => row.recipient_user_id),
+  );
+  const rows = recipients
+    .filter((recipientUserId) => !existingRecipients.has(recipientUserId))
+    .map((recipientUserId) => ({
+      recipient_user_id: recipientUserId,
+      actor_user_id: input.actorUserId,
+      type: "comment" as const,
+      routine_type: "recording" as const,
+      ritual_record_id: input.ritualRecordId,
+    }));
+
+  if (rows.length === 0) return;
+  const { error } = await admin.from("notifications").insert(rows);
+  if (error) {
+    console.error("insertRecordingReadNotifications error:", error);
+  }
+}
+
+/**
  * 리추얼 인증 완료 알림: 관리자(롤라/지로) 중 알림 ON 상태인 사람에게만 발송.
  * profiles.admin_ritual_notifications_enabled = false 인 관리자는 INSERT 자체를 생략한다.
  */

@@ -9,7 +9,11 @@ import {
 } from "@/lib/current-challenge";
 import { getCurrentKoreaWeekRange } from "@/lib/current-week";
 import { normalizeRecordDataImages } from "@/lib/record-data-images";
-import { insertRitualCompletionNotifications } from "@/lib/notifications/insert";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  insertRecordingReadNotifications,
+  insertRitualCompletionNotifications,
+} from "@/lib/notifications/insert";
 import type { Json, RitualRecord, RoutineTypeDB } from "@/types/supabase";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -59,6 +63,118 @@ function hasRecordingReadEntry(recordData: Json): boolean {
   }
 
   return data.recordType === "read";
+}
+
+function getRecordingReadAuthorIds(recordData: Json): string[] {
+  const entries = getRecordDataObject(recordData).entries;
+  if (!Array.isArray(entries)) return [];
+
+  return [
+    ...new Set(
+      entries.flatMap((entry) => {
+        if (!entry || typeof entry !== "object") return [];
+        const row = entry as Record<string, unknown>;
+        return row.type === "read" && typeof row.readAuthorUserId === "string"
+          ? [row.readAuthorUserId]
+          : [];
+      }),
+    ),
+  ];
+}
+
+async function normalizeRecordingReadAuthors(input: {
+  recordData: Json;
+  currentUserId: string;
+  challengeId: string;
+  requireLinkedAuthors: boolean;
+}): Promise<{ data?: Json; error?: string }> {
+  const data = getRecordDataObject(input.recordData);
+  if (!Array.isArray(data.entries)) return { data: input.recordData };
+
+  const readEntries = data.entries.filter(
+    (entry) =>
+      entry &&
+      typeof entry === "object" &&
+      (entry as Record<string, unknown>).type === "read",
+  );
+  if (readEntries.length === 0) return { data: input.recordData };
+
+  const admin = createAdminClient();
+  const { data: challenge, error: challengeError } = await admin
+    .from("challenges")
+    .select("period_id")
+    .eq("id", input.challengeId)
+    .maybeSingle();
+  if (challengeError || !challenge?.period_id) {
+    return {
+      error: challengeError?.message ?? "챌린지 기간을 확인할 수 없어요.",
+    };
+  }
+
+  const { data: periodChallenges, error: periodChallengesError } = await admin
+    .from("challenges")
+    .select("id")
+    .eq("period_id", challenge.period_id);
+  if (periodChallengesError) return { error: periodChallengesError.message };
+  const challengeIds = (periodChallenges ?? []).map((row) => row.id);
+  const { data: registrations, error: registrationsError } = challengeIds.length
+    ? await admin
+        .from("challenge_registrations")
+        .select("user_id")
+        .in("challenge_id", challengeIds)
+    : { data: [], error: null };
+  if (registrationsError) return { error: registrationsError.message };
+
+  const participantIds = [
+    ...new Set(
+      (registrations ?? [])
+        .map((row) => row.user_id)
+        .filter((userId) => userId !== input.currentUserId),
+    ),
+  ];
+  const { data: profiles, error: profilesError } = participantIds.length
+    ? await admin.from("profiles").select("id, name").in("id", participantIds)
+    : { data: [], error: null };
+  if (profilesError) return { error: profilesError.message };
+  const authorMap = new Map((profiles ?? []).map((row) => [row.id, row.name]));
+
+  const normalizedEntries: unknown[] = [];
+  for (const entry of data.entries) {
+    if (!entry || typeof entry !== "object") {
+      normalizedEntries.push(entry);
+      continue;
+    }
+    const row = entry as Record<string, unknown>;
+    if (row.type !== "read") {
+      normalizedEntries.push(entry);
+      continue;
+    }
+
+    const authorId =
+      typeof row.readAuthorUserId === "string" ? row.readAuthorUserId : "";
+    if (!authorId) {
+      if (input.requireLinkedAuthors) {
+        return { error: "글을 쓴 챌린저를 선택해 주세요." };
+      }
+      normalizedEntries.push(entry);
+      continue;
+    }
+
+    const authorName = authorMap.get(authorId);
+    if (!authorName) {
+      return { error: "현재 참여 중인 챌린저만 선택할 수 있어요." };
+    }
+    normalizedEntries.push({
+      ...row,
+      readAuthorUserId: authorId,
+      readAuthorName: authorName,
+      readSourceTitle: authorName,
+    });
+  }
+
+  return {
+    data: { ...data, entries: normalizedEntries } as Json,
+  };
 }
 
 async function getWeeklySpecialRitualDates(input: {
@@ -249,7 +365,22 @@ export async function createRitualRecord(input: {
   }
 
   const supabase = await createClient();
-  const recordData = await normalizeRecordDataImages(input.recordData, user.id);
+  const linkedAuthors =
+    input.routineType === "recording"
+      ? await normalizeRecordingReadAuthors({
+          recordData: input.recordData,
+          currentUserId: user.id,
+          challengeId: input.challengeId,
+          requireLinkedAuthors: true,
+        })
+      : { data: input.recordData };
+  if (!linkedAuthors.data) {
+    return { error: linkedAuthors.error ?? "챌린저를 확인할 수 없어요." };
+  }
+  const recordData = await normalizeRecordDataImages(
+    linkedAuthors.data,
+    user.id,
+  );
   const { error: limitError } = await validateWeeklySpecialRitualLimit({
     supabase,
     userId: user.id,
@@ -290,6 +421,13 @@ export async function createRitualRecord(input: {
       routineType: input.routineType,
       ritualRecordId: data.id,
     });
+    if (input.routineType === "recording") {
+      await insertRecordingReadNotifications({
+        recipientUserIds: getRecordingReadAuthorIds(recordData),
+        actorUserId: user.id,
+        ritualRecordId: data.id,
+      });
+    }
   }
 
   return { data };
@@ -327,20 +465,34 @@ export async function updateRitualRecord(
   if (!user) return { error: "인증이 필요합니다." };
 
   const supabase = await createClient();
-  const normalizedRecordData = await normalizeRecordDataImages(
+  const imageNormalizedRecordData = await normalizeRecordDataImages(
     recordData,
     user.id,
   );
 
   const { data: target, error: fetchErr } = await supabase
     .from("ritual_records")
-    .select("challenge_id, record_date, routine_type")
+    .select("challenge_id, record_date, routine_type, record_data")
     .eq("id", id)
     .eq("user_id", user.id)
     .maybeSingle();
 
   if (fetchErr) return { error: fetchErr.message };
   if (!target) return { error: "기록을 찾을 수 없습니다." };
+
+  const linkedAuthors =
+    target.routine_type === "recording"
+      ? await normalizeRecordingReadAuthors({
+          recordData: imageNormalizedRecordData,
+          currentUserId: user.id,
+          challengeId: target.challenge_id,
+          requireLinkedAuthors: false,
+        })
+      : { data: imageNormalizedRecordData };
+  if (!linkedAuthors.data) {
+    return { error: linkedAuthors.error ?? "챌린저를 확인할 수 없어요." };
+  }
+  const normalizedRecordData = linkedAuthors.data;
 
   const { error: limitError } = await validateWeeklySpecialRitualLimit({
     supabase,
@@ -362,6 +514,19 @@ export async function updateRitualRecord(
     .single();
 
   if (error) return { error: error.message };
+  if (target.routine_type === "recording") {
+    const previousAuthors = new Set(
+      getRecordingReadAuthorIds(target.record_data as Json),
+    );
+    const addedAuthors = getRecordingReadAuthorIds(normalizedRecordData).filter(
+      (authorId) => !previousAuthors.has(authorId),
+    );
+    await insertRecordingReadNotifications({
+      recipientUserIds: addedAuthors,
+      actorUserId: user.id,
+      ritualRecordId: id,
+    });
+  }
   revalidateRitualSurfaces(target.routine_type);
   return {};
 }

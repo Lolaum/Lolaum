@@ -1268,6 +1268,11 @@ const CATEGORY_CONFIG: Record<
     bgColor: "#fdf2f8",
     icon: <BookOpen size={13} />,
   },
+  "내 글 감상": {
+    color: "#7c3aed",
+    bgColor: "#f5f3ff",
+    icon: <Pen size={13} />,
+  },
   회고: {
     color: "#eab32e",
     bgColor: "#fefce8",
