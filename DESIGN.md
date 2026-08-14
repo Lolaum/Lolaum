@@ -5,7 +5,7 @@
 - Status: Active
 - Last refreshed: 2026-08-14
 - Primary product surfaces: 홈, 리추얼 기록, 인증 게시글, 리추얼 진행표
-- Evidence reviewed: `src/components/Progress/ProgressContainer.tsx`, `src/components/Feed/ReactionBar.tsx`, `src/api/feed-reaction.ts`, `src/components/Layout/LayoutShell.tsx`, `src/app/globals.css`
+- Evidence reviewed: `src/components/Progress/ProgressContainer.tsx`, `src/components/Feed/ReactionBar.tsx`, `src/components/Feed/CommentSection.tsx`, `src/api/feed-reaction.ts`, `src/api/user.ts`, `src/components/Layout/LayoutShell.tsx`, `src/app/globals.css`
 
 ## Brand
 
@@ -49,14 +49,14 @@
 ## Components
 
 - Existing components to reuse: `Avatar`, `ReactionBar`, 진행표 카드, 공통 페이지 레이아웃
-- New/changed components: 진행표 탭, 날짜 탐색기, 일일 완료 요약, 상태별 멤버 목록, 좋아요 사용자 인라인 패널
-- Variants and states: 완료, 미완료, 데이터 없음, 기간 전/후 날짜 제한, 좋아요 목록 닫힘·로딩·열림·오류
+- New/changed components: 진행표 탭, 날짜 탐색기, 일일 완료 요약, 상태별 멤버 목록, 좋아요 사용자 인라인 패널, 댓글 `@` 멘션 자동완성 패널
+- Variants and states: 완료, 미완료, 데이터 없음, 기간 전/후 날짜 제한, 좋아요 목록 닫힘·로딩·열림·오류, 포인트 내역은 최대 10개 높이 이후 내부 스크롤, 멘션 후보 로딩·검색 결과·결과 없음
 - Token/component ownership: 기존 Tailwind 클래스와 CSS 변수 사용
 
 ## Accessibility
 
 - Target standard: WCAG 2.1 AA 수준의 기본 키보드 및 명도 대비
-- Keyboard/focus behavior: 탭은 `role=tablist`, 날짜 버튼과 입력은 키보드 접근 가능, 좋아요 수 버튼은 `aria-expanded`와 연결 패널 ID 제공
+- Keyboard/focus behavior: 탭은 `role=tablist`, 날짜 버튼과 입력은 키보드 접근 가능, 좋아요 수 버튼은 `aria-expanded`와 연결 패널 ID 제공, 멘션 후보는 방향키·Enter·Tab·Escape로 조작 가능
 - Contrast/readability: 상태를 색상만으로 구분하지 않고 텍스트와 아이콘 병행
 - Screen-reader semantics: 선택 탭, 날짜 이동 버튼, 완료 상태에 명시적 레이블 제공
 - Reduced motion and sensory considerations: 필수 애니메이션 없음
@@ -69,7 +69,7 @@
 
 ## Interaction states
 
-- Loading: 기존 `/progress/loading.tsx` 스켈레톤 유지, 좋아요 사용자 조회 중에는 작은 인라인 스켈레톤 표시
+- Loading: 기존 `/progress/loading.tsx` 스켈레톤 유지, 좋아요 사용자 및 멘션 후보 조회 중에는 작은 인라인 스켈레톤 표시
 - Empty: 참여 멤버 또는 해당 날짜 데이터가 없음을 안내
 - Error: 기존 데이터 조회 실패 안내 유지
 - Success: 완료 인원과 전체 인원을 요약하고 완료 멤버를 먼저 표시

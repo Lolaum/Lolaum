@@ -474,7 +474,7 @@ function PointsRanking({
                 아직 적립 내역이 없습니다.
               </p>
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="max-h-[600px] divide-y divide-gray-100 overflow-y-auto overscroll-contain">
                 {history.map((entry) => {
                   const Icon =
                     entry.type === "comment" ? MessageCircle : ThumbsUp;
