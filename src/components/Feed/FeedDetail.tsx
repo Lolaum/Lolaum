@@ -57,6 +57,7 @@ import {
 interface FeedDetailProps {
   item: FeedItem;
   isMine?: boolean;
+  currentUserId?: string;
 }
 
 // 디자인 시스템 기반 카테고리 메타
@@ -948,7 +949,11 @@ function CertPhotoGrid({
   );
 }
 
-export default function FeedDetail({ item, isMine = false }: FeedDetailProps) {
+export default function FeedDetail({
+  item,
+  isMine = false,
+  currentUserId,
+}: FeedDetailProps) {
   const router = useRouter();
   const [comments, setComments] = useState<Comment[]>(item.comments ?? []);
   const [editing, setEditing] = useState(false);
@@ -1190,6 +1195,7 @@ export default function FeedDetail({ item, isMine = false }: FeedDetailProps) {
           <div id="comments" ref={commentSectionRef} className="scroll-mt-6">
             <CommentSection
               comments={comments}
+              currentUserId={currentUserId}
               onAddComment={handleAddComment}
               onDeleteComment={handleDeleteComment}
               onUpdateComment={handleUpdateComment}

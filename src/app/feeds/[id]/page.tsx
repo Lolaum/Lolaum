@@ -20,12 +20,11 @@ export default async function FeedDetailPage({ params }: Props) {
     notFound();
   }
 
-  const isMine =
-    user != null && String(user.id) === String(feed.userId);
+  const isMine = user != null && String(user.id) === String(feed.userId);
 
   return (
     <Layout>
-      <FeedDetail item={feed} isMine={isMine} />
+      <FeedDetail item={feed} isMine={isMine} currentUserId={user?.id} />
     </Layout>
   );
 }
