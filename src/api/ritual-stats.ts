@@ -1036,7 +1036,7 @@ export async function getHomeStats(): Promise<{
     admin
       .from("challenges")
       .select(
-        "id, user_id, public_slug, profiles!inner(id, name, avatar_url, emoji)",
+        "id, user_id, public_slug, profiles!inner(id, name, username, avatar_url, emoji)",
       )
       .eq("period_id", period.id),
   ]);
@@ -1057,6 +1057,7 @@ export async function getHomeStats(): Promise<{
     profiles: {
       id: string;
       name: string;
+      username: string;
       avatar_url: string | null;
       emoji: string | null;
     } | null;
@@ -1092,6 +1093,7 @@ export async function getHomeStats(): Promise<{
       id: r.profiles!.id,
       publicSlug: r.public_slug,
       name: r.profiles!.name,
+      username: r.profiles!.username,
       avatarUrl: r.profiles!.avatar_url,
       emoji: r.profiles!.emoji,
       registeredRituals: challengerRitualMap.get(r.user_id) ?? [],

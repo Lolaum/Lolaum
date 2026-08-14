@@ -63,6 +63,7 @@ export interface ChallengerSummary {
   id: string;
   publicSlug: string;
   name: string;
+  username: string;
   avatarUrl: string | null;
   emoji: string | null;
   registeredRituals?: string[];
@@ -87,7 +88,7 @@ export async function getCurrentChallengers(): Promise<{
   const { data, error } = await admin
     .from("challenges")
     .select(
-      "id, user_id, public_slug, profiles!inner(id, name, avatar_url, emoji)",
+      "id, user_id, public_slug, profiles!inner(id, name, username, avatar_url, emoji)",
     )
     .eq("period_id", period.id);
 
@@ -100,6 +101,7 @@ export async function getCurrentChallengers(): Promise<{
     profiles: {
       id: string;
       name: string;
+      username: string;
       avatar_url: string | null;
       emoji: string | null;
     } | null;
@@ -138,6 +140,7 @@ export async function getCurrentChallengers(): Promise<{
       id: r.profiles!.id,
       publicSlug: r.public_slug,
       name: r.profiles!.name,
+      username: r.profiles!.username,
       avatarUrl: r.profiles!.avatar_url,
       emoji: r.profiles!.emoji,
       registeredRituals: ritualMap.get(r.user_id) ?? [],
