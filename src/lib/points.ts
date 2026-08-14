@@ -6,4 +6,5 @@
 export const POINTS_LAUNCHED_AT = "2026-08-07T02:25:23Z";
 
 export const LIKE_POINT = 1;
+export const COMMENT_POINT = 2;
 export const DAILY_POINT_LIMIT = 5;

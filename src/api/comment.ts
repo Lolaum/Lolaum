@@ -9,15 +9,15 @@ import type { User } from "@supabase/supabase-js";
 async function ensureUserProfile(
   user: User,
   admin: ReturnType<typeof createAdminClient>,
-): Promise<{ name: string } | null> {
+): Promise<{ name: string; username: string } | null> {
   const { data: existingProfile, error: selectError } = await admin
     .from("profiles")
-    .select("name")
+    .select("name, username")
     .eq("id", user.id)
     .maybeSingle();
 
   if (selectError) return null;
-  if (existingProfile) return { name: existingProfile.name };
+  if (existingProfile) return existingProfile;
 
   const fallbackName =
     typeof user.user_metadata?.name === "string" &&
@@ -33,11 +33,21 @@ async function ensureUserProfile(
       username: `user_${user.id.slice(0, 8)}`,
       email: user.email ?? `${user.id}@missing.local`,
     })
-    .select("name")
+    .select("name, username")
     .single();
 
   if (insertError) return null;
-  return { name: newProfile.name };
+  return newProfile;
+}
+
+function extractMentionHandles(text: string): string[] {
+  return [
+    ...new Set(
+      [...text.matchAll(/(?:^|\s)@([\p{L}\p{N}_.-]+)/gu)].map(
+        (match) => match[1],
+      ),
+    ),
+  ];
 }
 
 /**
@@ -121,17 +131,18 @@ export async function getComments(
     const userIds = [...new Set(comments.map((c) => c.user_id))];
     const { data: profiles } = await admin
       .from("profiles")
-      .select("id, name")
+      .select("id, name, username")
       .in("id", userIds);
 
-    const nameMap = new Map((profiles ?? []).map((p) => [p.id, p.name]));
+    const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
 
     return {
       data: comments.map((c) => ({
-        id: c.id as unknown as number,
+        id: c.id,
         odOriginalId: c.id,
-        userId: c.user_id as unknown as number,
-        userName: nameMap.get(c.user_id) ?? "알 수 없음",
+        userId: c.user_id,
+        userName: profileMap.get(c.user_id)?.name ?? "알 수 없음",
+        userHandle: profileMap.get(c.user_id)?.username,
         text: c.text,
         date: c.created_at,
       })),
@@ -186,14 +197,48 @@ export async function addComment(
         ritualRecordId: recordId,
         commentId: comment.id,
       });
+
+      const mentionHandles = extractMentionHandles(text);
+      if (mentionHandles.length > 0) {
+        const { data: mentionedProfiles } = await admin
+          .from("profiles")
+          .select("id")
+          .in("username", mentionHandles);
+
+        const mentionedUserIds = [
+          ...new Set(
+            (mentionedProfiles ?? [])
+              .map((mentionedProfile) => mentionedProfile.id)
+              .filter(
+                (mentionedUserId) =>
+                  mentionedUserId !== user.id &&
+                  mentionedUserId !== feedOwner.user_id,
+              ),
+          ),
+        ];
+
+        await Promise.all(
+          mentionedUserIds.map((mentionedUserId) =>
+            insertCommentNotification({
+              recipientUserId: mentionedUserId,
+              actorUserId: user.id,
+              routineType: feedOwner.routine_type,
+              feedId,
+              ritualRecordId: recordId,
+              commentId: comment.id,
+            }),
+          ),
+        );
+      }
     }
 
     return {
       data: {
-        id: comment.id as unknown as number,
+        id: comment.id,
         odOriginalId: comment.id,
-        userId: comment.user_id as unknown as number,
+        userId: comment.user_id,
         userName: profile.name,
+        userHandle: profile.username,
         text: comment.text,
         date: comment.created_at,
       },
@@ -215,13 +260,18 @@ export async function updateComment(
 
     const admin = createAdminClient();
 
-    const { error } = await admin
+    const { data: updatedComment, error } = await admin
       .from("feed_comments")
       .update({ text })
       .eq("id", commentId)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .select("id")
+      .maybeSingle();
 
     if (error) return { error: error.message };
+    if (!updatedComment) {
+      return { error: "본인이 작성한 댓글만 수정할 수 있습니다." };
+    }
     return {};
   } catch (e) {
     console.error("updateComment error:", e);
@@ -239,13 +289,18 @@ export async function deleteComment(
 
     const admin = createAdminClient();
 
-    const { error } = await admin
+    const { data: deletedComment, error } = await admin
       .from("feed_comments")
       .delete()
       .eq("id", commentId)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .select("id")
+      .maybeSingle();
 
     if (error) return { error: error.message };
+    if (!deletedComment) {
+      return { error: "본인이 작성한 댓글만 삭제할 수 있습니다." };
+    }
     return {};
   } catch (e) {
     console.error("deleteComment error:", e);

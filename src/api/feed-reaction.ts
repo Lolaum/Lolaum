@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/supabase/server";
 import { FEED_LIKE_EMOJI } from "@/constants/feed-reactions";
 import { insertLikeNotification } from "@/lib/notifications/insert";
-import type { FeedReactionSummary } from "@/types/feed";
+import type { FeedReactionSummary, FeedReactionUser } from "@/types/feed";
 
 const REACTION_SETUP_ERROR = "리액션 테이블이 아직 준비되지 않았습니다.";
 
@@ -143,6 +143,66 @@ export async function getFeedReactions(
     return {
       data: emptySummary(),
       error: "리액션 조회 중 오류가 발생했습니다.",
+    };
+  }
+}
+
+export async function getFeedReactionUsers(
+  recordId: string,
+): Promise<{ data: FeedReactionUser[]; error?: string }> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { data: [], error: "인증이 필요합니다." };
+
+    const admin = createAdminClient();
+    const feedId = await findFeedId(recordId, admin);
+    if (!feedId) return { data: [] };
+
+    const { data: rows, error } = await admin
+      .from("feed_reactions")
+      .select("user_id, created_at")
+      .eq("feed_id", feedId)
+      .eq("emoji", FEED_LIKE_EMOJI)
+      .order("created_at", { ascending: false });
+
+    if (isMissingReactionTableError(error)) {
+      return { data: [], error: REACTION_SETUP_ERROR };
+    }
+    if (error) return { data: [], error: error.message };
+
+    const userIds = [
+      ...new Set((rows ?? []).map((reaction) => reaction.user_id)),
+    ];
+    if (userIds.length === 0) return { data: [] };
+
+    const { data: profiles, error: profilesError } = await admin
+      .from("profiles")
+      .select("id, name, avatar_url, emoji")
+      .in("id", userIds);
+
+    if (profilesError) return { data: [], error: profilesError.message };
+
+    const profileById = new Map(
+      (profiles ?? []).map((profile) => [profile.id, profile]),
+    );
+
+    return {
+      data: userIds.map((userId) => {
+        const profile = profileById.get(userId);
+        return {
+          id: userId,
+          name: profile?.name ?? "알 수 없음",
+          avatarUrl: profile?.avatar_url ?? null,
+          emoji: profile?.emoji ?? null,
+          isMe: userId === user.id,
+        };
+      }),
+    };
+  } catch (e) {
+    console.error("getFeedReactionUsers error:", e);
+    return {
+      data: [],
+      error: "좋아요 사용자 조회 중 오류가 발생했습니다.",
     };
   }
 }

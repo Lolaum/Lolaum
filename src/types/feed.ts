@@ -177,10 +177,11 @@ export type FeedRoutineData =
 
 // 댓글 타입
 export interface Comment {
-  id: number;
+  id: number | string;
   odOriginalId?: string; // DB UUID (실제 데이터용)
-  userId: number;
+  userId: number | string;
   userName: string;
+  userHandle?: string;
   text: string;
   date: string;
 }
@@ -207,6 +208,14 @@ export interface FeedReactionCount {
   emoji: string;
   count: number;
   reactedByMe: boolean;
+}
+
+export interface FeedReactionUser {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  emoji: string | null;
+  isMe: boolean;
 }
 
 export interface FeedReactionSummary {

@@ -2,13 +2,18 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Clock3,
   Coins,
+  MessageCircle,
+  ThumbsUp,
   Trophy,
 } from "lucide-react";
 import { useKoreaMidnightRefresh } from "@/lib/hooks/useKoreaMidnightRefresh";
@@ -137,7 +142,11 @@ export default function ProgressContainer({
           onDateChange={setSelectedDate}
         />
       ) : (
-        <PointsRanking members={me ? [me, ...challengers] : challengers} />
+        <PointsRanking
+          members={me ? [me, ...challengers] : challengers}
+          history={data.myPointHistory}
+          myPoints={me?.points ?? 0}
+        />
       )}
     </div>
   );
@@ -393,7 +402,16 @@ function formatDailyDate(dateKey: string) {
   }).format(parseDateKey(dateKey));
 }
 
-function PointsRanking({ members }: { members: ChallengerProgress[] }) {
+function PointsRanking({
+  members,
+  history,
+  myPoints,
+}: {
+  members: ChallengerProgress[];
+  history: ProgressPageData["myPointHistory"];
+  myPoints: number;
+}) {
+  const [historyOpen, setHistoryOpen] = useState(false);
   const rankedMembers = [...members].sort(
     (a, b) => b.points - a.points || a.name.localeCompare(b.name, "ko"),
   );
@@ -417,6 +435,104 @@ function PointsRanking({ members }: { members: ChallengerProgress[] }) {
             </p>
           </div>
         </div>
+      </div>
+
+      <div className="mb-4 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+        <button
+          type="button"
+          aria-expanded={historyOpen}
+          onClick={() => setHistoryOpen((open) => !open)}
+          className="flex w-full items-center gap-3 p-4 text-left hover:bg-gray-50"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--gold-50)] text-[var(--gold-500)]">
+            <Coins className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-gray-900">내 포인트 내역</p>
+            <p className="mt-0.5 text-xs text-gray-400">
+              좋아요 +1P · 댓글 +2P · 하루 최대 5P
+            </p>
+          </div>
+          <span className="text-sm font-bold text-yellow-600">
+            {myPoints.toLocaleString()}P
+          </span>
+          {historyOpen ? (
+            <ChevronUp className="h-4 w-4 text-gray-400" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-gray-400" />
+          )}
+        </button>
+
+        {historyOpen && (
+          <div className="border-t border-gray-100">
+            <p className="bg-gray-50 px-4 py-2 text-[11px] text-gray-400">
+              다른 챌린저의 글에 남긴 활동만 적립되며, 일일 한도를 넘은 활동도
+              확인할 수 있어요.
+            </p>
+            {history.length === 0 ? (
+              <p className="px-4 py-6 text-center text-sm text-gray-400">
+                아직 적립 내역이 없습니다.
+              </p>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {history.map((entry) => {
+                  const Icon =
+                    entry.type === "comment" ? MessageCircle : ThumbsUp;
+                  const content = (
+                    <>
+                      <div
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                          entry.type === "comment"
+                            ? "bg-sky-50 text-sky-500"
+                            : "bg-amber-50 text-amber-500"
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-gray-700">
+                          {entry.targetName}님의 글에{" "}
+                          {entry.type === "comment" ? "댓글" : "좋아요"}
+                        </p>
+                        <p className="mt-0.5 text-xs text-gray-400">
+                          {formatPointHistoryDate(entry.createdAt)}
+                          {entry.awardedPoints < entry.basePoints &&
+                            " · 일일 한도 적용"}
+                        </p>
+                      </div>
+                      <span
+                        className={`shrink-0 text-sm font-bold ${
+                          entry.awardedPoints > 0
+                            ? "text-yellow-600"
+                            : "text-gray-300"
+                        }`}
+                      >
+                        +{entry.awardedPoints}P
+                      </span>
+                    </>
+                  );
+
+                  return entry.ritualRecordId ? (
+                    <Link
+                      key={entry.id}
+                      href={`/feeds/${entry.ritualRecordId}`}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
+                    >
+                      {content}
+                    </Link>
+                  ) : (
+                    <div
+                      key={entry.id}
+                      className="flex items-center gap-3 px-4 py-3"
+                    >
+                      {content}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
@@ -463,6 +579,16 @@ function PointsRanking({ members }: { members: ChallengerProgress[] }) {
       </div>
     </section>
   );
+}
+
+function formatPointHistoryDate(createdAt: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Seoul",
+  }).format(new Date(createdAt));
 }
 
 function DonationSummary({ amount }: { amount: number }) {

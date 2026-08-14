@@ -868,19 +868,20 @@ export async function getRecordById(
         const commentUserIds = [...new Set(rawComments.map((c) => c.user_id))];
         const { data: commentProfiles } = await admin
           .from("profiles")
-          .select("id, name")
+          .select("id, name, username")
           .in("id", commentUserIds);
 
-        const nameMap = new Map(
-          (commentProfiles ?? []).map((p) => [p.id, p.name]),
+        const profileMap = new Map(
+          (commentProfiles ?? []).map((profile) => [profile.id, profile]),
         );
 
         item.comments = rawComments.map(
           (c): Comment => ({
-            id: c.id as unknown as number,
+            id: c.id,
             odOriginalId: c.id,
-            userId: c.user_id as unknown as number,
-            userName: nameMap.get(c.user_id) ?? "알 수 없음",
+            userId: c.user_id,
+            userName: profileMap.get(c.user_id)?.name ?? "알 수 없음",
+            userHandle: profileMap.get(c.user_id)?.username,
             text: c.text,
             date: c.created_at,
           }),

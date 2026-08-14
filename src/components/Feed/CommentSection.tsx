@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { User, Send, Trash2, Pencil, X, Check } from "lucide-react";
 import { Comment } from "@/types/feed";
 
 interface CommentSectionProps {
   comments: Comment[];
+  currentUserId?: string;
   onAddComment: (text: string) => void;
   onDeleteComment: (commentId: string) => void;
   onUpdateComment: (commentId: string, text: string) => void;
@@ -25,8 +26,21 @@ const formatCommentDate = (dateString: string) => {
   return `${diffDay}일 전`;
 };
 
+function MentionText({ text }: { text: string }) {
+  return text.split(/(@[\p{L}\p{N}_.-]+)/gu).map((part, index) =>
+    part.startsWith("@") ? (
+      <span key={`${part}-${index}`} className="font-semibold text-sky-600">
+        {part}
+      </span>
+    ) : (
+      <React.Fragment key={`${part}-${index}`}>{part}</React.Fragment>
+    ),
+  );
+}
+
 export default function CommentSection({
   comments,
+  currentUserId,
   onAddComment,
   onDeleteComment,
   onUpdateComment,
@@ -34,6 +48,7 @@ export default function CommentSection({
   const [inputText, setInputText] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = () => {
     const trimmed = inputText.trim();
@@ -77,6 +92,17 @@ export default function CommentSection({
     }
   };
 
+  const mentionCommentAuthor = (comment: Comment) => {
+    const handle = comment.userHandle ?? comment.userName.replace(/\s+/g, "");
+    const mention = `@${handle}`;
+    setInputText((current) => {
+      if (current.split(/\s+/).includes(mention)) return current;
+      const prefix = current.trimEnd();
+      return prefix ? `${prefix} ${mention} ` : `${mention} `;
+    });
+    requestAnimationFrame(() => inputRef.current?.focus());
+  };
+
   return (
     <div className="mt-6">
       <h3 className="text-sm font-semibold text-gray-700 mb-3">
@@ -91,6 +117,9 @@ export default function CommentSection({
           {comments.map((comment) => {
             const commentKey = comment.odOriginalId ?? String(comment.id);
             const isEditing = editingId === commentKey;
+            const isOwnComment =
+              currentUserId != null &&
+              String(comment.userId) === String(currentUserId);
 
             return (
               <div key={commentKey} className="flex items-start gap-2">
@@ -99,14 +128,25 @@ export default function CommentSection({
                 </div>
                 <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2">
                   <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-xs font-semibold text-gray-800">
-                      {comment.userName}
-                    </span>
+                    {isOwnComment ? (
+                      <span className="text-xs font-semibold text-gray-800">
+                        {comment.userName}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => mentionCommentAuthor(comment)}
+                        title={`${comment.userName}님 언급하기`}
+                        className="text-xs font-semibold text-gray-800 hover:text-sky-600 hover:underline"
+                      >
+                        {comment.userName}
+                      </button>
+                    )}
                     <div className="flex items-center gap-1">
                       <span className="text-xs text-gray-400">
                         {formatCommentDate(comment.date)}
                       </span>
-                      {comment.odOriginalId && !isEditing && (
+                      {comment.odOriginalId && isOwnComment && !isEditing && (
                         <>
                           <button
                             onClick={() => startEdit(comment)}
@@ -115,7 +155,9 @@ export default function CommentSection({
                             <Pencil className="w-3 h-3" />
                           </button>
                           <button
-                            onClick={() => onDeleteComment(comment.odOriginalId!)}
+                            onClick={() =>
+                              onDeleteComment(comment.odOriginalId!)
+                            }
                             className="p-0.5 text-gray-400 hover:text-red-500 transition-colors"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -149,7 +191,9 @@ export default function CommentSection({
                       </button>
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-700">{comment.text}</p>
+                    <p className="whitespace-pre-wrap text-sm text-gray-700">
+                      <MentionText text={comment.text} />
+                    </p>
                   )}
                 </div>
               </div>
@@ -165,11 +209,12 @@ export default function CommentSection({
         </div>
         <div className="flex-1 flex items-center bg-gray-100 rounded-full px-4 py-2 gap-2">
           <input
+            ref={inputRef}
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="댓글 달기..."
+            placeholder="댓글 달기... (@로 언급)"
             className="flex-1 bg-transparent text-sm text-gray-700 outline-none placeholder-gray-400"
           />
           <button

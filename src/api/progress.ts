@@ -7,7 +7,10 @@ import { getActivePeriod, getEffectiveStart } from "@/lib/current-challenge";
 import { isAllRoutinesCovered } from "@/lib/declarations";
 import { calculatePenaltyAccounting } from "@/lib/progress-accounting";
 import { calculateWeeklyRoutineProgress } from "@/lib/weekly-routine-progress";
-import { getEngagementPointsByUser } from "@/lib/engagement-points";
+import {
+  getEngagementPointSummariesByUser,
+  type EngagementPointHistoryEntry,
+} from "@/lib/engagement-points";
 import {
   countWeekdaysInDateKeyRange,
   getKoreaTodayWithinRange,
@@ -35,6 +38,7 @@ export interface ChallengerProgress {
 export interface ProgressPageData {
   me: ChallengerProgress | null;
   challengers: ChallengerProgress[];
+  myPointHistory: EngagementPointHistoryEntry[];
   totalDays: number; // 활성 기간 평일 수 + 3 보너스
   periodStart: string;
   periodEnd: string;
@@ -101,6 +105,7 @@ export async function getProgressPageData(): Promise<{
         data: {
           me: null,
           challengers: [],
+          myPointHistory: [],
           totalDays: periodTotalDaysWithBonus,
           periodStart: period.start_date,
           periodEnd: period.end_date,
@@ -123,7 +128,7 @@ export async function getProgressPageData(): Promise<{
 
     const rows = challenges as unknown as ChallengeRow[];
     const challengeIds = rows.map((r) => r.id);
-    const pointsByUserPromise = getEngagementPointsByUser(
+    const pointSummariesByUserPromise = getEngagementPointSummariesByUser(
       admin,
       rows.map((row) => row.user_id),
       period.id,
@@ -132,34 +137,38 @@ export async function getProgressPageData(): Promise<{
 
     // 2. 리추얼 기록 + 선언/회고를 한 번에 조회
     //    홈 달성률과 같은 기준으로 실제 ritual_records에서 날짜별 완료 여부를 계산한다.
-    const [regRes, recordsRes, declRes, midRevRes, finalRevRes, pointsByUser] =
-      await Promise.all([
-        admin
-          .from("challenge_registrations")
-          .select("user_id, challenge_id, routine_type")
-          .in("challenge_id", challengeIds),
-        admin
-          .from("ritual_records")
-          .select(
-            "user_id, challenge_id, routine_type, record_date, record_data",
-          )
-          .in("challenge_id", challengeIds)
-          .gte("record_date", period.start_date)
-          .lte("record_date", period.end_date),
-        admin
-          .from("declarations")
-          .select("user_id, routine_type, challenge_id")
-          .in("challenge_id", challengeIds),
-        admin
-          .from("mid_reviews")
-          .select("user_id, challenge_id")
-          .in("challenge_id", challengeIds),
-        admin
-          .from("final_reviews")
-          .select("user_id, challenge_id")
-          .in("challenge_id", challengeIds),
-        pointsByUserPromise,
-      ]);
+    const [
+      regRes,
+      recordsRes,
+      declRes,
+      midRevRes,
+      finalRevRes,
+      pointSummariesByUser,
+    ] = await Promise.all([
+      admin
+        .from("challenge_registrations")
+        .select("user_id, challenge_id, routine_type")
+        .in("challenge_id", challengeIds),
+      admin
+        .from("ritual_records")
+        .select("user_id, challenge_id, routine_type, record_date, record_data")
+        .in("challenge_id", challengeIds)
+        .gte("record_date", period.start_date)
+        .lte("record_date", period.end_date),
+      admin
+        .from("declarations")
+        .select("user_id, routine_type, challenge_id")
+        .in("challenge_id", challengeIds),
+      admin
+        .from("mid_reviews")
+        .select("user_id, challenge_id")
+        .in("challenge_id", challengeIds),
+      admin
+        .from("final_reviews")
+        .select("user_id, challenge_id")
+        .in("challenge_id", challengeIds),
+      pointSummariesByUserPromise,
+    ]);
 
     if (regRes.error) {
       await logAdminError(
@@ -298,7 +307,7 @@ export async function getProgressPageData(): Promise<{
           name: r.profiles.name,
           avatarUrl: r.profiles.avatar_url,
           emoji: r.profiles.emoji,
-          points: pointsByUser.get(r.user_id) ?? 0,
+          points: pointSummariesByUser.get(r.user_id)?.points ?? 0,
           completedDays: 0,
           totalAchieved: 0,
           totalDays,
@@ -350,7 +359,7 @@ export async function getProgressPageData(): Promise<{
         name: r.profiles.name,
         avatarUrl: r.profiles.avatar_url,
         emoji: r.profiles.emoji,
-        points: pointsByUser.get(r.user_id) ?? 0,
+        points: pointSummariesByUser.get(r.user_id)?.points ?? 0,
         completedDays,
         totalAchieved,
         totalDays,
@@ -377,6 +386,7 @@ export async function getProgressPageData(): Promise<{
       data: {
         me,
         challengers,
+        myPointHistory: pointSummariesByUser.get(user.id)?.history ?? [],
         totalDays: periodTotalDaysWithBonus,
         periodStart: period.start_date,
         periodEnd: period.end_date,
