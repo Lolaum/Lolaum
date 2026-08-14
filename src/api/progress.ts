@@ -7,6 +7,7 @@ import { getActivePeriod, getEffectiveStart } from "@/lib/current-challenge";
 import { isAllRoutinesCovered } from "@/lib/declarations";
 import { calculatePenaltyAccounting } from "@/lib/progress-accounting";
 import { calculateWeeklyRoutineProgress } from "@/lib/weekly-routine-progress";
+import { getEngagementPointsByUser } from "@/lib/engagement-points";
 import {
   countWeekdaysInDateKeyRange,
   getKoreaTodayWithinRange,
@@ -17,6 +18,7 @@ export interface ChallengerProgress {
   name: string;
   avatarUrl: string | null;
   emoji: string | null;
+  points: number;
   completedDays: number; // 인증 완료 횟수
   totalAchieved: number; // 달성 합계
   totalDays: number; // 유저별 만점 일수 (effectiveStart 기준 평일 수 + 3 보너스)
@@ -25,12 +27,18 @@ export interface ChallengerProgress {
   hasDeclaration: boolean;
   hasMidReview: boolean;
   hasFinalReview: boolean;
+  effectiveStart: string;
+  registeredRoutineCount: number;
+  dailyCompletedRoutineCounts: Record<string, number>;
 }
 
 export interface ProgressPageData {
   me: ChallengerProgress | null;
   challengers: ChallengerProgress[];
   totalDays: number; // 활성 기간 평일 수 + 3 보너스
+  periodStart: string;
+  periodEnd: string;
+  today: string;
 }
 
 const BONUS_SLOTS = 3; // 선언/중간회고/최종회고
@@ -94,6 +102,9 @@ export async function getProgressPageData(): Promise<{
           me: null,
           challengers: [],
           totalDays: periodTotalDaysWithBonus,
+          periodStart: period.start_date,
+          periodEnd: period.end_date,
+          today: getKoreaTodayWithinRange(period.end_date),
         },
       };
     }
@@ -112,10 +123,16 @@ export async function getProgressPageData(): Promise<{
 
     const rows = challenges as unknown as ChallengeRow[];
     const challengeIds = rows.map((r) => r.id);
+    const pointsByUserPromise = getEngagementPointsByUser(
+      admin,
+      rows.map((row) => row.user_id),
+      period.id,
+      period.start_date,
+    );
 
     // 2. 리추얼 기록 + 선언/회고를 한 번에 조회
     //    홈 달성률과 같은 기준으로 실제 ritual_records에서 날짜별 완료 여부를 계산한다.
-    const [regRes, recordsRes, declRes, midRevRes, finalRevRes] =
+    const [regRes, recordsRes, declRes, midRevRes, finalRevRes, pointsByUser] =
       await Promise.all([
         admin
           .from("challenge_registrations")
@@ -123,7 +140,9 @@ export async function getProgressPageData(): Promise<{
           .in("challenge_id", challengeIds),
         admin
           .from("ritual_records")
-          .select("user_id, challenge_id, routine_type, record_date, record_data")
+          .select(
+            "user_id, challenge_id, routine_type, record_date, record_data",
+          )
           .in("challenge_id", challengeIds)
           .gte("record_date", period.start_date)
           .lte("record_date", period.end_date),
@@ -139,6 +158,7 @@ export async function getProgressPageData(): Promise<{
           .from("final_reviews")
           .select("user_id, challenge_id")
           .in("challenge_id", challengeIds),
+        pointsByUserPromise,
       ]);
 
     if (regRes.error) {
@@ -264,6 +284,12 @@ export async function getProgressPageData(): Promise<{
       const totalDays =
         countWeekdaysInDateKeyRange(effectiveStart, period.end_date) +
         BONUS_SLOTS;
+      const dailyCompletedRoutineCounts = Object.fromEntries(
+        Array.from(
+          userRecordTypesByDate.get(r.user_id)?.entries() ?? [],
+          ([date, routineTypes]) => [date, routineTypes.size],
+        ),
+      );
 
       // 리추얼 등록이 없으면 미완료/벌금 없음
       if (registeredTypes.size === 0) {
@@ -272,6 +298,7 @@ export async function getProgressPageData(): Promise<{
           name: r.profiles.name,
           avatarUrl: r.profiles.avatar_url,
           emoji: r.profiles.emoji,
+          points: pointsByUser.get(r.user_id) ?? 0,
           completedDays: 0,
           totalAchieved: 0,
           totalDays,
@@ -280,6 +307,9 @@ export async function getProgressPageData(): Promise<{
           hasDeclaration: false,
           hasMidReview: false,
           hasFinalReview: false,
+          effectiveStart,
+          registeredRoutineCount: 0,
+          dailyCompletedRoutineCounts,
         };
       }
 
@@ -320,6 +350,7 @@ export async function getProgressPageData(): Promise<{
         name: r.profiles.name,
         avatarUrl: r.profiles.avatar_url,
         emoji: r.profiles.emoji,
+        points: pointsByUser.get(r.user_id) ?? 0,
         completedDays,
         totalAchieved,
         totalDays,
@@ -328,6 +359,9 @@ export async function getProgressPageData(): Promise<{
         hasDeclaration,
         hasMidReview,
         hasFinalReview,
+        effectiveStart,
+        registeredRoutineCount: registeredTypes.size,
+        dailyCompletedRoutineCounts,
       };
     });
 
@@ -340,7 +374,14 @@ export async function getProgressPageData(): Promise<{
       .sort((a, b) => b.totalAchieved - a.totalAchieved);
 
     return {
-      data: { me, challengers, totalDays: periodTotalDaysWithBonus },
+      data: {
+        me,
+        challengers,
+        totalDays: periodTotalDaysWithBonus,
+        periodStart: period.start_date,
+        periodEnd: period.end_date,
+        today: rangeEnd,
+      },
     };
   } catch (e) {
     console.error("getProgressPageData error:", e);
@@ -352,7 +393,11 @@ export async function getProgressPageData(): Promise<{
 }
 
 function isExcludedFromProgress(recordData: unknown): boolean {
-  if (!recordData || typeof recordData !== "object" || Array.isArray(recordData)) {
+  if (
+    !recordData ||
+    typeof recordData !== "object" ||
+    Array.isArray(recordData)
+  ) {
     return false;
   }
 

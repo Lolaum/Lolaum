@@ -43,14 +43,14 @@ const EMPTY_TIME_PARTS: TimeParts = {
 
 const MORNING_START_PARTS: TimeParts = {
   period: "AM",
-  hour: "07",
-  minute: "00",
+  hour: "06",
+  minute: "30",
 };
 
 const MORNING_END_PARTS: TimeParts = {
   period: "AM",
   hour: "07",
-  minute: "30",
+  minute: "00",
 };
 
 interface RoutineFormState {
@@ -286,8 +286,8 @@ export default function GenerateRoutine({
     if (isSelecting && routineType === "모닝리추얼") {
       setRoutineForm(routineType, (form) => ({
         ...form,
-        routineStartTime: "07:00",
-        routineEndTime: "07:30",
+        routineStartTime: "06:30",
+        routineEndTime: "07:00",
         routineStartParts: MORNING_START_PARTS,
         routineEndParts: MORNING_END_PARTS,
       }));

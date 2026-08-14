@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { LanguageRecord } from "@/types/routines/language";
 
 interface StudyPhraseProps {
@@ -28,6 +29,18 @@ export default function StudyPhrase({
   maxCards,
   title,
 }: StudyPhraseProps) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    setIsMounted(true);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   const resolvedCards =
     cards ??
     languageRecords?.flatMap((record) =>
@@ -50,13 +63,21 @@ export default function StudyPhrase({
   const totalCards = visibleCards.length;
   const currentCard = visibleCards[currentIndex];
   const isMeaningToWord = reviewMode === "meaning-to-word";
-  const frontText = isMeaningToWord ? currentCard.meaning : currentCard.word;
-  const backPrimaryText = isMeaningToWord
-    ? currentCard.word
-    : currentCard.meaning;
-  const backSecondaryText = isMeaningToWord
-    ? currentCard.meaning
-    : currentCard.word;
+  const frontText = currentCard
+    ? isMeaningToWord
+      ? currentCard.meaning
+      : currentCard.word
+    : "";
+  const backPrimaryText = currentCard
+    ? isMeaningToWord
+      ? currentCard.word
+      : currentCard.meaning
+    : "";
+  const backSecondaryText = currentCard
+    ? isMeaningToWord
+      ? currentCard.meaning
+      : currentCard.word
+    : "";
   const flipHint = isMeaningToWord ? "탭하여 단어 보기" : "탭하여 의미 보기";
 
   const handleNext = () => {
@@ -84,13 +105,18 @@ export default function StudyPhrase({
     setIsFlipped(false);
   };
 
+  if (!isMounted) return null;
+
   if (totalCards === 0) {
-    return (
+    return createPortal(
       <div
-        className="fixed inset-0 flex items-center justify-center z-50"
+        className="fixed inset-0 z-[999] flex items-center justify-center overflow-hidden p-4"
         style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
       >
-        <div className="w-full max-w-md mx-4 bg-white rounded-3xl p-8 text-center">
+        <div
+          className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl bg-white p-8 text-center touch-pan-y"
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
           <p className="text-base font-semibold text-gray-900 mb-2">
             아직 기록된 표현이 없어요
           </p>
@@ -106,16 +132,20 @@ export default function StudyPhrase({
             닫기
           </button>
         </div>
-      </div>
+      </div>,
+      document.body,
     );
   }
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 flex items-center justify-center z-50"
+      className="fixed inset-0 z-[999] flex items-center justify-center overflow-hidden p-4"
       style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
     >
-      <div className="w-full max-w-2xl mx-4">
+      <div
+        className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto overscroll-contain touch-pan-y"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -164,7 +194,7 @@ export default function StudyPhrase({
         {/* 카드 */}
         <div
           onClick={handleFlip}
-          className="bg-white rounded-3xl shadow-xl p-12 min-h-[400px] flex flex-col items-center justify-center cursor-pointer mb-3 transition-all hover:shadow-2xl"
+          className="mb-3 flex min-h-[min(400px,50dvh)] cursor-pointer flex-col items-center justify-center rounded-3xl bg-white p-8 shadow-xl transition-all hover:shadow-2xl sm:min-h-[400px] sm:p-12"
         >
           {!isFlipped ? (
             <div className="text-center w-full">
@@ -222,6 +252,7 @@ export default function StudyPhrase({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -501,7 +501,7 @@ export default function RecordingContainer({
                 ? "글 읽기 대체는 일주일 중 2일까지만 달성할 수 있어요"
                 : weeklyReadLoading
                   ? "글 읽기 대체 인증 날짜를 확인하는 중이에요"
-                : undefined
+                  : undefined
             }
             className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
               formMode === "read"

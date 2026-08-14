@@ -33,10 +33,14 @@ const navItems: NavItem[] = [
   { href: "/home", label: "홈", icon: HomeIcon },
   { href: "/ritual", label: "나의 리추얼 기록", icon: RitualIcon },
   { href: "/feeds", label: "인증 게시글", icon: VerifyIcon },
-  { href: "/progress", label: "진행도", icon: ReportIcon },
+  { href: "/progress", label: "리추얼 진행표", icon: ReportIcon },
 ];
 
-const adminNavItem: NavItem = { href: "/admin", label: "어드민", icon: AdminIcon };
+const adminNavItem: NavItem = {
+  href: "/admin",
+  label: "어드민",
+  icon: AdminIcon,
+};
 
 export default function LayoutShell({ children, isAdmin }: LayoutShellProps) {
   const pathname = usePathname();
@@ -155,12 +159,18 @@ export default function LayoutShell({ children, isAdmin }: LayoutShellProps) {
         </header>
       )}
 
-      <main className={`${isDesktop ? "pt-24" : "pt-16 pb-16"} min-h-screen`}>
+      <main
+        className={`${
+          isDesktop
+            ? "pt-24"
+            : "pt-16 pb-[calc(6rem+env(safe-area-inset-bottom,0px))]"
+        } min-h-screen`}
+      >
         {children}
       </main>
 
       {!isDesktop && (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 safe-area-bottom">
+        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 safe-area-bottom">
           <div className="flex items-center justify-around px-2 py-2">
             {visibleNavItems.map((item) => {
               const isActive =

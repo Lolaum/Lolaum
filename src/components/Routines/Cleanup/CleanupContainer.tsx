@@ -11,10 +11,7 @@ import {
   getMyRitualRecords,
 } from "@/api/ritual-record";
 import { formatKoreaDateKey } from "@/lib/korea-date";
-import type {
-  CleanupRecordData,
-  Json,
-} from "@/types/supabase";
+import type { CleanupRecordData, Json } from "@/types/supabase";
 import type { CleanupFormData, CleanupRecord } from "@/types/routines/cleanup";
 import {
   getCleanupAreaLabel,
@@ -31,7 +28,9 @@ function formatMetricValue(value: number) {
   return value.toLocaleString();
 }
 
-export default function CleanupContainer({ mode = "main" }: CleanupContainerProps) {
+export default function CleanupContainer({
+  mode = "main",
+}: CleanupContainerProps) {
   const router = useRouter();
   const [cleanupRecords, setCleanupRecords] = useState<CleanupRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +49,7 @@ export default function CleanupContainer({ mode = "main" }: CleanupContainerProp
       const records: CleanupRecord[] = data.map((r) => {
         const d = r.record_data as unknown as CleanupRecordData;
         return {
-          id: r.id as unknown as number,
+          id: r.id,
           recordDate: r.record_date,
           area: d.area,
           customArea: d.customArea,
@@ -147,16 +146,24 @@ export default function CleanupContainer({ mode = "main" }: CleanupContainerProp
           onClick={goHome}
           className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
         >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
 
       <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-4">
-        <p className="text-xs text-gray-400 font-medium mb-0.5">
-          정돈 리추얼
-        </p>
+        <p className="text-xs text-gray-400 font-medium mb-0.5">정돈 리추얼</p>
         <div className="flex items-baseline gap-1.5 mb-4">
           <h1 className="text-lg font-bold text-gray-900">
             지금까지 정돈한 기록
@@ -186,7 +193,10 @@ export default function CleanupContainer({ mode = "main" }: CleanupContainerProp
             </p>
           </div>
           {metricTotals.map((metric) => (
-            <div key={`${metric.label}-${metric.unit}`} className="bg-teal-50 rounded-xl p-3">
+            <div
+              key={`${metric.label}-${metric.unit}`}
+              className="bg-teal-50 rounded-xl p-3"
+            >
               <p className="text-xs text-teal-600 font-semibold mb-1">
                 {metric.label}
               </p>
@@ -220,7 +230,10 @@ export default function CleanupContainer({ mode = "main" }: CleanupContainerProp
           <p className="text-xs">기록을 불러오는 중...</p>
         </div>
       ) : (
-        <RecordCleanup cleanupRecords={cleanupRecords} onChanged={fetchRecords} />
+        <RecordCleanup
+          cleanupRecords={cleanupRecords}
+          onChanged={fetchRecords}
+        />
       )}
     </div>
   );

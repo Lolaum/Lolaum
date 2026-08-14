@@ -2,8 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import {
-  Flame,
-  TrendingUp,
+  Coins,
   CheckCircle2,
   Flag,
   ClipboardCheck,
@@ -47,16 +46,16 @@ export default function TaskTabs({
       <div className="order-5 grid w-full grid-cols-3 gap-3 md:order-1">
         {[
           {
-            value: String(stats?.currentStreak ?? 0),
-            label: "연속 실천",
-            icon: Flame,
-            color: "#ff8900",
+            value: String(stats?.points ?? 0),
+            label: "포인트",
+            icon: Coins,
+            color: "#eab32e",
           },
           {
-            value: String(stats?.longestStreak ?? 0),
-            label: "최장 기록",
-            icon: TrendingUp,
-            color: "#6366f1",
+            value: `${stats?.bestCompletionRate ?? 0}%`,
+            label: "최고 달성률",
+            icon: Trophy,
+            color: "#eab32e",
           },
           {
             value: String(stats?.totalCompletions ?? 0),

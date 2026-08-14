@@ -14,6 +14,7 @@ import {
   ImagePlus,
   BookOpen,
   Plus,
+  Timer,
 } from "lucide-react";
 import {
   BookDetailProps,
@@ -40,6 +41,7 @@ import { useRitualDraft } from "@/hooks/useRitualDraft";
 import CertificationPhotoIntervalModal from "@/components/common/CertificationPhotoIntervalModal";
 import RitualDraftButtons from "@/components/common/RitualDraftButtons";
 import type { ReadingRecordData, Json } from "@/types/supabase";
+import BookRunningMaker from "./BookRunningMaker";
 
 const MAX_READING_CERT_PHOTOS = 2;
 
@@ -590,6 +592,8 @@ export default function BookDetail({
     string | null
   >(null);
   const [deletingRecord, setDeletingRecord] = useState(false);
+  const [bookRunningRecord, setBookRunningRecord] =
+    useState<DailyReadingRecord | null>(null);
 
   // DB에서 이 책의 기존 기록 불러오기
   const fetchRecords = useCallback(async () => {
@@ -1387,6 +1391,14 @@ export default function BookDetail({
                             <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
                               <button
                                 type="button"
+                                onClick={() => setBookRunningRecord(record)}
+                                className="flex items-center gap-1 text-xs font-semibold text-orange-500 transition-colors hover:text-orange-600"
+                              >
+                                <Timer className="h-3.5 w-3.5" />
+                                북러닝
+                              </button>
+                              <button
+                                type="button"
                                 onClick={() => startEditRecord(record)}
                                 className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
                               >
@@ -1450,6 +1462,16 @@ export default function BookDetail({
             </div>
           </div>
         </div>
+      )}
+
+      {bookRunningRecord && (
+        <BookRunningMaker
+          open
+          onClose={() => setBookRunningRecord(null)}
+          pages={bookRunningRecord.progressAmount}
+          bookTitle={book.title}
+          date={bookRunningRecord.date}
+        />
       )}
     </div>
   );
