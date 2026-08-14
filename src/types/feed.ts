@@ -13,6 +13,7 @@ export type RoutineCategory =
   | "자산관리"
   | "정돈"
   | "원서읽기"
+  | "내 글 감상"
   | "회고";
 
 // 리추얼별 게시글 데이터 타입
@@ -75,6 +76,8 @@ export interface RecordingWriteEntry {
 
 export interface RecordingReadEntry {
   type: "read";
+  readAuthorUserId?: string;
+  readAuthorName?: string;
   readSourceTitle: string;
   readResonatedPart: string;
   readReason: string;
@@ -106,6 +109,7 @@ export function normalizeRecordingFeedEntries(
       return [
         {
           type: "read",
+          readAuthorName: d.readSourceTitle ?? "",
           readSourceTitle: d.readSourceTitle ?? "",
           readResonatedPart: d.readResonatedPart ?? "",
           readReason: d.readReason ?? "",

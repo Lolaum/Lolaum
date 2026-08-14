@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import {
@@ -18,6 +18,7 @@ import {
 } from "@/types/feed";
 import { ExpenseItem, ExpenseType } from "@/types/routines/finance";
 import { updateRitualRecord } from "@/api/ritual-record";
+import { getCurrentChallengers, type ChallengerSummary } from "@/api/user";
 import type { CleanupArea, Json } from "@/types/supabase";
 import {
   CLEANUP_AREA_OPTIONS,
@@ -42,6 +43,7 @@ const MACROS_OPTIONS = ["1:1:1", "2:1:1", "3:2:1", "4:3:3", "5:3:2"];
 export default function EditFeedRecord({ item, onCancel }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [readAuthors, setReadAuthors] = useState<ChallengerSummary[]>([]);
   const recordId = item.odOriginalId ?? null;
   const data = item.routineData;
 
@@ -95,6 +97,24 @@ export default function EditFeedRecord({ item, onCancel }: Props) {
         ? { entries: normalizeRecordingFeedEntries(data as RecordingFeedData) }
         : null,
     );
+
+  useEffect(() => {
+    if (item.routineCategory !== "기록") return;
+    let ignore = false;
+    void getCurrentChallengers().then(
+      ({ data: challengers, currentUserId }) => {
+        if (ignore) return;
+        setReadAuthors(
+          (challengers ?? []).filter(
+            (challenger) => challenger.id !== currentUserId,
+          ),
+        );
+      },
+    );
+    return () => {
+      ignore = true;
+    };
+  }, [item.routineCategory]);
 
   if (!data || !recordId) {
     return (
@@ -213,7 +233,11 @@ export default function EditFeedRecord({ item, onCancel }: Props) {
         />
       )}
       {item.routineCategory === "기록" && recordingDraft && (
-        <RecordingEditor draft={recordingDraft} onChange={setRecordingDraft} />
+        <RecordingEditor
+          draft={recordingDraft}
+          onChange={setRecordingDraft}
+          readAuthors={readAuthors}
+        />
       )}
 
       <div className="flex gap-2 pt-2">
@@ -259,6 +283,8 @@ function getCategoryColor(category: RoutineCategory): string {
       return "#ec4899";
     case "기록":
       return "#8b5cf6";
+    case "내 글 감상":
+      return "#7c3aed";
     case "회고":
       return "#eab32e";
   }
@@ -930,9 +956,11 @@ function ReadingEditor({
 function RecordingEditor({
   draft,
   onChange,
+  readAuthors,
 }: {
   draft: RecordingFeedData;
   onChange: (d: RecordingFeedData) => void;
+  readAuthors: ChallengerSummary[];
 }) {
   const entries = draft.entries ?? [];
   // 모드 추론: 첫 entry 타입을 기준으로 (없으면 write 기본)
@@ -951,6 +979,8 @@ function RecordingEditor({
           }
         : {
             type: "read",
+            readAuthorUserId: undefined,
+            readAuthorName: "",
             readSourceTitle: "",
             readResonatedPart: "",
             readReason: "",
@@ -981,6 +1011,8 @@ function RecordingEditor({
         ...entries,
         {
           type: "read",
+          readAuthorUserId: undefined,
+          readAuthorName: "",
           readSourceTitle: "",
           readResonatedPart: "",
           readReason: "",
@@ -1100,15 +1132,35 @@ function RecordingEditor({
             ) : (
               <div className="space-y-2">
                 <div>
-                  <label className={fieldLabel}>오늘 읽은 다른 챌린저 글</label>
-                  <textarea
-                    value={entry.readSourceTitle}
-                    onChange={(e) =>
-                      updateEntry(idx, { readSourceTitle: e.target.value })
-                    }
-                    rows={2}
-                    className={textareaCls}
-                  />
+                  <label className={fieldLabel}>글을 쓴 챌린저</label>
+                  <select
+                    value={entry.readAuthorUserId ?? ""}
+                    onChange={(event) => {
+                      const author = readAuthors.find(
+                        (challenger) => challenger.id === event.target.value,
+                      );
+                      updateEntry(idx, {
+                        readAuthorUserId: author?.id,
+                        readAuthorName: author?.name ?? "",
+                        readSourceTitle: author?.name ?? "",
+                      });
+                    }}
+                    className={inputCls}
+                  >
+                    {!entry.readAuthorUserId && entry.readSourceTitle && (
+                      <option value="">
+                        기존 입력: {entry.readSourceTitle} (다시 선택)
+                      </option>
+                    )}
+                    {!entry.readSourceTitle && (
+                      <option value="">챌린저를 선택해 주세요</option>
+                    )}
+                    {readAuthors.map((author) => (
+                      <option key={author.id} value={author.id}>
+                        {author.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className={fieldLabel}>마음에 닿은 부분</label>

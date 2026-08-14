@@ -15,6 +15,7 @@ import {
   BookOpen,
   ClipboardCheck,
   Sparkles,
+  MessageCircle,
 } from "lucide-react";
 import {
   FeedItem as FeedItemType,
@@ -69,6 +70,11 @@ const CATEGORY_CONFIG: Record<
     color: "#ec4899",
     bgColor: "#fdf2f8",
     icon: <BookOpen size={13} />,
+  },
+  "내 글 감상": {
+    color: "#7c3aed",
+    bgColor: "#f5f3ff",
+    icon: <MessageCircle size={13} />,
   },
   회고: {
     color: "#eab32e",

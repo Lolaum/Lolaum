@@ -47,10 +47,13 @@ next-env.d.ts
 CLAUDE.md
 page-map.html
 
+# local project tooling and database artifacts
+/db/
+/.claude/
+/.omx/
+/.github/
+
 # local capture artifacts
 /photo-125-final/
 /photo-125-final-tight/
 /scripts/
-
-# claude code (local only)
-.claude/settings.json

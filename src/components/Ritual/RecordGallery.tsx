@@ -14,6 +14,7 @@ import {
   Loader2,
   ClipboardCheck,
   Sparkles,
+  MessageCircle,
   Check,
   Trash2,
   X,
@@ -101,6 +102,12 @@ const CATEGORY_CONFIG: Record<
     label: "원서읽기",
     icon: <BookOpen size={14} />,
   },
+  "내 글 감상": {
+    color: "#7c3aed",
+    bgColor: "#f5f3ff",
+    label: "내 글 감상",
+    icon: <MessageCircle size={14} />,
+  },
   회고: {
     color: "#eab32e",
     bgColor: "#fefce8",
@@ -111,6 +118,7 @@ const CATEGORY_CONFIG: Record<
 
 const FILTERS: (RoutineCategory | "전체")[] = [
   "전체",
+  "내 글 감상",
   "회고",
   "독서",
   "운동",
@@ -131,6 +139,7 @@ const formatDate = (dateString: string) => {
 };
 
 function getArchiveDeleteTarget(item: FeedItem): ArchiveDeleteTarget | null {
+  if (item.routineCategory === "내 글 감상") return null;
   const id = item.odOriginalId ? String(item.odOriginalId) : null;
   if (!id) return null;
 
@@ -498,6 +507,13 @@ function RecordingCardContent({ data }: { data: RecordingFeedData }) {
   const entries = normalizeRecordingFeedEntries(data);
   const first = entries[0];
   if (!first) return null;
+  const readAuthorNames = entries
+    .filter(
+      (entry): entry is Extract<(typeof entries)[number], { type: "read" }> =>
+        entry.type === "read",
+    )
+    .map((entry) => entry.readAuthorName ?? entry.readSourceTitle)
+    .filter(Boolean);
   return (
     <div className="space-y-2">
       {entries.length > 1 && (
@@ -507,9 +523,9 @@ function RecordingCardContent({ data }: { data: RecordingFeedData }) {
       )}
       {first.type === "read" ? (
         <>
-          {first.readSourceTitle && (
+          {readAuthorNames.length > 0 && (
             <p className="text-xs font-semibold text-gray-700 line-clamp-2">
-              {first.readSourceTitle}
+              {readAuthorNames.join(" · ")}
             </p>
           )}
           {first.readResonatedPart && (
@@ -540,6 +556,45 @@ function RecordingCardContent({ data }: { data: RecordingFeedData }) {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+function AppreciationCardContent({
+  data,
+  readerName,
+}: {
+  data: RecordingFeedData;
+  readerName: string;
+}) {
+  const entries = normalizeRecordingFeedEntries(data).filter(
+    (
+      entry,
+    ): entry is Extract<
+      ReturnType<typeof normalizeRecordingFeedEntries>[number],
+      { type: "read" }
+    > => entry.type === "read",
+  );
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm font-semibold text-violet-700">
+        {readerName}님이 남긴 감상
+      </p>
+      {entries.map((entry, index) => (
+        <div key={index} className="space-y-1.5 rounded-xl bg-violet-50 p-3">
+          {entry.readResonatedPart && (
+            <p className="text-xs leading-relaxed text-gray-700 line-clamp-3">
+              {entry.readResonatedPart}
+            </p>
+          )}
+          {entry.readReason && (
+            <p className="text-xs leading-relaxed text-gray-500 line-clamp-3">
+              {entry.readReason}
+            </p>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -620,6 +675,13 @@ function GalleryCard({
       case "기록":
         return (
           <RecordingCardContent data={item.routineData as RecordingFeedData} />
+        );
+      case "내 글 감상":
+        return (
+          <AppreciationCardContent
+            data={item.routineData as RecordingFeedData}
+            readerName={item.userName}
+          />
         );
       case "원서읽기":
         return (
@@ -879,7 +941,9 @@ export default function RecordGallery({
             <GalleryCard
               key={item.id}
               item={item}
-              selectionMode={selectionMode}
+              selectionMode={
+                selectionMode && getArchiveDeleteTarget(item) !== null
+              }
               selected={selectedIds.has(String(item.id))}
               onToggleSelect={() => toggleSelect(item)}
             />

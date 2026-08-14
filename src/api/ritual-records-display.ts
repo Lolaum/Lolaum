@@ -269,6 +269,38 @@ function recordToFeedItem(
   } as FeedItem;
 }
 
+function recordingReadToAppreciationItem(
+  record: RitualRecord,
+  readerProfile: ProfileInfo | null,
+  targetUserId: string,
+): FeedItem | null {
+  const data = record.record_data as Record<string, unknown>;
+  const entries = Array.isArray(data?.entries)
+    ? data.entries.filter((entry) => {
+        if (!entry || typeof entry !== "object") return false;
+        const row = entry as Record<string, unknown>;
+        return row.type === "read" && row.readAuthorUserId === targetUserId;
+      })
+    : [];
+  if (entries.length === 0) return null;
+
+  return {
+    id: `appreciation-${record.id}`,
+    odOriginalId: record.id,
+    userId: record.user_id,
+    userName: readerProfile?.name ?? "알 수 없음",
+    userProfileImage: readerProfile?.avatar_url ?? undefined,
+    date: record.record_date,
+    createdAt: record.created_at,
+    routineCategory: "내 글 감상",
+    routineId: 0,
+    recordId: 0,
+    routineData: { entries } as RecordingFeedData,
+    comments: [],
+    archiveHref: `/feeds/${record.id}`,
+  };
+}
+
 function firstText(values: unknown[]): string {
   for (const value of values) {
     if (typeof value === "string" && value.trim()) return value.trim();
@@ -550,6 +582,46 @@ export async function getMyRecordsForDisplay(options?: {
       return { data: [], error: finalReviewsRes.error.message };
     }
 
+    let appreciationRows: RitualRecord[] = [];
+    let appreciationProfileMap = new Map<string, ProfileInfo>();
+    if (shouldIncludeReflections) {
+      const admin = createAdminClient();
+      const { data: receivedReads, error: receivedReadsError } = await admin
+        .from("ritual_records")
+        .select(
+          "id, user_id, routine_type, record_date, record_data, challenge_id, created_at",
+        )
+        .eq("routine_type", "recording")
+        .neq("user_id", user.id)
+        .contains("record_data", {
+          entries: [{ readAuthorUserId: user.id }],
+        })
+        .order("record_date", { ascending: false });
+      if (receivedReadsError) {
+        return { data: [], error: receivedReadsError.message };
+      }
+
+      appreciationRows = (receivedReads ?? []) as RitualRecord[];
+      const readerIds = [
+        ...new Set(appreciationRows.map((record) => record.user_id)),
+      ];
+      if (readerIds.length > 0) {
+        const { data: readerProfiles, error: readerProfilesError } = await admin
+          .from("profiles")
+          .select("id, name, avatar_url")
+          .in("id", readerIds);
+        if (readerProfilesError) {
+          return { data: [], error: readerProfilesError.message };
+        }
+        appreciationProfileMap = new Map(
+          ((readerProfiles ?? []) as ProfileInfo[]).map((profile) => [
+            profile.id,
+            profile,
+          ]),
+        );
+      }
+    }
+
     // 필요한 모든 책을 한 번에 조회
     const recordRows = (records ?? []) as RitualRecord[];
     const bookMap = await fetchBookMap(recordRows, supabase);
@@ -572,6 +644,14 @@ export async function getMyRecordsForDisplay(options?: {
     for (const review of (finalReviewsRes.data ??
       []) as FinalReviewArchiveRow[]) {
       feedItems.push(finalReviewToFeedItem(review, profileInfo));
+    }
+    for (const record of appreciationRows) {
+      const item = recordingReadToAppreciationItem(
+        record,
+        appreciationProfileMap.get(record.user_id) ?? null,
+        user.id,
+      );
+      if (item) feedItems.push(item);
     }
 
     feedItems.sort((a, b) => {

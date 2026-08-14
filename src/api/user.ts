@@ -75,6 +75,7 @@ export interface ChallengerSummary {
  */
 export async function getCurrentChallengers(): Promise<{
   data?: ChallengerSummary[];
+  currentUserId?: string;
   error?: string;
 }> {
   const currentUser = await getCurrentUser();
@@ -148,5 +149,5 @@ export async function getCurrentChallengers(): Promise<{
       return 0;
     });
 
-  return { data: challengers };
+  return { data: challengers, currentUserId: currentUser?.id };
 }

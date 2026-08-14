@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import {
   Loader2,
@@ -12,6 +13,7 @@ import {
   Trash2,
   Upload,
   ChevronDown,
+  MessageCircle,
 } from "lucide-react";
 import LinkifiedText from "@/components/common/LinkifiedText";
 import EditFeedRecord from "@/components/Feed/EditFeedRecord";
@@ -21,12 +23,14 @@ import {
   deleteRitualRecord,
   getMyRitualRecords,
 } from "@/api/ritual-record";
+import { getMyRecordsForDisplay } from "@/api/ritual-records-display";
 import { isDateInCurrentKoreaWeek } from "@/lib/current-week";
 import { formatKoreaDateKey } from "@/lib/korea-date";
 import { fileToBase64 } from "@/lib/utils";
 import { uploadImages } from "@/lib/upload-image";
 import { useRitualDraft } from "@/hooks/useRitualDraft";
 import RitualDraftButtons from "@/components/common/RitualDraftButtons";
+import { getCurrentChallengers, type ChallengerSummary } from "@/api/user";
 import {
   normalizeRecordingEntries,
   type RecordingEntry,
@@ -34,7 +38,11 @@ import {
   type RecordingRecordData,
   type Json,
 } from "@/types/supabase";
-import type { FeedItem, RecordingFeedData } from "@/types/feed";
+import {
+  normalizeRecordingFeedEntries,
+  type FeedItem,
+  type RecordingFeedData,
+} from "@/types/feed";
 
 interface RecordingContainerProps {
   mode?: "main" | "new";
@@ -46,6 +54,14 @@ interface RecordingRecord {
   date: string;
   entries: RecordingEntry[];
   photos?: string[];
+}
+
+interface ReceivedAppreciation {
+  id: string;
+  date: string;
+  readerName: string;
+  entries: Extract<RecordingEntry, { type: "read" }>[];
+  href: string;
 }
 
 const DURATION_OPTIONS = [10, 20, 30, 40, 50, 60];
@@ -69,6 +85,8 @@ const emptyWrite = (): RecordingEntry => ({
 
 const emptyRead = (): RecordingEntry => ({
   type: "read",
+  readAuthorUserId: undefined,
+  readAuthorName: "",
   readSourceTitle: "",
   readResonatedPart: "",
   readReason: "",
@@ -83,6 +101,7 @@ const isEntryValid = (e: RecordingEntry): boolean => {
     );
   }
   return (
+    !!e.readAuthorUserId &&
     !!e.readSourceTitle.trim() &&
     !!e.readResonatedPart.trim() &&
     !!e.readReason.trim()
@@ -95,6 +114,12 @@ export default function RecordingContainer({
 }: RecordingContainerProps) {
   const router = useRouter();
   const [records, setRecords] = useState<RecordingRecord[]>([]);
+  const [receivedAppreciations, setReceivedAppreciations] = useState<
+    ReceivedAppreciation[]
+  >([]);
+  const [managementTab, setManagementTab] = useState<
+    "records" | "appreciations"
+  >("records");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
@@ -102,6 +127,9 @@ export default function RecordingContainer({
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [expandedRecordIds, setExpandedRecordIds] = useState<string[]>([]);
+  const [expandedAppreciationIds, setExpandedAppreciationIds] = useState<
+    string[]
+  >([]);
   const [deleting, setDeleting] = useState(false);
 
   // 폼 상태: 모드(글 작성/글 읽기 대체) + 항목 묶음
@@ -113,6 +141,8 @@ export default function RecordingContainer({
   const [certPhotos, setCertPhotos] = useState<string[]>([]);
   const [weeklyReadDates, setWeeklyReadDates] = useState<string[]>([]);
   const [weeklyReadLoading, setWeeklyReadLoading] = useState(true);
+  const [readAuthors, setReadAuthors] = useState<ChallengerSummary[]>([]);
+  const [readAuthorsLoading, setReadAuthorsLoading] = useState(true);
   const {
     hasDraft,
     loading: draftLoading,
@@ -128,7 +158,10 @@ export default function RecordingContainer({
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
-    const { data } = await getMyRitualRecords({ routineType: "recording" });
+    const [{ data }, { data: archiveItems }] = await Promise.all([
+      getMyRitualRecords({ routineType: "recording" }),
+      getMyRecordsForDisplay(),
+    ]);
     if (data) {
       const mapped: RecordingRecord[] = data.map((r) => {
         const d = r.record_data as unknown as RecordingRecordData;
@@ -142,6 +175,25 @@ export default function RecordingContainer({
       });
       setRecords(mapped);
     }
+    const appreciationItems: ReceivedAppreciation[] = archiveItems
+      .filter((item) => item.routineCategory === "내 글 감상")
+      .map((item) => {
+        const date = new Date(item.date);
+        const entries = normalizeRecordingFeedEntries(
+          item.routineData as RecordingFeedData,
+        ).filter(
+          (entry): entry is Extract<RecordingEntry, { type: "read" }> =>
+            entry.type === "read",
+        );
+        return {
+          id: String(item.id),
+          date: `${date.getMonth() + 1}월 ${date.getDate()}일`,
+          readerName: item.userName,
+          entries,
+          href: item.archiveHref ?? `/feeds/${item.odOriginalId ?? item.id}`,
+        };
+      });
+    setReceivedAppreciations(appreciationItems);
     setLoading(false);
   }, []);
 
@@ -163,13 +215,26 @@ export default function RecordingContainer({
     setWeeklyReadLoading(false);
   }, []);
 
+  const fetchReadAuthors = useCallback(async () => {
+    setReadAuthorsLoading(true);
+    const { data, currentUserId } = await getCurrentChallengers();
+    setReadAuthors(
+      (data ?? []).filter((challenger) => challenger.id !== currentUserId),
+    );
+    setReadAuthorsLoading(false);
+  }, []);
+
   useEffect(() => {
-    void Promise.resolve().then(() => {
-      if (mode === "main") return fetchRecords();
-      if (mode === "new") return fetchWeeklyReadCount();
-      return undefined;
+    void Promise.resolve().then(async () => {
+      if (mode === "main") {
+        await fetchRecords();
+        return;
+      }
+      if (mode === "new") {
+        await Promise.all([fetchWeeklyReadCount(), fetchReadAuthors()]);
+      }
     });
-  }, [fetchRecords, fetchWeeklyReadCount, mode]);
+  }, [fetchReadAuthors, fetchRecords, fetchWeeklyReadCount, mode]);
 
   const handleDelete = async () => {
     if (!deleteTargetId) return;
@@ -291,6 +356,8 @@ export default function RecordingContainer({
             }
           : {
               type: "read",
+              readAuthorUserId: e.readAuthorUserId,
+              readAuthorName: (e.readAuthorName ?? e.readSourceTitle).trim(),
               readSourceTitle: e.readSourceTitle.trim(),
               readResonatedPart: e.readResonatedPart.trim(),
               readReason: e.readReason.trim(),
@@ -352,6 +419,14 @@ export default function RecordingContainer({
       current.includes(recordId)
         ? current.filter((id) => id !== recordId)
         : [...current, recordId],
+    );
+  };
+
+  const toggleAppreciation = (appreciationId: string) => {
+    setExpandedAppreciationIds((current) =>
+      current.includes(appreciationId)
+        ? current.filter((id) => id !== appreciationId)
+        : [...current, appreciationId],
     );
   };
 
@@ -473,6 +548,8 @@ export default function RecordingContainer({
               onPhotoFiles={handlePhotoFiles}
               onRemovePhoto={removePhoto}
               onRemove={() => removeEntry(idx)}
+              readAuthors={readAuthors}
+              readAuthorsLoading={readAuthorsLoading}
             />
           ))}
         </div>
@@ -581,123 +658,235 @@ export default function RecordingContainer({
         </button>
       </div>
 
+      <div className="mb-4 grid grid-cols-2 gap-2 rounded-2xl bg-gray-100 p-1.5">
+        <button
+          type="button"
+          onClick={() => setManagementTab("records")}
+          className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
+            managementTab === "records"
+              ? "bg-white text-rose-600 shadow-sm"
+              : "text-gray-500"
+          }`}
+        >
+          내 기록 {records.length}
+        </button>
+        <button
+          type="button"
+          onClick={() => setManagementTab("appreciations")}
+          className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
+            managementTab === "appreciations"
+              ? "bg-white text-violet-600 shadow-sm"
+              : "text-gray-500"
+          }`}
+        >
+          내 글 감상 {receivedAppreciations.length}
+        </button>
+      </div>
+
       {/* 기록 목록 */}
-      {loading ? (
-        <div className="text-center py-8 text-gray-400">
-          <Loader2 size={20} className="animate-spin mx-auto mb-2" />
-          <p className="text-xs">기록을 불러오는 중...</p>
+      {managementTab === "records" ? (
+        loading ? (
+          <div className="text-center py-8 text-gray-400">
+            <Loader2 size={20} className="animate-spin mx-auto mb-2" />
+            <p className="text-xs">기록을 불러오는 중...</p>
+          </div>
+        ) : records.length === 0 ? (
+          <p className="text-center text-sm text-gray-300 py-8">
+            아직 작성한 기록이 없어요
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {records.map((record) => {
+              const isExpanded = expandedRecordIds.includes(record.id);
+              const firstEntry = record.entries[0];
+              const readAuthorNames = record.entries
+                .filter(
+                  (entry): entry is Extract<RecordingEntry, { type: "read" }> =>
+                    entry.type === "read",
+                )
+                .map((entry) => entry.readAuthorName ?? entry.readSourceTitle)
+                .filter(Boolean);
+              const summaryTitle =
+                firstEntry?.type === "write"
+                  ? firstEntry.title || "작성한 글"
+                  : readAuthorNames.join(" · ") || "읽은 글 기록";
+              const summaryLabel =
+                firstEntry?.type === "read"
+                  ? `글 읽기 대체 ${readAuthorNames.length}명`
+                  : "글 작성";
+
+              return (
+                <div
+                  key={record.id}
+                  className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleRecord(record.id)}
+                    aria-expanded={isExpanded}
+                    aria-controls={`recording-record-${record.id}`}
+                    className="flex w-full items-center justify-between gap-4 p-4 text-left transition-colors hover:bg-gray-50"
+                  >
+                    <div className="min-w-0">
+                      <p className="mb-1 text-[10px] font-medium text-gray-300">
+                        {record.date}
+                      </p>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="shrink-0 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-500">
+                          {summaryLabel}
+                        </span>
+                        <p className="truncate text-sm font-semibold text-gray-800">
+                          {summaryTitle}
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronDown
+                      className={`h-5 w-5 shrink-0 text-gray-400 transition-transform ${
+                        isExpanded ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {isExpanded && (
+                    <div
+                      id={`recording-record-${record.id}`}
+                      className="border-t border-gray-100 p-4"
+                    >
+                      {editingRecordId === record.id ? (
+                        <EditFeedRecord
+                          item={makeFeedItem(record)}
+                          onCancel={() => {
+                            setEditingRecordId(null);
+                            fetchRecords();
+                          }}
+                        />
+                      ) : (
+                        <>
+                          <div className="space-y-3">
+                            {record.entries.map((entry, i) => (
+                              <RecordEntryView key={i} entry={entry} />
+                            ))}
+                          </div>
+                          {record.photos && record.photos.length > 0 && (
+                            <div
+                              className={`grid gap-2 mt-3 ${record.photos.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}
+                            >
+                              {record.photos.map((url, i) => (
+                                <Image
+                                  key={i}
+                                  src={url}
+                                  alt={`기록 사진 ${i + 1}`}
+                                  width={640}
+                                  height={360}
+                                  className="w-full rounded-xl object-cover max-h-64"
+                                  unoptimized
+                                />
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-gray-100">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditingRecordId((current) =>
+                                  current === record.id ? null : record.id,
+                                )
+                              }
+                              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                              {editingRecordId === record.id
+                                ? "수정 닫기"
+                                : "수정"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteTargetId(record.id)}
+                              className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              삭제
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )
+      ) : loading ? (
+        <div className="py-8 text-center text-gray-400">
+          <Loader2 size={20} className="mx-auto mb-2 animate-spin" />
+          <p className="text-xs">감상을 불러오는 중...</p>
         </div>
-      ) : records.length === 0 ? (
-        <p className="text-center text-sm text-gray-300 py-8">
-          아직 작성한 기록이 없어요
-        </p>
+      ) : receivedAppreciations.length === 0 ? (
+        <div className="rounded-2xl border border-violet-100 bg-violet-50 px-4 py-10 text-center">
+          <MessageCircle className="mx-auto mb-3 h-7 w-7 text-violet-300" />
+          <p className="text-sm font-semibold text-violet-700">
+            아직 내 글에 남겨진 감상이 없어요
+          </p>
+          <p className="mt-1 text-xs text-violet-400">
+            다른 챌린저가 내 글로 글 읽기 대체를 작성하면 여기에 표시돼요.
+          </p>
+        </div>
       ) : (
         <div className="space-y-3">
-          {records.map((record) => {
-            const isExpanded = expandedRecordIds.includes(record.id);
-            const firstEntry = record.entries[0];
-            const summaryTitle =
-              firstEntry?.type === "write"
-                ? firstEntry.title || "작성한 글"
-                : firstEntry?.readSourceTitle || "읽은 글 기록";
-            const summaryLabel =
-              firstEntry?.type === "read" ? "글 읽기 대체" : "글 작성";
+          {receivedAppreciations.map((appreciation) => {
+            const isExpanded = expandedAppreciationIds.includes(
+              appreciation.id,
+            );
+            const panelId = `recording-appreciation-${appreciation.id}`;
 
             return (
               <div
-                key={record.id}
-                className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
+                key={appreciation.id}
+                className="overflow-hidden rounded-2xl border border-violet-100 bg-white shadow-sm"
               >
                 <button
                   type="button"
-                  onClick={() => toggleRecord(record.id)}
+                  onClick={() => toggleAppreciation(appreciation.id)}
                   aria-expanded={isExpanded}
-                  aria-controls={`recording-record-${record.id}`}
-                  className="flex w-full items-center justify-between gap-4 p-4 text-left transition-colors hover:bg-gray-50"
+                  aria-controls={panelId}
+                  className="flex w-full items-center justify-between gap-4 p-4 text-left transition-colors hover:bg-violet-50/50"
                 >
                   <div className="min-w-0">
                     <p className="mb-1 text-[10px] font-medium text-gray-300">
-                      {record.date}
+                      {appreciation.date}
                     </p>
                     <div className="flex min-w-0 items-center gap-2">
-                      <span className="shrink-0 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-500">
-                        {summaryLabel}
+                      <span className="shrink-0 rounded-md bg-violet-100 px-2 py-1 text-[10px] font-semibold text-violet-600">
+                        내 글 감상
                       </span>
-                      <p className="truncate text-sm font-semibold text-gray-800">
-                        {summaryTitle}
+                      <p className="truncate text-sm font-bold text-gray-900">
+                        {appreciation.readerName}님이 남긴 감상
                       </p>
                     </div>
                   </div>
                   <ChevronDown
-                    className={`h-5 w-5 shrink-0 text-gray-400 transition-transform ${
+                    className={`h-5 w-5 shrink-0 text-violet-400 transition-transform ${
                       isExpanded ? "rotate-180" : ""
                     }`}
                   />
                 </button>
 
                 {isExpanded && (
-                  <div
-                    id={`recording-record-${record.id}`}
-                    className="border-t border-gray-100 p-4"
-                  >
-                    {editingRecordId === record.id ? (
-                      <EditFeedRecord
-                        item={makeFeedItem(record)}
-                        onCancel={() => {
-                          setEditingRecordId(null);
-                          fetchRecords();
-                        }}
-                      />
-                    ) : (
-                      <>
-                        <div className="space-y-3">
-                          {record.entries.map((entry, i) => (
-                            <RecordEntryView key={i} entry={entry} />
-                          ))}
-                        </div>
-                        {record.photos && record.photos.length > 0 && (
-                          <div
-                            className={`grid gap-2 mt-3 ${record.photos.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}
-                          >
-                            {record.photos.map((url, i) => (
-                              <Image
-                                key={i}
-                                src={url}
-                                alt={`기록 사진 ${i + 1}`}
-                                width={640}
-                                height={360}
-                                className="w-full rounded-xl object-cover max-h-64"
-                                unoptimized
-                              />
-                            ))}
-                          </div>
-                        )}
-                        <div className="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-gray-100">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setEditingRecordId((current) =>
-                                current === record.id ? null : record.id,
-                              )
-                            }
-                            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                            {editingRecordId === record.id
-                              ? "수정 닫기"
-                              : "수정"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteTargetId(record.id)}
-                            className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            삭제
-                          </button>
-                        </div>
-                      </>
-                    )}
+                  <div id={panelId} className="border-t border-violet-100 p-4">
+                    <div className="space-y-3">
+                      {appreciation.entries.map((entry, index) => (
+                        <AppreciationEntryView key={index} entry={entry} />
+                      ))}
+                    </div>
+                    <div className="mt-3 flex justify-end border-t border-violet-100 pt-3">
+                      <Link
+                        href={appreciation.href}
+                        className="text-xs font-semibold text-violet-600 hover:text-violet-800"
+                      >
+                        전체 기록 보기
+                      </Link>
+                    </div>
                   </div>
                 )}
               </div>
@@ -756,7 +945,7 @@ function RecordEntryView({ entry }: { entry: RecordingEntry }) {
         {entry.readSourceTitle && (
           <div className="min-w-0">
             <p className="text-[10px] text-gray-400 font-medium">
-              챌린저 닉네임
+              글을 쓴 챌린저
             </p>
             <LinkifiedText
               text={entry.readSourceTitle}
@@ -829,6 +1018,39 @@ function RecordEntryView({ entry }: { entry: RecordingEntry }) {
   );
 }
 
+function AppreciationEntryView({
+  entry,
+}: {
+  entry: Extract<RecordingEntry, { type: "read" }>;
+}) {
+  return (
+    <div className="space-y-2 rounded-xl bg-violet-50 p-3">
+      {entry.readResonatedPart && (
+        <div>
+          <p className="mb-1 text-[10px] font-semibold text-violet-400">
+            마음에 닿은 부분
+          </p>
+          <LinkifiedText
+            text={entry.readResonatedPart}
+            className="text-sm leading-relaxed text-gray-700"
+          />
+        </div>
+      )}
+      {entry.readReason && (
+        <div>
+          <p className="mb-1 text-[10px] font-semibold text-violet-400">
+            마음에 닿은 이유 / 닮고 싶은 부분
+          </p>
+          <LinkifiedText
+            text={entry.readReason}
+            className="text-sm leading-relaxed text-gray-600"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EntryCard({
   index,
   entry,
@@ -841,6 +1063,8 @@ function EntryCard({
   onPhotoFiles,
   onRemovePhoto,
   onRemove,
+  readAuthors,
+  readAuthorsLoading,
 }: {
   index: number;
   entry: RecordingEntry;
@@ -853,6 +1077,8 @@ function EntryCard({
   onPhotoFiles: (files: FileList | null) => Promise<void>;
   onRemovePhoto: (index: number) => void;
   onRemove: () => void;
+  readAuthors: ChallengerSummary[];
+  readAuthorsLoading: boolean;
 }) {
   const isWrite = entry.type === "write";
   const headerBg = isWrite ? "bg-rose-50" : "bg-violet-50";
@@ -895,6 +1121,8 @@ function EntryCard({
         <ReadFields
           entry={entry as Extract<RecordingEntry, { type: "read" }>}
           onChange={onChange}
+          readAuthors={readAuthors}
+          loading={readAuthorsLoading}
         />
       )}
     </div>
@@ -1119,23 +1347,48 @@ function WriteFields({
 function ReadFields({
   entry,
   onChange,
+  readAuthors,
+  loading,
 }: {
   entry: Extract<RecordingEntry, { type: "read" }>;
   onChange: (patch: Partial<RecordingEntry>) => void;
+  readAuthors: ChallengerSummary[];
+  loading: boolean;
 }) {
   return (
     <div className="space-y-3">
       <div>
         <label className="mb-1.5 block text-xs font-semibold text-gray-500">
-          오늘 읽은 다른 챌린저 글 <span className="text-red-400">*</span>
+          글을 쓴 챌린저 <span className="text-red-400">*</span>
         </label>
-        <input
-          type="text"
-          value={entry.readSourceTitle}
-          onChange={(e) => onChange({ readSourceTitle: e.target.value })}
-          placeholder="챌린저 닉네임"
+        <select
+          value={entry.readAuthorUserId ?? ""}
+          onChange={(event) => {
+            const author = readAuthors.find(
+              (challenger) => challenger.id === event.target.value,
+            );
+            onChange({
+              readAuthorUserId: author?.id,
+              readAuthorName: author?.name ?? "",
+              readSourceTitle: author?.name ?? "",
+            });
+          }}
+          disabled={loading}
           className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] transition-all"
-        />
+        >
+          <option value="">
+            {loading
+              ? "챌린저를 불러오는 중..."
+              : readAuthors.length === 0
+                ? "선택할 챌린저가 없어요"
+                : "챌린저를 선택해 주세요"}
+          </option>
+          {readAuthors.map((author) => (
+            <option key={author.id} value={author.id}>
+              {author.name}
+            </option>
+          ))}
+        </select>
       </div>
       <div>
         <label className="mb-1.5 block text-xs font-semibold text-gray-500">

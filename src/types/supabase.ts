@@ -774,7 +774,9 @@ export interface RecordingWriteEntry {
 
 export interface RecordingReadEntry {
   type: "read";
-  readSourceTitle: string; // 오늘 읽은 다른 챌린저 글
+  readAuthorUserId?: string; // 글을 쓴 챌린저 프로필 ID
+  readAuthorName?: string; // 이름 변경에도 기록 당시 표시를 유지하는 스냅샷
+  readSourceTitle: string; // 레거시 이름 필드(하위 호환)
   readResonatedPart: string; // 마음에 닿은 부분
   readReason: string; // 마음에 닿았던 이유, 닮고 싶은 부분
 }
@@ -816,6 +818,7 @@ export function normalizeRecordingEntries(
       return [
         {
           type: "read",
+          readAuthorName: d.readSourceTitle ?? "",
           readSourceTitle: d.readSourceTitle ?? "",
           readResonatedPart: d.readResonatedPart ?? "",
           readReason: d.readReason ?? "",
