@@ -8,6 +8,7 @@ import { CheckCircle2, Coins, Trophy } from "lucide-react";
 import { updateMe } from "@/api/user";
 import { createClient } from "@/lib/supabase/client";
 import UserAvatar from "@/components/common/UserAvatar";
+import { normalizeImageFile } from "@/lib/utils";
 import {
   MyPageStats,
   CompletionRateStats,
@@ -171,14 +172,19 @@ export default function Profile({
     setShowEditModal(false);
   };
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
+    const imageFile = await normalizeImageFile(file);
+    if (!imageFile) return;
     clearEditPhotoObjectUrl();
-    const objectUrl = URL.createObjectURL(file);
+    const objectUrl = URL.createObjectURL(imageFile);
     editPhotoObjectUrlRef.current = objectUrl;
     setEditPhoto(objectUrl);
-    setEditPhotoFile(file);
+    setEditPhotoFile(imageFile);
   };
 
   return (

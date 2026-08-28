@@ -1,6 +1,109 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+const IMAGE_MIME_BY_EXTENSION: Record<string, string> = {
+  avif: "image/avif",
+  bmp: "image/bmp",
+  gif: "image/gif",
+  heic: "image/heic",
+  heif: "image/heif",
+  jpeg: "image/jpeg",
+  jpg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+};
+
+function getImageMimeTypeFromName(fileName: string): string | null {
+  const extension = fileName.split(".").pop()?.toLowerCase();
+  return extension ? (IMAGE_MIME_BY_EXTENSION[extension] ?? null) : null;
+}
+
+function getImageMimeTypeFromBytes(bytes: Uint8Array): string | null {
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return "image/jpeg";
+  }
+  if (
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47 &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a &&
+    bytes[6] === 0x1a &&
+    bytes[7] === 0x0a
+  ) {
+    return "image/png";
+  }
+
+  const ascii = String.fromCharCode(...bytes);
+  if (ascii.startsWith("GIF87a") || ascii.startsWith("GIF89a")) {
+    return "image/gif";
+  }
+  if (ascii.startsWith("RIFF") && ascii.slice(8, 12) === "WEBP") {
+    return "image/webp";
+  }
+  if (ascii.startsWith("BM")) return "image/bmp";
+
+  if (ascii.slice(4, 8) === "ftyp") {
+    const brand = ascii.slice(8, 12);
+    if (brand === "avif" || brand === "avis") return "image/avif";
+    if (
+      [
+        "heic",
+        "heix",
+        "hevc",
+        "hevx",
+        "heim",
+        "heis",
+        "mif1",
+        "msf1",
+      ].includes(brand)
+    ) {
+      return "image/heic";
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Android 인앱 WebView가 MIME 타입을 비워 전달하는 경우 파일명과 시그니처로
+ * 이미지 타입을 복원한다. 이미지가 아니면 null을 반환한다.
+ */
+export async function normalizeImageFile(file: File): Promise<File | null> {
+  const declaredMimeType = file.type.trim().toLowerCase();
+  let imageMimeType = declaredMimeType.startsWith("image/")
+    ? declaredMimeType
+    : getImageMimeTypeFromName(file.name);
+
+  if (!imageMimeType) {
+    try {
+      const bytes = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+      imageMimeType = getImageMimeTypeFromBytes(bytes);
+    } catch {
+      return null;
+    }
+  }
+
+  if (!imageMimeType) return null;
+  if (declaredMimeType === imageMimeType) return file;
+
+  return new File([file], file.name || "image", {
+    type: imageMimeType,
+    lastModified: file.lastModified,
+  });
+}
+
+export async function normalizeImageFiles(
+  files: FileList | readonly File[] | null,
+): Promise<File[]> {
+  if (!files) return [];
+  const normalized = await Promise.all(
+    Array.from(files).map(normalizeImageFile),
+  );
+  return normalized.filter((file): file is File => file !== null);
+}
+
 /**
  * Tailwind CSS 클래스를 병합하는 유틸리티 함수
  */
@@ -14,9 +117,10 @@ export async function resizeImageFile(
   maxSize = 800,
   quality = 0.85,
 ): Promise<File> {
-  if (!file.type.startsWith("image/")) return file;
+  const normalizedFile = await normalizeImageFile(file);
+  if (!normalizedFile) return file;
 
-  const url = URL.createObjectURL(file);
+  const url = URL.createObjectURL(normalizedFile);
   try {
     const bitmap = await new Promise<HTMLImageElement>((resolve, reject) => {
       const img = new Image();
@@ -37,15 +141,15 @@ export async function resizeImageFile(
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext("2d");
-    if (!ctx) return file;
+    if (!ctx) return normalizedFile;
     ctx.drawImage(bitmap, 0, 0, w, h);
 
     const blob = await new Promise<Blob | null>((resolve) =>
       canvas.toBlob(resolve, "image/jpeg", quality),
     );
-    if (!blob) return file;
+    if (!blob) return normalizedFile;
 
-    return new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+    return new File([blob], normalizedFile.name.replace(/\.[^.]+$/, ".jpg"), {
       type: "image/jpeg",
       lastModified: Date.now(),
     });

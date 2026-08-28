@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import NextImage from "next/image";
 import { Download, ImagePlus, X } from "lucide-react";
 import { uploadImage } from "@/lib/upload-image";
+import { normalizeImageFile, normalizeImageFiles } from "@/lib/utils";
 
 type TemplateId = "classic" | "hud" | "editorial" | "minimal";
 
@@ -347,11 +348,13 @@ export default function BookRunningMaker({
 
   if (!open) return null;
 
-  const handlePhoto = (file?: File) => {
-    if (!file || !file.type.startsWith("image/")) return;
+  const handlePhoto = async (file?: File) => {
+    if (!file) return;
+    const imageFile = await normalizeImageFile(file);
+    if (!imageFile) return;
     setPhotoUrl((current) => {
       if (current) URL.revokeObjectURL(current);
-      return URL.createObjectURL(file);
+      return URL.createObjectURL(imageFile);
     });
   };
 
@@ -367,14 +370,11 @@ export default function BookRunningMaker({
     setIsDragging(false);
   };
 
-  const handleDrop = (event: React.DragEvent<HTMLElement>) => {
+  const handleDrop = async (event: React.DragEvent<HTMLElement>) => {
     event.preventDefault();
     setIsDragging(false);
-    handlePhoto(
-      Array.from(event.dataTransfer.files).find((file) =>
-        file.type.startsWith("image/"),
-      ),
-    );
+    const [imageFile] = await normalizeImageFiles(event.dataTransfer.files);
+    await handlePhoto(imageFile);
   };
 
   const download = async () => {

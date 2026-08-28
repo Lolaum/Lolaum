@@ -7,6 +7,7 @@ import {
   fileToBase64,
   getPhotoTakenAt,
   hasMinimumPhotoInterval,
+  normalizeImageFiles,
 } from "@/lib/utils";
 import { uploadImages } from "@/lib/upload-image";
 import { useRitualDraft } from "@/hooks/useRitualDraft";
@@ -103,9 +104,10 @@ export default function AddNewExercise({
 
     const maxImages =
       recordType === "diet" ? MAX_DIET_IMAGES : MAX_EXERCISE_IMAGES;
-    const newFiles = Array.from(files)
-      .filter((file) => file.type.startsWith("image/"))
-      .slice(0, maxImages - images.length);
+    const newFiles = (await normalizeImageFiles(files)).slice(
+      0,
+      maxImages - images.length,
+    );
     const imageDrafts = await Promise.all(
       newFiles.map(async (file) => {
         const takenAt = await getPhotoTakenAt(file);
@@ -359,7 +361,7 @@ export default function AddNewExercise({
                   type="file"
                   className="hidden"
                   accept="image/*"
-                  multiple={recordType !== "diet"}
+                  // Android 인앱 WebView 호환을 위해 사진은 한 장씩 선택한다.
                   onChange={handleImageUpload}
                 />
               </label>

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Camera, X } from "lucide-react";
-import { applyTimestamp } from "@/lib/utils";
+import { applyTimestamp, normalizeImageFile } from "@/lib/utils";
 
 interface PhotoCertificationProps {
   mode: "start" | "end";
@@ -35,20 +35,22 @@ export default function PhotoCertification({
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
+    const imageFile = await normalizeImageFile(file);
+    if (!imageFile) return;
     setProcessing(true);
     const [tsUrl, origUrl] = await Promise.all([
-      applyTimestamp(file),
+      applyTimestamp(imageFile),
       new Promise<string>((resolve) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(imageFile);
       }),
     ]);
     setTimestampedPhoto(tsUrl);
     setOriginalPhoto(origUrl);
     setProcessing(false);
-    e.target.value = "";
   };
 
   const handleReset = () => {
