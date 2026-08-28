@@ -2,7 +2,11 @@
 
 import { useRef, useState } from "react";
 import { Plus, Trash2, Upload, X } from "lucide-react";
-import { applyTimestamp, fileToBase64 } from "@/lib/utils";
+import {
+  applyTimestamp,
+  fileToBase64,
+  normalizeImageFiles,
+} from "@/lib/utils";
 import { uploadImages } from "@/lib/upload-image";
 import { useRitualDraft } from "@/hooks/useRitualDraft";
 import RitualDraftButtons from "@/components/common/RitualDraftButtons";
@@ -87,9 +91,7 @@ export default function AddNewCleanup({
     if (!files) return;
     const remaining = MAX_CERT_PHOTOS - certPhotos.length;
     if (remaining <= 0) return;
-    const newFiles = Array.from(files)
-      .filter((file) => file.type.startsWith("image/"))
-      .slice(0, remaining);
+    const newFiles = (await normalizeImageFiles(files)).slice(0, remaining);
     const stamped = await Promise.all(
       newFiles.map((file) => applyTimestamp(file).catch(() => fileToBase64(file))),
     );

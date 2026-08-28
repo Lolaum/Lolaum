@@ -2,7 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Plus, X, Calendar as CalendarIcon, Upload } from "lucide-react";
-import { applyTimestamp, fileToBase64 } from "@/lib/utils";
+import {
+  applyTimestamp,
+  fileToBase64,
+  normalizeImageFiles,
+} from "@/lib/utils";
 import { uploadImages } from "@/lib/upload-image";
 import { useRitualDraft } from "@/hooks/useRitualDraft";
 import RitualDraftButtons from "@/components/common/RitualDraftButtons";
@@ -267,9 +271,7 @@ export default function AddNewFinance({
     if (!files) return;
     const remaining = MAX_CERT_PHOTOS - certPhotos.length;
     if (remaining <= 0) return;
-    const newFiles = Array.from(files)
-      .filter((file) => file.type.startsWith("image/"))
-      .slice(0, remaining);
+    const newFiles = (await normalizeImageFiles(files)).slice(0, remaining);
     const stamped = await Promise.all(
       newFiles.map((f) => applyTimestamp(f).catch(() => fileToBase64(f))),
     );

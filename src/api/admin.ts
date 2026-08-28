@@ -134,18 +134,6 @@ function isMissingRelationError(
   );
 }
 
-function isSchemaCacheMissingColumnError(
-  error: { message?: string; code?: string } | null,
-) {
-  if (!error) return false;
-  return (
-    error.code === "PGRST204" ||
-    /Could not find the .* column .* in the schema cache/i.test(
-      error.message ?? "",
-    )
-  );
-}
-
 function getRecordDataObject(recordData: unknown): Record<string, unknown> {
   return recordData &&
     typeof recordData === "object" &&
@@ -258,7 +246,9 @@ export async function getAdminDashboardData(): Promise<{
       .select("id, user_id, period_id, created_at, reset_at"),
     admin
       .from("ritual_records")
-      .select("id, user_id, challenge_id, routine_type, record_date, record_data, updated_at"),
+      .select(
+        "id, user_id, challenge_id, routine_type, record_date, record_data, updated_at",
+      ),
     admin
       .from("mid_reviews")
       .select("*")
@@ -438,9 +428,7 @@ export async function getAdminDashboardData(): Promise<{
         updatedAt: record.updated_at,
       };
     })
-    .filter(
-      (row): row is AdminMorningAttendanceExclusion => row !== null,
-    )
+    .filter((row): row is AdminMorningAttendanceExclusion => row !== null)
     .sort((a, b) => b.recordDate.localeCompare(a.recordDate));
 
   const challengesByPeriod = new Map<string, typeof challengesRes.data>();
@@ -675,16 +663,9 @@ export async function upsertChallengePeriod(input: {
   };
   const payload = { ...basePayload, ...reviewWindowPayload };
 
-  const savePeriod = (periodPayload: typeof basePayload | typeof payload) =>
-    input.id
-      ? admin.from("challenge_periods").update(periodPayload).eq("id", input.id)
-      : admin.from("challenge_periods").insert(periodPayload);
-
-  let result = await savePeriod(payload);
-
-  if (isSchemaCacheMissingColumnError(result.error)) {
-    result = await savePeriod(basePayload);
-  }
+  const result = input.id
+    ? await admin.from("challenge_periods").update(payload).eq("id", input.id)
+    : await admin.from("challenge_periods").insert(payload);
 
   if (result.error) {
     await logAdminError("admin.period.upsert", result.error.message, payload);
@@ -885,7 +866,9 @@ export async function setMorningAttendanceExcluded(input: {
     return { error: registrationError.message };
   }
   if (!registration) {
-    return { error: "선택한 사용자는 해당 기간에 모닝리추얼을 신청하지 않았습니다." };
+    return {
+      error: "선택한 사용자는 해당 기간에 모닝리추얼을 신청하지 않았습니다.",
+    };
   }
 
   const { data: records, error: recordsError } = await admin

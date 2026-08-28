@@ -26,7 +26,7 @@ import {
 import { getMyRecordsForDisplay } from "@/api/ritual-records-display";
 import { isDateInCurrentKoreaWeek } from "@/lib/current-week";
 import { formatKoreaDateKey } from "@/lib/korea-date";
-import { fileToBase64 } from "@/lib/utils";
+import { fileToBase64, normalizeImageFiles } from "@/lib/utils";
 import { uploadImages } from "@/lib/upload-image";
 import { useRitualDraft } from "@/hooks/useRitualDraft";
 import RitualDraftButtons from "@/components/common/RitualDraftButtons";
@@ -291,9 +291,7 @@ export default function RecordingContainer({
     if (!files) return;
     const remaining = MAX_RECORDING_PHOTOS - certPhotos.length;
     if (remaining <= 0) return;
-    const imageFiles = Array.from(files)
-      .filter((file) => file.type.startsWith("image/"))
-      .slice(0, remaining);
+    const imageFiles = (await normalizeImageFiles(files)).slice(0, remaining);
     if (imageFiles.length === 0) return;
     const nextPhotos = await Promise.all(imageFiles.map(fileToBase64));
     setCertPhotos((prev) =>

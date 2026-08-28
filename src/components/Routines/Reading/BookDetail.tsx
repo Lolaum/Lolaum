@@ -33,6 +33,8 @@ import {
   fileToBase64,
   getPhotoTakenAt,
   hasMinimumPhotoInterval,
+  normalizeImageFile,
+  normalizeImageFiles,
   resizeImageFile,
 } from "@/lib/utils";
 import { uploadImage, uploadImages } from "@/lib/upload-image";
@@ -93,12 +95,14 @@ function AddReadingRecord({
   );
 
   const handleScreenshotFile = async (file: File | undefined) => {
-    if (!file || !file.type.startsWith("image/")) return;
-    const stamped = await applyTimestamp(file).catch(() => {
+    if (!file) return;
+    const imageFile = await normalizeImageFile(file);
+    if (!imageFile) return;
+    const stamped = await applyTimestamp(imageFile).catch(() => {
       const reader = new FileReader();
       return new Promise<string>((resolve) => {
         reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(imageFile);
       });
     });
     setScreenshot(stamped);
@@ -118,9 +122,7 @@ function AddReadingRecord({
     if (!files) return;
     const remaining = MAX_READING_CERT_PHOTOS - certPhotos.length;
     if (remaining <= 0) return;
-    const newFiles = Array.from(files)
-      .filter((file) => file.type.startsWith("image/"))
-      .slice(0, remaining);
+    const newFiles = (await normalizeImageFiles(files)).slice(0, remaining);
     const photoDrafts = await Promise.all(
       newFiles.map(async (file) => {
         const takenAt = await getPhotoTakenAt(file);

@@ -8,6 +8,7 @@ import {
   fileToBase64,
   getPhotoTakenAt,
   hasMinimumPhotoInterval,
+  normalizeImageFiles,
 } from "@/lib/utils";
 import { uploadImages } from "@/lib/upload-image";
 import { useRitualDraft } from "@/hooks/useRitualDraft";
@@ -88,9 +89,10 @@ export default function AddNewMorning({
   const handleImageFiles = async (files: FileList | null) => {
     if (!files) return;
 
-    const newFiles = Array.from(files)
-      .filter((file) => file.type.startsWith("image/"))
-      .slice(0, 2 - images.length);
+    const newFiles = (await normalizeImageFiles(files)).slice(
+      0,
+      2 - images.length,
+    );
 
     if (newFiles.length === 0) return;
 
