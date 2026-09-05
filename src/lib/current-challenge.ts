@@ -16,6 +16,7 @@ export const getActivePeriod = cache(async (): Promise<{
     mid_review_end_date: string | null;
     final_review_start_date: string | null;
     final_review_end_date: string | null;
+    morning_meet_url: string;
     label: string | null;
   } | null;
   error?: string;

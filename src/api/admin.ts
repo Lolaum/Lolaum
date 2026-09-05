@@ -718,6 +718,56 @@ export async function setUserDeactivated(input: {
   return { success: true };
 }
 
+export async function updateMorningMeetUrl(input: {
+  periodId: string;
+  morningMeetUrl: string;
+}): Promise<{ success?: boolean; morningMeetUrl?: string; error?: string }> {
+  const { user, error } = await requireAdmin();
+  if (!user) return { error: error ?? "관리자 권한이 없습니다." };
+
+  const value = input.morningMeetUrl.trim();
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return { error: "올바른 Google Meet 링크를 입력해주세요." };
+  }
+
+  if (
+    url.protocol !== "https:" ||
+    url.hostname !== "meet.google.com" ||
+    url.pathname === "/"
+  ) {
+    return {
+      error: "https://meet.google.com/으로 시작하는 링크를 입력해주세요.",
+    };
+  }
+
+  const morningMeetUrl = url.toString();
+  const admin = createAdminClient();
+  const result = await admin
+    .from("challenge_periods")
+    .update({ morning_meet_url: morningMeetUrl })
+    .eq("id", input.periodId)
+    .eq("is_active", true)
+    .select("id")
+    .maybeSingle();
+
+  if (result.error) {
+    await logAdminError("admin.morning-meet-url.update", result.error.message, {
+      periodId: input.periodId,
+    });
+    return { error: result.error.message };
+  }
+  if (!result.data) {
+    return { error: "활성 리추얼 기간을 찾을 수 없습니다." };
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/home/morning");
+  return { success: true, morningMeetUrl };
+}
+
 export async function deleteRegisteredRoutine(input: {
   registrationId: string;
 }): Promise<{ success?: boolean; error?: string }> {
