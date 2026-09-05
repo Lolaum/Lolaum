@@ -143,9 +143,8 @@ export default function ProgressContainer({
         />
       ) : (
         <PointsRanking
-          members={me ? [me, ...challengers] : challengers}
-          history={data.myPointHistory}
-          myPoints={me?.points ?? 0}
+          members={data.pointMembers}
+          historyByUser={data.pointHistoryByUser}
         />
       )}
     </div>
@@ -404,16 +403,27 @@ function formatDailyDate(dateKey: string) {
 
 function PointsRanking({
   members,
-  history,
-  myPoints,
+  historyByUser,
 }: {
   members: ChallengerProgress[];
-  history: ProgressPageData["myPointHistory"];
-  myPoints: number;
+  historyByUser: ProgressPageData["pointHistoryByUser"];
 }) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const rankedMembers = [...members].sort(
     (a, b) => b.points - a.points || a.name.localeCompare(b.name, "ko"),
+  );
+  const allHistory = rankedMembers
+    .flatMap((member) =>
+      (historyByUser[member.userId] ?? []).map((entry) => ({ member, entry })),
+    )
+    .sort(
+      (a, b) =>
+        Date.parse(b.entry.createdAt) - Date.parse(a.entry.createdAt) ||
+        a.entry.id.localeCompare(b.entry.id),
+    );
+  const totalPoints = rankedMembers.reduce(
+    (total, member) => total + member.points,
+    0,
   );
 
   return (
@@ -448,13 +458,15 @@ function PointsRanking({
             <Coins className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-gray-900">내 포인트 내역</p>
+            <p className="text-sm font-bold text-gray-900">
+              전체 포인트 내역
+            </p>
             <p className="mt-0.5 text-xs text-gray-400">
               좋아요 +1P · 댓글 +2P · 하루 최대 5P
             </p>
           </div>
           <span className="text-sm font-bold text-yellow-600">
-            {myPoints.toLocaleString()}P
+            {totalPoints.toLocaleString()}P
           </span>
           {historyOpen ? (
             <ChevronUp className="h-4 w-4 text-gray-400" />
@@ -466,16 +478,16 @@ function PointsRanking({
         {historyOpen && (
           <div className="border-t border-gray-100">
             <p className="bg-gray-50 px-4 py-2 text-[11px] text-gray-400">
-              다른 챌린저의 글에 남긴 활동만 적립되며, 일일 한도를 넘은 활동도
-              확인할 수 있어요.
+              모든 챌린저의 적립 활동이며, 일일 한도를 넘은 활동도 확인할 수
+              있어요.
             </p>
-            {history.length === 0 ? (
+            {allHistory.length === 0 ? (
               <p className="px-4 py-6 text-center text-sm text-gray-400">
                 아직 적립 내역이 없습니다.
               </p>
             ) : (
-              <div className="max-h-[600px] divide-y divide-gray-100 overflow-y-auto overscroll-contain">
-                {history.map((entry) => {
+              <div className="max-h-[300px] divide-y divide-gray-100 overflow-y-auto overscroll-contain">
+                {allHistory.map(({ member, entry }) => {
                   const Icon =
                     entry.type === "comment" ? MessageCircle : ThumbsUp;
                   const content = (
@@ -491,7 +503,7 @@ function PointsRanking({
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-gray-700">
-                          {entry.targetName}님의 글에{" "}
+                          {member.name}님이 {entry.targetName}님의 글에{" "}
                           {entry.type === "comment" ? "댓글" : "좋아요"}
                         </p>
                         <p className="mt-0.5 text-xs text-gray-400">
@@ -514,7 +526,7 @@ function PointsRanking({
 
                   return entry.ritualRecordId ? (
                     <Link
-                      key={entry.id}
+                      key={`${member.userId}:${entry.id}`}
                       href={`/feeds/${entry.ritualRecordId}`}
                       className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
                     >
@@ -522,7 +534,7 @@ function PointsRanking({
                     </Link>
                   ) : (
                     <div
-                      key={entry.id}
+                      key={`${member.userId}:${entry.id}`}
                       className="flex items-center gap-3 px-4 py-3"
                     >
                       {content}

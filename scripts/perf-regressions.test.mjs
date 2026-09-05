@@ -210,6 +210,32 @@ test("progress lists only challengers with at least one registered ritual", () =
   );
 });
 
+test("point ranking exposes every challenger's earning history", () => {
+  const progress = read("src/api/progress.ts");
+  const progressUi = read("src/components/Progress/ProgressContainer.tsx");
+
+  assert.match(
+    progress,
+    /pointMembers: allChallengers/,
+    "point ranking should include every challenger even when the other progress tabs filter unregistered rituals",
+  );
+  assert.match(
+    progress,
+    /pointHistoryByUser: Object\.fromEntries/,
+    "progress data should serialize point history for every challenger",
+  );
+  assert.match(
+    progressUi,
+    /rankedMembers[\s\S]*\.flatMap\(\(member\)/,
+    "the existing point-history card should combine every challenger's history",
+  );
+  assert.match(
+    progressUi,
+    /\{member\.name\}님이 \{entry\.targetName\}님의 글에/,
+    "the combined history should identify which challenger earned each point entry",
+  );
+});
+
 test("language flash cards reset outside the current ritual period", () => {
   const recordApi = read("src/api/ritual-record.ts");
   const language = read("src/components/Routines/Language/LanguageContainer.tsx");
