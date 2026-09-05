@@ -202,6 +202,12 @@ export async function updatePassword(newPassword: string) {
   });
 
   if (error) {
+    if (error.message.toLowerCase().includes("auth session missing")) {
+      return {
+        error:
+          "비밀번호 재설정 링크가 만료되었거나 이미 사용되었습니다. 새 링크를 요청해주세요.",
+      };
+    }
     return { error: translateAuthError(error.message) };
   }
 

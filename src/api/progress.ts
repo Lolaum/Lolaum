@@ -38,7 +38,8 @@ export interface ChallengerProgress {
 export interface ProgressPageData {
   me: ChallengerProgress | null;
   challengers: ChallengerProgress[];
-  myPointHistory: EngagementPointHistoryEntry[];
+  pointMembers: ChallengerProgress[];
+  pointHistoryByUser: Record<string, EngagementPointHistoryEntry[]>;
   totalDays: number; // 활성 기간 평일 수 + 3 보너스
   periodStart: string;
   periodEnd: string;
@@ -105,7 +106,8 @@ export async function getProgressPageData(): Promise<{
         data: {
           me: null,
           challengers: [],
-          myPointHistory: [],
+          pointMembers: [],
+          pointHistoryByUser: {},
           totalDays: periodTotalDaysWithBonus,
           periodStart: period.start_date,
           periodEnd: period.end_date,
@@ -386,7 +388,13 @@ export async function getProgressPageData(): Promise<{
       data: {
         me,
         challengers,
-        myPointHistory: pointSummariesByUser.get(user.id)?.history ?? [],
+        pointMembers: allChallengers,
+        pointHistoryByUser: Object.fromEntries(
+          [...pointSummariesByUser].map(([userId, summary]) => [
+            userId,
+            summary.history,
+          ]),
+        ),
         totalDays: periodTotalDaysWithBonus,
         periodStart: period.start_date,
         periodEnd: period.end_date,

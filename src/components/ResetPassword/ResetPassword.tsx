@@ -5,13 +5,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updatePassword } from "@/api/auth";
 
-export default function ResetPassword() {
+interface ResetPasswordProps {
+  initialError?: string;
+}
+
+export default function ResetPassword({
+  initialError = "",
+}: ResetPasswordProps) {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initialError);
   const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
