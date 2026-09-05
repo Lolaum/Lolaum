@@ -36,11 +36,13 @@ import {
   resolveErrorLog,
   setMorningAttendanceExcluded,
   setUserDeactivated,
+  updateMorningMeetUrl,
   upsertChallengePeriod,
   upsertReviewQuestion,
   type AdminDashboardData,
   type AdminExportRow,
 } from "@/api/admin";
+import { DEFAULT_MORNING_MEET_URL } from "@/constants/morning";
 
 type Initial = Awaited<ReturnType<typeof getAdminDashboardData>>;
 type ExportKind = "donation" | "midReview" | "finalReview";
@@ -580,6 +582,9 @@ function AuthPanel({ onReload }: { onReload: () => void }) {
 }
 
 export default function AdminPageClient({ initial }: { initial: Initial }) {
+  const initialActivePeriod = initial.data?.periods.find(
+    (item) => item.is_active,
+  );
   const initialExportPeriodId =
     initial.data?.periods.find((item) => item.is_active)?.id ??
     initial.data?.periods[0]?.id ??
@@ -612,6 +617,10 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
     recordDate: "",
     excluded: true,
     reason: "",
+  });
+  const [morningMeetUrlDraft, setMorningMeetUrlDraft] = useState({
+    periodId: initialActivePeriod?.id ?? "",
+    value: initialActivePeriod?.morning_meet_url ?? DEFAULT_MORNING_MEET_URL,
   });
 
   const reload = () =>
@@ -664,6 +673,10 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
     (item) => item.id === exportPeriodId,
   );
   const activePeriod = data.periods.find((item) => item.is_active);
+  const morningMeetUrl =
+    morningMeetUrlDraft.periodId === activePeriod?.id
+      ? morningMeetUrlDraft.value
+      : (activePeriod?.morning_meet_url ?? DEFAULT_MORNING_MEET_URL);
   const activeRoutineRows = activePeriod
     ? data.users
         .map((user) => ({
@@ -815,6 +828,34 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
     });
   };
 
+  const handleMorningMeetUrlSave = () => {
+    if (!activePeriod) {
+      setError("현재 활성 리추얼 기간이 없습니다.");
+      return;
+    }
+    if (!morningMeetUrl.trim()) {
+      setError("Google Meet 링크를 입력해주세요.");
+      return;
+    }
+
+    startTransition(async () => {
+      const res = await updateMorningMeetUrl({
+        periodId: activePeriod.id,
+        morningMeetUrl,
+      });
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      setError("");
+      setMorningMeetUrlDraft({
+        periodId: activePeriod.id,
+        value: res.morningMeetUrl ?? morningMeetUrl,
+      });
+      reload();
+    });
+  };
+
   return (
     <ThemeProvider theme={adminTheme}>
       <CssBaseline />
@@ -855,7 +896,7 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
                 <Tab label="리추얼 기간" />
                 <Tab label="비활성 사용자" />
                 <Tab label="활성 리추얼" />
-                <Tab label="모닝 출석 제외" />
+                <Tab label="모닝리추얼" />
                 <Tab label="회고 질문" />
                 <Tab label="오류 로그" />
                 <Tab label="다운로드" />
@@ -1296,9 +1337,67 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
                   <Stack spacing={3}>
                     <Box>
                       <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                        모닝리추얼 출석 제외
+                        모닝리추얼 관리
                       </Typography>
                       <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+                        참여자가 접속할 Google Meet 링크와 출석 제외 기록을
+                        관리합니다.
+                      </Typography>
+                    </Box>
+                    <Card variant="outlined" sx={{ bgcolor: "#f5f9ff" }}>
+                      <CardContent>
+                        <Stack spacing={2}>
+                          <Box>
+                            <Typography
+                              variant="subtitle1"
+                              sx={{ fontWeight: 800 }}
+                            >
+                              Google Meet 링크
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              현재 활성 리추얼 기간의 모닝리추얼 참여
+                              링크입니다.
+                            </Typography>
+                          </Box>
+                          <Stack
+                            direction={{ xs: "column", md: "row" }}
+                            spacing={2}
+                          >
+                            <TextField
+                              fullWidth
+                              type="url"
+                              label="Google Meet 링크"
+                              placeholder="https://meet.google.com/abc-defg-hij"
+                              value={morningMeetUrl}
+                              disabled={!activePeriod}
+                              onChange={(e) =>
+                                setMorningMeetUrlDraft({
+                                  periodId: activePeriod?.id ?? "",
+                                  value: e.target.value,
+                                })
+                              }
+                            />
+                            <Button
+                              variant="contained"
+                              disabled={
+                                isPending ||
+                                !activePeriod ||
+                                !morningMeetUrl.trim()
+                              }
+                              onClick={handleMorningMeetUrlSave}
+                              sx={{ minWidth: 120 }}
+                            >
+                              링크 저장
+                            </Button>
+                          </Stack>
+                        </Stack>
+                      </CardContent>
+                    </Card>
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                        출석 제외 관리
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
                         모닝 기록은 남기고 진행표 출석 계산에서만 제외하거나
                         다시 포함합니다.
                       </Typography>

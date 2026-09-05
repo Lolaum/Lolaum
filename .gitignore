@@ -49,6 +49,7 @@ page-map.html
 
 # local project tooling and database artifacts
 /db/
+/database/
 /.claude/
 /.omx/
 /.github/

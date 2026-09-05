@@ -10,12 +10,17 @@ import { MorningRecord, MorningFormData } from "@/types/routines/morning";
 import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
 import { formatKoreaDateKey } from "@/lib/korea-date";
 import type { MorningRecordData, Json } from "@/types/supabase";
+import { DEFAULT_MORNING_MEET_URL } from "@/constants/morning";
 
 interface MorningContainerProps {
   mode?: "main" | "new";
+  morningMeetUrl?: string;
 }
 
-export default function MorningContainer({ mode = "main" }: MorningContainerProps) {
+export default function MorningContainer({
+  mode = "main",
+  morningMeetUrl = DEFAULT_MORNING_MEET_URL,
+}: MorningContainerProps) {
   const router = useRouter();
   const [morningRecords, setMorningRecords] = useState<MorningRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,7 +141,7 @@ export default function MorningContainer({ mode = "main" }: MorningContainerProp
 
       {/* 구글밋 링크 */}
       <a
-        href="https://meet.google.com/ume-fyvc-pfp"
+        href={morningMeetUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="w-full flex items-center gap-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"

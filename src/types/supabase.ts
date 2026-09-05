@@ -108,6 +108,7 @@ export interface Database {
           mid_review_end_date: string | null;
           final_review_start_date: string | null;
           final_review_end_date: string | null;
+          morning_meet_url: string;
           label: string | null;
           is_active: boolean;
           created_at: string;
@@ -120,6 +121,7 @@ export interface Database {
           mid_review_end_date?: string | null;
           final_review_start_date?: string | null;
           final_review_end_date?: string | null;
+          morning_meet_url?: string;
           label?: string | null;
           is_active?: boolean;
           created_at?: string;
@@ -131,6 +133,7 @@ export interface Database {
           mid_review_end_date?: string | null;
           final_review_start_date?: string | null;
           final_review_end_date?: string | null;
+          morning_meet_url?: string;
           label?: string | null;
           is_active?: boolean;
         };
