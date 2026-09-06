@@ -20,10 +20,12 @@ import {
   MorningRecordType,
 } from "@/types/routines/morning";
 
+import { MORNING_START_PHOTO_DEADLINE } from "@/constants/morning";
+import { isAfterMorningStartLimit } from "@/lib/morning";
+
 const WEEKEND_PHOTO_MIN_INTERVAL_MINUTES = 30;
-const MORNING_START_LIMIT_SECONDS = 6 * 60 * 60 + 30 * 60 + 59;
 const MORNING_START_TIME_MESSAGE =
-  "시작 사진의 촬영 시간은 06:30:59를 넘을 수 없습니다.";
+  `시작 사진의 촬영 시간은 ${MORNING_START_PHOTO_DEADLINE}를 넘을 수 없습니다.`;
 const MORNING_DRAFT_KEY = "morning";
 
 interface MorningDraftData {
@@ -33,18 +35,6 @@ interface MorningDraftData {
   condition: ConditionLevel | "";
   success: string;
   reflection: string;
-}
-
-function isAfterMorningStartLimit(takenAtTimes: number[]) {
-  if (takenAtTimes.length === 0) return false;
-
-  const startTime = new Date(Math.min(...takenAtTimes));
-  const seconds =
-    startTime.getHours() * 60 * 60 +
-    startTime.getMinutes() * 60 +
-    startTime.getSeconds();
-
-  return seconds > MORNING_START_LIMIT_SECONDS;
 }
 
 export default function AddNewMorning({
@@ -313,7 +303,7 @@ export default function AddNewMorning({
               시작 사진과 종료 사진을 각각 1장씩 업로드해 주세요.
               <br /> 두 사진의 촬영 시간은 30분 이상 차이 나야 하며,{" "}
               <strong className="font-semibold text-gray-700">
-                시작 사진은 06:30:59 이전에 촬영된 사진만 인정됩니다.
+                시작 사진은 {MORNING_START_PHOTO_DEADLINE}까지 촬영된 사진만 인정됩니다.
               </strong>
             </p>
             <div className="space-y-3">

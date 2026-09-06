@@ -147,7 +147,9 @@ export default function DeclarationDetail({
         {/* 선언 내용 */}
         <div className="space-y-4">
           {questions.map((q) => {
-            const answerText = draft[q.id] ?? "";
+            const answerText = decl.routineType === "모닝리추얼" && q.id === "cert_method"
+              ? q.defaultValue ?? ""
+              : draft[q.id] ?? "";
             const hasAnswer = decl.answers.some((a) => a.questionId === q.id);
             if (!editing && !hasAnswer) return null;
             const isReadOnly = q.id === "cert_method";

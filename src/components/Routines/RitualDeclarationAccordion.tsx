@@ -64,7 +64,9 @@ export default function RitualDeclarationAccordion({
   const visibleAnswers = questions
     .map((question) => ({
       question,
-      answer: answersByQuestion.get(question.id)?.trim() ?? "",
+      answer: routineType === "morning" && question.id === "cert_method"
+        ? question.defaultValue ?? ""
+        : answersByQuestion.get(question.id)?.trim() ?? "",
     }))
     .filter((item) => item.answer.length > 0);
 

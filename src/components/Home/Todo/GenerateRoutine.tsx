@@ -9,6 +9,7 @@ import { createRoutineAuto } from "@/api/routine";
 import { createDeclaration } from "@/api/declaration";
 import { getCurrentPeriod } from "@/api/challenge";
 import { ROUTINE_TYPE_MAP } from "@/types/supabase";
+import { MORNING_START_TIME, MORNING_END_TIME } from "@/constants/morning";
 import ExampleTooltip from "@/components/common/ExampleTooltip";
 
 interface GenerateRoutineProps {
@@ -43,14 +44,14 @@ const EMPTY_TIME_PARTS: TimeParts = {
 
 const MORNING_START_PARTS: TimeParts = {
   period: "AM",
-  hour: "06",
-  minute: "30",
+  hour: MORNING_START_TIME.slice(0, 2),
+  minute: MORNING_START_TIME.slice(3),
 };
 
 const MORNING_END_PARTS: TimeParts = {
   period: "AM",
-  hour: "07",
-  minute: "00",
+  hour: MORNING_END_TIME.slice(0, 2),
+  minute: MORNING_END_TIME.slice(3),
 };
 
 interface RoutineFormState {
@@ -286,8 +287,8 @@ export default function GenerateRoutine({
     if (isSelecting && routineType === "모닝리추얼") {
       setRoutineForm(routineType, (form) => ({
         ...form,
-        routineStartTime: "06:30",
-        routineEndTime: "07:00",
+        routineStartTime: MORNING_START_TIME,
+        routineEndTime: MORNING_END_TIME,
         routineStartParts: MORNING_START_PARTS,
         routineEndParts: MORNING_END_PARTS,
       }));

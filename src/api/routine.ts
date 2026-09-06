@@ -10,6 +10,8 @@ import {
 import { deleteRegisteredRoutine, isUserDeactivatedForRitual } from "@/api/admin";
 import type { ChallengeRegistration, RoutineTypeDB } from "@/types/supabase";
 
+import { MORNING_START_TIME, MORNING_END_TIME } from "@/constants/morning";
+
 function isRoutineTypeConstraintError(error: { message?: string; code?: string }) {
   return (
     error.code === "23514" &&
@@ -94,8 +96,8 @@ export async function createRoutine(input: {
       user_id: user.id,
       challenge_id: input.challengeId,
       routine_type: input.routineType,
-      routine_start_time: input.routineStartTime ?? null,
-      routine_end_time: input.routineEndTime ?? null,
+      routine_start_time: input.routineType === "morning" ? MORNING_START_TIME : input.routineStartTime ?? null,
+      routine_end_time: input.routineType === "morning" ? MORNING_END_TIME : input.routineEndTime ?? null,
     })
     .select()
     .single();
