@@ -1,3 +1,4 @@
+import { MORNING_TIME_LABEL, MORNING_CERT_METHOD } from "@/constants/morning";
 import { RoutineType } from "@/types/routines/declaration";
 
 export interface DeclarationQuestion {
@@ -27,9 +28,9 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
       },
       {
         id: "timetable",
-        label: "타임테이블 (6:30-7:00)",
+        label: `타임테이블 (${MORNING_TIME_LABEL})`,
         placeholder:
-          "6:30 - 6:40 물 마시기 -> 6:40 - 6:50 스트레칭 -> 6:50 - 7:00 독서",
+          "6:00 - 6:10 물 마시기 -> 6:10 - 6:20 스트레칭 -> 6:20 - 6:30 독서",
       },
       {
         id: "sleep_goal",
@@ -44,8 +45,7 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
         description: "*챌린저 모두 동일",
         readOnly: true,
         isConfirmation: true,
-        defaultValue: `1. 시작인증: 정각 6시 30분에 모닝리추얼 Live 링크에서 출석체크
-2. 종료인증: 롤라움 웹에 모닝리추얼 회고 기록 남기기`,
+        defaultValue: MORNING_CERT_METHOD,
       },
     ],
     운동리추얼: [

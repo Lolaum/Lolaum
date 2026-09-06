@@ -10,7 +10,7 @@ import { MorningRecord, MorningFormData } from "@/types/routines/morning";
 import { createRitualRecordAuto, getMyRitualRecords } from "@/api/ritual-record";
 import { formatKoreaDateKey } from "@/lib/korea-date";
 import type { MorningRecordData, Json } from "@/types/supabase";
-import { DEFAULT_MORNING_MEET_URL } from "@/constants/morning";
+import { DEFAULT_MORNING_MEET_URL, MORNING_TIME_LABEL } from "@/constants/morning";
 
 interface MorningContainerProps {
   mode?: "main" | "new";
@@ -151,7 +151,7 @@ export default function MorningContainer({
         </div>
         <div className="text-left flex-1">
           <p className="text-sm font-semibold text-gray-900">모닝리추얼 구글밋 참여</p>
-          <p className="text-xs text-gray-400 mt-0.5">클릭하여 구글 미트에 참여하세요</p>
+          <p className="text-xs text-gray-400 mt-0.5">{MORNING_TIME_LABEL} · 클릭하여 구글 미트에 참여하세요</p>
         </div>
         <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
