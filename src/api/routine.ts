@@ -11,6 +11,7 @@ import { deleteRegisteredRoutine, isUserDeactivatedForRitual } from "@/api/admin
 import type { ChallengeRegistration, RoutineTypeDB } from "@/types/supabase";
 
 import { MORNING_START_TIME, MORNING_END_TIME } from "@/constants/morning";
+import { revalidatePath } from "next/cache";
 
 function isRoutineTypeConstraintError(error: { message?: string; code?: string }) {
   return (
@@ -112,6 +113,56 @@ export async function createRoutine(input: {
     return { error: error.message };
   }
 
+  return { data };
+}
+
+/** 선언 시 등록한 리추얼 시간 수정 (본인의 현재 챌린지만). */
+export async function updateRoutineTime(input: {
+  registrationId: string;
+  routineStartTime: string;
+  routineEndTime: string;
+}): Promise<{ data?: ChallengeRegistration; error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "인증이 필요합니다." };
+
+  const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
+  if (
+    !input.registrationId ||
+    !timePattern.test(input.routineStartTime) ||
+    !timePattern.test(input.routineEndTime)
+  ) {
+    return { error: "시작 시간과 종료 시간을 올바르게 입력해주세요." };
+  }
+  if (input.routineStartTime === input.routineEndTime) {
+    return { error: "시작 시간과 종료 시간을 다르게 설정해주세요." };
+  }
+
+  const { challengeId, error: challengeError } = await getCurrentChallengeId();
+  if (!challengeId) {
+    return { error: challengeError ?? "챌린지를 찾을 수 없습니다." };
+  }
+
+  // 사용자 클라이언트의 UPDATE 정책에 의존하지 않도록 서버에서 저장한다.
+  // 관리자 권한을 사용하므로 아래 본인·현재 챌린지 필터를 반드시 유지한다.
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("challenge_registrations")
+    .update({
+      routine_start_time: input.routineStartTime,
+      routine_end_time: input.routineEndTime,
+    })
+    .eq("id", input.registrationId)
+    .eq("user_id", user.id)
+    .eq("challenge_id", challengeId)
+    .neq("routine_type", "morning")
+    .select()
+    .maybeSingle();
+
+  if (error) return { error: "시간을 저장하지 못했습니다. 다시 시도해주세요." };
+  if (!data) return { error: "시간을 수정할 수 있는 리추얼을 찾을 수 없습니다." };
+
+  revalidatePath("/home");
+  revalidatePath("/declaration/[id]", "page");
   return { data };
 }
 

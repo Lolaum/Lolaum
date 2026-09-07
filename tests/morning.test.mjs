@@ -71,6 +71,7 @@ test('server fixes morning registration times even when a stale client sends old
   const { createRoutine } = loadTS('src/api/routine.ts', {
     '@/lib/supabase/server': { getCurrentUser: async () => ({ id: 'user' }), createClient: async () => client },
     '@/lib/supabase/admin': {},
+    'next/cache': { revalidatePath() {} },
     '@/lib/current-challenge': {},
     '@/api/admin': { isUserDeactivatedForRitual: async () => ({ deactivated: false }) },
   });

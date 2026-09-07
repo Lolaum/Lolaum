@@ -2,17 +2,22 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Clock3 } from "lucide-react";
 import { Declaration } from "@/types/routines/declaration";
 import { declarationQuestions } from "@/lib/declarationQuestions";
 import { ROUTINE_CONFIG } from "@/lib/routineConfig";
 import UserAvatar from "@/components/common/UserAvatar";
 import ExampleTooltip from "@/components/common/ExampleTooltip";
+import RoutineTimeFields from "@/components/Routines/RoutineTimeFields";
+import { updateRoutineTime } from "@/api/routine";
+import type { ChallengeRegistration } from "@/types/supabase";
 import { deleteDeclaration, updateDeclaration } from "@/api/declaration";
 
 interface DeclarationDetailProps {
   decl: Declaration;
   isMine: boolean;
+  initialRoutine?: ChallengeRegistration | null;
+  canEditRoutineTime?: boolean;
 }
 
 const formatFullDate = (dateString: string) => {
@@ -23,11 +28,17 @@ const formatFullDate = (dateString: string) => {
 export default function DeclarationDetail({
   decl,
   isMine,
+  initialRoutine,
+  canEditRoutineTime = false,
 }: DeclarationDetailProps) {
   const router = useRouter();
   const config = ROUTINE_CONFIG[decl.routineType];
   const questions = declarationQuestions[decl.routineType];
 
+  const [routine, setRoutine] = useState(initialRoutine);
+  const [startTime, setStartTime] = useState(initialRoutine?.routine_start_time?.slice(0, 5) ?? "");
+  const [endTime, setEndTime] = useState(initialRoutine?.routine_end_time?.slice(0, 5) ?? "");
+  const [saveError, setSaveError] = useState("");
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>(() =>
     Object.fromEntries(decl.answers.map((a) => [a.questionId, a.answer])),
@@ -38,21 +49,50 @@ export default function DeclarationDetail({
   if (!config || !questions) return null;
 
   const handleSave = async () => {
+    if (saving) return;
     setSaving(true);
-    const answers = (questions ?? [])
-      .map((q) => ({ questionId: q.id, answer: draft[q.id] ?? "" }))
-      .filter((a) => a.answer.trim().length > 0);
-    const { error } = await updateDeclaration(decl.id, answers);
-    setSaving(false);
-    if (error) {
-      alert(`수정 실패: ${error}`);
-      return;
+    setSaveError("");
+    let timeSaved = false;
+    try {
+      if (isMine && canEditRoutineTime && routine && (
+        startTime !== (routine.routine_start_time?.slice(0, 5) ?? "") ||
+        endTime !== (routine.routine_end_time?.slice(0, 5) ?? "")
+      )) {
+        const result = await updateRoutineTime({
+          registrationId: routine.id,
+          routineStartTime: startTime,
+          routineEndTime: endTime,
+        });
+        if (result.error || !result.data) {
+          setSaveError(result.error ?? "시간을 저장하지 못했습니다.");
+          return;
+        }
+        setRoutine(result.data);
+        timeSaved = true;
+      }
+      const answers = questions
+        .map((q) => ({ questionId: q.id, answer: draft[q.id] ?? "" }))
+        .filter((a) => a.answer.trim().length > 0);
+      const { error } = await updateDeclaration(decl.id, answers);
+      if (error) {
+        setSaveError(`${timeSaved ? "시간은 저장됐지만 선언 내용을 저장하지 못했습니다. " : ""}${error}`);
+        return;
+      }
+      setEditing(false);
+      router.refresh();
+    } catch {
+      setSaveError(timeSaved
+        ? "시간은 저장됐지만 선언 내용을 저장하지 못했습니다. 다시 저장해주세요."
+        : "저장하지 못했습니다. 연결을 확인하고 다시 시도해주세요.");
+    } finally {
+      setSaving(false);
     }
-    setEditing(false);
-    router.refresh();
   };
 
   const handleCancel = () => {
+    setStartTime(routine?.routine_start_time?.slice(0, 5) ?? "");
+    setEndTime(routine?.routine_end_time?.slice(0, 5) ?? "");
+    setSaveError("");
     setDraft(
       Object.fromEntries(decl.answers.map((a) => [a.questionId, a.answer])),
     );
@@ -144,6 +184,35 @@ export default function DeclarationDetail({
           </div>
         </div>
 
+        {routine && (
+          <section aria-label="리추얼 시간" className="mb-5 rounded-xl border border-gray-100 px-4 py-3">
+            {editing && isMine && canEditRoutineTime ? (
+              <fieldset disabled={saving} className="m-0 min-w-0 border-0 p-0">
+                <legend className="sr-only">리추얼 시간</legend>
+                <RoutineTimeFields
+                  startTime={startTime}
+                  endTime={endTime}
+                  onStartChange={setStartTime}
+                  onEndChange={setEndTime}
+                />
+              </fieldset>
+            ) : (
+            <div className="flex flex-wrap items-center justify-between gap-x-3">
+              <div>
+                <p className="text-xs font-semibold text-gray-500">리추얼 시간</p>
+                <p className="mt-1 flex items-center gap-1.5 text-sm font-medium tabular-nums text-gray-800">
+                  <Clock3 size={14} aria-hidden="true" />
+                  {routine.routine_start_time && routine.routine_end_time
+                    ? `${routine.routine_start_time.slice(0, 5)} - ${routine.routine_end_time.slice(0, 5)}`
+                    : "시간 미설정"}
+                  {routine.routine_type === "morning" && <span className="text-xs text-gray-400">고정</span>}
+                </p>
+              </div>
+            </div>
+            )}
+          </section>
+        )}
+
         {/* 선언 내용 */}
         <div className="space-y-4">
           {questions.map((q) => {
@@ -180,6 +249,7 @@ export default function DeclarationDetail({
                 </p>
                 {editing && !isReadOnly ? (
                   <textarea
+                    disabled={saving}
                     value={answerText}
                     onChange={(e) =>
                       setDraft((prev) => ({ ...prev, [q.id]: e.target.value }))
@@ -196,6 +266,8 @@ export default function DeclarationDetail({
             );
           })}
         </div>
+
+        {saveError && <p role="alert" className="mt-4 text-sm text-red-600">{saveError}</p>}
 
         {/* 편집 액션 */}
         {editing && (

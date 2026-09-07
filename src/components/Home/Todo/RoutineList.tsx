@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from "react";
 import GenerateRoutine from "./GenerateRoutine";
-import { Plus, X, ChevronRight, Clock3 } from "lucide-react";
+import RoutineTimeEditor from "./RoutineTimeEditor";
+import { Plus, X, ChevronRight, Clock3, Pencil } from "lucide-react";
 import { RoutineListProps } from "@/types/home/todo";
 import { getMyRoutines } from "@/api/routine";
 import type { ChallengeRegistration, RoutineTypeDB } from "@/types/supabase";
@@ -63,6 +64,8 @@ export default function RoutineList({
   const [routines, setRoutines] = useState<ChallengeRegistration[]>(
     sortRoutinesByTime(initialRoutines ?? []),
   );
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [timeMessage, setTimeMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [showGenerateRoutine, setShowGenerateRoutine] = useState(false);
 
@@ -108,6 +111,8 @@ export default function RoutineList({
         />
       )}
 
+      <p role="status" className={timeMessage ? "mb-2 text-xs text-gray-500" : "sr-only"}>{timeMessage}</p>
+
       {/* 리추얼 리스트 */}
       {loading ? (
         <p className="text-sm text-gray-300 text-center py-4">불러오는 중...</p>
@@ -134,11 +139,10 @@ export default function RoutineList({
             return (
               <div
                 key={routine.id}
-                onClick={() => !isDisabled && onTaskClick(title, colors.color)}
-                className={`relative overflow-hidden rounded-2xl p-4 shadow-sm border border-gray-100 transition-all duration-200 ${
+                className={`relative rounded-2xl p-4 shadow-sm border border-gray-100 transition-all duration-200 ${editingId === routine.id ? "z-30 overflow-visible" : "overflow-hidden"} ${
                   isDisabled
                     ? "opacity-50 cursor-not-allowed"
-                    : "cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]"
+                    : ""
                 }`}
                 style={{
                   borderLeft: `4px solid ${colors.color}`,
@@ -146,6 +150,7 @@ export default function RoutineList({
                 }}
               >
                 {/* 달성률 배경 채우기 */}
+                <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
                 <div
                   className="absolute inset-0 transition-all duration-500 pointer-events-none"
                   style={{
@@ -153,26 +158,43 @@ export default function RoutineList({
                     backgroundColor: colors.bgColor,
                   }}
                 />
-                <div className="flex items-center gap-3 relative z-10">
-                  {/* 리추얼 정보 */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-gray-800">
-                        {title}
-                      </span>
+                </div>
+                <button
+                  type="button"
+                  disabled={isDisabled}
+                  onClick={() => onTaskClick(title, colors.color)}
+                  className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-2 focus-visible:outline-[var(--gold-400)] disabled:cursor-not-allowed"
+                  aria-label={`${title} 인증하기`}
+                />
+                <div className="relative z-20 flex items-center gap-3 pointer-events-none">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm font-semibold text-gray-800">
+                      {title}
+                    </span>
+                    <div className="mt-1 flex h-4 items-center gap-1 text-xs font-medium text-gray-400">
+                      <Clock3 size={12} aria-hidden="true" />
+                      {routine.routine_type === "morning" ? (
+                        <span>{startTime} - {endTime}</span>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={isDisabled || (editingId !== null && editingId !== routine.id)}
+                          aria-expanded={editingId === routine.id}
+                          aria-controls={`routine-time-${routine.id}`}
+                          aria-label={`${title} 시간 수정, ${startTime && endTime ? `${startTime}부터 ${endTime}까지` : "시간 미설정"}`}
+                          onClick={() => {
+                            setTimeMessage("");
+                            setEditingId(routine.id);
+                          }}
+                          className="pointer-events-auto -my-3 inline-flex min-h-10 items-center gap-1.5 rounded-md text-gray-500 hover:text-gray-800 focus-visible:outline-2 focus-visible:outline-[var(--gold-400)] disabled:opacity-50"
+                        >
+                          <span>{startTime && endTime ? `${startTime} - ${endTime}` : "시간 설정"}</span>
+                          <Pencil size={11} aria-hidden="true" />
+                        </button>
+                      )}
                     </div>
-                    {startTime && endTime && (
-                      <div className="mt-1 flex items-center gap-1 text-xs font-medium text-gray-400">
-                        <Clock3 size={12} />
-                        <span>
-                          {startTime} - {endTime}
-                        </span>
-                      </div>
-                    )}
                   </div>
-
-                  {/* 화살표 */}
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <div className="flex shrink-0 items-center gap-1.5">
                     <span
                       className="text-sm font-bold tabular-nums"
                       style={{ color: colors.color }}
@@ -183,6 +205,18 @@ export default function RoutineList({
                     <ChevronRight size={14} className="text-gray-300" />
                   </div>
                 </div>
+                {editingId === routine.id && !isDisabled && (
+                  <RoutineTimeEditor
+                    key={routine.id}
+                    routine={routine}
+                    onCancel={() => setEditingId(null)}
+                    onSaved={(updated) => {
+                      setRoutines((previous) => sortRoutinesByTime(previous.map((item) => item.id === updated.id ? updated : item)));
+                      setEditingId(null);
+                      setTimeMessage(`${title} 시간을 저장했습니다.`);
+                    }}
+                  />
+                )}
               </div>
             );
           })}
