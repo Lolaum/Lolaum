@@ -3,7 +3,7 @@
 ## Source of truth
 
 - Status: Active
-- Last refreshed: 2026-08-14
+- Last refreshed: 2026-09-07
 - Primary product surfaces: 홈, 리추얼 기록, 인증 게시글, 리추얼 진행표
 - Evidence reviewed: `src/components/Progress/ProgressContainer.tsx`, `src/components/Feed/ReactionBar.tsx`, `src/components/Feed/CommentSection.tsx`, `src/api/feed-reaction.ts`, `src/api/user.ts`, `src/components/Layout/LayoutShell.tsx`, `src/app/globals.css`
 
@@ -94,3 +94,18 @@
 
 - [ ] 주말에도 일일 인증 미완료 상태를 표시할지 운영 정책 확인 / 제품 담당 / 상태 문구에 영향
 - [ ] 인증 마감 시각 이후 미완료 알림 기능이 필요한지 확인 / 제품 담당 / 후속 기능 범위
+
+
+## 홈 리추얼 시간 수정
+
+- Evidence: `src/components/Home/Todo/RoutineList.tsx`, `RoutineTimeEditor.tsx`, `src/api/routine.ts`. 선언에서 선택한 시간은 `challenge_registrations`에 저장된다.
+- Flow: 홈 카드의 시간·작은 연필 아이콘 클릭 → 카드 안 시작/종료 시간 입력 → 저장 또는 취소. 연필 클릭은 편집 영역만 열며 입력에 자동 초점을 주지 않는다. 사용자가 시작/종료 입력을 직접 눌렀을 때 시간 선택기를 연다. 인증 버튼과 수정 버튼은 별도로 키보드 접근이 가능하다.
+- Layout: 접힌 카드는 기존의 제목·시간 두 줄과 오른쪽 인증 횟수를 유지한다. 별도 수정 행을 만들지 않고 시간 옆 작은 연필 아이콘으로 진입한다. 편집 중에만 입력 영역을 펼친다. 기존 리추얼 색상·흰색 카드·골드 버튼을 재사용한다. 선언 작성·홈 수정·선언 수정은 동일한 TimePickerField를 사용한다. 오전/오후·시·분의 세 열, 파란 선택 표시, 골드 확인 버튼을 공유한다. 팝업은 두 시간 필드의 전체 폭 안에 맞추고 홈 카드에서 잘리지 않도록 한다.
+- States: 저장 중 입력·취소 비활성화, 실패 시 입력값 유지 및 오류 안내, 성공 시 시간과 목록 정렬 즉시 반영 및 상태 메시지 제공. 기존 기록과 선언 내용은 유지한다.
+- Policy: 기존 모닝 06:00~06:30 고정 정책을 유지한다. 현재 챌린지의 본인 등록만 수정하며, 같은 시작/종료 시간은 거부하고 자정을 넘는 시간은 다음 날 종료로 안내한다.
+- Accessibility: 시간 입력에 레이블, 수정 버튼에 펼침 상태, 결과에 status/alert, 최소 40px 터치 영역을 제공한다.
+- Validation: 저장 API 권한·입력값·실패 회귀 테스트, ESLint, TypeScript, 프로덕션 빌드. 실제 로그인 계정의 저장 확인은 별도 검증이 필요하다.
+
+- 선언 상세: 별도의 시간 수정 버튼을 두지 않는다. 기존 `수정` 버튼으로 선언 내용과 시간을 함께 편집하고 기존 `저장`·`취소`를 공유한다. 시간 입력 UI는 홈과 재사용하며 모닝·종료된 기간·타인 선언의 시간은 읽기 전용이다. 저장 실패 시 입력을 유지하고, 시간만 먼저 저장된 경우 이를 명시한다.
+
+- 시간 선택기: 네이티브 time 입력과 showPicker를 사용하지 않는다. 시간 필드를 눌러 공통 선택기를 열고 확인으로 닫으며, 한 번에 한 필드만 연다. 기존 분 값은 5분 단위가 아니어도 그대로 유지한다.

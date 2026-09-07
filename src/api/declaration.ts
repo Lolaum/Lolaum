@@ -5,8 +5,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   getCurrentChallengeId,
   getActivePeriod,
+  isChallengePeriodEnded,
 } from "@/lib/current-challenge";
-import type { RoutineTypeDB, Json } from "@/types/supabase";
+import { withMorningSchedule } from "@/lib/morning";
+import type { ChallengeRegistration, RoutineTypeDB, Json } from "@/types/supabase";
 import { ROUTINE_TYPE_LABEL } from "@/types/supabase";
 import type {
   Declaration,
@@ -181,7 +183,13 @@ export async function getChallengerDeclarations(): Promise<{
 /** 선언 단건 조회 */
 export async function getDeclarationById(
   id: string,
-): Promise<{ data?: Declaration; currentUserId?: string; error?: string }> {
+): Promise<{
+  data?: Declaration;
+  currentUserId?: string;
+  routine?: ChallengeRegistration | null;
+  canEditRoutineTime?: boolean;
+  error?: string;
+}> {
   try {
     const user = await getCurrentUser();
     if (!user) return { error: "인증이 필요합니다." };
@@ -190,14 +198,43 @@ export async function getDeclarationById(
     const { data, error } = await admin
       .from("declarations")
       .select(
-        "id, user_id, routine_type, answers, created_at, profiles(name, emoji, avatar_url)",
+        "id, user_id, challenge_id, routine_type, answers, created_at, profiles(name, emoji, avatar_url)",
       )
       .eq("id", id)
       .single();
 
     if (error) return { error: error.message };
+    const declaration = data as unknown as DeclarationRow & { challenge_id: string };
+    const { data: routine, error: routineError } = await admin
+      .from("challenge_registrations")
+      .select("*")
+      .eq("user_id", declaration.user_id)
+      .eq("challenge_id", declaration.challenge_id)
+      .eq("routine_type", declaration.routine_type)
+      .order("registered_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (routineError) return { error: routineError.message };
+
+    let canEditRoutineTime = false;
+    if (routine && declaration.user_id === user.id && routine.routine_type !== "morning") {
+      const { period } = await getActivePeriod();
+      if (period && !isChallengePeriodEnded(period)) {
+        const { data: activeChallenge, error: challengeError } = await admin
+          .from("challenges")
+          .select("id")
+          .eq("id", declaration.challenge_id)
+          .eq("period_id", period.id)
+          .maybeSingle();
+        if (challengeError) return { error: challengeError.message };
+        canEditRoutineTime = Boolean(activeChallenge);
+      }
+    }
+
     return {
-      data: toDeclaration(data as unknown as DeclarationRow),
+      routine: routine ? withMorningSchedule(routine) : null,
+      canEditRoutineTime,
+      data: toDeclaration(declaration),
       currentUserId: user.id,
     };
   } catch (e) {

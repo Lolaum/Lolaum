@@ -9,7 +9,7 @@ interface Props {
 
 export default async function DeclarationDetailPage({ params }: Props) {
   const { id } = await params;
-  const { data: decl, currentUserId, error } = await getDeclarationById(id);
+  const { data: decl, currentUserId, routine, canEditRoutineTime, error } = await getDeclarationById(id);
 
   if (!decl || error) {
     notFound();
@@ -17,7 +17,7 @@ export default async function DeclarationDetailPage({ params }: Props) {
 
   return (
     <Layout>
-      <DeclarationDetail decl={decl} isMine={decl.userId === currentUserId} />
+      <DeclarationDetail key={decl.id} decl={decl} isMine={decl.userId === currentUserId} initialRoutine={routine} canEditRoutineTime={canEditRoutineTime} />
     </Layout>
   );
 }

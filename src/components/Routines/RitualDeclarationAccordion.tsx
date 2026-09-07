@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { getMyDeclarations } from "@/api/declaration";
@@ -113,6 +114,12 @@ export default function RitualDeclarationAccordion({
               </div>
             ))}
           </div>
+          <Link
+            href={`/declaration/${declaration.id}`}
+            className="mt-3 inline-flex min-h-10 items-center text-xs font-semibold text-gray-600 underline underline-offset-4"
+          >
+            선언 수정
+          </Link>
         </div>
       )}
     </section>
