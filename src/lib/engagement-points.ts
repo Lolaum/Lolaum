@@ -1,7 +1,6 @@
 import {
-  COMMENT_POINT,
   DAILY_POINT_LIMIT,
-  LIKE_POINT,
+  getEngagementBasePoints,
   POINTS_LAUNCHED_AT,
 } from "@/lib/points";
 
@@ -96,12 +95,12 @@ export async function getEngagementPointSummariesByUser(
     ...(reactionsRes.data ?? []).map((reaction: Engagement) => ({
       ...reaction,
       type: "like" as const,
-      basePoints: LIKE_POINT,
+      basePoints: getEngagementBasePoints("like", reaction.created_at),
     })),
     ...(commentsRes.data ?? []).map((comment: Engagement) => ({
       ...comment,
       type: "comment" as const,
-      basePoints: COMMENT_POINT,
+      basePoints: getEngagementBasePoints("comment", comment.created_at),
     })),
   ].sort(
     (a, b) =>
@@ -145,6 +144,7 @@ export async function getEngagementPointSummariesByUser(
 
   const dailyPointsByUser = new Map<string, Map<string, number>>();
   for (const engagement of engagements) {
+    if (engagement.basePoints === 0) continue;
     const feed = feedById.get(engagement.feed_id);
     if (!feed || feed.user_id === engagement.user_id) continue;
 

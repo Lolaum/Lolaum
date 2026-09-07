@@ -441,7 +441,7 @@ function PointsRanking({
               포인트 순위
             </h2>
             <p className="mt-0.5 text-xs text-gray-500">
-              다른 챌린저의 글에 남긴 좋아요와 댓글로 쌓은 포인트예요
+              다른 챌린저의 글에 댓글을 남기면 1점씩 쌓여요
             </p>
           </div>
         </div>
@@ -462,7 +462,7 @@ function PointsRanking({
               전체 포인트 내역
             </p>
             <p className="mt-0.5 text-xs text-gray-400">
-              좋아요 +1P · 댓글 +2P · 하루 최대 5P
+              댓글 +1P · 하루 최대 5P · 기존 적립 포인트 유지
             </p>
           </div>
           <span className="text-sm font-bold text-yellow-600">

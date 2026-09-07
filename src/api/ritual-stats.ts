@@ -43,7 +43,7 @@ export interface RitualOverallStats {
 }
 
 export interface MyPageStats {
-  points: number; // 좋아요 1점 + 댓글 2점
+  points: number; // 댓글 1점, 정책 변경 이전 적립 점수 유지
   bestCompletionRate: number; // 참여한 전체 기간 중 최고 달성률
   totalCompletions: number; // 전체 인증 기록 + 선언 + 중간/최종 회고
 }
