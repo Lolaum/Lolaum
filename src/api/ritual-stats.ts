@@ -24,7 +24,8 @@ import { calculateWeeklyRoutineProgress } from "@/lib/weekly-routine-progress";
 import { getEngagementPoints } from "@/lib/engagement-points";
 import {
   addDaysToDateKey,
-  countWeekdaysInDateKeyRange,
+  countRoutineDaysInDateKeyRange,
+  isExcludedRoutineDate,
   formatKoreaDateKey,
   getDateKeyDayOfWeek,
   getKoreaTodayWithinRange,
@@ -133,7 +134,7 @@ const ROUTINE_CONFIG: Record<
 
 /** 활성 기간 [start, end] 내 모든 평일(월~금) 수 (기간 만점 산정용) */
 function countWeekdaysInRange(startDate: string, endDate: string): number {
-  return countWeekdaysInDateKeyRange(startDate, endDate);
+  return countRoutineDaysInDateKeyRange(startDate, endDate);
 }
 
 function getAccountingUpperDate(endDate: string): string {
@@ -290,7 +291,7 @@ async function getBestCompletionRate(
       rangeEnd,
     });
     const totalDays =
-      countWeekdaysInDateKeyRange(effectiveStart, period.end_date) + 3;
+      countRoutineDaysInDateKeyRange(effectiveStart, period.end_date) + 3;
     const totalAchieved =
       completedDays +
       (isAllRoutinesCovered(
@@ -1187,6 +1188,7 @@ export async function getHomeStats(): Promise<{
   const routineCompletionMap: Record<string, number> = {};
   const routineDateSets = new Map<string, Set<string>>();
   for (const r of currentRecords) {
+    if (isExcludedRoutineDate(r.record_date)) continue;
     if (!routineDateSets.has(r.routine_type))
       routineDateSets.set(r.routine_type, new Set());
     routineDateSets.get(r.routine_type)!.add(r.record_date);

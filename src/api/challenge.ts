@@ -5,7 +5,7 @@ import {
   getActivePeriod,
   getEffectiveStart,
 } from "@/lib/current-challenge";
-import { countWeekdaysInDateKeyRange } from "@/lib/korea-date";
+import { countRoutineDaysInDateKeyRange } from "@/lib/korea-date";
 
 /** 현재 활성 기간의 챌린지 ID를 가져옵니다. 없으면 자동 생성합니다. */
 export async function getOrCreateCurrentChallenge(): Promise<{
@@ -43,7 +43,7 @@ export async function getCurrentRoutineGoalDays(): Promise<{
 
   const effectiveStart = getEffectiveStart(period.start_date, resetAt);
   return {
-    totalRoutineDays: countWeekdaysInDateKeyRange(
+    totalRoutineDays: countRoutineDaysInDateKeyRange(
       effectiveStart,
       period.end_date,
     ),

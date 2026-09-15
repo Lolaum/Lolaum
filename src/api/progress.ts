@@ -12,7 +12,7 @@ import {
   type EngagementPointHistoryEntry,
 } from "@/lib/engagement-points";
 import {
-  countWeekdaysInDateKeyRange,
+  countRoutineDaysInDateKeyRange,
   getKoreaTodayWithinRange,
 } from "@/lib/korea-date";
 
@@ -80,7 +80,7 @@ export async function getProgressPageData(): Promise<{
       return { error: periodError ?? "활성 챌린지 기간이 없습니다." };
     }
 
-    const periodTotalRoutineDays = countWeekdaysInDateKeyRange(
+    const periodTotalRoutineDays = countRoutineDaysInDateKeyRange(
       period.start_date,
       period.end_date,
     );
@@ -293,7 +293,7 @@ export async function getProgressPageData(): Promise<{
       const effectiveStart = getEffectiveStart(period.start_date, r.reset_at);
       const rangeStart = effectiveStart;
       const totalDays =
-        countWeekdaysInDateKeyRange(effectiveStart, period.end_date) +
+        countRoutineDaysInDateKeyRange(effectiveStart, period.end_date) +
         BONUS_SLOTS;
       const dailyCompletedRoutineCounts = Object.fromEntries(
         Array.from(

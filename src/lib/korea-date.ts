@@ -34,7 +34,12 @@ export function getDateKeyDayOfWeek(dateKey: string): number {
   return parseDateKey(dateKey).getUTCDay();
 }
 
-export function countWeekdaysInDateKeyRange(
+/** 2026년 9월 추석 휴무일은 달성률 및 미달성 집계에서 제외합니다. */
+export function isExcludedRoutineDate(dateKey: string): boolean {
+  return dateKey === "2026-09-24" || dateKey === "2026-09-25";
+}
+
+export function countRoutineDaysInDateKeyRange(
   startDate: string,
   endDate: string,
 ): number {
@@ -45,7 +50,7 @@ export function countWeekdaysInDateKeyRange(
     current = addDaysToDateKey(current, 1)
   ) {
     const dayOfWeek = getDateKeyDayOfWeek(current);
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) count++;
+    if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isExcludedRoutineDate(current)) count++;
   }
   return count;
 }

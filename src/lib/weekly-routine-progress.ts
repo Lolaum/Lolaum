@@ -2,6 +2,7 @@ import {
   addDaysToDateKey,
   formatKoreaDateKey,
   getDateKeyDayOfWeek,
+  isExcludedRoutineDate,
 } from "@/lib/korea-date";
 
 export interface WeeklyRoutineProgressResult {
@@ -49,6 +50,7 @@ export function calculateWeeklyRoutineProgress(input: {
     dateStr <= input.rangeEnd;
     dateStr = addDaysToDateKey(dateStr, 1)
   ) {
+    if (isExcludedRoutineDate(dateStr)) continue;
     const dow = getDateKeyDayOfWeek(dateStr);
     const wk = getWeekKey(dateStr);
     if (!weekData.has(wk)) {
