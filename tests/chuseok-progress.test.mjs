@@ -42,9 +42,36 @@ const progress = (dates) => calculateWeeklyRoutineProgress({
   today: '2026-09-28',
 });
 
-test('Chuseok records do not count and missed holidays do not incur misses', () => {
-  assert.deepEqual(progress(['2026-09-24', '2026-09-25']), { completedDays: 0, weekdayMissed: 3 });
+test('Chuseok records count as makeup and missed holidays do not incur misses', () => {
+  assert.deepEqual(progress([]), { completedDays: 0, weekdayMissed: 3 });
+  assert.deepEqual(progress(['2026-09-24', '2026-09-25']), { completedDays: 2, weekdayMissed: 1 });
   assert.deepEqual(progress(['2026-09-21', '2026-09-22', '2026-09-23']), { completedDays: 3, weekdayMissed: 0 });
+  assert.deepEqual(progress(['2026-09-21', '2026-09-24', '2026-09-25']), { completedDays: 3, weekdayMissed: 0 });
+  assert.deepEqual(progress(['2026-09-21', '2026-09-22', '2026-09-23', '2026-09-24', '2026-09-25']), { completedDays: 3, weekdayMissed: 0 });
+});
+
+test('holiday makeup pools partial certifications across registered routines', () => {
+  assert.deepEqual(calculateWeeklyRoutineProgress({
+    dateMap: new Map([
+      ['2026-09-21', new Set(['exercise'])],
+      ['2026-09-24', new Set(['reading'])],
+      ['2026-09-25', new Set(['exercise', 'reading'])],
+    ]),
+    registeredTypes: new Set(['exercise', 'reading']),
+    rangeStart: '2026-09-21',
+    rangeEnd: '2026-09-27',
+    today: '2026-09-28',
+  }), { completedDays: 2, weekdayMissed: 1 });
+});
+
+test('holiday-only range has no required target or misses', () => {
+  assert.deepEqual(calculateWeeklyRoutineProgress({
+    dateMap: new Map([['2026-09-24', new Set(['exercise'])]]),
+    registeredTypes: new Set(['exercise']),
+    rangeStart: '2026-09-24',
+    rangeEnd: '2026-09-25',
+    today: '2026-09-26',
+  }), { completedDays: 0, weekdayMissed: 0 });
 });
 
 test('weekend makeup still counts against the reduced weekly target', () => {

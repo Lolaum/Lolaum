@@ -27,6 +27,8 @@ function getWeekKey(dateKey: string): string {
  *   weekly result, so the example above leaves one missed weekday.
  * - Duplicate records for the same routine/date are already collapsed by the
  *   Set in dateMap and therefore count once.
+ * - Excluded holidays count as optional makeup days, like weekends, without
+ *   increasing the weekday target or incurring misses.
  */
 export function calculateWeeklyRoutineProgress(input: {
   dateMap: Map<string, Set<string>>;
@@ -50,13 +52,12 @@ export function calculateWeeklyRoutineProgress(input: {
     dateStr <= input.rangeEnd;
     dateStr = addDaysToDateKey(dateStr, 1)
   ) {
-    if (isExcludedRoutineDate(dateStr)) continue;
     const dow = getDateKeyDayOfWeek(dateStr);
     const wk = getWeekKey(dateStr);
     if (!weekData.has(wk)) {
       weekData.set(wk, { weekdays: [], weekends: [] });
     }
-    if (dow === 0 || dow === 6) {
+    if (dow === 0 || dow === 6 || isExcludedRoutineDate(dateStr)) {
       weekData.get(wk)!.weekends.push(dateStr);
     } else {
       weekData.get(wk)!.weekdays.push(dateStr);

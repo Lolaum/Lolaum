@@ -34,7 +34,7 @@ export function getDateKeyDayOfWeek(dateKey: string): number {
   return parseDateKey(dateKey).getUTCDay();
 }
 
-/** 2026년 9월 추석 휴무일은 달성률 및 미달성 집계에서 제외합니다. */
+/** 2026년 추석 휴무일은 필수 인증일에서 제외하되, 인증하면 보충으로 인정합니다. */
 export function isExcludedRoutineDate(dateKey: string): boolean {
   return dateKey === "2026-09-24" || dateKey === "2026-09-25";
 }
@@ -59,4 +59,3 @@ export function getKoreaTodayWithinRange(endDate: string): string {
   const today = formatKoreaDateKey();
   return today < endDate ? today : endDate;
 }
-

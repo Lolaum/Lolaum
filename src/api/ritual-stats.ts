@@ -25,7 +25,6 @@ import { getEngagementPoints } from "@/lib/engagement-points";
 import {
   addDaysToDateKey,
   countRoutineDaysInDateKeyRange,
-  isExcludedRoutineDate,
   formatKoreaDateKey,
   getDateKeyDayOfWeek,
   getKoreaTodayWithinRange,
@@ -1188,7 +1187,6 @@ export async function getHomeStats(): Promise<{
   const routineCompletionMap: Record<string, number> = {};
   const routineDateSets = new Map<string, Set<string>>();
   for (const r of currentRecords) {
-    if (isExcludedRoutineDate(r.record_date)) continue;
     if (!routineDateSets.has(r.routine_type))
       routineDateSets.set(r.routine_type, new Set());
     routineDateSets.get(r.routine_type)!.add(r.record_date);
