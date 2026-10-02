@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Upload, X, Info } from "lucide-react";
+import { Upload, X } from "lucide-react";
+// import { Info } from "lucide-react"; // 탄단지 입력 복원 시 사용
 import {
   applyTimestamp,
   fileToBase64,
@@ -20,7 +21,7 @@ import {
 } from "@/types/routines/exercise";
 
 const DURATION_OPTIONS = [10, 20, 30, 40, 50, 60, 90, 120];
-const MACROS_OPTIONS = ["1:1:1", "2:1:1", "3:2:1", "4:3:3", "5:3:2"];
+// const MACROS_OPTIONS = ["1:1:1", "2:1:1", "3:2:1", "4:3:3", "5:3:2"];
 const EXERCISE_DRAFT_KEY = "exercise";
 const MAX_EXERCISE_IMAGES = 3;
 const MAX_DIET_IMAGES = 1;
@@ -63,8 +64,9 @@ export default function AddNewExercise({
   const submittingRef = useRef(false);
   const loadedFromDraftRef = useRef(false);
   const [showPhotoIntervalModal, setShowPhotoIntervalModal] = useState(false);
-  const [showRatioTip, setShowRatioTip] = useState(false);
-  const ratioTipRef = useRef<HTMLDivElement>(null);
+  // 탄단지 입력 및 안내 임시 비활성화
+  // const [showRatioTip, setShowRatioTip] = useState(false);
+  // const ratioTipRef = useRef<HTMLDivElement>(null);
   const {
     hasDraft,
     loading: draftLoading,
@@ -81,6 +83,7 @@ export default function AddNewExercise({
     setImageTakenAtTimes((prev) => prev.slice(0, MAX_EXERCISE_IMAGES));
   }, [dietLimitReached, recordType]);
 
+  /* 탄단지 안내 복원 시 함께 활성화
   useEffect(() => {
     if (!showRatioTip) return;
     const handler = (e: MouseEvent | TouchEvent) => {
@@ -98,6 +101,7 @@ export default function AddNewExercise({
       document.removeEventListener("touchstart", handler);
     };
   }, [showRatioTip]);
+  */
 
   const handleImageFiles = async (files: FileList | null) => {
     if (!files) return;
@@ -195,7 +199,8 @@ export default function AddNewExercise({
   const canSubmit =
     exerciseName.trim() &&
     !(recordType === "diet" && dietLimitReached) &&
-    (recordType === "exercise" ? finalDuration > 0 : !!finalMacros);
+    // 탄단지 입력 복원 시 식단 필수 검증(!!finalMacros)도 복원한다.
+    (recordType !== "exercise" || finalDuration > 0);
 
   const handleSubmit = async () => {
     if (submittingRef.current || !canSubmit) return;
@@ -447,7 +452,7 @@ export default function AddNewExercise({
           </div>
         )}
 
-        {/* 탄단지 비율 선택 (식단일 때) */}
+        {/* 탄단지 비율 입력 임시 숨김
         {recordType === "diet" && (
           <div className="mb-6">
             <div className="flex items-center gap-1.5 mb-3">
@@ -529,6 +534,8 @@ export default function AddNewExercise({
             />
           </div>
         )}
+
+        */}
 
         {/* 오늘의 작은 성취 */}
         <div className="mb-8">
