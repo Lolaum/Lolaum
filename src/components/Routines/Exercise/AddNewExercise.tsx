@@ -366,7 +366,7 @@ export default function AddNewExercise({
                   type="file"
                   className="hidden"
                   accept="image/*"
-                  // Android 인앱 WebView 호환을 위해 사진은 한 장씩 선택한다.
+                  multiple={recordType === "exercise"}
                   onChange={handleImageUpload}
                 />
               </label>
