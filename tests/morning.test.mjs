@@ -24,17 +24,21 @@ function loadTS(file, mocks = {}) {
 const { isAfterMorningStartLimit, withMorningSchedule } = loadTS('src/lib/morning.ts');
 const photoAt = (hour, minute, second = 0) => new Date(2026, 8, 7, hour, minute, second).getTime();
 
-test('start photos accept 06:00:59 and reject 06:01:00 and the old 06:30 cutoff', () => {
+test('makeup start photos accept through 09:00:59 and reject 09:01:00 onward', () => {
   assert.equal(isAfterMorningStartLimit([photoAt(5, 59, 59)]), false);
   assert.equal(isAfterMorningStartLimit([photoAt(6, 0)]), false);
-  assert.equal(isAfterMorningStartLimit([photoAt(6, 0, 59)]), false);
-  assert.equal(isAfterMorningStartLimit([photoAt(6, 1)]), true);
-  assert.equal(isAfterMorningStartLimit([photoAt(6, 30)]), true);
+  assert.equal(isAfterMorningStartLimit([photoAt(6, 1)]), false);
+  assert.equal(isAfterMorningStartLimit([photoAt(6, 30)]), false);
+  assert.equal(isAfterMorningStartLimit([photoAt(9, 0)]), false);
+  assert.equal(isAfterMorningStartLimit([photoAt(9, 0, 59)]), false);
+  assert.equal(isAfterMorningStartLimit([photoAt(9, 1)]), true);
+  assert.equal(isAfterMorningStartLimit([photoAt(12, 0)]), true);
 });
 
 test('earliest photo determines start time regardless of upload order', () => {
-  assert.equal(isAfterMorningStartLimit([photoAt(6, 30), photoAt(6, 0)]), false);
-  assert.equal(isAfterMorningStartLimit([photoAt(6, 30), photoAt(6, 1)]), true);
+  assert.equal(isAfterMorningStartLimit([photoAt(9, 30, 59), photoAt(9, 0, 59)]), false);
+  assert.equal(isAfterMorningStartLimit([photoAt(9, 0, 59), photoAt(9, 30, 59)]), false);
+  assert.equal(isAfterMorningStartLimit([photoAt(9, 31), photoAt(9, 1)]), true);
   assert.equal(isAfterMorningStartLimit([]), false);
 });
 
@@ -84,8 +88,8 @@ test('server fixes morning registration times even when a stale client sends old
 });
 
 
-test('weekend photos still require at least 30 minutes between start and end', () => {
+test('makeup photos still require at least 30 minutes between start and end', () => {
   const { hasMinimumPhotoInterval } = loadTS('src/lib/utils.ts', { clsx: {}, 'tailwind-merge': {} });
-  assert.equal(hasMinimumPhotoInterval([photoAt(6, 0), photoAt(6, 30)], 30), true);
-  assert.equal(hasMinimumPhotoInterval([photoAt(6, 0), photoAt(6, 29, 59)], 30), false);
+  assert.equal(hasMinimumPhotoInterval([photoAt(9, 0, 59), photoAt(9, 30, 59)], 30), true);
+  assert.equal(hasMinimumPhotoInterval([photoAt(9, 0, 59), photoAt(9, 30, 58)], 30), false);
 });

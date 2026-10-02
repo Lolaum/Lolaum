@@ -24,8 +24,7 @@ import { MORNING_START_PHOTO_DEADLINE } from "@/constants/morning";
 import { isAfterMorningStartLimit } from "@/lib/morning";
 
 const WEEKEND_PHOTO_MIN_INTERVAL_MINUTES = 30;
-const MORNING_START_TIME_MESSAGE =
-  `시작 사진의 촬영 시간은 ${MORNING_START_PHOTO_DEADLINE}를 넘을 수 없습니다.`;
+const MORNING_START_TIME_MESSAGE = `시작 사진의 촬영 시간은 ${MORNING_START_PHOTO_DEADLINE}를 넘을 수 없습니다.`;
 const MORNING_DRAFT_KEY = "morning";
 
 interface MorningDraftData {
@@ -265,7 +264,7 @@ export default function AddNewMorning({
 
       {/* 메인 카드 */}
       <div className="max-w-2xl bg-white rounded-2xl border border-gray-200 p-4 mx-auto">
-        {/* 평일 / 주말 탭 */}
+        {/* 평일 기록 / 보충 인증 탭 */}
         <div className="flex gap-2 mb-5">
           <button
             type="button"
@@ -276,7 +275,7 @@ export default function AddNewMorning({
                 : "bg-gray-100 text-gray-500 hover:bg-gray-200"
             }`}
           >
-            평일 기록
+            평일 보충
           </button>
           <button
             type="button"
@@ -287,7 +286,7 @@ export default function AddNewMorning({
                 : "bg-gray-100 text-gray-500 hover:bg-gray-200"
             }`}
           >
-            주말 기록
+            보충 인증
           </button>
         </div>
 
@@ -303,7 +302,8 @@ export default function AddNewMorning({
               시작 사진과 종료 사진을 각각 1장씩 업로드해 주세요.
               <br /> 두 사진의 촬영 시간은 30분 이상 차이 나야 하며,{" "}
               <strong className="font-semibold text-gray-700">
-                시작 사진은 {MORNING_START_PHOTO_DEADLINE}까지 촬영된 사진만 인정됩니다.
+                시작 사진은 {MORNING_START_PHOTO_DEADLINE}까지 촬영된 사진만
+                인정됩니다.
               </strong>
             </p>
             <div className="space-y-3">
