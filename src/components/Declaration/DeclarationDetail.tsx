@@ -36,8 +36,12 @@ export default function DeclarationDetail({
   const questions = declarationQuestions[decl.routineType];
 
   const [routine, setRoutine] = useState(initialRoutine);
-  const [startTime, setStartTime] = useState(initialRoutine?.routine_start_time?.slice(0, 5) ?? "");
-  const [endTime, setEndTime] = useState(initialRoutine?.routine_end_time?.slice(0, 5) ?? "");
+  const [startTime, setStartTime] = useState(
+    initialRoutine?.routine_start_time?.slice(0, 5) ?? "",
+  );
+  const [endTime, setEndTime] = useState(
+    initialRoutine?.routine_end_time?.slice(0, 5) ?? "",
+  );
   const [saveError, setSaveError] = useState("");
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>(() =>
@@ -54,10 +58,13 @@ export default function DeclarationDetail({
     setSaveError("");
     let timeSaved = false;
     try {
-      if (isMine && canEditRoutineTime && routine && (
-        startTime !== (routine.routine_start_time?.slice(0, 5) ?? "") ||
-        endTime !== (routine.routine_end_time?.slice(0, 5) ?? "")
-      )) {
+      if (
+        isMine &&
+        canEditRoutineTime &&
+        routine &&
+        (startTime !== (routine.routine_start_time?.slice(0, 5) ?? "") ||
+          endTime !== (routine.routine_end_time?.slice(0, 5) ?? ""))
+      ) {
         const result = await updateRoutineTime({
           registrationId: routine.id,
           routineStartTime: startTime,
@@ -75,15 +82,19 @@ export default function DeclarationDetail({
         .filter((a) => a.answer.trim().length > 0);
       const { error } = await updateDeclaration(decl.id, answers);
       if (error) {
-        setSaveError(`${timeSaved ? "시간은 저장됐지만 선언 내용을 저장하지 못했습니다. " : ""}${error}`);
+        setSaveError(
+          `${timeSaved ? "시간은 저장됐지만 선언 내용을 저장하지 못했습니다. " : ""}${error}`,
+        );
         return;
       }
       setEditing(false);
       router.refresh();
     } catch {
-      setSaveError(timeSaved
-        ? "시간은 저장됐지만 선언 내용을 저장하지 못했습니다. 다시 저장해주세요."
-        : "저장하지 못했습니다. 연결을 확인하고 다시 시도해주세요.");
+      setSaveError(
+        timeSaved
+          ? "시간은 저장됐지만 선언 내용을 저장하지 못했습니다. 다시 저장해주세요."
+          : "저장하지 못했습니다. 연결을 확인하고 다시 시도해주세요.",
+      );
     } finally {
       setSaving(false);
     }
@@ -185,7 +196,10 @@ export default function DeclarationDetail({
         </div>
 
         {routine && (
-          <section aria-label="리추얼 시간" className="mb-5 rounded-xl border border-gray-100 px-4 py-3">
+          <section
+            aria-label="리추얼 시간"
+            className="mb-5 rounded-xl border border-gray-100 px-4 py-3"
+          >
             {editing && isMine && canEditRoutineTime ? (
               <fieldset disabled={saving} className="m-0 min-w-0 border-0 p-0">
                 <legend className="sr-only">리추얼 시간</legend>
@@ -197,28 +211,40 @@ export default function DeclarationDetail({
                 />
               </fieldset>
             ) : (
-            <div className="flex flex-wrap items-center justify-between gap-x-3">
-              <div>
-                <p className="text-xs font-semibold text-gray-500">리추얼 시간</p>
-                <p className="mt-1 flex items-center gap-1.5 text-sm font-medium tabular-nums text-gray-800">
-                  <Clock3 size={14} aria-hidden="true" />
-                  {routine.routine_start_time && routine.routine_end_time
-                    ? `${routine.routine_start_time.slice(0, 5)} - ${routine.routine_end_time.slice(0, 5)}`
-                    : "시간 미설정"}
-                  {routine.routine_type === "morning" && <span className="text-xs text-gray-400">고정</span>}
-                </p>
+              <div className="flex flex-wrap items-center justify-between gap-x-3">
+                <div>
+                  <p className="text-xs font-semibold text-gray-500">
+                    리추얼 시간
+                  </p>
+                  <p className="mt-1 flex items-center gap-1.5 text-sm font-medium tabular-nums text-gray-800">
+                    <Clock3 size={14} aria-hidden="true" />
+                    {routine.routine_start_time && routine.routine_end_time
+                      ? `${routine.routine_start_time.slice(0, 5)} - ${routine.routine_end_time.slice(0, 5)}`
+                      : "시간 미설정"}
+                    {routine.routine_type === "morning" && (
+                      <span className="text-xs text-gray-400">선언한 시간</span>
+                    )}
+                  </p>
+                </div>
               </div>
-            </div>
             )}
+            {routine.routine_type === "morning" &&
+              routine.routine_start_time && (
+                <p className="mt-2 text-xs text-gray-500 leading-relaxed">
+                  시작 사진은 {routine.routine_start_time.slice(0, 5)}:59까지
+                  촬영해야 인증됩니다.
+                </p>
+              )}
           </section>
         )}
 
         {/* 선언 내용 */}
         <div className="space-y-4">
           {questions.map((q) => {
-            const answerText = decl.routineType === "모닝리추얼" && q.id === "cert_method"
-              ? q.defaultValue ?? ""
-              : draft[q.id] ?? "";
+            const answerText =
+              decl.routineType === "모닝리추얼" && q.id === "cert_method"
+                ? (q.defaultValue ?? "")
+                : (draft[q.id] ?? "");
             const hasAnswer = decl.answers.some((a) => a.questionId === q.id);
             if (!editing && !hasAnswer) return null;
             const isReadOnly = q.id === "cert_method";
@@ -267,7 +293,11 @@ export default function DeclarationDetail({
           })}
         </div>
 
-        {saveError && <p role="alert" className="mt-4 text-sm text-red-600">{saveError}</p>}
+        {saveError && (
+          <p role="alert" className="mt-4 text-sm text-red-600">
+            {saveError}
+          </p>
+        )}
 
         {/* 편집 액션 */}
         {editing && (

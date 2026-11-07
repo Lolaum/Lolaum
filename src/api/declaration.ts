@@ -7,7 +7,6 @@ import {
   getActivePeriod,
   isChallengePeriodEnded,
 } from "@/lib/current-challenge";
-import { withMorningSchedule } from "@/lib/morning";
 import type { ChallengeRegistration, RoutineTypeDB, Json } from "@/types/supabase";
 import { ROUTINE_TYPE_LABEL } from "@/types/supabase";
 import type {
@@ -232,7 +231,7 @@ export async function getDeclarationById(
     }
 
     return {
-      routine: routine ? withMorningSchedule(routine) : null,
+      routine: routine ?? null,
       canEditRoutineTime,
       data: toDeclaration(declaration),
       currentUserId: user.id,

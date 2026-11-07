@@ -10,7 +10,7 @@ import {
 import { deleteRegisteredRoutine, isUserDeactivatedForRitual } from "@/api/admin";
 import type { ChallengeRegistration, RoutineTypeDB } from "@/types/supabase";
 
-import { MORNING_START_TIME, MORNING_END_TIME } from "@/constants/morning";
+import { isValidMorningTimeRange } from "@/lib/morning";
 import { revalidatePath } from "next/cache";
 
 function isRoutineTypeConstraintError(error: { message?: string; code?: string }) {
@@ -76,6 +76,13 @@ export async function createRoutine(input: {
     return { error: "관리자에 의해 리추얼 추가가 비활성화된 계정입니다." };
   }
 
+  if (
+    input.routineType === "morning" &&
+    !isValidMorningTimeRange(input.routineStartTime, input.routineEndTime)
+  ) {
+    return { error: "모닝 리추얼의 시작 시간과 그 이후의 종료 시간을 설정해주세요." };
+  }
+
   const supabase = await createClient();
 
   // 이미 등록된 리추얼인지 확인
@@ -97,8 +104,8 @@ export async function createRoutine(input: {
       user_id: user.id,
       challenge_id: input.challengeId,
       routine_type: input.routineType,
-      routine_start_time: input.routineType === "morning" ? MORNING_START_TIME : input.routineStartTime ?? null,
-      routine_end_time: input.routineType === "morning" ? MORNING_END_TIME : input.routineEndTime ?? null,
+      routine_start_time: input.routineStartTime ?? null,
+      routine_end_time: input.routineEndTime ?? null,
     })
     .select()
     .single();

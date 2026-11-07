@@ -9,6 +9,7 @@ import {
 } from "@/lib/current-challenge";
 import { getCurrentKoreaWeekRange } from "@/lib/current-week";
 import { normalizeRecordDataImages } from "@/lib/record-data-images";
+import { validateMorningPhotos } from "@/lib/morning";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   insertRecordingReadNotifications,
@@ -47,6 +48,38 @@ function getRecordDataObject(recordData: Json): Record<string, unknown> {
     !Array.isArray(recordData)
     ? (recordData as Record<string, unknown>)
     : {};
+}
+
+async function validateMorningCertification(input: {
+  supabase: SupabaseAnyClient;
+  userId: string;
+  challengeId: string;
+  recordData: Json;
+}): Promise<string | null> {
+  const data = getRecordDataObject(input.recordData);
+  if (
+    data.recordType !== "weekend" &&
+    !data.image &&
+    (!Array.isArray(data.certPhotos) || data.certPhotos.length === 0)
+  ) return null;
+
+  // 선언에 저장된 본인·해당 챌린지의 시간을 사용한다. 클라이언트가 보낸 마감 시간은 신뢰하지 않는다.
+  const { data: routine, error } = await input.supabase
+    .from("challenge_registrations")
+    .select("routine_start_time")
+    .eq("user_id", input.userId)
+    .eq("challenge_id", input.challengeId)
+    .eq("routine_type", "morning")
+    .order("registered_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) return "선언한 모닝 시간을 확인하지 못했습니다. 다시 시도해주세요.";
+
+  return validateMorningPhotos(
+    data.certPhotos,
+    data.certPhotoTakenAtTimes,
+    routine?.routine_start_time,
+  );
 }
 
 function hasRecordingReadEntry(recordData: Json): boolean {
@@ -365,6 +398,15 @@ export async function createRitualRecord(input: {
   }
 
   const supabase = await createClient();
+  if (input.routineType === "morning") {
+    const photoError = await validateMorningCertification({
+      supabase,
+      userId: user.id,
+      challengeId: input.challengeId,
+      recordData: input.recordData,
+    });
+    if (photoError) return { error: photoError };
+  }
   const linkedAuthors =
     input.routineType === "recording"
       ? await normalizeRecordingReadAuthors({
@@ -465,11 +507,6 @@ export async function updateRitualRecord(
   if (!user) return { error: "인증이 필요합니다." };
 
   const supabase = await createClient();
-  const imageNormalizedRecordData = await normalizeRecordDataImages(
-    recordData,
-    user.id,
-  );
-
   const { data: target, error: fetchErr } = await supabase
     .from("ritual_records")
     .select("challenge_id, record_date, routine_type, record_data")
@@ -479,6 +516,36 @@ export async function updateRitualRecord(
 
   if (fetchErr) return { error: fetchErr.message };
   if (!target) return { error: "기록을 찾을 수 없습니다." };
+
+  if (target.routine_type === "morning") {
+    const previous = getRecordDataObject(target.record_data as Json);
+    const next = getRecordDataObject(recordData);
+    const samePhotos =
+      JSON.stringify(previous.certPhotos) === JSON.stringify(next.certPhotos) &&
+      previous.image === next.image;
+    // 사진을 바꾸지 않는 회고 수정에서는 기존 촬영 정보와 과거 인증을 보존한다.
+    if (
+      samePhotos &&
+      next.certPhotoTakenAtTimes === undefined &&
+      previous.certPhotoTakenAtTimes !== undefined
+    ) {
+      recordData = { ...next, certPhotoTakenAtTimes: previous.certPhotoTakenAtTimes } as Json;
+    }
+    const sameTimes =
+      next.certPhotoTakenAtTimes === undefined ||
+      JSON.stringify(previous.certPhotoTakenAtTimes) === JSON.stringify(next.certPhotoTakenAtTimes);
+    if (!samePhotos || !sameTimes || previous.recordType !== next.recordType) {
+      const photoError = await validateMorningCertification({
+        supabase,
+        userId: user.id,
+        challengeId: target.challenge_id,
+        recordData,
+      });
+      if (photoError) return { error: photoError };
+    }
+  }
+
+  const imageNormalizedRecordData = await normalizeRecordDataImages(recordData, user.id);
 
   const linkedAuthors =
     target.routine_type === "recording"

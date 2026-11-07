@@ -9,8 +9,13 @@ import { createRoutineAuto } from "@/api/routine";
 import { createDeclaration } from "@/api/declaration";
 import { getCurrentPeriod } from "@/api/challenge";
 import { ROUTINE_TYPE_MAP } from "@/types/supabase";
+import { isValidMorningTimeRange } from "@/lib/morning";
 import { MORNING_START_TIME, MORNING_END_TIME } from "@/constants/morning";
-import TimePickerField, { toTimeValue, type TimeParts } from "@/components/Routines/TimePickerField";
+import TimePickerField, {
+  fromTimeValue,
+  toTimeValue,
+  type TimeParts,
+} from "@/components/Routines/TimePickerField";
 import ExampleTooltip from "@/components/common/ExampleTooltip";
 
 interface GenerateRoutineProps {
@@ -33,18 +38,6 @@ const EMPTY_TIME_PARTS: TimeParts = {
   period: "",
   hour: "",
   minute: "",
-};
-
-const MORNING_START_PARTS: TimeParts = {
-  period: "AM",
-  hour: MORNING_START_TIME.slice(0, 2),
-  minute: MORNING_START_TIME.slice(3),
-};
-
-const MORNING_END_PARTS: TimeParts = {
-  period: "AM",
-  hour: MORNING_END_TIME.slice(0, 2),
-  minute: MORNING_END_TIME.slice(3),
 };
 
 interface RoutineFormState {
@@ -82,7 +75,15 @@ export default function GenerateRoutine({
   } | null>(null);
   const [formsByRoutine, setFormsByRoutine] = useState<
     Partial<Record<RoutineType, RoutineFormState>>
-  >({});
+  >({
+    모닝리추얼: {
+      ...EMPTY_ROUTINE_FORM,
+      routineStartTime: MORNING_START_TIME,
+      routineEndTime: MORNING_END_TIME,
+      routineStartParts: fromTimeValue(MORNING_START_TIME),
+      routineEndParts: fromTimeValue(MORNING_END_TIME),
+    },
+  });
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -149,18 +150,6 @@ export default function GenerateRoutine({
   };
 
   const toggleSelectedRoutine = (routineType: RoutineType) => {
-    const isSelecting = !selectedRoutines.includes(routineType);
-
-    if (isSelecting && routineType === "모닝리추얼") {
-      setRoutineForm(routineType, (form) => ({
-        ...form,
-        routineStartTime: MORNING_START_TIME,
-        routineEndTime: MORNING_END_TIME,
-        routineStartParts: MORNING_START_PARTS,
-        routineEndParts: MORNING_END_PARTS,
-      }));
-    }
-
     setSelectedRoutines((prev) =>
       prev.includes(routineType)
         ? prev.filter((type) => type !== routineType)
@@ -262,6 +251,20 @@ export default function GenerateRoutine({
       return;
     }
 
+    const morningForm = formsByRoutine["모닝리추얼"];
+    if (
+      selectedRoutines.includes("모닝리추얼") &&
+      !isValidMorningTimeRange(
+        morningForm?.routineStartTime,
+        morningForm?.routineEndTime,
+      )
+    ) {
+      setErrorMsg("모닝 리추얼의 종료 시간은 시작 시간 이후로 설정해주세요.");
+      setCurrentRoutineIndex(selectedRoutines.indexOf("모닝리추얼"));
+      setSubmitting(false);
+      return;
+    }
+
     for (const selectedRoutine of selectedRoutines) {
       const routineType = ROUTINE_TYPE_MAP[selectedRoutine];
       const form = formsByRoutine[selectedRoutine] ?? EMPTY_ROUTINE_FORM;
@@ -297,7 +300,9 @@ export default function GenerateRoutine({
       });
 
       if (declError) {
-        setErrorMsg(`${selectedRoutine}은 생성되었지만 선언 저장 실패: ${declError}`);
+        setErrorMsg(
+          `${selectedRoutine}은 생성되었지만 선언 저장 실패: ${declError}`,
+        );
         setSubmitting(false);
         return;
       }
@@ -550,7 +555,11 @@ export default function GenerateRoutine({
                       onConfirm={() => setOpenTimePicker(null)}
                     />
                   </div>
-                  {currentRoutine !== "모닝리추얼" && (
+                  {currentRoutine === "모닝리추얼" ? (
+                    <p className="mt-2 text-xs text-gray-500 leading-relaxed">
+                      선언한 시작 시간이 사진 인증 기준이 됩니다.
+                    </p>
+                  ) : (
                     <p className="mt-2 text-xs text-gray-400">
                       하루 10분, 내가 매일 리추얼을 유지할 수 있는 시간을
                       선택해주세요.
@@ -561,70 +570,69 @@ export default function GenerateRoutine({
                 <div className="flex flex-col gap-4 mb-5">
                   {questions.map((q) => {
                     const labelLines = q.label.split("\n");
-                    const tipIdx =
-                      q.exampleLineIndex ?? labelLines.length - 1;
+                    const tipIdx = q.exampleLineIndex ?? labelLines.length - 1;
                     return (
-                    <div key={q.id}>
-                      <label className="block text-sm font-bold text-gray-800 mb-0.5 leading-relaxed">
-                        {labelLines.map((line, i) => (
-                          <span key={i} className="block">
-                            {line}
-                            {q.example && i === tipIdx && (
-                              <span className="ml-1 align-middle">
-                                <ExampleTooltip content={q.example} />
-                              </span>
-                            )}
-                            {i === labelLines.length - 1 && (
-                              <span className="text-red-400 ml-1">*</span>
-                            )}
-                          </span>
-                        ))}
-                      </label>
-                      {q.description && (
-                        <p className="text-xs text-gray-400 mb-2 leading-relaxed whitespace-pre-line">
-                          {q.description}
-                        </p>
-                      )}
-                      {q.isConfirmation ? (
-                        <>
-                          <div className="px-4 py-3 bg-amber-50 border border-amber-100 rounded-2xl text-sm text-gray-700 whitespace-pre-line leading-relaxed mb-2.5">
-                            {q.defaultValue}
-                          </div>
-                          <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                            <input
-                              type="checkbox"
-                              checked={currentForm.certConfirmed}
-                              onChange={(e) => {
-                                if (!currentRoutine) return;
-                                setRoutineForm(currentRoutine, (prev) => ({
-                                  ...prev,
-                                  certConfirmed: e.target.checked,
-                                }));
-                              }}
-                              className="w-4 h-4 rounded border-gray-300 accent-[#eab32e] flex-shrink-0 cursor-pointer"
-                            />
-                            <span className="text-sm text-gray-700">
-                              네, 확인했습니다
+                      <div key={q.id}>
+                        <label className="block text-sm font-bold text-gray-800 mb-0.5 leading-relaxed">
+                          {labelLines.map((line, i) => (
+                            <span key={i} className="block">
+                              {line}
+                              {q.example && i === tipIdx && (
+                                <span className="ml-1 align-middle">
+                                  <ExampleTooltip content={q.example} />
+                                </span>
+                              )}
+                              {i === labelLines.length - 1 && (
+                                <span className="text-red-400 ml-1">*</span>
+                              )}
                             </span>
-                          </label>
-                        </>
-                      ) : (
-                        <textarea
-                          value={
-                            q.readOnly
-                              ? (q.defaultValue ?? "")
-                              : (currentForm.answers[q.id] ?? "")
-                          }
-                          onChange={(e) =>
-                            handleAnswerChange(q.id, e.target.value)
-                          }
-                          placeholder={q.placeholder}
-                          rows={q.readOnly ? 6 : 3}
-                          disabled={q.readOnly}
-                          className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] focus:bg-white transition-all disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
-                        />
-                      )}
-                    </div>
+                          ))}
+                        </label>
+                        {q.description && (
+                          <p className="text-xs text-gray-400 mb-2 leading-relaxed whitespace-pre-line">
+                            {q.description}
+                          </p>
+                        )}
+                        {q.isConfirmation ? (
+                          <>
+                            <div className="px-4 py-3 bg-amber-50 border border-amber-100 rounded-2xl text-sm text-gray-700 whitespace-pre-line leading-relaxed mb-2.5">
+                              {q.defaultValue}
+                            </div>
+                            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={currentForm.certConfirmed}
+                                onChange={(e) => {
+                                  if (!currentRoutine) return;
+                                  setRoutineForm(currentRoutine, (prev) => ({
+                                    ...prev,
+                                    certConfirmed: e.target.checked,
+                                  }));
+                                }}
+                                className="w-4 h-4 rounded border-gray-300 accent-[#eab32e] flex-shrink-0 cursor-pointer"
+                              />
+                              <span className="text-sm text-gray-700">
+                                네, 확인했습니다
+                              </span>
+                            </label>
+                          </>
+                        ) : (
+                          <textarea
+                            value={
+                              q.readOnly
+                                ? (q.defaultValue ?? "")
+                                : (currentForm.answers[q.id] ?? "")
+                            }
+                            onChange={(e) =>
+                              handleAnswerChange(q.id, e.target.value)
+                            }
+                            placeholder={q.placeholder}
+                            rows={q.readOnly ? 6 : 3}
+                            disabled={q.readOnly}
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-[var(--gold-400)]/30 focus:border-[var(--gold-400)] focus:bg-white transition-all disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+                          />
+                        )}
+                      </div>
                     );
                   })}
                 </div>

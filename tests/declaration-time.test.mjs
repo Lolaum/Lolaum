@@ -143,12 +143,6 @@ function loadDeclarationApi({
       },
       isChallengePeriodEnded,
     },
-    '@/lib/morning': {
-      withMorningSchedule: (routine) =>
-        routine?.routine_type === 'morning'
-          ? { ...routine, routine_start_time: '06:00', routine_end_time: '06:30' }
-          : routine,
-    },
     '@/types/supabase': {
       ROUTINE_TYPE_LABEL: {
         morning: '모닝리추얼',
@@ -244,7 +238,7 @@ test('getDeclarationById keeps old challenge declaration time readonly', async (
   assert.equal(result.canEditRoutineTime, false);
 });
 
-test('getDeclarationById keeps morning declaration time readonly with the shared morning schedule', async () => {
+test('getDeclarationById preserves the declared morning time and keeps it readonly', async () => {
   const admin = createAdminClientMock({
     declaration: makeDeclaration({ routine_type: 'morning' }),
     registration: makeRegistration({
@@ -258,8 +252,8 @@ test('getDeclarationById keeps morning declaration time readonly with the shared
   const result = await getDeclarationById('declaration-1');
 
   assert.equal(result.canEditRoutineTime, false);
-  assert.equal(result.routine.routine_start_time, '06:00');
-  assert.equal(result.routine.routine_end_time, '06:30');
+  assert.equal(result.routine.routine_start_time, '06:30:00');
+  assert.equal(result.routine.routine_end_time, '07:00:00');
   assert.equal(getActivePeriodCalls(), 0);
 });
 

@@ -15,11 +15,15 @@ import { DEFAULT_MORNING_MEET_URL, MORNING_TIME_LABEL } from "@/constants/mornin
 interface MorningContainerProps {
   mode?: "main" | "new";
   morningMeetUrl?: string;
+  morningStartTime?: string | null;
+  scheduleError?: string;
 }
 
 export default function MorningContainer({
   mode = "main",
   morningMeetUrl = DEFAULT_MORNING_MEET_URL,
+  morningStartTime = null,
+  scheduleError,
 }: MorningContainerProps) {
   const router = useRouter();
   const [morningRecords, setMorningRecords] = useState<MorningRecord[]>([]);
@@ -68,6 +72,7 @@ export default function MorningContainer({
     const recordData: MorningRecordData = {
       recordType: formData.recordType,
       certPhotos: formData.certPhotos,
+      certPhotoTakenAtTimes: formData.certPhotoTakenAtTimes,
       sleepHours: formData.sleepHours,
       sleepImprovement: formData.sleepImprovement,
       condition: formData.condition,
@@ -81,8 +86,7 @@ export default function MorningContainer({
     });
     setSubmitting(false);
     if (error) {
-      alert(`기록 저장 실패: ${error}`);
-      return;
+      throw new Error(`기록 저장 실패: ${error}`);
     }
     goMain();
   };
@@ -98,6 +102,8 @@ export default function MorningContainer({
     return (
       <div className="w-full max-w-2xl mx-auto px-4 py-4">
         <AddNewMorning
+          morningStartTime={morningStartTime}
+          scheduleError={scheduleError}
           onCancel={goMain}
           onBackToHome={goHome}
           onSubmit={handleSubmit}

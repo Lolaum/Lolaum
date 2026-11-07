@@ -24,6 +24,7 @@ export interface MorningContainerProps {
 export interface MorningFormData {
   recordType: MorningRecordType;
   certPhotos?: string[];
+  certPhotoTakenAtTimes?: number[];
   sleepHours: number;
   sleepImprovement?: string;
   condition: ConditionLevel;
@@ -32,6 +33,8 @@ export interface MorningFormData {
 }
 
 export interface AddNewMorningProps {
+  morningStartTime: string | null;
+  scheduleError?: string;
   onCancel: () => void;
   onBackToHome?: () => void;
   onSubmit?: (recordData: MorningFormData) => void | Promise<void>;

@@ -1,4 +1,4 @@
-import { MORNING_TIME_LABEL, MORNING_CERT_METHOD } from "@/constants/morning";
+import { MORNING_CERT_METHOD } from "@/constants/morning";
 import { RoutineType } from "@/types/routines/declaration";
 
 export interface DeclarationQuestion {
@@ -28,7 +28,7 @@ export const declarationQuestions: Record<RoutineType, DeclarationQuestion[]> =
       },
       {
         id: "timetable",
-        label: `타임테이블 (${MORNING_TIME_LABEL})`,
+        label: "타임테이블 (선언한 리추얼 시간)",
         placeholder:
           "6:00 - 6:10 물 마시기 -> 6:10 - 6:20 스트레칭 -> 6:20 - 6:30 독서",
       },

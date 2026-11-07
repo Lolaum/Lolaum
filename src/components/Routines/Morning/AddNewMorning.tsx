@@ -20,11 +20,13 @@ import {
   MorningRecordType,
 } from "@/types/routines/morning";
 
-import { MORNING_START_PHOTO_DEADLINE } from "@/constants/morning";
-import { isAfterMorningStartLimit } from "@/lib/morning";
+import {
+  isAfterMorningStartLimit,
+  morningStartTimeMessage,
+  validateMorningPhotos,
+} from "@/lib/morning";
 
 const WEEKEND_PHOTO_MIN_INTERVAL_MINUTES = 30;
-const MORNING_START_TIME_MESSAGE = `시작 사진의 촬영 시간은 ${MORNING_START_PHOTO_DEADLINE}를 넘을 수 없습니다.`;
 const MORNING_DRAFT_KEY = "morning";
 
 interface MorningDraftData {
@@ -40,6 +42,8 @@ export default function AddNewMorning({
   onCancel,
   onBackToHome,
   onSubmit,
+  morningStartTime,
+  scheduleError,
 }: AddNewMorningProps) {
   const [recordType, setRecordType] = useState<MorningRecordType>("weekday");
   const [images, setImages] = useState<string[]>([]);
@@ -72,7 +76,10 @@ export default function AddNewMorning({
     !!condition &&
     success.trim().length > 0 &&
     reflection.trim().length > 0 &&
-    (recordType === "weekday" || images.length === 2) &&
+    (recordType === "weekday" ||
+      (Boolean(morningStartTime) &&
+        images.length === 2 &&
+        imageTakenAtTimes.length === 2)) &&
     (!showSleepImprovement || sleepImprovement.trim().length > 0);
 
   const handleImageFiles = async (files: FileList | null) => {
@@ -100,7 +107,11 @@ export default function AddNewMorning({
       ...imageDrafts.map((draft) => draft.takenAtTime),
     ].slice(0, 2);
 
-    if (isAfterMorningStartLimit(nextTakenAtTimes)) {
+    // 두 장을 모두 선택한 뒤 검사해 종료 사진을 먼저 올려도 인증할 수 있다.
+    if (
+      nextTakenAtTimes.length === 2 &&
+      isAfterMorningStartLimit(nextTakenAtTimes, morningStartTime)
+    ) {
       setShowStartTimeModal(true);
       return;
     }
@@ -166,6 +177,17 @@ export default function AddNewMorning({
 
   const handleSubmit = async () => {
     if (submittingRef.current || !isValid) return;
+    if (recordType === "weekend") {
+      const photoError = validateMorningPhotos(
+        images,
+        imageTakenAtTimes,
+        morningStartTime,
+      );
+      if (photoError) {
+        alert(photoError);
+        return;
+      }
+    }
     submittingRef.current = true;
     setSubmitting(true);
 
@@ -178,6 +200,9 @@ export default function AddNewMorning({
       const recordData: MorningFormData = {
         recordType,
         certPhotos: imageUrls,
+        ...(recordType === "weekend"
+          ? { certPhotoTakenAtTimes: imageTakenAtTimes }
+          : {}),
         sleepHours: sleepHoursNum,
         condition: condition as ConditionLevel,
         success: success.trim(),
@@ -196,8 +221,12 @@ export default function AddNewMorning({
         await clearDraft();
         loadedFromDraftRef.current = false;
       }
-    } catch {
-      alert("기록 저장 중 문제가 발생했습니다. 다시 시도해 주세요.");
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "기록 저장 중 문제가 발생했습니다. 다시 시도해 주세요.",
+      );
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -216,7 +245,11 @@ export default function AddNewMorning({
         open={showStartTimeModal}
         onClose={() => setShowStartTimeModal(false)}
         title="시작시간을 확인해 주세요"
-        message={MORNING_START_TIME_MESSAGE}
+        message={
+          morningStartTime
+            ? morningStartTimeMessage(morningStartTime)
+            : "모닝 리추얼 선언에서 시작 시간을 먼저 설정해주세요."
+        }
       />
 
       {/* 백 네비게이션 및 x버튼 */}
@@ -298,16 +331,25 @@ export default function AddNewMorning({
             <label className="block text-sm font-medium text-gray-700 mb-3">
               인증 사진
             </label>
+            {!morningStartTime && (
+              <p role="alert" className="text-sm text-red-500 mb-3">
+                {scheduleError ??
+                  "모닝 리추얼 선언에서 시작 시간을 먼저 설정해주세요."}
+              </p>
+            )}
             <p className="text-xs text-gray-500 mb-3 leading-relaxed">
               시작 사진과 종료 사진을 각각 1장씩 업로드해 주세요.
               <br /> 두 사진의 촬영 시간은 30분 이상 차이 나야 하며,{" "}
               <strong className="font-semibold text-gray-700">
-                시작 사진은 {MORNING_START_PHOTO_DEADLINE}까지 촬영된 사진만
-                인정됩니다.
+                시작 사진은{" "}
+                {morningStartTime
+                  ? `${morningStartTime.slice(0, 5)}:59`
+                  : "선언한 시작 분의 59초"}
+                까지 촬영된 사진만 인정됩니다. (한국 시간)
               </strong>
             </p>
             <div className="space-y-3">
-              {images.length < 2 && (
+              {morningStartTime && images.length < 2 && (
                 <label
                   className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-orange-400 transition-colors bg-gray-50"
                   onDragOver={(e) => e.preventDefault()}

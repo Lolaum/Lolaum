@@ -9,8 +9,6 @@ import { getMyRoutines } from "@/api/routine";
 import type { ChallengeRegistration, RoutineTypeDB } from "@/types/supabase";
 import { ROUTINE_TYPE_LABEL } from "@/types/supabase";
 
-import { withMorningSchedule } from "@/lib/morning";
-
 const TAG_COLORS: Record<string, { color: string; bgColor: string }> = {
   운동: { color: "#ff8900", bgColor: "#fff4e5" },
   영어: { color: "#0ea5e9", bgColor: "#f0f9ff" },
@@ -38,7 +36,7 @@ const ROUTINE_TAG: Record<RoutineTypeDB, string> = {
 const DEFAULT_COLOR = { color: "#6b7280", bgColor: "#f3f4f6" };
 
 function sortRoutinesByTime(routines: ChallengeRegistration[]) {
-  return routines.map(withMorningSchedule).sort((a, b) => {
+  return [...routines].sort((a, b) => {
     const aTime = a.routine_start_time ?? "99:99:99";
     const bTime = b.routine_start_time ?? "99:99:99";
     if (aTime !== bTime) return aTime.localeCompare(bTime);
