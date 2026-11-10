@@ -308,7 +308,7 @@ export default function AddNewMorning({
                 : "bg-gray-100 text-gray-500 hover:bg-gray-200"
             }`}
           >
-            평일 보충
+            평일 인증
           </button>
           <button
             type="button"
@@ -319,7 +319,7 @@ export default function AddNewMorning({
                 : "bg-gray-100 text-gray-500 hover:bg-gray-200"
             }`}
           >
-            보충 인증
+            주말 보충
           </button>
         </div>
 
