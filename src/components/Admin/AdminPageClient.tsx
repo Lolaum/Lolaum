@@ -45,10 +45,11 @@ import {
 import { DEFAULT_MORNING_MEET_URL } from "@/constants/morning";
 
 type Initial = Awaited<ReturnType<typeof getAdminDashboardData>>;
-type ExportKind = "donation" | "midReview" | "finalReview";
+type ExportKind = "donation" | "declaration" | "midReview" | "finalReview";
 
 const exportKindLabels: Record<ExportKind, string> = {
   donation: "기부금",
+  declaration: "리추얼 선언",
   midReview: "중간회고",
   finalReview: "최종회고",
 };
@@ -701,6 +702,7 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
     : "기간 미선택";
   const exportSourceRows: Record<ExportKind, AdminExportRow[]> = {
     donation: data.donationExportRows,
+    declaration: data.declarationExportRows,
     midReview: data.midReviewExportRows,
     finalReview: data.finalReviewExportRows,
   };
@@ -721,58 +723,70 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
       .replace(/\s+/g, " ")
       .trim();
   const selectedDownloadRows: AdminExportRow[] =
-    exportKind === "donation"
+    exportKind === "declaration"
       ? selectedExportRows.map((row) => ({
           닉네임: row.name,
-          기부금: row.penaltyAmount,
+          리추얼: row.routineLabel,
+          "시작 시간": row.routineStartTime,
+          "종료 시간": row.routineEndTime,
+          "선언 내용": row.contents,
+          "작성일 (한국 시간)": new Date(String(row.createdAt)).toLocaleString(
+            "ko-KR",
+            { timeZone: "Asia/Seoul" },
+          ),
         }))
-      : exportKind === "midReview"
+      : exportKind === "donation"
         ? selectedExportRows.map((row) => ({
             닉네임: row.name,
-            [labelFor(
-              "mid",
-              "good_pattern_title",
-              "리추얼이 가장 잘 작동했던 날, 어떤 조건이 갖춰져 있었나요?",
-            )]: row.goodConditions,
-            "잘 작동했던 날의 조건별 상세 답변": row.goodConditionDetails,
-            [labelFor(
-              "mid",
-              "hard_pattern_title",
-              "리추얼이 가장 힘들었던 날, 무엇이 걸림돌이 됐나요?",
-            )]: row.hardConditions,
-            "힘들었던 날의 조건별 상세 답변": row.hardConditionDetails,
-            [labelFor("mid", "why_started", "나는 왜 이 리추얼을 시작했나요?")]:
-              row.whyStarted,
-            [labelFor("mid", "keep_doing", "남은 기간 동안 유지할 것 1가지")]:
-              row.keepDoing,
-            [labelFor("mid", "will_change", "남은 기간 동안 바꿀 것 1가지")]:
-              row.willChange,
+            기부금: row.penaltyAmount,
           }))
-        : selectedExportRows.map((row) => ({
-            닉네임: row.name,
-            [labelFor(
-              "final",
-              "results",
-              "이번 달 하루 10분-30분 리추얼을 통해 만들어낸 눈에 보이는 결과물/행동 수치를 적어주세요.",
-            )]: row.results,
-            [labelFor(
-              "final",
-              "life_changes",
-              "리추얼을 통해 실제 삶에서 바뀐 점이 있다면?",
-            )]: row.lifeChanges,
-            [labelFor(
-              "final",
-              "continuation_choice",
-              "이 리추얼을 지금 방식 그대로 1달 더 한다면?",
-            )]: row.continuationChoice,
-            [labelFor("final", "adjustment_note", "무엇을 바꾸면 나아질까요?")]:
-              row.adjustmentNote,
-            [labelFor(
-              "final",
-              "feedback",
-              "리추얼챌린지는 여러분의 의견을 받으며 쑥쑥 자랍니다",
-            )]: row.feedback,
-          }));
+        : exportKind === "midReview"
+          ? selectedExportRows.map((row) => ({
+              닉네임: row.name,
+              [labelFor(
+                "mid",
+                "good_pattern_title",
+                "리추얼이 가장 잘 작동했던 날, 어떤 조건이 갖춰져 있었나요?",
+              )]: row.goodConditions,
+              "잘 작동했던 날의 조건별 상세 답변": row.goodConditionDetails,
+              [labelFor(
+                "mid",
+                "hard_pattern_title",
+                "리추얼이 가장 힘들었던 날, 무엇이 걸림돌이 됐나요?",
+              )]: row.hardConditions,
+              "힘들었던 날의 조건별 상세 답변": row.hardConditionDetails,
+              [labelFor("mid", "why_started", "나는 왜 이 리추얼을 시작했나요?")]:
+                row.whyStarted,
+              [labelFor("mid", "keep_doing", "남은 기간 동안 유지할 것 1가지")]:
+                row.keepDoing,
+              [labelFor("mid", "will_change", "남은 기간 동안 바꿀 것 1가지")]:
+                row.willChange,
+            }))
+          : selectedExportRows.map((row) => ({
+              닉네임: row.name,
+              [labelFor(
+                "final",
+                "results",
+                "이번 달 하루 10분-30분 리추얼을 통해 만들어낸 눈에 보이는 결과물/행동 수치를 적어주세요.",
+              )]: row.results,
+              [labelFor(
+                "final",
+                "life_changes",
+                "리추얼을 통해 실제 삶에서 바뀐 점이 있다면?",
+              )]: row.lifeChanges,
+              [labelFor(
+                "final",
+                "continuation_choice",
+                "이 리추얼을 지금 방식 그대로 1달 더 한다면?",
+              )]: row.continuationChoice,
+              [labelFor("final", "adjustment_note", "무엇을 바꾸면 나아질까요?")]:
+                row.adjustmentNote,
+              [labelFor(
+                "final",
+                "feedback",
+                "리추얼챌린지는 여러분의 의견을 받으며 쑥쑥 자랍니다",
+              )]: row.feedback,
+            }));
 
   const loadQuestion = (draft: ReviewQuestionDraft) => {
     const saved = displayedQuestions.find(
@@ -1843,6 +1857,7 @@ export default function AdminPageClient({ initial }: { initial: Initial }) {
                         }
                       >
                         <MenuItem value="donation">기부금</MenuItem>
+                        <MenuItem value="declaration">리추얼 선언</MenuItem>
                         <MenuItem value="midReview">중간회고</MenuItem>
                         <MenuItem value="finalReview">최종회고</MenuItem>
                       </TextField>

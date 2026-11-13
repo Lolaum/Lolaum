@@ -6,10 +6,12 @@ import { getAdminEmails, isAdminEmail } from "@/lib/admin-auth";
 import { logAdminError } from "@/lib/admin-error-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEffectiveStart } from "@/lib/current-challenge";
+import { declarationQuestions } from "@/lib/declarationQuestions";
 import { getKoreaTodayWithinRange } from "@/lib/korea-date";
 import { calculatePenaltyAccounting } from "@/lib/progress-accounting";
 import { getCurrentUser } from "@/lib/supabase/server";
 import { calculateWeeklyRoutineProgress } from "@/lib/weekly-routine-progress";
+import type { RoutineType } from "@/types/routines/declaration";
 import {
   ROUTINE_TYPE_LABEL,
   type Database,
@@ -72,6 +74,16 @@ export interface AdminDonationExportRow extends AdminExportRow {
   penaltyAmount: number;
 }
 
+export interface AdminDeclarationExportRow extends AdminExportRow {
+  periodId: string;
+  name: string;
+  routineLabel: string;
+  routineStartTime: string;
+  routineEndTime: string;
+  contents: string;
+  createdAt: string;
+}
+
 export interface AdminMidReviewExportRow extends AdminExportRow {
   periodId: string;
   periodLabel: string;
@@ -117,6 +129,7 @@ export interface AdminDashboardData {
   morningAttendanceUsers: AdminMorningAttendanceUser[];
   morningAttendanceExclusions: AdminMorningAttendanceExclusion[];
   donationExportRows: AdminDonationExportRow[];
+  declarationExportRows: AdminDeclarationExportRow[];
   midReviewExportRows: AdminMidReviewExportRow[];
   finalReviewExportRows: AdminFinalReviewExportRow[];
   unsupportedTables: string[];
@@ -211,6 +224,22 @@ export async function adminSignup(input: {
   return { success: true };
 }
 
+async function fetchDeclarations(admin: ReturnType<typeof createAdminClient>) {
+  const rows: Database["public"]["Tables"]["declarations"]["Row"][] = [];
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await admin
+      .from("declarations")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(offset, offset + pageSize - 1);
+    if (error) return { data: null, error };
+    rows.push(...(data ?? []));
+    if (!data || data.length < pageSize) return { data: rows, error: null };
+  }
+}
+
 export async function getAdminDashboardData(): Promise<{
   data?: AdminDashboardData;
   error?: string;
@@ -229,6 +258,7 @@ export async function getAdminDashboardData(): Promise<{
     recordsRes,
     midReviewsRes,
     finalReviewsRes,
+    declarationsRes,
   ] = await Promise.all([
     admin
       .from("challenge_periods")
@@ -240,7 +270,9 @@ export async function getAdminDashboardData(): Promise<{
       .order("created_at", { ascending: false }),
     admin
       .from("challenge_registrations")
-      .select("id, user_id, challenge_id, routine_type"),
+      .select(
+        "id, user_id, challenge_id, routine_type, routine_start_time, routine_end_time",
+      ),
     admin
       .from("challenges")
       .select("id, user_id, period_id, created_at, reset_at"),
@@ -257,6 +289,7 @@ export async function getAdminDashboardData(): Promise<{
       .from("final_reviews")
       .select("*")
       .order("created_at", { ascending: false }),
+    fetchDeclarations(admin),
   ]);
 
   if (periodsRes.error) {
@@ -292,6 +325,13 @@ export async function getAdminDashboardData(): Promise<{
       finalReviewsRes.error.message,
     );
     return { error: finalReviewsRes.error.message };
+  }
+  if (declarationsRes.error) {
+    await logAdminError(
+      "admin.declarations.fetch",
+      declarationsRes.error.message,
+    );
+    return { error: declarationsRes.error.message };
   }
 
   const [deactivatedRes, questionsRes, logsRes] = await Promise.all([
@@ -506,6 +546,59 @@ export async function getAdminDashboardData(): Promise<{
     }
   }
 
+  const registrationByRoutine = new Map(
+    (registrationsRes.data ?? []).map((registration) => [
+      `${registration.challenge_id}:${registration.user_id}:${registration.routine_type}`,
+      registration,
+    ]),
+  );
+  const declarationExportRows: AdminDeclarationExportRow[] = (
+    declarationsRes.data ?? []
+  ).flatMap((declaration) => {
+    const challenge = challengeById.get(declaration.challenge_id);
+    if (!challenge) return [];
+    const profile = profileById.get(declaration.user_id);
+    const registration = registrationByRoutine.get(
+      `${declaration.challenge_id}:${declaration.user_id}:${declaration.routine_type}`,
+    );
+    const routineLabel = ROUTINE_TYPE_LABEL[declaration.routine_type];
+    const questions = declarationQuestions[routineLabel as RoutineType] ?? [];
+    const answers = Array.isArray(declaration.answers) ? declaration.answers : [];
+    const certMethodIndex = answers.findIndex(
+      (item) =>
+        item !== null &&
+        typeof item === "object" &&
+        !Array.isArray(item) &&
+        item.questionId === "cert_method",
+    );
+    const contents = answers
+      .slice(0, certMethodIndex === -1 ? answers.length : certMethodIndex)
+      .flatMap((item) => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+        if (
+          typeof item.questionId !== "string" ||
+          typeof item.answer !== "string"
+        )
+          return [];
+        const label = questions.find(
+          (question) => question.id === item.questionId,
+        )?.label;
+        return [`${label ?? item.questionId}\n${item.answer}`];
+      })
+      .join("\n\n");
+    return [
+      {
+        periodId: challenge.period_id,
+        name: profile?.name ?? "",
+        routineLabel,
+        routineStartTime: registration?.routine_start_time?.slice(0, 5) ?? "",
+        routineEndTime: registration?.routine_end_time?.slice(0, 5) ?? "",
+        contents,
+        createdAt: declaration.created_at,
+      },
+    ];
+  });
+
   const midReviewExportRows: AdminMidReviewExportRow[] = (
     midReviewsRes.data ?? []
   )
@@ -589,6 +682,7 @@ export async function getAdminDashboardData(): Promise<{
       morningAttendanceUsers,
       morningAttendanceExclusions,
       donationExportRows,
+      declarationExportRows,
       midReviewExportRows,
       finalReviewExportRows,
       unsupportedTables,
