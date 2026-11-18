@@ -6,6 +6,7 @@ import HomCalendar from "./HomeCalendar";
 import TaskTabs from "./Todo/TaskTabs";
 import MemberProfile from "./Profile/MemberProfile";
 import Profile from "./Profile/Profile";
+// import RecapInvitation from "@/components/Recap/RecapInvitation";
 import { formatDateKey } from "@/lib/date";
 import { useKoreaMidnightRefresh } from "@/lib/hooks/useKoreaMidnightRefresh";
 import {
@@ -148,6 +149,7 @@ export default function HomeContainer({
   return (
     <div className="w-full px-4 py-4 sm:px-6 md:px-8 lg:px-12">
       <div className="mx-auto max-w-5xl">
+        {/* <RecapInvitation /> */}
         <div className="flex flex-col gap-4 md:flex-row md:gap-6">
           {/* 캘린더 섹션 */}
           <div className="contents md:order-1 md:block md:w-1/2 lg:w-5/12">

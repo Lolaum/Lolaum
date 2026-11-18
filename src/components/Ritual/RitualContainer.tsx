@@ -10,6 +10,7 @@ import type {
 } from "@/api/ritual-stats";
 import RecordGallery from "./RecordGallery";
 import RoutineInsights from "./RoutineInsights";
+import RecapInvitation from "@/components/Recap/RecapInvitation";
 
 interface RitualInitialData {
   overall?: RitualOverallStats;
@@ -129,6 +130,7 @@ export default function RitualContainer({
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 pb-8">
+      {isOwnProfile && <RecapInvitation />}
       {/* ── 헤더 섹션 ── */}
       <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-4 mb-6">
         <p className="text-xs text-gray-400 font-medium mb-0.5">
