@@ -1,0 +1,371 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-areas:
+    "participation participation participation participation streak streak days days"
+    "participation participation participation participation records records records records"
+    "favorite favorite favorite weekdays weekdays weekdays achievement achievement"
+    "favorite favorite favorite weekdays weekdays weekdays goals goals"
+    "months months months months variety variety variety variety"
+    "moments moments moments moments variety variety variety variety";
+  gap: 10px;
+  margin-top: 22px;
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--color-gray-100);
+  border-radius: 20px;
+  background: var(--background);
+  color: var(--color-gray-900);
+}
+.participation {
+  grid-area: participation;
+  border-color: var(--gold-400);
+  background: var(--gold-400);
+}
+.streak {
+  grid-area: streak;
+  border-color: var(--gold-50);
+  background: var(--gold-50);
+}
+.days {
+  grid-area: days;
+}
+.records {
+  grid-area: records;
+  background: var(--color-gray-50);
+}
+.favoriteCard {
+  grid-area: favorite;
+  border-color: var(--orange-50);
+  background: var(--orange-50);
+}
+.weekdays {
+  grid-area: weekdays;
+}
+.achievement {
+  grid-area: achievement;
+}
+.goals {
+  grid-area: goals;
+  border-color: var(--gold-50);
+  background: var(--gold-50);
+}
+.months {
+  grid-area: months;
+  background: var(--color-gray-50);
+}
+.variety {
+  grid-area: variety;
+  border-color: var(--gold-50);
+  background: var(--gold-50);
+}
+.moments {
+  grid-area: moments;
+}
+.label {
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: auto;
+}
+.value {
+  font-size: 40px;
+  font-weight: 750;
+  line-height: 1;
+  letter-spacing: -0.055em;
+  color: var(--gold-600);
+  font-variant-numeric: tabular-nums;
+}
+.value span {
+  margin-left: 3px;
+  font-size: 0.38em;
+  font-weight: 650;
+  letter-spacing: -0.04em;
+}
+.heroValue {
+  font-size: 76px;
+  color: var(--color-gray-900);
+}
+.description {
+  font-size: 11px;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+.smallCard {
+  gap: 10px;
+  padding: 16px;
+}
+.smallCard .value {
+  font-size: 36px;
+}
+.records,
+.moments {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  column-gap: 18px;
+}
+.records > div,
+.moments > div {
+  min-width: 0;
+}
+.records > div + div,
+.moments > div + div {
+  padding-left: 18px;
+  border-left: 1px solid var(--color-gray-200);
+}
+.records .value {
+  margin-top: 10px;
+  font-size: 32px;
+}
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 4px;
+}
+.calendar span {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 24px;
+  border: 1px solid rgb(17 24 39 / 18%);
+  border-radius: 6px;
+  color: var(--color-gray-700);
+  font-size: 10px;
+}
+.calendar .activeMonth {
+  border-color: var(--color-gray-900);
+  background: var(--color-gray-900);
+  color: var(--gold-50);
+  font-weight: 700;
+}
+.favorite {
+  font-size: 42px;
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -0.05em;
+  word-break: keep-all;
+}
+.multiple {
+  font-size: 26px;
+  line-height: 1.4;
+}
+.more {
+  font-size: 11px;
+  line-height: 1.7;
+}
+.more summary {
+  padding-block: 4px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.more p {
+  margin-top: 6px;
+}
+.weekdayValue {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: -0.04em;
+  color: var(--gold-600);
+  word-break: keep-all;
+}
+.chart {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+.day {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+  font-size: 10px;
+  color: var(--color-gray-500);
+}
+.track {
+  display: flex;
+  width: 100%;
+  max-width: 28px;
+  height: 58px;
+  align-items: flex-end;
+  border-bottom: 1px solid var(--gold-200);
+}
+.track span {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  background: var(--gold-100);
+}
+.track .highlight {
+  background: var(--gold-400);
+}
+.chartHeading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+.chartHeading .description {
+  color: var(--color-gray-500);
+}
+.monthChart {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+.monthChart .track {
+  height: 36px;
+}
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tag {
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: var(--background);
+  color: var(--gold-600);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.date {
+  margin-top: 8px;
+  font-size: 21px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--gold-600);
+}
+.moments .description {
+  margin-top: 8px;
+}
+.lastRecordToggle summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  min-height: 44px;
+  padding: 4px 0;
+  color: var(--gold-600);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  list-style: none;
+  cursor: pointer;
+}
+.lastRecordToggle summary::-webkit-details-marker {
+  display: none;
+}
+.lastRecordToggle svg {
+  flex-shrink: 0;
+}
+.lastRecordToggle[open] svg {
+  transform: rotate(180deg);
+}
+.lastRecordToggle p {
+  border-top: 1px solid var(--color-gray-100);
+  padding-top: 16px;
+  font-size: 12px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 700px) {
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-areas:
+      "participation participation streak streak"
+      "participation participation days days"
+      "records records records records"
+      "favorite favorite weekdays weekdays"
+      "months months months months"
+      "variety variety achievement achievement"
+      "variety variety goals goals"
+      "moments moments moments moments";
+    gap: 8px;
+    margin-top: 20px;
+  }
+  .card {
+    gap: 12px;
+    padding: 16px;
+    border-radius: 18px;
+  }
+  .smallCard {
+    padding: 14px 16px;
+    gap: 8px;
+  }
+  .smallCard .value {
+    font-size: 34px;
+  }
+  .heroValue {
+    font-size: 60px;
+  }
+  .calendar {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 3px;
+  }
+  .calendar span {
+    min-height: 21px;
+    font-size: 9px;
+    border-radius: 4px;
+  }
+  .favorite {
+    font-size: 36px;
+  }
+  .multiple {
+    font-size: 25px;
+  }
+  .weekdayValue {
+    font-size: 20px;
+  }
+  .chart {
+    gap: 4px;
+  }
+  .track {
+    height: 38px;
+  }
+  .monthChart .track {
+    height: 40px;
+  }
+  .tag {
+    padding: 4px 7px;
+    font-size: 10px;
+  }
+}
+@media (max-width: 359px) {
+  .card,
+  .smallCard {
+    padding: 12px;
+  }
+  .label {
+    font-size: 11px;
+  }
+  .smallCard .value {
+    font-size: 30px;
+  }
+  .records .value {
+    font-size: 28px;
+  }
+  .heroValue {
+    font-size: 52px;
+  }
+  .weekdayValue {
+    font-size: 18px;
+  }
+  .date {
+    font-size: 18px;
+  }
+}
