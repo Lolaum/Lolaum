@@ -1090,7 +1090,6 @@ export async function setMorningAttendanceExcluded(input: {
 }
 
 export async function upsertReviewQuestion(input: {
-  id?: string;
   reviewType: "mid" | "final";
   questionKey: string;
   label: string;
@@ -1113,12 +1112,9 @@ export async function upsertReviewQuestion(input: {
   };
 
   const admin = createAdminClient();
-  const result = input.id
-    ? await admin
-        .from("admin_review_questions")
-        .update(payload)
-        .eq("id", input.id)
-    : await admin.from("admin_review_questions").insert(payload);
+  const result = await admin
+    .from("admin_review_questions")
+    .upsert(payload, { onConflict: "review_type,question_key" });
 
   if (result.error) {
     await logAdminError(
